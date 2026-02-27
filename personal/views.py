@@ -23,7 +23,7 @@ from .models import Area, SubArea, Personal, Roster, RosterAudit
 from .forms import AreaForm, SubAreaForm, PersonalForm, RosterForm, ImportExcelForm
 from .permissions import (
     filtrar_areas, filtrar_subareas, filtrar_personal,
-    puede_editar_personal, get_context_usuario, es_responsable_area
+    puede_editar_personal, puede_editar_roster, get_context_usuario, es_responsable_area
 )
 
 
@@ -570,9 +570,17 @@ def roster_matricial(request):
 @login_required
 def roster_create(request):
     """Crear nuevo registro de roster."""
+    if not request.user.is_superuser and not es_responsable_area(request.user):
+        messages.error(request, 'No tienes permisos para crear registros de roster.')
+        return redirect('roster_matricial')
+
     if request.method == 'POST':
         form = RosterForm(request.POST)
         if form.is_valid():
+            personal = form.cleaned_data.get('personal')
+            if personal and not puede_editar_roster(request.user, personal):
+                messages.error(request, 'No tienes permisos para editar el roster de este personal.')
+                return redirect('roster_matricial')
             form.save()
             messages.success(request, 'Registro de roster creado exitosamente.')
             return redirect('roster_matricial')
@@ -586,6 +594,11 @@ def roster_create(request):
 def roster_update(request, pk):
     """Actualizar registro de roster."""
     roster = get_object_or_404(Roster, pk=pk)
+
+    puede, mensaje = roster.puede_editar(request.user)
+    if not puede:
+        messages.error(request, mensaje)
+        return redirect('roster_matricial')
     
     if request.method == 'POST':
         form = RosterForm(request.POST, instance=roster)
@@ -1042,6 +1055,10 @@ def roster_export(request):
 @login_required
 def roster_import(request):
     """Importar roster desde Excel."""
+    if not request.user.is_superuser and not es_responsable_area(request.user):
+        messages.error(request, 'No tienes permisos para importar roster.')
+        return redirect('roster_matricial')
+
     if request.method == 'POST':
         form = ImportExcelForm(request.POST, request.FILES)
         if form.is_valid():
@@ -1092,6 +1109,12 @@ def roster_import(request):
                             continue
                         
                         personal = Personal.objects.get(nro_doc=nro_doc)
+
+                        if not puede_editar_roster(request.user, personal):
+                            errores.append(
+                                f"Fila {idx + 2}: No tienes permisos para editar el roster de {personal.apellidos_nombres}"
+                            )
+                            continue
                         
                         # Procesar cada día
                         for col_dia in columnas_dias:
@@ -1188,7 +1211,7 @@ def roster_update_cell(request):
         personal = get_object_or_404(filtrar_personal(request.user), pk=personal_id)
         
         # Verificar permisos
-        if not puede_editar_personal(request.user, personal):
+        if not puede_editar_roster(request.user, personal):
             return JsonResponse({'success': False, 'error': 'No tienes permisos para editar este personal'}, status=403)
         
         # Verificar restricciones de fecha (solo admin puede editar días anteriores)
@@ -1256,14 +1279,11 @@ def roster_update_cell(request):
         estado_inicial = 'aprobado'  # Por defecto aprobado para admin
         
         if not request.user.is_superuser:
-            # Para personal regular, el cambio va a borrador inicialmente
-            if hasattr(request.user, 'personal_data') and request.user.personal_data == personal:
+            areas_responsable = get_areas_responsable(request.user)
+            if personal.subarea and areas_responsable.filter(pk=personal.subarea.area_id).exists():
+                estado_inicial = 'aprobado'
+            elif hasattr(request.user, 'personal_data') and request.user.personal_data == personal:
                 estado_inicial = 'borrador'
-            # Para líderes/responsables, el cambio va aprobado directamente
-            else:
-                areas_responsable = get_areas_responsable(request.user)
-                if personal.subarea and areas_responsable.filter(pk=personal.subarea.area_id).exists():
-                    estado_inicial = 'aprobado'
         
         if codigo:
             # Crear o actualizar roster

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Vista RCO — Tareo{% endblock %}
+
+{% block extra_css %}
+<style>
+.rco-badge-25  { background: #ffc107; color: #212529; }
+.rco-badge-35  { background: #fd7e14; color: #fff; }
+.rco-badge-100 { background: #dc3545; color: #fff; }
+.he-cell { font-weight: 700; text-align: right; }
+.he-25  { color: #856404; }
+.he-35  { color: #cc5500; }
+.he-100 { color: #842029; }
+.he-zero { color: #dee2e6; font-weight: 400; }
+.fixed-col { position: sticky; left: 0; background: #fff; z-index: 5; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-hard-hat text-info me-2"></i>Vista RCO — Horas Extra</h2>
+        <small class="text-muted">{{ total_registros }} registros · pago en planilla S10</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Dashboard
+        </a>
+        <a href="{% url 'tareo_staff' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-table me-1"></i>Ver STAFF
+        </a>
+    </div>
+</div>
+
+<!-- Selector importación + filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Importación</label>
+                <select name="importacion" class="form-select form-select-sm" style="max-width:380px">
+                    {% for imp in importaciones %}
+                    <option value="{{ imp.id }}" {% if imp.id == importacion.id %}selected{% endif %}>
+                        {{ imp.periodo_inicio|date:"d/m/Y" }} → {{ imp.periodo_fin|date:"d/m/Y" }}
+                        ({{ imp.total_registros }} reg.)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Buscar DNI/Nombre</label>
+                <input type="text" name="dni" value="{{ buscar_dni }}" class="form-control form-control-sm"
+                       placeholder="DNI o parte del nombre" style="width:200px">
+            </div>
+            <div class="col-auto d-flex align-items-end">
+                <div class="form-check mb-0 ms-2">
+                    <input class="form-check-input" type="checkbox" name="solo_he" value="1"
+                           id="soloHE" {% if solo_con_he %}checked{% endif %}>
+                    <label class="form-check-label small fw-semibold" for="soloHE">Solo con HE</label>
+                </div>
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search me-1"></i>Filtrar
+                </button>
+                <a href="{% url 'tareo_rco' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Resumen por persona -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between">
+        <span><i class="fas fa-chart-bar me-2 text-info"></i><strong>Resumen por Persona (RCO)</strong></span>
+        <span class="badge bg-info">{{ resumen|length }} personas</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" id="tablaResumen">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>DNI</th>
+                        <th class="text-end">
+                            <span class="badge rco-badge-25">HE 25%</span>
+                        </th>
+                        <th class="text-end">
+                            <span class="badge rco-badge-35">HE 35%</span>
+                        </th>
+                        <th class="text-end">
+                            <span class="badge rco-badge-100">HE 100%</span>
+                        </th>
+                        <th class="text-end">Total HE</th>
+                        <th class="text-end">Horas Totales</th>
+                        <th class="text-center">Días Reg.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in resumen %}
+                    <tr>
+                        <td class="fw-semibold">{{ r.nombre_archivo }}</td>
+                        <td class="text-muted small">{{ r.dni }}</td>
+                        <td class="he-cell {% if r.total_he_25 %}he-25{% else %}he-zero{% endif %}">
+                            {{ r.total_he_25|floatformat:2 }}
+                        </td>
+                        <td class="he-cell {% if r.total_he_35 %}he-35{% else %}he-zero{% endif %}">
+                            {{ r.total_he_35|floatformat:2 }}
+                        </td>
+                        <td class="he-cell {% if r.total_he_100 %}he-100{% else %}he-zero{% endif %}">
+                            {{ r.total_he_100|floatformat:2 }}
+                        </td>
+                        <td class="he-cell fw-bold">
+                            {{ r.total_he_25|floatformat:0|add:"0" }}
+                            {# Django no suma Decimals fácil, usamos el total en vista #}
+                        </td>
+                        <td class="text-end text-muted small">{{ r.total_horas|floatformat:1 }}</td>
+                        <td class="text-center">{{ r.dias_trabajados }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-3 text-muted">Sin registros RCO</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if totales.t_he_25 or totales.t_he_35 or totales.t_he_100 %}
+                <tfoot class="table-secondary fw-bold">
+                    <tr>
+                        <td colspan="2">TOTALES</td>
+                        <td class="text-end he-25">{{ totales.t_he_25|floatformat:2 }}</td>
+                        <td class="text-end he-35">{{ totales.t_he_35|floatformat:2 }}</td>
+                        <td class="text-end he-100">{{ totales.t_he_100|floatformat:2 }}</td>
+                        <td class="text-end">—</td>
+                        <td class="text-end">{{ totales.t_horas|floatformat:1 }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Detalle por día -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-2 text-secondary"></i><strong>Detalle Diario</strong></span>
+        <span class="badge bg-secondary">{{ total_registros }} registros</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 55vh; overflow-y:auto">
+            <table class="table table-hover table-sm mb-0" id="tablaDetalle">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>DNI</th>
+                        <th>Fecha</th>
+                        <th>Cód.</th>
+                        <th class="text-end">H. Marcadas</th>
+                        <th class="text-end">H. Efectivas</th>
+                        <th class="text-end"><span class="badge rco-badge-25">25%</span></th>
+                        <th class="text-end"><span class="badge rco-badge-35">35%</span></th>
+                        <th class="text-end"><span class="badge rco-badge-100">100%</span></th>
+                        <th>Fuente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in registros %}
+                    <tr {% if reg.he_25 > 0 or reg.he_35 > 0 or reg.he_100 > 0 %}class="table-warning"{% endif %}>
+                        <td class="fw-semibold small">{{ reg.nombre_archivo }}</td>
+                        <td class="text-muted small">{{ reg.dni }}</td>
+                        <td class="small">{{ reg.fecha|date:"d/m/Y" }}
+                            <span class="text-muted" style="font-size:.7rem">
+                                ({{ reg.fecha|date:"D"|slice:":2" }})
+                            </span>
+                        </td>
+                        <td><span class="badge bg-secondary">{{ reg.codigo_dia|default:"—" }}</span></td>
+                        <td class="text-end small">{{ reg.horas_marcadas|floatformat:2|default:"—" }}</td>
+                        <td class="text-end small">{{ reg.horas_efectivas|floatformat:2|default:"—" }}</td>
+                        <td class="he-cell {% if reg.he_25 %}he-25{% else %}he-zero{% endif %}">
+                            {% if reg.he_25 %}{{ reg.he_25|floatformat:2 }}{% else %}·{% endif %}
+                        </td>
+                        <td class="he-cell {% if reg.he_35 %}he-35{% else %}he-zero{% endif %}">
+                            {% if reg.he_35 %}{{ reg.he_35|floatformat:2 }}{% else %}·{% endif %}
+                        </td>
+                        <td class="he-cell {% if reg.he_100 %}he-100{% else %}he-zero{% endif %}">
+                            {% if reg.he_100 %}{{ reg.he_100|floatformat:2 }}{% else %}·{% endif %}
+                        </td>
+                        <td class="small text-muted">{{ reg.fuente_codigo|default:"RELOJ" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-muted">
+                            <i class="fas fa-filter fs-2 d-block mb-2"></i>
+                            Sin registros para estos filtros.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#tablaResumen').DataTable({
+        paging: false, searching: false, info: false,
+        order: [[5, 'desc']],
+        columnDefs: [{ orderable: false, targets: [7] }],
+        language: { decimal: ',', emptyTable: 'Sin datos' }
+    });
+});
+</script>
+{% endblock %}

@@ -565,6 +565,13 @@
                         {% endif %}
                         {% if user.is_superuser %}
                         <li class="nav-item">
+                            <a class="nav-link sidebar-link" href="{% url 'tareo_dashboard' %}">
+                                <i class="fas fa-clock"></i> <span class="nav-text">Tareo</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if user.is_superuser %}
+                        <li class="nav-item">
                             <a class="nav-link sidebar-link" href="{% url 'usuario_list' %}">
                                 <i class="fas fa-users-cog"></i> <span class="nav-text">Gestión de Usuarios</span>
                             </a>

@@ -501,7 +501,11 @@
                                     data-fecha="{{ item.fecha|date:'Y-m-d' }}"
                                     data-fecha-alta="{{ fila.personal.fecha_alta|date:'Y-m-d'|default:'' }}"
                                     data-dias-corte="{{ fila.dias_libres_corte_2025 }}"
-                                    {% if fila.personal.fecha_alta and item.fecha < fila.personal.fecha_alta %}disabled title="Anterior a fecha de alta ({{ fila.personal.fecha_alta|date:'d/m/Y' }})"{% endif %}
+                                    {% if not es_responsable and not user.is_superuser %}
+                                        disabled title="Solo responsables de area pueden editar el roster"
+                                    {% elif fila.personal.fecha_alta and item.fecha < fila.personal.fecha_alta %}
+                                        disabled title="Anterior a fecha de alta ({{ fila.personal.fecha_alta|date:'d/m/Y' }})"
+                                    {% endif %}
                                 >
                                     <option value="">-</option>
                                     <option value="T" {% if item.codigo == 'T' %}selected{% endif %}>T</option>

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Vista STAFF — Tareo{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Scroll contenedor ────────────────────────────────────── */
+.matriz-wrap   { overflow-x: auto; overflow-y: auto; max-height: 74vh; }
+.matriz-table  { border-collapse: separate; border-spacing: 0; font-size: .77rem; min-width: max-content; }
+
+/* ── Cabecera sticky (top) ───────────────────────────────── */
+.matriz-table thead th {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--primary-color); color: #fff;
+    font-weight: 600; text-align: center;
+    padding: 5px 7px; white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,.2);
+}
+.th-nombre { left: 0; z-index: 31 !important; min-width: 200px; text-align: left !important; }
+.th-dni    { left: 200px; z-index: 31 !important; min-width: 88px; }
+.th-total  { right: 0; z-index: 31 !important; min-width: 80px; background: #1a2b47 !important;
+             border-left: 2px solid rgba(255,255,255,.3); }
+
+/* ── Columnas fijas (izquierda y derecha) ────────────────── */
+.td-nombre { position: sticky; left: 0; z-index: 10; background: #fff;
+             min-width: 200px; white-space: nowrap; font-weight: 600;
+             padding: 4px 8px; border-right: 1px solid #dee2e6; }
+.td-dni    { position: sticky; left: 200px; z-index: 10; background: #fff;
+             min-width: 88px; text-align: center; padding: 4px 6px;
+             border-right: 1px solid #dee2e6; color: #6c757d; font-size: .73rem; }
+.td-total  { position: sticky; right: 0; z-index: 10; background: #f8f9fa;
+             min-width: 80px; text-align: center; font-weight: 700;
+             border-left: 2px solid #adb5bd !important; }
+.td-tot-f  { color: #dc3545; } /* total faltas */
+
+/* ── Celdas de días ──────────────────────────────────────── */
+.dc { text-align: center; min-width: 36px; padding: 3px 4px;
+      border-right: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6;
+      font-weight: 700; font-size: .8rem; cursor: default; }
+.dc[title]:hover::after {
+    content: attr(title); position: absolute; background: #333; color: #fff;
+    padding: 3px 7px; border-radius: 4px; font-size: .72rem;
+    white-space: nowrap; z-index: 999; margin-top: -22px;
+}
+.matriz-table tbody tr:hover .td-nombre,
+.matriz-table tbody tr:hover .td-dni { background: #eef4ff; }
+
+/* ── Color celdas por codigo ────────────────────────────── */
+.c-T   { background: #d4edda; color: #1a6631; }
+.c-HE  { background: #fff3cd; color: #6d4c01; }
+.c-F   { background: #f8d7da; color: #842029; }
+.c-V   { background: #cce5ff; color: #004085; }
+.c-DL  { background: #e2d9f3; color: #4a1c7a; }
+.c-P   { background: #d1ecf1; color: #0c5460; }
+.c-DP  { background: #d6eaf8; color: #1a5276; }
+.c-FE  { background: #ffd6e0; color: #9b1c2e; }
+.c-SD  { background: #f5f5f5; color: #aaa; font-weight: 400; }
+
+/* Leyenda */
+.legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; margin-right: 10px; }
+.legend-box  { width: 20px; height: 16px; border-radius: 3px; border: 1px solid rgba(0,0,0,.1); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-table text-primary me-2"></i>Vista STAFF — Matriz</h2>
+        <small class="text-muted">{{ total_personas }} personas · {{ fechas|length }} días</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Dashboard
+        </a>
+        <a href="{% url 'tareo_rco' %}" class="btn btn-info btn-sm text-white">
+            <i class="fas fa-hard-hat me-1"></i>Ver RCO
+        </a>
+    </div>
+</div>
+
+<!-- Selector importación -->
+<div class="card mb-2">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+            <label class="fw-semibold small"><i class="fas fa-database me-1"></i>Importación:</label>
+            <select name="importacion" class="form-select form-select-sm" style="max-width:420px"
+                    onchange="this.form.submit()">
+                {% for imp in importaciones %}
+                <option value="{{ imp.id }}" {% if imp.id == importacion.id %}selected{% endif %}>
+                    {{ imp.periodo_inicio|date:"d/m/Y" }} → {{ imp.periodo_fin|date:"d/m/Y" }}
+                    &nbsp;({{ imp.total_registros }} reg.)
+                </option>
+                {% endfor %}
+            </select>
+            <span class="badge bg-primary ms-1">{{ importacion.periodo_inicio|date:"d/m/Y" }} – {{ importacion.periodo_fin|date:"d/m/Y" }}</span>
+        </form>
+    </div>
+</div>
+
+<!-- Leyenda -->
+<div class="mb-2 d-flex flex-wrap align-items-center gap-1">
+    <span class="legend-item"><span class="legend-box c-T"></span>Trabajo normal</span>
+    <span class="legend-item"><span class="legend-box c-HE"></span>Con HE</span>
+    <span class="legend-item"><span class="legend-box c-F"></span>Falta</span>
+    <span class="legend-item"><span class="legend-box c-V"></span>Vacaciones</span>
+    <span class="legend-item"><span class="legend-box c-DL"></span>Día Libre / DL</span>
+    <span class="legend-item"><span class="legend-box c-P"></span>Permiso</span>
+    <span class="legend-item"><span class="legend-box c-FE"></span>Feriado</span>
+    <span class="legend-item"><span class="legend-box c-SD"></span>Sin dato</span>
+</div>
+
+<!-- Tabla Matricial -->
+<div class="matriz-wrap">
+<table class="matriz-table">
+    <thead>
+        <tr>
+            <th class="th-nombre">Nombre</th>
+            <th class="th-dni">DNI</th>
+            {% for fecha in fechas %}
+            <th title="{{ fecha|date:'l d/m/Y' }}">
+                {{ fecha|date:"d" }}<br>
+                <span style="font-weight:400;font-size:.65rem">
+                    {% with wd=fecha|date:"w" %}
+                    {% if wd == "0" %}Do
+                    {% elif wd == "1" %}Lu
+                    {% elif wd == "2" %}Ma
+                    {% elif wd == "3" %}Mi
+                    {% elif wd == "4" %}Ju
+                    {% elif wd == "5" %}Vi
+                    {% else %}Sa{% endif %}
+                    {% endwith %}
+                </span>
+            </th>
+            {% endfor %}
+            <th class="th-total">HE<br><span style="font-size:.65rem;font-weight:400">banco</span></th>
+            <th class="th-total">Días<br><span style="font-size:.65rem;font-weight:400">trab.</span></th>
+            <th class="th-total">Falt.</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for persona in personas %}
+        <tr>
+            <td class="td-nombre" title="{{ persona.dni }}">{{ persona.nombre }}</td>
+            <td class="td-dni">{{ persona.dni }}</td>
+
+            {% for reg in persona.row %}
+            {% if reg %}
+                {% with cod=reg.codigo_dia|upper %}
+                {% if cod == "F" %}
+                    <td class="dc c-F" title="FALTA {{ reg.fecha|date:'d/m' }}">F</td>
+                {% elif cod == "V" or cod == "VAC" %}
+                    <td class="dc c-V" title="VACACIONES {{ reg.fecha|date:'d/m' }}">V</td>
+                {% elif cod == "DL" or cod == "D.L" or cod == "D/L" %}
+                    <td class="dc c-DL" title="DÍA LIBRE {{ reg.fecha|date:'d/m' }}">DL</td>
+                {% elif cod == "P" or cod == "PM" or cod == "PP" %}
+                    <td class="dc c-P" title="PERMISO {{ reg.fecha|date:'d/m' }}">P</td>
+                {% elif cod == "FE" or cod == "FER" %}
+                    <td class="dc c-FE" title="FERIADO {{ reg.fecha|date:'d/m' }}">FE</td>
+                {% elif cod == "DP" or cod == "D.P" %}
+                    <td class="dc c-DP" title="DESCANSO PROG. {{ reg.fecha|date:'d/m' }}">DP</td>
+                {% elif reg.he_25 > 0 or reg.he_35 > 0 or reg.he_100 > 0 %}
+                    <td class="dc c-HE"
+                        title="{{ reg.fecha|date:'d/m' }} | {{ reg.horas_marcadas|floatformat:1 }}h | HE: {{ reg.he_25|floatformat:1 }}+{{ reg.he_35|floatformat:1 }}+{{ reg.he_100|floatformat:1 }}">
+                        {{ reg.codigo_dia|upper|default:"T" }}*
+                    </td>
+                {% elif cod %}
+                    <td class="dc c-T" title="{{ reg.fecha|date:'d/m' }} | {{ reg.horas_marcadas|floatformat:1 }}h | {{ reg.codigo_dia }}">
+                        {{ reg.codigo_dia|upper }}
+                    </td>
+                {% else %}
+                    <td class="dc c-SD" title="{{ reg.fecha|date:'d/m' }} sin código">·</td>
+                {% endif %}
+                {% endwith %}
+            {% else %}
+                <td class="dc c-SD" title="Sin registro">·</td>
+            {% endif %}
+            {% endfor %}
+
+            <td class="td-total">{{ persona.total_he_banco|floatformat:1 }}</td>
+            <td class="td-total">{{ persona.dias_trabajados }}</td>
+            <td class="td-total td-tot-f {% if persona.faltas == 0 %}text-muted fw-normal{% endif %}">
+                {{ persona.faltas }}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="100" class="text-center py-5 text-muted">
+                <i class="fas fa-inbox fs-2 d-block mb-2"></i>
+                No hay registros STAFF para esta importación.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<p class="text-muted small mt-2 mb-0">
+    <i class="fas fa-asterisk text-warning me-1"></i>
+    Celdas con <strong>*</strong> indican días con horas extra acumuladas al banco de horas.
+    HE banco = total HE 25% + 35% + 100% acumuladas sin pago directo (régimen STAFF).
+</p>
+{% endblock %}

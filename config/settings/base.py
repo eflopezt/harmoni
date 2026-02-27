@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     
     # Local apps
     'personal.apps.PersonalConfig',
+    'tareo.apps.TareoConfig',
 ]
 
 MIDDLEWARE = [

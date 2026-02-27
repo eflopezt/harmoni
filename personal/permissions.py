@@ -94,6 +94,18 @@ def puede_editar_personal(user, personal):
     return False
 
 
+def puede_editar_roster(user, personal):
+    """Verifica si el usuario puede editar roster de un personal específico."""
+    if user.is_superuser:
+        return True
+
+    areas = get_areas_responsable(user)
+    if personal.subarea and areas.filter(pk=personal.subarea.area_id).exists():
+        return True
+
+    return False
+
+
 def solo_responsable(view_func):
     """
     Decorador que restringe el acceso solo a responsables de area.

@@ -2,6 +2,7 @@
 API Views para el módulo personal usando Django REST Framework.
 """
 from rest_framework import viewsets, filters, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -13,6 +14,7 @@ from .serializers import (
     PersonalListSerializer, PersonalDetailSerializer, PersonalCreateUpdateSerializer,
     RosterSerializer, RosterBulkCreateSerializer, RosterAuditSerializer
 )
+from .permissions import puede_editar_roster
 
 
 class AreaViewSet(viewsets.ModelViewSet):
@@ -83,12 +85,30 @@ class RosterViewSet(viewsets.ModelViewSet):
     search_fields = ['personal__apellidos_nombres', 'personal__nro_doc', 'codigo']
     ordering_fields = ['fecha', 'personal__apellidos_nombres']
     ordering = ['-fecha', 'personal__apellidos_nombres']
+
+    def _validar_permiso_roster(self, personal):
+        if not puede_editar_roster(self.request.user, personal):
+            raise PermissionDenied('No tienes permisos para editar el roster de este personal.')
+
+    def perform_create(self, serializer):
+        personal = serializer.validated_data.get('personal')
+        if personal is not None:
+            self._validar_permiso_roster(personal)
+        serializer.save(modificado_por=self.request.user)
+
+    def perform_update(self, serializer):
+        personal = serializer.validated_data.get('personal', serializer.instance.personal)
+        self._validar_permiso_roster(personal)
+        serializer.save(modificado_por=self.request.user)
     
     @action(detail=False, methods=['post'])
     def bulk_create(self, request):
         """Creación masiva de registros de roster."""
         serializer = RosterBulkCreateSerializer(data=request.data)
         if serializer.is_valid():
+            registros = serializer.validated_data.get('registros', [])
+            for registro in registros:
+                self._validar_permiso_roster(registro['personal'])
             serializer.save()
             return Response(
                 {'mensaje': 'Registros creados exitosamente'},

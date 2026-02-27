@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Banco de Horas STAFF{% endblock %}
+
+{% block extra_css %}
+<style>
+.saldo-positivo { color: #198754; font-weight: 700; }
+.saldo-cero     { color: #6c757d; font-weight: 400; }
+.saldo-negativo { color: #dc3545; font-weight: 700; }
+.mes-header     { background: var(--primary-color); color: #fff; font-weight: 600;
+                  padding: 6px 12px; border-radius: 6px; font-size: .85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-piggy-bank text-success me-2"></i>Banco de Horas — STAFF</h2>
+        <small class="text-muted">Horas extra acumuladas para compensación futura</small>
+    </div>
+    <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Dashboard
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Año</label>
+                <select name="anio" class="form-select form-select-sm" style="width:100px">
+                    {% for a in anios %}
+                    <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}>{{ a }}</option>
+                    {% empty %}
+                    <option value="{{ anio_sel }}" selected>{{ anio_sel }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Mes</label>
+                <select name="mes" class="form-select form-select-sm" style="width:140px">
+                    <option value="">Todos los meses</option>
+                    {% for num, nombre in meses %}
+                    <option value="{{ num }}" {% if mes_sel == num|stringformat:"d" %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Buscar persona</label>
+                <input type="text" name="buscar" value="{{ buscar }}"
+                       class="form-control form-control-sm" placeholder="Nombre o DNI" style="width:200px">
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-search me-1"></i>Filtrar
+                </button>
+                <a href="{% url 'tareo_banco_horas' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Resumen totales -->
+{% if totales.t_saldo is not None %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-success bg-opacity-10 text-center py-2">
+            <div class="fs-4 fw-bold text-success">{{ totales.t_saldo|floatformat:1 }} h</div>
+            <div class="small text-muted">Saldo total</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-warning bg-opacity-10 text-center py-2">
+            <div class="fs-4 fw-bold" style="color:#856404">{{ totales.t_acum_25|floatformat:1 }} h</div>
+            <div class="small text-muted">HE 25% acumuladas</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 text-center py-2" style="background:#fff3e0">
+            <div class="fs-4 fw-bold" style="color:#cc5500">{{ totales.t_acum_35|floatformat:1 }} h</div>
+            <div class="small text-muted">HE 35% acumuladas</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-danger bg-opacity-10 text-center py-2">
+            <div class="fs-4 fw-bold text-danger">{{ totales.t_compensadas|floatformat:1 }} h</div>
+            <div class="small text-muted">Ya compensadas</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <span><strong><i class="fas fa-table me-2"></i>Detalle por Persona y Período</strong></span>
+        <span class="badge bg-secondary">{{ total_personas }} personas</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" id="tablaBanco">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Persona</th>
+                        <th>DNI</th>
+                        <th class="text-center">Período</th>
+                        <th class="text-end">
+                            <span class="badge" style="background:#ffc107;color:#212529">HE 25%</span>
+                        </th>
+                        <th class="text-end">
+                            <span class="badge" style="background:#fd7e14">HE 35%</span>
+                        </th>
+                        <th class="text-end">
+                            <span class="badge bg-danger">HE 100%</span>
+                        </th>
+                        <th class="text-end">Compensadas</th>
+                        <th class="text-end fw-bold">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in banco_list %}
+                    <tr>
+                        <td class="fw-semibold">
+                            {{ b.personal.apellidos }}, {{ b.personal.nombres }}
+                        </td>
+                        <td class="text-muted small">{{ b.personal.dni }}</td>
+                        <td class="text-center">
+                            <span class="mes-header">
+                                {% for num, nombre in meses %}{% if num == b.periodo_mes %}{{ nombre }}{% endif %}{% endfor %}
+                                {{ b.periodo_anio }}
+                            </span>
+                        </td>
+                        <td class="text-end" style="color:#856404">{{ b.he_25_acumuladas|floatformat:2 }}</td>
+                        <td class="text-end" style="color:#cc5500">{{ b.he_35_acumuladas|floatformat:2 }}</td>
+                        <td class="text-end text-danger">{{ b.he_100_acumuladas|floatformat:2|default:"0.00" }}</td>
+                        <td class="text-end text-danger">
+                            {% if b.he_compensadas %}-{{ b.he_compensadas|floatformat:2 }}{% else %}—{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if b.saldo_horas > 0 %}
+                                <span class="saldo-positivo">{{ b.saldo_horas|floatformat:2 }} h</span>
+                            {% elif b.saldo_horas == 0 %}
+                                <span class="saldo-cero">0.00 h</span>
+                            {% else %}
+                                <span class="saldo-negativo">{{ b.saldo_horas|floatformat:2 }} h</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fs-2 d-block mb-2"></i>
+                            Sin registros de banco de horas para estos filtros.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if totales.t_saldo is not None %}
+                <tfoot class="table-secondary fw-bold">
+                    <tr>
+                        <td colspan="3">TOTALES ({{ anio_sel }})</td>
+                        <td class="text-end" style="color:#856404">{{ totales.t_acum_25|floatformat:2 }}</td>
+                        <td class="text-end" style="color:#cc5500">{{ totales.t_acum_35|floatformat:2 }}</td>
+                        <td class="text-end text-danger">{{ totales.t_acum_100|floatformat:2|default:"0.00" }}</td>
+                        <td class="text-end text-danger">{{ totales.t_compensadas|floatformat:2 }}</td>
+                        <td class="text-end text-success">{{ totales.t_saldo|floatformat:2 }} h</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-3 small">
+    <i class="fas fa-info-circle me-1"></i>
+    <strong>Nota:</strong> El banco de horas STAFF solo incluye personal con registro en el sistema de Personal.
+    Las personas sin vínculo en Personal no generan banco (aparecerán cuando se registren).
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#tablaBanco').DataTable({
+        paging: true, pageLength: 25,
+        order: [[2, 'desc'], [0, 'asc']],
+        language: {
+            search: 'Buscar:', lengthMenu: 'Mostrar _MENU_',
+            info: 'Mostrando _START_–_END_ de _TOTAL_',
+            paginate: { previous: '‹', next: '›' },
+            decimal: ',', thousands: '.'
+        },
+        columnDefs: [{ orderable: false, targets: [2] }]
+    });
+});
+</script>
+{% endblock %}

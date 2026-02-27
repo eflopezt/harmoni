@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Tareo Excel{% endblock %}
+
+{% block extra_css %}
+<style>
+.upload-zone {
+    border: 2px dashed var(--secondary-color);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    transition: background .2s;
+    cursor: pointer;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+    background: #eef4ff;
+    border-color: var(--primary-color);
+}
+.upload-zone i { font-size: 3rem; color: var(--secondary-color); }
+.upload-zone .file-name { font-weight: 600; color: var(--primary-color); display: none; }
+.tipo-card { cursor: pointer; border: 2px solid #dee2e6; border-radius: 10px; transition: all .2s; }
+.tipo-card:hover { border-color: var(--secondary-color); }
+.tipo-card.selected { border-color: var(--primary-color); background: #eef4ff; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-file-upload text-success me-2"></i>Importar Tareo Excel</h2>
+        <small class="text-muted">Carga el archivo Tareo.xlsx generado por el sistema Reloj</small>
+    </div>
+    <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Dashboard
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Formulario de importación -->
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong><i class="fas fa-upload me-2"></i>Nuevo Import</strong></div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="formImport">
+                    {% csrf_token %}
+
+                    <!-- Zona de carga -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Archivo Excel <span class="text-danger">*</span></label>
+                        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('archivoExcel').click()">
+                            <i class="fas fa-file-excel mb-2"></i>
+                            <p class="mb-1 text-muted">Haz clic o arrastra tu archivo <strong>.xlsx</strong> aquí</p>
+                            <p class="small text-muted">Formato esperado: Tareo.xlsx (hojas Reloj, Papeletas, S10…)</p>
+                            <div class="file-name mt-2" id="fileName">
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                                <span id="fileNameText"></span>
+                            </div>
+                        </div>
+                        <input type="file" name="archivo_excel" id="archivoExcel"
+                               accept=".xlsx,.xls" class="d-none" required>
+                    </div>
+
+                    <!-- Tipo de importación -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Tipo de Importación</label>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <div class="tipo-card selected p-3" onclick="selectTipo('RELOJ', this)">
+                                    <input type="radio" name="tipo_import" value="RELOJ"
+                                           id="tipoReloj" class="d-none" checked>
+                                    <div class="text-center">
+                                        <i class="fas fa-clock fs-4 text-primary mb-1"></i>
+                                        <div class="fw-semibold small">RELOJ</div>
+                                        <div class="text-muted" style="font-size:.71rem">Marcaciones completas</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="tipo-card p-3" onclick="selectTipo('PAPELETAS', this)">
+                                    <input type="radio" name="tipo_import" value="PAPELETAS"
+                                           id="tipoPapeletas" class="d-none">
+                                    <div class="text-center">
+                                        <i class="fas fa-file-alt fs-4 text-warning mb-1"></i>
+                                        <div class="fw-semibold small">PAPELETAS</div>
+                                        <div class="text-muted" style="font-size:.71rem">Overrides / permisos</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="tipo-card p-3" onclick="selectTipo('S10', this)">
+                                    <input type="radio" name="tipo_import" value="S10"
+                                           id="tipoS10" class="d-none">
+                                    <div class="text-center">
+                                        <i class="fas fa-database fs-4 text-info mb-1"></i>
+                                        <div class="fw-semibold small">S10</div>
+                                        <div class="text-muted" style="font-size:.71rem">Cruce planilla S10</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Opciones -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Opciones</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="dry_run"
+                                       value="1" id="dryRun">
+                                <label class="form-check-label" for="dryRun">
+                                    <strong>Dry-run</strong>
+                                    <span class="text-muted small d-block">Simular sin guardar</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="force"
+                                       value="1" id="forceImport">
+                                <label class="form-check-label" for="forceImport">
+                                    <strong>Force</strong>
+                                    <span class="text-muted small d-block">Reemplazar existentes</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex">
+                        <button type="submit" class="btn btn-success" id="btnImportar">
+                            <i class="fas fa-play me-2"></i>Iniciar Importación
+                        </button>
+                        <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Advertencias -->
+        <div class="alert alert-info mt-3 d-flex gap-2">
+            <i class="fas fa-info-circle fs-5 mt-1 flex-shrink-0"></i>
+            <div>
+                <strong>Formato esperado</strong>: el archivo debe contener la hoja <code>Reloj BioTime</code>
+                con columna <em>Nombre</em>, <em>No.</em> (DNI) y columnas de días.<br>
+                El sistema filtra automáticamente solo el personal STAFF ({{ total_staff|default:"~144" }}) 
+                y RCO ({{ total_rco|default:"~55" }}) registrados.
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial -->
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong><i class="fas fa-history me-2"></i>Últimas Importaciones</strong></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Período</th>
+                                <th>Reg.</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for imp in ultimas_imports %}
+                            <tr>
+                                <td><span class="badge bg-secondary">{{ imp.tipo }}</span></td>
+                                <td class="small">
+                                    {% if imp.periodo_inicio %}
+                                        {{ imp.periodo_inicio|date:"d/m" }} – {{ imp.periodo_fin|date:"d/m/Y" }}
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td class="text-success">{{ imp.total_registros }}</td>
+                                <td>
+                                    {% if imp.estado == 'COMPLETADO' %}
+                                        <span class="badge bg-success">OK</span>
+                                    {% elif imp.estado == 'COMPLETADO_CON_ERRORES' %}
+                                        <span class="badge bg-warning text-dark">Errores</span>
+                                    {% elif imp.estado == 'EN_PROCESO' %}
+                                        <span class="badge bg-primary">Proc.</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Fallido</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">Sin importaciones</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Drag & drop en zona de carga
+const zone = document.getElementById('uploadZone');
+const input = document.getElementById('archivoExcel');
+const fileName = document.getElementById('fileName');
+const fileNameText = document.getElementById('fileNameText');
+
+input.addEventListener('change', function() {
+    if (this.files.length) {
+        fileNameText.textContent = this.files[0].name;
+        fileName.style.display = 'block';
+    }
+});
+
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) {
+        input.files = e.dataTransfer.files;
+        fileNameText.textContent = e.dataTransfer.files[0].name;
+        fileName.style.display = 'block';
+    }
+});
+
+// Selección tipo importación
+function selectTipo(tipo, card) {
+    document.querySelectorAll('.tipo-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    card.querySelector('input[type=radio]').checked = true;
+}
+
+// Confirmar antes de importar (no dry-run)
+document.getElementById('formImport').addEventListener('submit', function(e) {
+    const isDry = document.getElementById('dryRun').checked;
+    const isForce = document.getElementById('forceImport').checked;
+    
+    if (!isDry && isForce) {
+        if (!confirm('¿Estás seguro? El modo FORCE reemplazará registros existentes del mismo período.')) {
+            e.preventDefault();
+            return;
+        }
+    }
+    
+    document.getElementById('btnImportar').innerHTML =
+        '<i class="fas fa-spinner fa-spin me-2"></i>Procesando…';
+    document.getElementById('btnImportar').disabled = true;
+});
+</script>
+{% endblock %}

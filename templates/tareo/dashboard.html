@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Módulo Tareo{% endblock %}
+
+{% block extra_css %}
+<style>
+.tareo-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 12px rgba(0,0,0,.10);
+    transition: transform .15s;
+}
+.tareo-card:hover { transform: translateY(-2px); }
+.stat-icon {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+}
+.badge-estado-COMPLETADO       { background: #198754; }
+.badge-estado-COMPLETADO_CON_ERRORES { background: #fd7e14; }
+.badge-estado-EN_PROCESO       { background: #0d6efd; }
+.badge-estado-PENDIENTE        { background: #6c757d; }
+.badge-estado-FALLIDO          { background: #dc3545; }
+.nav-tareo .nav-link { border-radius: 8px 8px 0 0; font-weight: 500; }
+.nav-tareo .nav-link.active { background: var(--primary-color); color: #fff !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-clock text-warning me-2"></i>Módulo Tareo</h2>
+        <small class="text-muted">Control de asistencia y horas extra</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'tareo_importar' %}" class="btn btn-success btn-sm">
+            <i class="fas fa-file-upload me-1"></i>Importar Excel
+        </a>
+        <a href="{% url 'tareo_staff' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-table me-1"></i>Ver STAFF
+        </a>
+        <a href="{% url 'tareo_rco' %}" class="btn btn-info btn-sm text-white">
+            <i class="fas fa-hard-hat me-1"></i>Ver RCO
+        </a>
+    </div>
+</div>
+
+<!-- KPIs principales -->
+{% if stats %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card tareo-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <div>
+                    <div class="fs-4 fw-bold">{{ stats.staff_personas }}</div>
+                    <div class="text-muted small">Personal STAFF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card tareo-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-hard-hat"></i>
+                </div>
+                <div>
+                    <div class="fs-4 fw-bold">{{ stats.rco_personas }}</div>
+                    <div class="text-muted small">Personal RCO</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card tareo-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <div class="fs-4 fw-bold">{{ stats.he_total|floatformat:0 }}</div>
+                    <div class="text-muted small">HE Total (horas)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card tareo-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-calendar-times"></i>
+                </div>
+                <div>
+                    <div class="fs-4 fw-bold">{{ stats.faltas }}</div>
+                    <div class="text-muted small">Faltas registradas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Desglose HE -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card tareo-card border-start border-4 border-warning">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold">HE 25% (primeras 2h)</span>
+                    <span class="badge bg-warning text-dark fs-6">{{ stats.he_25_total|floatformat:1 }} h</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card tareo-card border-start border-4 border-orange" style="border-color: #fd7e14 !important;">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold">HE 35% (siguientes)</span>
+                    <span class="badge text-white fs-6" style="background:#fd7e14">{{ stats.he_35_total|floatformat:1 }} h</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card tareo-card border-start border-4 border-danger">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold">HE 100% (feriados/dom.)</span>
+                    <span class="badge bg-danger fs-6">{{ stats.he_100_total|floatformat:1 }} h</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <!-- Banco de horas -->
+    <div class="col-md-4">
+        <div class="card tareo-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-piggy-bank me-2 text-success"></i><strong>Banco de Horas</strong></span>
+                <a href="{% url 'tareo_banco_horas' %}" class="btn btn-sm btn-outline-success">Ver detalle</a>
+            </div>
+            <div class="card-body">
+                {% if banco_stats.personas %}
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Personas con banco</span>
+                        <strong>{{ banco_stats.personas }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Saldo total</span>
+                        <strong class="text-success">{{ banco_stats.saldo_total|floatformat:1 }} h</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Acum. HE 25%</span>
+                        <strong>{{ banco_stats.acumulado_25|floatformat:1 }} h</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Acum. HE 35%</span>
+                        <strong>{{ banco_stats.acumulado_35|floatformat:1 }} h</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Ya compensadas</span>
+                        <strong class="text-danger">{{ banco_stats.compensado|floatformat:1 }} h</strong>
+                    </li>
+                </ul>
+                {% else %}
+                <p class="text-center text-muted py-3"><i class="fas fa-inbox fs-3 d-block mb-2"></i>Sin banco de horas acumulado</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimas importaciones -->
+    <div class="col-md-8">
+        <div class="card tareo-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-history me-2 text-secondary"></i><strong>Últimas Importaciones</strong></span>
+                <a href="{% url 'tareo_importar' %}" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-plus me-1"></i>Nueva
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if ultimas_imports %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Período</th>
+                                <th>Registros</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for imp in ultimas_imports %}
+                            <tr>
+                                <td><span class="badge bg-secondary">{{ imp.tipo }}</span></td>
+                                <td class="small">
+                                    {% if imp.periodo_inicio %}
+                                        {{ imp.periodo_inicio|date:"d/m/Y" }} – {{ imp.periodo_fin|date:"d/m/Y" }}
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-success">{{ imp.total_registros }}</span>
+                                    {% if imp.registros_error %}
+                                        <span class="text-danger ms-1">({{ imp.registros_error }} err)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-estado-{{ imp.estado }}">
+                                        {% if imp.estado == 'COMPLETADO' %}OK
+                                        {% elif imp.estado == 'COMPLETADO_CON_ERRORES' %}Con errores
+                                        {% elif imp.estado == 'EN_PROCESO' %}Procesando
+                                        {% elif imp.estado == 'FALLIDO' %}Fallido
+                                        {% else %}{{ imp.estado }}{% endif %}
+                                    </span>
+                                </td>
+                                <td class="small text-muted">{{ imp.creado_en|date:"d/m H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fs-2 d-block mb-2"></i>
+                    Sin importaciones aún.<br>
+                    <a href="{% url 'tareo_importar' %}">Importar ahora</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Accesos rápidos -->
+<div class="row g-3 mt-2">
+    <div class="col-12">
+        <div class="card tareo-card">
+            <div class="card-header"><strong><i class="fas fa-th-large me-2"></i>Accesos Rápidos</strong></div>
+            <div class="card-body d-flex gap-3 flex-wrap">
+                <a href="{% url 'tareo_staff' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-table me-1"></i>Matriz STAFF
+                </a>
+                <a href="{% url 'tareo_rco' %}" class="btn btn-outline-info">
+                    <i class="fas fa-hard-hat me-1"></i>Detalle RCO
+                </a>
+                <a href="{% url 'tareo_banco_horas' %}" class="btn btn-outline-success">
+                    <i class="fas fa-piggy-bank me-1"></i>Banco de Horas
+                </a>
+                <a href="{% url 'tareo_importar' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-file-upload me-1"></i>Importar Excel
+                </a>
+                <a href="{% url 'tareo_parametros' %}" class="btn btn-outline-dark">
+                    <i class="fas fa-cogs me-1"></i>Parámetros
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

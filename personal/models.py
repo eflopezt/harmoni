@@ -586,14 +586,9 @@ class Roster(models.Model):
         if self.fecha < date.today():
             return False, "Solo el administrador puede editar días anteriores"
         
-        # Verificar si el usuario es el personal asignado
-        if hasattr(usuario, 'personal_data') and usuario.personal_data == self.personal:
-            return True, ""
-        
         # Verificar si es responsable del área del personal
-        from .permissions import get_areas_responsable
-        areas = get_areas_responsable(usuario)
-        if self.personal.subarea and areas.filter(pk=self.personal.subarea.area_id).exists():
+        from .permissions import puede_editar_roster
+        if puede_editar_roster(usuario, self.personal):
             return True, ""
         
         return False, "No tiene permisos para editar este registro"

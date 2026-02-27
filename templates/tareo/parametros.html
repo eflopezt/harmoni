@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Parámetros Tareo{% endblock %}
+
+{% block extra_css %}
+<style>
+.param-section { border-left: 4px solid var(--secondary-color); padding-left: 12px; }
+.codigo-pill   { font-family: monospace; font-size: .82rem; background: #e9ecef;
+                 padding: 2px 8px; border-radius: 4px; }
+.tipo-HE  { color: #856404; }
+.tipo-AUS { color: #842029; }
+.tipo-PER { color: #0c5460; }
+.tipo-DES { color: #4a1c7a; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-cogs text-secondary me-2"></i>Parámetros del Módulo Tareo</h2>
+        <small class="text-muted">Configuración de regímenes, horarios, feriados y homologaciones</small>
+    </div>
+    <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Dashboard
+    </a>
+</div>
+
+<!-- Tabs de secciones -->
+<ul class="nav nav-tabs mb-4" id="paramTabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#tabRegimenes">
+            <i class="fas fa-calendar-alt me-1"></i>Regímenes
+            <span class="badge bg-secondary ms-1">{{ regimenes|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tabHorarios">
+            <i class="fas fa-clock me-1"></i>Horarios
+            <span class="badge bg-secondary ms-1">{{ horarios|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tabFeriados">
+            <i class="fas fa-flag me-1"></i>Feriados
+            <span class="badge bg-secondary ms-1">{{ feriados|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tabHomologaciones">
+            <i class="fas fa-exchange-alt me-1"></i>Homologaciones
+            <span class="badge bg-secondary ms-1">{{ homologaciones|length }}</span>
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    <!-- ── REGÍMENES ───────────────────────────────────────────── -->
+    <div class="tab-pane fade show active" id="tabRegimenes">
+        <div class="row g-3">
+            {% for r in regimenes %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header d-flex justify-content-between">
+                        <strong>{{ r.nombre }}</strong>
+                        <span class="badge bg-primary">{{ r.codigo }}</span>
+                    </div>
+                    <div class="card-body small">
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="fas fa-sun text-warning me-1"></i>
+                                <strong>Ciclo:</strong> {{ r.dias_trabajo }}×{{ r.dias_descanso }}</li>
+                            <li><i class="fas fa-hourglass-half text-info me-1"></i>
+                                <strong>Max horas/ciclo:</strong> {{ r.horas_max_ciclo }} h</li>
+                            <li><i class="fas fa-utensils text-secondary me-1"></i>
+                                <strong>Almuerzo:</strong> {{ r.minutos_almuerzo }} min</li>
+                            {% if r.es_nocturno %}
+                            <li><span class="badge bg-dark"><i class="fas fa-moon me-1"></i>Nocturno</span></li>
+                            {% endif %}
+                            {% if r.descripcion %}
+                            <li class="mt-1 text-muted">{{ r.descripcion }}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    Sin regímenes configurados. Ejecuta <code>python manage.py seed_tareo_inicial</code>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ── HORARIOS ────────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tabHorarios">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover table-sm" id="tablaHorarios">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Código</th>
+                        <th>Tipo Día</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>H. Brutas</th>
+                        <th>H. Efectivas</th>
+                        <th>Almuerzo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in horarios %}
+                    <tr>
+                        <td class="fw-semibold">{{ h.nombre }}</td>
+                        <td><span class="codigo-pill">{{ h.codigo }}</span></td>
+                        <td>{{ h.get_tipo_dia_display }}</td>
+                        <td class="text-center">{{ h.hora_entrada|time:"H:i" }}</td>
+                        <td class="text-center">{{ h.hora_salida|time:"H:i" }}</td>
+                        <td class="text-center">{{ h.horas_brutas|floatformat:2 }}</td>
+                        <td class="text-center fw-semibold text-success">{{ h.horas_efectivas|floatformat:2 }}</td>
+                        <td class="text-center text-muted">{{ h.minutos_almuerzo }} min</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-3">Sin horarios configurados</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── FERIADOS ────────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tabFeriados">
+        <div class="row g-2">
+            {% for f in feriados %}
+            <div class="col-md-4 col-lg-3">
+                <div class="card border-start border-danger border-3">
+                    <div class="card-body py-2 px-3">
+                        <div class="fw-semibold small">{{ f.nombre }}</div>
+                        <div class="text-muted">{{ f.fecha|date:"d/m/Y" }} — {{ f.fecha|date:"l" }}</div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-warning">Sin feriados configurados.</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ── HOMOLOGACIONES ─────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tabHomologaciones">
+        <div class="alert alert-info small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            La tabla de homologación mapea los códigos del sistema Reloj BioTime
+            a los códigos internos de Tareo y del Roster. Los códigos con
+            <strong>genera_he = Sí</strong> activan el cálculo de horas extra.
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover table-sm" id="tablaHomolog">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Prioridad</th>
+                        <th>Cód. Origen (Reloj)</th>
+                        <th>Cód. Tareo</th>
+                        <th>Cód. Roster</th>
+                        <th>Tipo Evento</th>
+                        <th>Signo</th>
+                        <th>Genera HE</th>
+                        <th>Es numérico</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in homologaciones %}
+                    <tr>
+                        <td class="text-center text-muted">{{ h.prioridad }}</td>
+                        <td><span class="codigo-pill">{{ h.codigo_origen }}</span></td>
+                        <td><span class="codigo-pill">{{ h.codigo_tareo|default:"—" }}</span></td>
+                        <td><span class="codigo-pill text-muted">{{ h.codigo_roster|default:"—" }}</span></td>
+                        <td>
+                            <span class="fw-semibold
+                                {% if h.tipo_evento == 'HE' %}tipo-HE
+                                {% elif h.tipo_evento in 'AUS,FAL' %}tipo-AUS
+                                {% elif h.tipo_evento in 'PER,VAC' %}tipo-PER
+                                {% else %}tipo-DES{% endif %}">
+                                {{ h.get_tipo_evento_display|default:h.tipo_evento }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if h.signo == 1 %}<span class="text-success fw-bold">+</span>
+                            {% else %}<span class="text-danger fw-bold">−</span>{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if h.genera_he %}
+                                <span class="badge bg-warning text-dark">Sí</span>
+                            {% else %}
+                                <span class="text-muted">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if h.es_numerico %}
+                                <span class="badge bg-info">Sí</span>
+                            {% else %}No{% endif %}
+                        </td>
+                        <td class="text-muted small">{{ h.descripcion|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-3">Sin homologaciones configuradas</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#tablaHorarios, #tablaHomolog').DataTable({
+        paging: false, order: [[0, 'asc']],
+        language: { search: 'Buscar:' }
+    });
+});
+</script>
+{% endblock %}

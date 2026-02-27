@@ -16,6 +16,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/', include('personal.api_urls')),
+    path('tareo/', include('tareo.urls')),
 ]
 
 # Add debug toolbar URLs in development
