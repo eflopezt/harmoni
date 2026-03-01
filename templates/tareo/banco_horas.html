@@ -127,9 +127,9 @@
                     {% for b in banco_list %}
                     <tr>
                         <td class="fw-semibold">
-                            {{ b.personal.apellidos }}, {{ b.personal.nombres }}
+                            {{ b.personal.apellidos_nombres }}
                         </td>
-                        <td class="text-muted small">{{ b.personal.dni }}</td>
+                        <td class="text-muted small">{{ b.personal.nro_doc }}</td>
                         <td class="text-center">
                             <span class="mes-header">
                                 {% for num, nombre in meses %}{% if num == b.periodo_mes %}{{ nombre }}{% endif %}{% endfor %}

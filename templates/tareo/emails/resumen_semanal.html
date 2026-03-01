@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+body { font-family: -apple-system, Arial, sans-serif; font-size: 14px; color: #333; background: #f5f5f5; margin: 0; padding: 20px; }
+.card { background: #fff; border-radius: 10px; padding: 24px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+.header { background: #2c3e50; color: #fff; border-radius: 8px 8px 0 0; padding: 20px 24px; margin: -24px -24px 20px; }
+.header h2 { margin: 0; font-size: 1.2rem; }
+.header p { margin: 4px 0 0; opacity: .8; font-size: .9rem; }
+.kpi-row { display: flex; gap: 12px; margin: 16px 0; }
+.kpi { flex: 1; text-align: center; padding: 12px; border-radius: 8px; }
+.kpi.green  { background: #d1fae5; }
+.kpi.red    { background: #fee2e2; }
+.kpi.yellow { background: #fef9c3; }
+.kpi .num { font-size: 1.8rem; font-weight: bold; }
+.kpi .label { font-size: .75rem; color: #666; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+th { background: #f3f4f6; padding: 8px; text-align: left; border-bottom: 2px solid #e5e7eb; }
+td { padding: 7px 8px; border-bottom: 1px solid #f0f0f0; }
+.code-T, .code-NOR, .code-TR { color: #059669; font-weight: bold; }
+.code-FA { color: #dc2626; font-weight: bold; }
+.code-DM, .code-LF { color: #d97706; font-weight: bold; }
+.code-VAC, .code-V { color: #2563eb; font-weight: bold; }
+.footer { text-align: center; color: #9ca3af; font-size: .78rem; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h2>📋 Resumen de Asistencia Semanal</h2>
+    <p>{{ semana_inicio|date:"d/m/Y" }} — {{ semana_fin|date:"d/m/Y" }} &nbsp;|&nbsp; {{ empresa }}</p>
+  </div>
+
+  <p>Hola <strong>{{ persona.apellidos_nombres }}</strong>,</p>
+  <p>Aquí tienes el resumen de tu asistencia de la semana pasada:</p>
+
+  <div class="kpi-row">
+    <div class="kpi green">
+      <div class="num">{{ dias_trabajados }}</div>
+      <div class="label">Días trabajados</div>
+    </div>
+    <div class="kpi red">
+      <div class="num">{{ faltas }}</div>
+      <div class="label">Faltas (FA)</div>
+    </div>
+    <div class="kpi yellow">
+      <div class="num">{{ he_total|floatformat:1 }}</div>
+      <div class="label">Horas extra</div>
+    </div>
+  </div>
+
+  {% if registros %}
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Código</th>
+        <th>Horas ef.</th>
+        <th>HE</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in registros %}
+      <tr>
+        <td>{{ r.fecha|date:"D d/m" }}</td>
+        <td class="code-{{ r.codigo_dia }}">{{ r.codigo_dia }}</td>
+        <td>{% if r.horas_efectivas %}{{ r.horas_efectivas|floatformat:1 }}h{% else %}—{% endif %}</td>
+        <td>
+          {% if r.he_25 %}25%: {{ r.he_25|floatformat:1 }}h&nbsp;{% endif %}
+          {% if r.he_35 %}35%: {{ r.he_35|floatformat:1 }}h&nbsp;{% endif %}
+          {% if r.he_100 %}100%: {{ r.he_100|floatformat:1 }}h{% endif %}
+          {% if not r.he_25 and not r.he_35 and not r.he_100 %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if grupo == 'STAFF' %}
+  <p style="color:#2563eb; font-size:.85rem">
+    💡 Eres RC <strong>STAFF</strong>: tus horas extra se acumulan en tu banco de horas compensatorio.
+  </p>
+  {% elif grupo == 'RCO' %}
+  <p style="color:#059669; font-size:.85rem">
+    💡 Eres RC <strong>Operativo</strong>: tus horas extra se liquidan en planilla (25%/35%/100%).
+  </p>
+  {% endif %}
+
+  <div class="footer">
+    {{ empresa }} &nbsp;·&nbsp; Sistema Tareo<br>
+    Este es un mensaje automático, por favor no respondas a este correo.
+  </div>
+</div>
+</body>
+</html>

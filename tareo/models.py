@@ -964,3 +964,220 @@ class CruceTareoRoster(models.Model):
         return (f"{self.registro_tareo.dni} | "
                 f"{self.registro_tareo.fecha} | "
                 f"{self.get_variacion_display()}")
+
+
+# ─────────────────────────────────────────────────────────────
+# SECCIÓN 7 ▸ CONFIGURACIÓN DEL SISTEMA
+# ─────────────────────────────────────────────────────────────
+
+class ConfiguracionSistema(models.Model):
+    """
+    Configuración global del sistema de tareo/planilla.
+    Singleton — solo puede existir un registro.
+
+    Centraliza todas las reglas de negocio configurables:
+    ciclo de HE, corte de planilla, correos, etc.
+    """
+
+    # Datos empresa
+    empresa_nombre = models.CharField(max_length=200, default='',
+                                       verbose_name="Nombre de la Empresa")
+    ruc = models.CharField(max_length=11, blank=True, verbose_name="RUC")
+
+    # ── Ciclo de planilla ──
+    dia_corte_planilla = models.PositiveSmallIntegerField(
+        default=20,
+        verbose_name="Día de Corte de Planilla",
+        help_text="Día del mes en que cierra el ciclo de HE. Ej: 20")
+    # Ciclo HE: del día (dia_corte+1) del mes anterior al dia_corte del mes actual
+    # Ej con corte=20: ciclo HE = 21/mes_anterior → 20/mes_actual
+    # Ciclo asistencia: 01 → último día del mes
+
+    regularizacion_activa = models.BooleanField(
+        default=True,
+        verbose_name="Activar Regularización de Fin de Mes",
+        help_text=(
+            "Si está activo, los descuentos (faltas, LSG) entre el día "
+            "(corte+1) y fin de mes se difieren al siguiente mes como regularización."
+        ))
+
+    # ── Jornada por defecto (se puede sobreescribir en Personal) ──
+    jornada_local_horas = models.DecimalField(
+        max_digits=4, decimal_places=1, default=Decimal('8.5'),
+        verbose_name="Jornada Local (h/día)",
+        help_text="Ej: 8.5 para personal LOCAL 7:30–17:00")
+    jornada_foraneo_horas = models.DecimalField(
+        max_digits=4, decimal_places=1, default=Decimal('11.0'),
+        verbose_name="Jornada Foráneo (h/día)",
+        help_text="Ej: 11.0 para personal FORÁNEO 7:30–18:30")
+
+    # ── Synkro (nombres de hojas) ──
+    synkro_hoja_reloj = models.CharField(
+        max_length=60, default='Reloj',
+        verbose_name="Nombre Hoja Reloj en Synkro",
+        help_text="Nombre exacto de la hoja del reporte de reloj biométrico")
+    synkro_hoja_papeletas = models.CharField(
+        max_length=60, default='Papeletas',
+        verbose_name="Nombre Hoja Papeletas en Synkro")
+
+    # ── Columnas del Reloj (posiciones 0-based, configurables) ──
+    reloj_col_dni = models.PositiveSmallIntegerField(
+        default=0, verbose_name="Columna DNI en Reloj")
+    reloj_col_nombre = models.PositiveSmallIntegerField(
+        default=1, verbose_name="Columna Nombre en Reloj")
+    reloj_col_condicion = models.PositiveSmallIntegerField(
+        default=5, verbose_name="Columna Condición en Reloj")
+    reloj_col_tipo_trab = models.PositiveSmallIntegerField(
+        default=6, verbose_name="Columna Tipo Trabajador en Reloj")
+    reloj_col_area = models.PositiveSmallIntegerField(
+        default=7, verbose_name="Columna Área en Reloj")
+    reloj_col_cargo = models.PositiveSmallIntegerField(
+        default=8, verbose_name="Columna Cargo en Reloj")
+    reloj_col_inicio_dias = models.PositiveSmallIntegerField(
+        default=9,
+        verbose_name="Primera Columna de Días en Reloj",
+        help_text="Índice de la primera columna con fechas/días (0-based)")
+
+    # ── Notificaciones ──
+    email_habilitado = models.BooleanField(
+        default=False,
+        verbose_name="Habilitar Notificaciones por Email")
+    email_desde = models.EmailField(
+        blank=True,
+        verbose_name="Email Remitente",
+        help_text="Ej: tareo@empresa.com")
+    email_asunto_semanal = models.CharField(
+        max_length=200,
+        default='Tu resumen de asistencia semanal — {empresa}',
+        verbose_name="Asunto Email Semanal",
+        help_text="Usa {empresa}, {semana}, {empleado} como variables")
+    email_dia_envio = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Día de Envío (0=Lun … 6=Dom)",
+        help_text="Día de la semana para enviar el resumen semanal")
+
+    # ── IA / Claude API ──
+    anthropic_api_key = models.CharField(
+        max_length=200, blank=True,
+        verbose_name="Anthropic API Key",
+        help_text="Para detección inteligente de columnas en importaciones")
+    ia_mapeo_activo = models.BooleanField(
+        default=False,
+        verbose_name="Activar Mapeo IA de Columnas",
+        help_text="Usa Claude API para detectar columnas en archivos desconocidos")
+
+    # ── S10 Export ──
+    s10_nombre_concepto_he25 = models.CharField(
+        max_length=100,
+        default='HORAS EXTRAS 25%',
+        verbose_name="Nombre Concepto HE 25% en S10")
+    s10_nombre_concepto_he35 = models.CharField(
+        max_length=100,
+        default='HORAS EXTRAS 35%',
+        verbose_name="Nombre Concepto HE 35% en S10")
+    s10_nombre_concepto_he100 = models.CharField(
+        max_length=100,
+        default='HORAS EXTRAS 100%',
+        verbose_name="Nombre Concepto HE 100% en S10")
+
+    actualizado_en = models.DateTimeField(auto_now=True)
+    actualizado_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name="Actualizado por")
+
+    class Meta:
+        verbose_name = "Configuración del Sistema"
+        verbose_name_plural = "Configuración del Sistema"
+
+    def __str__(self):
+        return f"Configuración — {self.empresa_nombre} | Corte: día {self.dia_corte_planilla}"
+
+    def save(self, *args, **kwargs):
+        """Singleton: siempre usa pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get(cls):
+        """Obtiene (o crea) la instancia de configuración."""
+        obj, _ = cls.objects.get_or_create(pk=1, defaults={'empresa_nombre': 'Mi Empresa'})
+        return obj
+
+    def get_ciclo_he(self, anio, mes):
+        """
+        Retorna (fecha_inicio, fecha_fin) del ciclo de HE para un mes dado.
+        Con corte=20: ciclo HE de febrero 2026 = 21/ene/2026 → 20/feb/2026
+        """
+        import calendar
+        corte = self.dia_corte_planilla
+        # Inicio: día (corte+1) del mes anterior
+        if mes == 1:
+            mes_ant, anio_ant = 12, anio - 1
+        else:
+            mes_ant, anio_ant = mes - 1, anio
+        inicio = datetime.date(anio_ant, mes_ant, corte + 1)
+        fin = datetime.date(anio, mes, corte)
+        return inicio, fin
+
+    def get_ciclo_asistencia(self, anio, mes):
+        """
+        Retorna (fecha_inicio, fecha_fin) del ciclo de asistencia.
+        Siempre es del 01 al último día del mes.
+        """
+        import calendar
+        ultimo_dia = calendar.monthrange(anio, mes)[1]
+        return datetime.date(anio, mes, 1), datetime.date(anio, mes, ultimo_dia)
+
+    def es_regularizacion(self, fecha, anio_planilla, mes_planilla):
+        """
+        Retorna True si una fecha de descuento debe ir al mes siguiente
+        (entre día corte+1 y fin de mes).
+        """
+        if not self.regularizacion_activa:
+            return False
+        import calendar
+        ultimo_dia = calendar.monthrange(anio_planilla, mes_planilla)[1]
+        inicio_regularizacion = datetime.date(anio_planilla, mes_planilla,
+                                               self.dia_corte_planilla + 1)
+        fin_mes = datetime.date(anio_planilla, mes_planilla, ultimo_dia)
+        return inicio_regularizacion <= fecha <= fin_mes
+
+
+class ConceptoMapeoS10(models.Model):
+    """
+    Mapeo entre código interno de tareo y columna/concepto del archivo CargaS10.
+
+    Permite configurar qué conceptos de S10 se generan automáticamente
+    a partir de los registros de tareo. Cada código tareo puede mapear
+    a un nombre de columna específico del CargaS10.
+    """
+
+    TIPO_VALOR = [
+        ('HORAS', 'Horas (decimal)'),
+        ('DIAS', 'Días (entero)'),
+        ('MONTO', 'Monto S/ (decimal)'),
+    ]
+
+    codigo_tareo = models.CharField(
+        max_length=20,
+        verbose_name="Código Tareo",
+        help_text="Ej: HE25, HE35, HE100, DM, LF, LSG, FA, VAC")
+    nombre_concepto_s10 = models.CharField(
+        max_length=150,
+        verbose_name="Nombre Concepto S10",
+        help_text="Nombre exacto de la columna en el archivo CargaS10")
+    tipo_valor = models.CharField(
+        max_length=10, choices=TIPO_VALOR, default='HORAS',
+        verbose_name="Tipo de Valor")
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    descripcion = models.CharField(max_length=200, blank=True,
+                                    verbose_name="Descripción")
+
+    class Meta:
+        verbose_name = "Mapeo Concepto S10"
+        verbose_name_plural = "Mapeos de Conceptos S10"
+        ordering = ['codigo_tareo']
+        unique_together = ['codigo_tareo', 'nombre_concepto_s10']
+
+    def __str__(self):
+        return f"{self.codigo_tareo} → {self.nombre_concepto_s10} ({self.tipo_valor})"

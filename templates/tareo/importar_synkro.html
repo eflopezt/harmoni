@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-primary"><i class="bi bi-upload me-2"></i>{{ titulo }}</h2>
+    <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white fw-semibold">
+          <i class="bi bi-file-earmark-excel me-2"></i>Cargar Archivo Synkro
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" id="formImport">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Archivo Excel (Synkro)</label>
+              <input type="file" class="form-control" name="archivo" accept=".xlsx,.xls" required>
+              <div class="form-text">
+                El archivo debe contener las hojas
+                <strong>{{ config.synkro_hoja_reloj }}</strong> y/o
+                <strong>{{ config.synkro_hoja_papeletas }}</strong>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-5">
+                <label class="form-label">Período Inicio <span class="text-muted">(opcional)</span></label>
+                <input type="date" class="form-control" name="periodo_inicio">
+                <small class="text-muted">Se detecta automáticamente de las fechas del archivo</small>
+              </div>
+              <div class="col-md-5">
+                <label class="form-label">Período Fin <span class="text-muted">(opcional)</span></label>
+                <input type="date" class="form-control" name="periodo_fin">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Grupo por Defecto</label>
+              <select class="form-select" name="grupo_default">
+                <option value="STAFF">RC Staff (HE van al banco de horas)</option>
+                <option value="RCO">RC Operativos (HE se pagan)</option>
+              </select>
+              <div class="form-text">
+                Se usa cuando el empleado no está registrado en la BD y no se puede determinar su grupo.
+                El grupo del Personal en BD tiene prioridad.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="dry_run" value="1" id="chkDry">
+                <label class="form-check-label" for="chkDry">
+                  <strong>Modo Simulación (Dry-run)</strong> — solo muestra resultados sin guardar
+                </label>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-cloud-upload me-2"></i>Importar
+              </button>
+              <a href="{% url 'tareo_importar_sunat' %}" class="btn btn-outline-warning">
+                <i class="bi bi-file-text me-2"></i>Importar SUNAT TR5
+              </a>
+              <a href="{% url 'tareo_importar_s10' %}" class="btn btn-outline-info">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i>Importar S10
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <!-- Info del formato -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light fw-semibold">
+          <i class="bi bi-info-circle me-2"></i>Formato Esperado
+        </div>
+        <div class="card-body small">
+          <p class="mb-2"><strong>Hoja Reloj:</strong></p>
+          <ul class="mb-3">
+            <li>Col {{ config.reloj_col_dni }}: DNI</li>
+            <li>Col {{ config.reloj_col_nombre }}: Nombre</li>
+            <li>Col {{ config.reloj_col_condicion }}: Condición (LOCAL/FORÁNEO)</li>
+            <li>Col {{ config.reloj_col_inicio_dias }}+: Días (fechas como encabezados)</li>
+          </ul>
+          <p class="mb-2"><strong>Valores por día:</strong></p>
+          <ul class="mb-0">
+            <li><span class="badge bg-success">11.0, 10.5...</span> Horas trabajadas</li>
+            <li><span class="badge bg-info">SS</span> Medio día</li>
+            <li><span class="badge bg-warning text-dark">B</span> Bajada → DL</li>
+            <li><span class="badge bg-secondary">V/VAC</span> Vacaciones</li>
+            <li><span class="badge bg-primary">CHE</span> Comp. HE</li>
+            <li><span class="badge bg-danger">-</span> Falta automática</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Últimas importaciones -->
+      {% if ultimas %}
+      <div class="card shadow-sm">
+        <div class="card-header bg-light fw-semibold">Últimas Importaciones</div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            {% for imp in ultimas %}
+            <div class="list-group-item py-2 small">
+              <div class="d-flex justify-content-between">
+                <span class="fw-semibold">{{ imp.get_tipo_display }}</span>
+                <span class="badge bg-{% if imp.estado == 'COMPLETADO' %}success{% elif imp.estado == 'COMPLETADO_CON_ERRORES' %}warning{% else %}danger{% endif %} text-white">
+                  {{ imp.get_estado_display }}
+                </span>
+              </div>
+              <div class="text-muted">{{ imp.periodo_inicio|date:"d/m/Y" }} → {{ imp.periodo_fin|date:"d/m/Y" }}</div>
+              <div>{{ imp.registros_ok }} ok / {{ imp.registros_sin_match }} sin match</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('formImport').addEventListener('submit', function() {
+  this.querySelector('button[type=submit]').innerHTML =
+    '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+  this.querySelector('button[type=submit]').disabled = true;
+});
+</script>
+{% endblock %}

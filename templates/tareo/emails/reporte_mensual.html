@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+body { font-family: -apple-system, Arial, sans-serif; font-size: 14px; color: #333; background: #f5f5f5; margin: 0; padding: 20px; }
+.card { background: #fff; border-radius: 10px; padding: 24px; max-width: 640px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+.header { background: #1e3a5f; color: #fff; border-radius: 8px 8px 0 0; padding: 20px 24px; margin: -24px -24px 20px; }
+.header h2 { margin: 0; font-size: 1.25rem; }
+.header p { margin: 4px 0 0; opacity: .8; font-size: .88rem; }
+.section-title { font-weight: bold; color: #1e3a5f; border-left: 4px solid #3b82f6; padding-left: 10px; margin: 20px 0 10px; font-size: 1rem; }
+.kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+.kpi { text-align: center; padding: 14px; border-radius: 8px; border: 1px solid #e5e7eb; }
+.kpi .num { font-size: 1.7rem; font-weight: bold; }
+.kpi .label { font-size: .73rem; color: #6b7280; margin-top: 3px; }
+.he-row { display: flex; gap: 8px; margin: 10px 0; }
+.he-item { flex: 1; padding: 10px; border-radius: 6px; text-align: center; font-size: .85rem; }
+.he-25  { background: #fef9c3; }
+.he-35  { background: #ffedd5; }
+.he-100 { background: #fee2e2; }
+.footer { text-align: center; color: #9ca3af; font-size: .75rem; margin-top: 24px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h2>📊 Reporte Mensual de Asistencia</h2>
+    <p>{{ mes_nombre }} {{ anio }} &nbsp;|&nbsp; {{ empresa }}</p>
+  </div>
+
+  <p>Estimado equipo,</p>
+  <p>A continuación el resumen ejecutivo de asistencia correspondiente al mes de <strong>{{ mes_nombre }} {{ anio }}</strong>.</p>
+
+  <div class="section-title">Períodos de referencia</div>
+  <table style="width:100%;font-size:.88rem;border-collapse:collapse">
+    <tr>
+      <td style="padding:6px;color:#6b7280">Asistencia:</td>
+      <td style="padding:6px;font-weight:bold">{{ periodo_asist }}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px;color:#6b7280">Ciclo HE:</td>
+      <td style="padding:6px;font-weight:bold">{{ periodo_he }}</td>
+    </tr>
+  </table>
+
+  <div class="section-title">KPIs Asistencia</div>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="num">{{ total_dias }}</div>
+      <div class="label">Días-persona programados</div>
+    </div>
+    <div class="kpi" style="border-color:#bbf7d0">
+      <div class="num" style="color:#059669">{{ trabajados }}</div>
+      <div class="label">Días trabajados</div>
+    </div>
+    <div class="kpi" style="border-color:#fca5a5">
+      <div class="num" style="color:#dc2626">{{ faltas }}</div>
+      <div class="label">Faltas (FA)</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin:12px 0">
+    <span style="font-size:1.5rem;font-weight:bold;color:{% if tasa_asistencia >= 95 %}#059669{% elif tasa_asistencia >= 85 %}#d97706{% else %}#dc2626{% endif %}">
+      {{ tasa_asistencia }}%
+    </span>
+    <span style="color:#6b7280;font-size:.85rem"> tasa de asistencia</span>
+  </div>
+
+  <div class="section-title">Horas Extra (ciclo {{ periodo_he }})</div>
+  <div class="he-row">
+    <div class="he-item he-25">
+      <div style="font-weight:bold;font-size:1.1rem">{{ he_25|floatformat:1 }} h</div>
+      <div>HE 25%</div>
+    </div>
+    <div class="he-item he-35">
+      <div style="font-weight:bold;font-size:1.1rem">{{ he_35|floatformat:1 }} h</div>
+      <div>HE 35%</div>
+    </div>
+    <div class="he-item he-100">
+      <div style="font-weight:bold;font-size:1.1rem">{{ he_100|floatformat:1 }} h</div>
+      <div>HE 100%</div>
+    </div>
+  </div>
+
+  {% if banco_personas %}
+  <div class="section-title">Banco de Horas STAFF</div>
+  <p style="margin:6px 0;font-size:.9rem">
+    <strong>{{ banco_personas }}</strong> personas con banco activo &nbsp;|&nbsp;
+    Saldo total: <strong style="color:#059669">{{ banco_saldo|floatformat:1 }} h</strong>
+  </p>
+  {% endif %}
+
+  <div class="footer">
+    Reporte generado automáticamente por el Sistema Tareo — {{ empresa }}<br>
+    No responder este correo.
+  </div>
+</div>
+</body>
+</html>

@@ -12,6 +12,7 @@ from .models import (
     BancoHoras, MovimientoBancoHoras,
     RegistroSUNAT, RegistroS10,
     CruceTareoRoster,
+    ConfiguracionSistema, ConceptoMapeoS10,
 )
 
 
@@ -223,7 +224,62 @@ class RegistroS10Admin(AdminSoloSuperusuario):
     raw_id_fields = ('personal', 'importacion')
 
 
-# ── Sección 6: Cruce Tareo–Roster ────────────────────────────
+# ── Sección 6: Configuración sistema ─────────────────────────
+
+@admin.register(ConfiguracionSistema)
+class ConfiguracionSistemaAdmin(AdminSoloSuperusuario):
+    """Singleton — solo existe una instancia (pk=1). Siempre editar, nunca crear."""
+
+    def has_add_permission(self, request):
+        return not ConfiguracionSistema.objects.exists()
+
+    fieldsets = (
+        ('Empresa', {
+            'fields': ('empresa_nombre', 'ruc'),
+        }),
+        ('Ciclo de Planilla', {
+            'fields': ('dia_corte_planilla', 'regularizacion_activa',
+                       'jornada_local_horas', 'jornada_foraneo_horas'),
+        }),
+        ('Synkro — Columnas', {
+            'fields': ('synkro_hoja_reloj', 'synkro_hoja_papeletas',
+                       'reloj_col_dni', 'reloj_col_nombre', 'reloj_col_condicion',
+                       'reloj_col_tipo_trab', 'reloj_col_area', 'reloj_col_cargo',
+                       'reloj_col_inicio_dias'),
+            'classes': ('collapse',),
+        }),
+        ('Notificaciones Email', {
+            'fields': ('email_habilitado', 'email_desde',
+                       'email_asunto_semanal', 'email_dia_envio'),
+            'classes': ('collapse',),
+        }),
+        ('Inteligencia Artificial', {
+            'fields': ('anthropic_api_key', 'ia_mapeo_activo'),
+            'classes': ('collapse',),
+        }),
+        ('Conceptos S10', {
+            'fields': ('s10_nombre_concepto_he25', 's10_nombre_concepto_he35',
+                       's10_nombre_concepto_he100'),
+            'classes': ('collapse',),
+        }),
+        ('Auditoría', {
+            'fields': ('actualizado_en', 'actualizado_por'),
+            'classes': ('collapse',),
+        }),
+    )
+    readonly_fields = ('actualizado_en',)
+
+
+@admin.register(ConceptoMapeoS10)
+class ConceptoMapeoS10Admin(AdminSoloSuperusuario):
+    list_display = ('codigo_tareo', 'nombre_concepto_s10', 'tipo_valor', 'activo', 'descripcion')
+    list_filter = ('tipo_valor', 'activo')
+    search_fields = ('codigo_tareo', 'nombre_concepto_s10')
+    list_editable = ('activo',)
+    ordering = ('codigo_tareo',)
+
+
+# ── Sección 7: Cruce Tareo–Roster ────────────────────────────
 
 @admin.register(CruceTareoRoster)
 class CruceTareoRosterAdmin(AdminSoloSuperusuario):

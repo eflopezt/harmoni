@@ -252,6 +252,57 @@ class Personal(models.Model):
         verbose_name="Bonos"
     )
     
+    # --- Clasificación de tareo ---
+    GRUPO_TAREO_CHOICES = [
+        ('STAFF', 'RC Staff (HE compensatorias — banco de horas)'),
+        ('RCO', 'RC Operativos (HE pagadas 25/35/100%)'),
+        ('OTRO', 'Otro / No aplica'),
+    ]
+    CONDICION_CHOICES = [
+        ('FORANEO', 'Foráneo (régimen acumulativo)'),
+        ('LOCAL', 'Local (jornada fija en obra/sede)'),
+        ('LIMA', 'Lima (jornada fija en oficina Lima)'),
+    ]
+    grupo_tareo = models.CharField(
+        max_length=10,
+        choices=GRUPO_TAREO_CHOICES,
+        default='STAFF',
+        verbose_name="Grupo Tareo",
+        help_text="Determina cómo se tratan las HE: banco (STAFF) o pago (RCO)"
+    )
+    condicion = models.CharField(
+        max_length=10,
+        choices=CONDICION_CHOICES,
+        blank=True,
+        verbose_name="Condición",
+        help_text="LOCAL = jornada fija | FORÁNEO = régimen acumulativo"
+    )
+    codigo_sap = models.CharField(
+        max_length=30,
+        blank=True,
+        verbose_name="Código SAP",
+        help_text="Código del trabajador en el sistema SAP"
+    )
+    codigo_s10 = models.CharField(
+        max_length=30,
+        blank=True,
+        verbose_name="Código S10",
+        help_text="Código del recurso en el sistema S10"
+    )
+    partida_control = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Partida de Control",
+        help_text="Partida de costo para generación de CargaS10"
+    )
+    jornada_horas = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        default=8,
+        verbose_name="Horas de Jornada Diaria",
+        help_text="LOCAL=8.5, FORÁNEO=11.0. Usado para calcular HE."
+    )
+
     # --- Régimen laboral ---
     regimen_laboral = models.CharField(
         max_length=50,

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-primary"><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ titulo }}</h2>
+    <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-7">
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-white fw-semibold"><i class="bi bi-table me-2"></i>Cargar Reporte S10</div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" id="formS10">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Archivo Excel (.xlsx)</label>
+              <input type="file" class="form-control" name="archivo" accept=".xlsx,.xls" required>
+              <div class="form-text">Reporte de personal del sistema S10. Las cabeceras se detectan automáticamente.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Período de Referencia</label>
+              <input type="date" class="form-control" name="periodo_inicio" required>
+            </div>
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="actualizar_personal" value="1" id="chkUpd" checked>
+                <label class="form-check-label" for="chkUpd">Actualizar código S10 y partida de control en Personal</label>
+              </div>
+            </div>
+            <div class="mb-4">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="usar_ia" value="1" id="chkIA">
+                <label class="form-check-label" for="chkIA">
+                  Usar IA para detectar columnas no reconocidas
+                  <span class="badge bg-secondary ms-1">requiere API Key</span>
+                </label>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-info fw-bold text-white"><i class="bi bi-cloud-upload me-2"></i>Importar S10</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-5">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light fw-semibold">Columnas detectadas automáticamente</div>
+        <div class="card-body small">
+          <p class="text-muted">El sistema busca estas columnas (flexible ante variaciones de nombre):</p>
+          <ul class="mb-0">
+            <li><code>DNI</code> → Número de documento</li>
+            <li><code>Código</code> → Código S10 del recurso</li>
+            <li><code>Nombre / Apellidos y Nombres</code></li>
+            <li><code>Ocupación / Cargo / Puesto</code></li>
+            <li><code>Partida de Control</code></li>
+            <li><code>Régimen Pensión / AFP</code></li>
+            <li><code>Fecha Ingreso / Fecha Cese</code></li>
+            <li><code>HE 25%, HE 35%, HE 100%</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

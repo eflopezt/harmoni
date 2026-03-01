@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-primary"><i class="bi bi-gear-fill me-2"></i>{{ titulo }}</h2>
+    <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  <!-- Preview ciclos -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card border-primary h-100">
+        <div class="card-body">
+          <h6 class="card-title text-primary"><i class="bi bi-calendar-week me-2"></i>Ciclo HE (mes actual)</h6>
+          <p class="fs-5 fw-bold mb-0">{{ preview_ciclo_he }}</p>
+          <small class="text-muted">Del día {{ config.dia_corte_planilla|add:1 }} del mes anterior al día {{ config.dia_corte_planilla }} del mes actual</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-success h-100">
+        <div class="card-body">
+          <h6 class="card-title text-success"><i class="bi bi-calendar-month me-2"></i>Ciclo Asistencia (mes actual)</h6>
+          <p class="fs-5 fw-bold mb-0">{{ preview_asistencia }}</p>
+          <small class="text-muted">Del 1 al último día del mes</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="row g-4">
+
+      <!-- Empresa -->
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-light fw-semibold"><i class="bi bi-building me-2"></i>Datos de la Empresa</div>
+          <div class="card-body row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nombre de la Empresa</label>
+              <input type="text" class="form-control" name="empresa_nombre" value="{{ config.empresa_nombre }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">RUC</label>
+              <input type="text" class="form-control" name="ruc" value="{{ config.ruc }}" maxlength="11">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ciclo planilla -->
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-light fw-semibold"><i class="bi bi-cash-coin me-2"></i>Ciclo de Planilla</div>
+          <div class="card-body row g-3">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Día de Corte de Planilla</label>
+              <input type="number" class="form-control" name="dia_corte_planilla"
+                     value="{{ config.dia_corte_planilla }}" min="1" max="28">
+              <small class="text-muted">Ej: 20 → ciclo HE del 21/mes-ant al 20/mes-actual</small>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Jornada Local (h/día)</label>
+              <input type="number" class="form-control" name="jornada_local_horas"
+                     value="{{ config.jornada_local_horas }}" step="0.5" min="4" max="12">
+              <small class="text-muted">Personal LOCAL. Ej: 8.5 para horario 7:30–17:00</small>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Jornada Foráneo (h/día)</label>
+              <input type="number" class="form-control" name="jornada_foraneo_horas"
+                     value="{{ config.jornada_foraneo_horas }}" step="0.5" min="4" max="14">
+              <small class="text-muted">Personal FORÁNEO. Ej: 11.0 para horario 7:30–18:30</small>
+            </div>
+            <div class="col-md-5">
+              <div class="form-check form-switch mt-3">
+                <input class="form-check-input" type="checkbox" name="regularizacion_activa"
+                       value="1" id="chkReg" {% if config.regularizacion_activa %}checked{% endif %}>
+                <label class="form-check-label" for="chkReg">
+                  <strong>Activar Regularización de Fin de Mes</strong>
+                </label>
+                <div class="form-text">
+                  Los descuentos (faltas, LSG) entre el día {{ config.dia_corte_planilla|add:1 }} y fin de mes
+                  se difieren al siguiente mes como regularización en el CargaS10.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Synkro -->
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-light fw-semibold"><i class="bi bi-clock-history me-2"></i>Synkro (Reloj Biométrico)</div>
+          <div class="card-body row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Nombre Hoja Reloj</label>
+              <input type="text" class="form-control" name="synkro_hoja_reloj" value="{{ config.synkro_hoja_reloj }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Nombre Hoja Papeletas</label>
+              <input type="text" class="form-control" name="synkro_hoja_papeletas" value="{{ config.synkro_hoja_papeletas }}">
+            </div>
+            <div class="col-12"><hr class="my-1"><small class="text-muted fw-semibold">Índices de columnas en la hoja Reloj (0-based)</small></div>
+            <div class="col-md-2">
+              <label class="form-label">Col. DNI</label>
+              <input type="number" class="form-control" name="reloj_col_dni" value="{{ config.reloj_col_dni }}" min="0">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Col. Nombre</label>
+              <input type="number" class="form-control" name="reloj_col_nombre" value="{{ config.reloj_col_nombre }}" min="0">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Col. Condición</label>
+              <input type="number" class="form-control" name="reloj_col_condicion" value="{{ config.reloj_col_condicion }}" min="0">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Primera Col. de Días</label>
+              <input type="number" class="form-control" name="reloj_col_inicio_dias" value="{{ config.reloj_col_inicio_dias }}" min="0">
+              <small class="text-muted">A partir de aquí son columnas de fechas</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S10 -->
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-light fw-semibold"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Nombres de Conceptos en S10</div>
+          <div class="card-body row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Concepto HE 25%</label>
+              <input type="text" class="form-control" name="s10_nombre_concepto_he25" value="{{ config.s10_nombre_concepto_he25 }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Concepto HE 35%</label>
+              <input type="text" class="form-control" name="s10_nombre_concepto_he35" value="{{ config.s10_nombre_concepto_he35 }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Concepto HE 100%</label>
+              <input type="text" class="form-control" name="s10_nombre_concepto_he100" value="{{ config.s10_nombre_concepto_he100 }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-light fw-semibold"><i class="bi bi-envelope-fill me-2"></i>Notificaciones por Email</div>
+          <div class="card-body row g-3">
+            <div class="col-md-2">
+              <div class="form-check form-switch mt-4">
+                <input class="form-check-input" type="checkbox" name="email_habilitado"
+                       value="1" id="chkEmail" {% if config.email_habilitado %}checked{% endif %}>
+                <label class="form-check-label" for="chkEmail">Habilitado</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Email Remitente</label>
+              <input type="email" class="form-control" name="email_desde" value="{{ config.email_desde }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Día de Envío Semanal</label>
+              <select class="form-select" name="email_dia_envio">
+                {% for val, nombre in dias_semana %}
+                  <option value="{{ val }}" {% if config.email_dia_envio == val %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Asunto del Email Semanal</label>
+              <input type="text" class="form-control" name="email_asunto_semanal" value="{{ config.email_asunto_semanal }}">
+              <small class="text-muted">Variables: {empresa}, {semana}, {empleado}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IA -->
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-light fw-semibold"><i class="bi bi-cpu me-2"></i>Inteligencia Artificial (Claude API)</div>
+          <div class="card-body row g-3">
+            <div class="col-md-2">
+              <div class="form-check form-switch mt-4">
+                <input class="form-check-input" type="checkbox" name="ia_mapeo_activo"
+                       value="1" id="chkIA" {% if config.ia_mapeo_activo %}checked{% endif %}>
+                <label class="form-check-label" for="chkIA">Activar IA</label>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Anthropic API Key</label>
+              <input type="password" class="form-control" name="anthropic_api_key"
+                     placeholder="{% if config.anthropic_api_key %}••••••••••••••••{% else %}sk-ant-...{% endif %}">
+              <small class="text-muted">Dejar vacío para mantener la clave actual</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- row -->
+
+    <div class="mt-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="bi bi-save me-2"></i>Guardar Configuración
+      </button>
+      <a href="{% url 'tareo_parametros' %}" class="btn btn-outline-info">
+        <i class="bi bi-sliders me-2"></i>Ver Homologaciones y Feriados
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

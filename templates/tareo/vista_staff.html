@@ -1,203 +1,375 @@
 {% extends "base.html" %}
 
-{% block title %}Vista STAFF — Tareo{% endblock %}
+{% block title %}STAFF — {{ titulo }}{% endblock %}
 
 {% block extra_css %}
 <style>
-/* ── Scroll contenedor ────────────────────────────────────── */
-.matriz-wrap   { overflow-x: auto; overflow-y: auto; max-height: 74vh; }
-.matriz-table  { border-collapse: separate; border-spacing: 0; font-size: .77rem; min-width: max-content; }
-
-/* ── Cabecera sticky (top) ───────────────────────────────── */
-.matriz-table thead th {
-    position: sticky; top: 0; z-index: 20;
-    background: var(--primary-color); color: #fff;
-    font-weight: 600; text-align: center;
-    padding: 5px 7px; white-space: nowrap;
-    border-right: 1px solid rgba(255,255,255,.2);
+.hero-staff {
+    background: linear-gradient(135deg, #1a2b47 0%, #243455 50%, #1a3a4a 100%);
+    border-radius: .5rem;
 }
-.th-nombre { left: 0; z-index: 31 !important; min-width: 200px; text-align: left !important; }
-.th-dni    { left: 200px; z-index: 31 !important; min-width: 88px; }
-.th-total  { right: 0; z-index: 31 !important; min-width: 80px; background: #1a2b47 !important;
-             border-left: 2px solid rgba(255,255,255,.3); }
+.kpi-card { border: none; border-radius: .5rem; transition: transform .15s, box-shadow .15s; }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.kpi-value { font-size: 1.55rem; font-weight: 700; line-height: 1; }
+.kpi-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; opacity: .7; }
+.kpi-icon  { font-size: 2rem; opacity: .18; }
+.saldo-pos { color: #198754; font-weight: 700; }
+.saldo-neg { color: #dc3545; font-weight: 700; }
+.saldo-cer { color: #6c757d; font-weight: 400; }
+.he-badge  { font-size: .72rem; padding: 2px 6px; border-radius: 10px; font-weight: 600; }
+.th-group  { background: rgba(255,255,255,.08); font-size: .72rem; font-weight: 600;
+             text-transform: uppercase; letter-spacing: .04em; color: rgba(255,255,255,.7);
+             text-align: center; padding: 3px 6px; }
+thead tr.header-main th { background: #1a2b47; color: #fff; white-space: nowrap;
+                           padding: 6px 10px; font-size: .78rem; }
+thead tr.header-groups th { background: #243455; }
+.cond-badge { font-size: .65rem; padding: 1px 5px; border-radius: 8px; font-weight: 600; }
+.cond-local   { background: #cce5ff; color: #004085; }
+.cond-foraneo { background: #d4edda; color: #1a6631; }
+.row-total { background: #f0f4ff; font-weight: 700; }
 
-/* ── Columnas fijas (izquierda y derecha) ────────────────── */
-.td-nombre { position: sticky; left: 0; z-index: 10; background: #fff;
-             min-width: 200px; white-space: nowrap; font-weight: 600;
-             padding: 4px 8px; border-right: 1px solid #dee2e6; }
-.td-dni    { position: sticky; left: 200px; z-index: 10; background: #fff;
-             min-width: 88px; text-align: center; padding: 4px 6px;
-             border-right: 1px solid #dee2e6; color: #6c757d; font-size: .73rem; }
-.td-total  { position: sticky; right: 0; z-index: 10; background: #f8f9fa;
-             min-width: 80px; text-align: center; font-weight: 700;
-             border-left: 2px solid #adb5bd !important; }
-.td-tot-f  { color: #dc3545; } /* total faltas */
-
-/* ── Celdas de días ──────────────────────────────────────── */
-.dc { text-align: center; min-width: 36px; padding: 3px 4px;
-      border-right: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6;
-      font-weight: 700; font-size: .8rem; cursor: default; }
-.dc[title]:hover::after {
-    content: attr(title); position: absolute; background: #333; color: #fff;
-    padding: 3px 7px; border-radius: 4px; font-size: .72rem;
-    white-space: nowrap; z-index: 999; margin-top: -22px;
-}
-.matriz-table tbody tr:hover .td-nombre,
-.matriz-table tbody tr:hover .td-dni { background: #eef4ff; }
-
-/* ── Color celdas por codigo ────────────────────────────── */
-.c-T   { background: #d4edda; color: #1a6631; }
-.c-HE  { background: #fff3cd; color: #6d4c01; }
-.c-F   { background: #f8d7da; color: #842029; }
-.c-V   { background: #cce5ff; color: #004085; }
-.c-DL  { background: #e2d9f3; color: #4a1c7a; }
-.c-P   { background: #d1ecf1; color: #0c5460; }
-.c-DP  { background: #d6eaf8; color: #1a5276; }
-.c-FE  { background: #ffd6e0; color: #9b1c2e; }
-.c-SD  { background: #f5f5f5; color: #aaa; font-weight: 400; }
-
-/* Leyenda */
-.legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; margin-right: 10px; }
-.legend-box  { width: 20px; height: 16px; border-radius: 3px; border: 1px solid rgba(0,0,0,.1); }
+/* Tabla más legible */
+#tablaStaff td { vertical-align: middle; font-size: .82rem; padding: 5px 8px; }
+#tablaStaff .col-nombre { min-width: 190px; white-space: nowrap; }
+#tablaStaff .col-nombre .dni-sub { font-size: .7rem; color: #888; font-weight: 400; }
+#tablaStaff .num-col { font-variant-numeric: tabular-nums; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <div>
-        <h2 class="mb-0"><i class="fas fa-table text-primary me-2"></i>Vista STAFF — Matriz</h2>
-        <small class="text-muted">{{ total_personas }} personas · {{ fechas|length }} días</small>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left me-1"></i>Dashboard
-        </a>
-        <a href="{% url 'tareo_rco' %}" class="btn btn-info btn-sm text-white">
-            <i class="fas fa-hard-hat me-1"></i>Ver RCO
-        </a>
+<!-- ── Hero Header ─────────────────────────────────────────────── -->
+<div class="hero-staff p-3 mb-4 text-white">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold">
+                <i class="fas fa-users me-2 opacity-75"></i>
+                STAFF
+                <span class="ms-2 badge bg-white text-dark fw-semibold" style="font-size:.75rem">
+                    {{ mes_nombre }} {{ anio_sel }}
+                </span>
+            </h2>
+            <small class="opacity-60">
+                Período: {{ mes_ini|date:"d/m/Y" }} – {{ mes_fin|date:"d/m/Y" }}
+                <span class="ms-2 opacity-50">· Ciclo HE: {{ ciclo_ini|date:"d/m" }} → {{ ciclo_fin|date:"d/m" }}</span>
+            </small>
+        </div>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <!-- Period selector -->
+            <form method="get" class="d-flex gap-2 align-items-center">
+                {% if buscar %}<input type="hidden" name="buscar" value="{{ buscar }}">{% endif %}
+                <select name="mes" class="form-select form-select-sm"
+                        style="width:130px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)"
+                        onchange="this.form.submit()">
+                    {% for num, nombre in meses %}
+                    <option value="{{ num }}" {% if num == mes_sel %}selected{% endif %}
+                            style="color:#000;background:#fff">{{ nombre }}</option>
+                    {% endfor %}
+                </select>
+                <select name="anio" class="form-select form-select-sm"
+                        style="width:88px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)"
+                        onchange="this.form.submit()">
+                    {% for a in anios_disponibles %}
+                    <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}
+                            style="color:#000;background:#fff">{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <!-- Action buttons -->
+            <a href="{% url 'tareo_banco_horas' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
+               class="btn btn-sm btn-success">
+                <i class="fas fa-piggy-bank me-1"></i>Banco Horas
+            </a>
+            <a href="{% url 'tareo_rco' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+               class="btn btn-sm btn-info">
+                <i class="fas fa-hard-hat me-1"></i>RCO
+            </a>
+            <a href="{% url 'tareo_dashboard' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+               class="btn btn-sm" style="color:rgba(255,255,255,.75)">
+                <i class="fas fa-arrow-left me-1"></i>Dashboard
+            </a>
+        </div>
     </div>
 </div>
 
-<!-- Selector importación -->
-<div class="card mb-2">
+<!-- ── KPI Cards ───────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card kpi-card h-100 bg-primary text-white">
+            <div class="card-body d-flex justify-content-between align-items-start py-3">
+                <div>
+                    <div class="kpi-label">Personas</div>
+                    <div class="kpi-value mt-1">{{ totales.personas }}</div>
+                    <div class="small mt-1 opacity-75">STAFF activos</div>
+                </div>
+                <i class="fas fa-users kpi-icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card kpi-card h-100" style="background:#e8f5e9;border-left:4px solid #198754">
+            <div class="card-body d-flex justify-content-between align-items-start py-3">
+                <div>
+                    <div class="kpi-label" style="color:#1a6631">HE al Banco</div>
+                    <div class="kpi-value mt-1" style="color:#198754">
+                        {{ totales.he_total|floatformat:1 }}<small class="fs-6">h</small>
+                    </div>
+                    <div class="small mt-1 text-muted">acumuladas este período</div>
+                </div>
+                <i class="fas fa-piggy-bank kpi-icon" style="color:#198754"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card kpi-card h-100" style="background:#e3f2fd;border-left:4px solid #0d6efd">
+            <div class="card-body d-flex justify-content-between align-items-start py-3">
+                <div>
+                    <div class="kpi-label" style="color:#0a58ca">Saldo Banco</div>
+                    <div class="kpi-value mt-1" style="color:#0d6efd">
+                        {{ totales.banco_saldo|floatformat:1 }}<small class="fs-6">h</small>
+                    </div>
+                    <div class="small mt-1 text-muted">disponibles</div>
+                </div>
+                <i class="fas fa-balance-scale kpi-icon" style="color:#0d6efd"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card kpi-card h-100" style="background:#fff3e0;border-left:4px solid #fd7e14">
+            <div class="card-body d-flex justify-content-between align-items-start py-3">
+                <div>
+                    <div class="kpi-label" style="color:#cc5500">Días Trab.</div>
+                    <div class="kpi-value mt-1" style="color:#cc5500">{{ totales.dias_trabajados }}</div>
+                    <div class="small mt-1 text-muted">días (sum. personas)</div>
+                </div>
+                <i class="fas fa-calendar-check kpi-icon" style="color:#fd7e14"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4 col-lg">
+        <div class="card kpi-card h-100" style="background:#fce8e8;border-left:4px solid #dc3545">
+            <div class="card-body d-flex justify-content-between align-items-start py-3">
+                <div>
+                    <div class="kpi-label" style="color:#842029">Faltas</div>
+                    <div class="kpi-value mt-1" style="color:#dc3545">{{ totales.dias_fa }}</div>
+                    <div class="small mt-1 text-muted">días de falta</div>
+                </div>
+                <i class="fas fa-user-times kpi-icon" style="color:#dc3545"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Search filter (compact) ─────────────────────────────────── -->
+<div class="card mb-3 shadow-sm">
     <div class="card-body py-2">
-        <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
-            <label class="fw-semibold small"><i class="fas fa-database me-1"></i>Importación:</label>
-            <select name="importacion" class="form-select form-select-sm" style="max-width:420px"
-                    onchange="this.form.submit()">
-                {% for imp in importaciones %}
-                <option value="{{ imp.id }}" {% if imp.id == importacion.id %}selected{% endif %}>
-                    {{ imp.periodo_inicio|date:"d/m/Y" }} → {{ imp.periodo_fin|date:"d/m/Y" }}
-                    &nbsp;({{ imp.total_registros }} reg.)
-                </option>
-                {% endfor %}
-            </select>
-            <span class="badge bg-primary ms-1">{{ importacion.periodo_inicio|date:"d/m/Y" }} – {{ importacion.periodo_fin|date:"d/m/Y" }}</span>
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="hidden" name="mes" value="{{ mes_sel }}">
+            <input type="hidden" name="anio" value="{{ anio_sel }}">
+            <div class="input-group input-group-sm" style="max-width:280px">
+                <span class="input-group-text"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" name="buscar" value="{{ buscar }}"
+                       class="form-control" placeholder="Buscar nombre o DNI">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+            {% if buscar %}
+            <a href="{% url 'tareo_staff' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times me-1"></i>Limpiar
+            </a>
+            {% endif %}
+            <span class="text-muted small ms-auto">
+                {{ totales.personas }} persona{{ totales.personas|pluralize }}
+                {% if buscar %} · búsqueda: "<strong>{{ buscar }}</strong>"{% endif %}
+            </span>
         </form>
     </div>
 </div>
 
-<!-- Leyenda -->
-<div class="mb-2 d-flex flex-wrap align-items-center gap-1">
-    <span class="legend-item"><span class="legend-box c-T"></span>Trabajo normal</span>
-    <span class="legend-item"><span class="legend-box c-HE"></span>Con HE</span>
-    <span class="legend-item"><span class="legend-box c-F"></span>Falta</span>
-    <span class="legend-item"><span class="legend-box c-V"></span>Vacaciones</span>
-    <span class="legend-item"><span class="legend-box c-DL"></span>Día Libre / DL</span>
-    <span class="legend-item"><span class="legend-box c-P"></span>Permiso</span>
-    <span class="legend-item"><span class="legend-box c-FE"></span>Feriado</span>
-    <span class="legend-item"><span class="legend-box c-SD"></span>Sin dato</span>
-</div>
-
-<!-- Tabla Matricial -->
-<div class="matriz-wrap">
-<table class="matriz-table">
-    <thead>
-        <tr>
-            <th class="th-nombre">Nombre</th>
-            <th class="th-dni">DNI</th>
-            {% for fecha in fechas %}
-            <th title="{{ fecha|date:'l d/m/Y' }}">
-                {{ fecha|date:"d" }}<br>
-                <span style="font-weight:400;font-size:.65rem">
-                    {% with wd=fecha|date:"w" %}
-                    {% if wd == "0" %}Do
-                    {% elif wd == "1" %}Lu
-                    {% elif wd == "2" %}Ma
-                    {% elif wd == "3" %}Mi
-                    {% elif wd == "4" %}Ju
-                    {% elif wd == "5" %}Vi
-                    {% else %}Sa{% endif %}
+<!-- ── Data table ──────────────────────────────────────────────── -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" id="tablaStaff">
+                <!-- Column group headers -->
+                <thead>
+                    <tr class="header-groups">
+                        <th colspan="2" class="th-group border-end">Persona</th>
+                        <th colspan="6" class="th-group border-end text-center">Días del período</th>
+                        <th colspan="3" class="th-group border-end text-center">Horas Extra (HE)</th>
+                        <th colspan="2" class="th-group text-center">Banco de Horas</th>
+                    </tr>
+                    <tr class="header-main">
+                        <th>Apellidos y Nombres</th>
+                        <th class="text-center border-end">Cond.</th>
+                        <th class="text-center" title="Días trabajados (incluye SS)">Trab.</th>
+                        <th class="text-center">
+                            <span class="badge" style="background:#aaa;font-size:.7rem" title="Sin Salida biométrico — paga día normal">SS</span>
+                        </th>
+                        <th class="text-center">
+                            <span class="badge bg-primary" style="font-size:.7rem" title="Días Libres usados">DL</span>
+                        </th>
+                        <th class="text-center">
+                            <span class="badge bg-success" style="font-size:.7rem" title="Compensación de HE (descuenta del banco)">CHE</span>
+                        </th>
+                        <th class="text-center">
+                            <span class="badge bg-info text-dark" style="font-size:.7rem" title="Vacaciones">VAC</span>
+                        </th>
+                        <th class="text-center border-end" title="Ausencias: DM (descanso médico) + LSG (licencia sin goce) + FA (faltas)">
+                            <span class="badge bg-danger" style="font-size:.7rem">Aus.</span>
+                        </th>
+                        <th class="text-end">
+                            <span class="badge" style="background:#ffc107;color:#212529;font-size:.7rem" title="HE 25% — primeras 2 horas extra">HE25</span>
+                        </th>
+                        <th class="text-end">
+                            <span class="badge" style="background:#fd7e14;font-size:.7rem" title="HE 35% — desde la 3ra hora extra">HE35</span>
+                        </th>
+                        <th class="text-end border-end">
+                            <span class="badge bg-danger" style="font-size:.7rem" title="HE 100% — feriado laborado">HE100</span>
+                        </th>
+                        <th class="text-end" title="Saldo en banco de horas (h)">Saldo h</th>
+                        <th class="text-end" title="Horas ya compensadas (CHE usadas)">Comp. h</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in personas %}
+                    {% with aus=p.dias_dm|add:p.dias_lsg|add:p.dias_fa %}
+                    <tr>
+                        <!-- Nombre + DNI + Condición -->
+                        <td class="col-nombre">
+                            <a href="{% url 'tareo_staff' %}?buscar={{ p.nro_doc }}&mes={{ mes_sel }}&anio={{ anio_sel }}"
+                               class="text-decoration-none text-dark fw-semibold" title="Ver detalle de {{ p.nombre }}">
+                                {{ p.nombre }}
+                            </a>
+                            <span class="dni-sub d-block">{{ p.nro_doc }}</span>
+                        </td>
+                        <td class="text-center border-end">
+                            {% if p.condicion == 'FORANEO' %}
+                            <span class="cond-badge cond-foraneo" title="Foráneo — jornada 11h">F</span>
+                            {% else %}
+                            <span class="cond-badge cond-local" title="Local — jornada 8.5h">L</span>
+                            {% endif %}
+                        </td>
+                        <!-- Días -->
+                        <td class="text-center fw-semibold num-col">{{ p.dias_trabajados }}</td>
+                        <td class="text-center num-col {% if p.dias_ss %}text-warning fw-semibold{% else %}text-muted{% endif %}">
+                            {% if p.dias_ss %}{{ p.dias_ss }}{% else %}—{% endif %}
+                        </td>
+                        <td class="text-center num-col {% if p.dias_dl %}text-primary{% else %}text-muted{% endif %}">
+                            {% if p.dias_dl %}{{ p.dias_dl }}{% else %}—{% endif %}
+                        </td>
+                        <td class="text-center num-col {% if p.dias_che %}text-success fw-semibold{% else %}text-muted{% endif %}">
+                            {% if p.dias_che %}{{ p.dias_che }}{% else %}—{% endif %}
+                        </td>
+                        <td class="text-center num-col {% if p.dias_vac %}text-info{% else %}text-muted{% endif %}">
+                            {% if p.dias_vac %}{{ p.dias_vac }}{% else %}—{% endif %}
+                        </td>
+                        <!-- Ausencias combinadas: DM + LSG + FA -->
+                        <td class="text-center border-end num-col
+                            {% if aus %}text-danger fw-bold{% else %}text-muted{% endif %}"
+                            title="DM={{ p.dias_dm }} · LSG={{ p.dias_lsg }} · FA={{ p.dias_fa }}">
+                            {% if aus %}{{ aus }}{% else %}—{% endif %}
+                        </td>
+                        <!-- HE -->
+                        <td class="text-end num-col" style="color:#856404">
+                            {% if p.he_25 %}{{ p.he_25|floatformat:1 }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end num-col" style="color:#cc5500">
+                            {% if p.he_35 %}{{ p.he_35|floatformat:1 }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end num-col text-danger border-end">
+                            {% if p.he_100 %}{{ p.he_100|floatformat:1 }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <!-- Banco -->
+                        <td class="text-end num-col">
+                            {% if p.banco_saldo is not None %}
+                                {% if p.banco_saldo > 0 %}
+                                    <span class="saldo-pos">{{ p.banco_saldo|floatformat:1 }}</span>
+                                {% elif p.banco_saldo == 0 %}
+                                    <span class="saldo-cer">0</span>
+                                {% else %}
+                                    <span class="saldo-neg">{{ p.banco_saldo|floatformat:1 }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end num-col text-danger">
+                            {% if p.banco_compensadas %}
+                                {{ p.banco_compensadas|floatformat:1 }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
                     {% endwith %}
-                </span>
-            </th>
-            {% endfor %}
-            <th class="th-total">HE<br><span style="font-size:.65rem;font-weight:400">banco</span></th>
-            <th class="th-total">Días<br><span style="font-size:.65rem;font-weight:400">trab.</span></th>
-            <th class="th-total">Falt.</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for persona in personas %}
-        <tr>
-            <td class="td-nombre" title="{{ persona.dni }}">{{ persona.nombre }}</td>
-            <td class="td-dni">{{ persona.dni }}</td>
-
-            {% for reg in persona.row %}
-            {% if reg %}
-                {% with cod=reg.codigo_dia|upper %}
-                {% if cod == "F" %}
-                    <td class="dc c-F" title="FALTA {{ reg.fecha|date:'d/m' }}">F</td>
-                {% elif cod == "V" or cod == "VAC" %}
-                    <td class="dc c-V" title="VACACIONES {{ reg.fecha|date:'d/m' }}">V</td>
-                {% elif cod == "DL" or cod == "D.L" or cod == "D/L" %}
-                    <td class="dc c-DL" title="DÍA LIBRE {{ reg.fecha|date:'d/m' }}">DL</td>
-                {% elif cod == "P" or cod == "PM" or cod == "PP" %}
-                    <td class="dc c-P" title="PERMISO {{ reg.fecha|date:'d/m' }}">P</td>
-                {% elif cod == "FE" or cod == "FER" %}
-                    <td class="dc c-FE" title="FERIADO {{ reg.fecha|date:'d/m' }}">FE</td>
-                {% elif cod == "DP" or cod == "D.P" %}
-                    <td class="dc c-DP" title="DESCANSO PROG. {{ reg.fecha|date:'d/m' }}">DP</td>
-                {% elif reg.he_25 > 0 or reg.he_35 > 0 or reg.he_100 > 0 %}
-                    <td class="dc c-HE"
-                        title="{{ reg.fecha|date:'d/m' }} | {{ reg.horas_marcadas|floatformat:1 }}h | HE: {{ reg.he_25|floatformat:1 }}+{{ reg.he_35|floatformat:1 }}+{{ reg.he_100|floatformat:1 }}">
-                        {{ reg.codigo_dia|upper|default:"T" }}*
-                    </td>
-                {% elif cod %}
-                    <td class="dc c-T" title="{{ reg.fecha|date:'d/m' }} | {{ reg.horas_marcadas|floatformat:1 }}h | {{ reg.codigo_dia }}">
-                        {{ reg.codigo_dia|upper }}
-                    </td>
-                {% else %}
-                    <td class="dc c-SD" title="{{ reg.fecha|date:'d/m' }} sin código">·</td>
+                    {% empty %}
+                    <tr>
+                        <td colspan="13" class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fs-2 d-block mb-2 opacity-50"></i>
+                            Sin registros STAFF para este período.
+                            {% if buscar %}<br><small>Búsqueda: "{{ buscar }}"</small>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <!-- Totals row -->
+                {% if personas %}
+                <tfoot class="row-total">
+                    <tr>
+                        <td colspan="2" class="ps-3">
+                            <strong>TOTALES</strong>
+                            <span class="text-muted fw-normal ms-1">({{ totales.personas }} personas)</span>
+                        </td>
+                        <td class="text-center fw-bold">{{ totales.dias_trabajados }}</td>
+                        <td class="text-center text-warning fw-bold">
+                            {% if totales.dias_ss %}{{ totales.dias_ss }}{% else %}0{% endif %}
+                        </td>
+                        <td colspan="3"></td>
+                        <td class="text-center text-danger fw-bold border-end">{{ totales.dias_fa }}</td>
+                        <td class="text-end fw-bold" style="color:#856404">{{ totales.he_25|floatformat:1 }}</td>
+                        <td class="text-end fw-bold" style="color:#cc5500">{{ totales.he_35|floatformat:1 }}</td>
+                        <td class="text-end text-danger fw-bold border-end">{{ totales.he_100|floatformat:1 }}</td>
+                        <td class="text-end text-success fw-bold">{{ totales.banco_saldo|floatformat:1 }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
                 {% endif %}
-                {% endwith %}
-            {% else %}
-                <td class="dc c-SD" title="Sin registro">·</td>
-            {% endif %}
-            {% endfor %}
-
-            <td class="td-total">{{ persona.total_he_banco|floatformat:1 }}</td>
-            <td class="td-total">{{ persona.dias_trabajados }}</td>
-            <td class="td-total td-tot-f {% if persona.faltas == 0 %}text-muted fw-normal{% endif %}">
-                {{ persona.faltas }}
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="100" class="text-center py-5 text-muted">
-                <i class="fas fa-inbox fs-2 d-block mb-2"></i>
-                No hay registros STAFF para esta importación.
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            </table>
+        </div>
+    </div>
 </div>
 
-<p class="text-muted small mt-2 mb-0">
-    <i class="fas fa-asterisk text-warning me-1"></i>
-    Celdas con <strong>*</strong> indican días con horas extra acumuladas al banco de horas.
-    HE banco = total HE 25% + 35% + 100% acumuladas sin pago directo (régimen STAFF).
-</p>
+<div class="alert alert-light border mt-3 small">
+    <strong><i class="fas fa-info-circle text-info me-1"></i>Columnas:</strong>
+    <strong>Trab.</strong>=Días trabajados (incluye SS) ·
+    <strong>SS</strong>=Sin salida biométrica (día normal pagado) ·
+    <strong>DL</strong>=Día libre usado ·
+    <strong>CHE</strong>=Compensación de HE ·
+    <strong>VAC</strong>=Vacaciones ·
+    <strong>Aus.</strong>=Ausencias (DM+LSG+FA — pasa el cursor para ver detalle) ·
+    <strong>Cond.</strong>: <strong>L</strong>=Local (8.5h) · <strong>F</strong>=Foráneo (11h)
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#tablaStaff').DataTable({
+        paging: true,
+        pageLength: 25,
+        lengthMenu: [25, 50, 100, 200],
+        order: [[0, 'asc']],
+        language: {
+            search: 'Buscar:', lengthMenu: 'Mostrar _MENU_',
+            info: 'Mostrando _START_–_END_ de _TOTAL_ personas',
+            infoEmpty: 'Sin resultados',
+            paginate: { previous: '‹', next: '›' },
+            decimal: ',', thousands: '.'
+        },
+        columnDefs: [{ orderable: false, targets: [1] }]
+    });
+});
+</script>
 {% endblock %}

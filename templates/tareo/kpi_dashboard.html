@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.kpi-card {
+  border-radius: 14px;
+  border: none;
+  box-shadow: 0 2px 14px rgba(0,0,0,.09);
+  transition: transform .15s;
+}
+.kpi-card:hover { transform: translateY(-2px); }
+.kpi-icon {
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+.he-bar {
+  height: 10px;
+  border-radius: 5px;
+}
+.tasa-ring {
+  position: relative;
+  width: 100px; height: 100px;
+}
+.grupo-tag {
+  font-size: .7rem;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+.chart-container { position: relative; height: 230px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  <!-- Encabezado + selectores -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="mb-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i>{{ titulo }}</h2>
+      <small class="text-muted">
+        Asistencia: {{ periodo_asist }} &nbsp;|&nbsp; HE: {{ periodo_he }}
+      </small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <form method="get" class="d-flex gap-2 align-items-center">
+        <select name="mes" class="form-select form-select-sm" style="width:130px" onchange="this.form.submit()">
+          {% for num, nombre in meses %}
+          <option value="{{ num }}" {% if num == mes %}selected{% endif %}>{{ nombre }}</option>
+          {% endfor %}
+        </select>
+        <select name="anio" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+          {% for a in anios %}<option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>{% endfor %}
+        </select>
+      </form>
+      <a href="{% url 'tareo_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- ── ROW 1: KPIs principales ── -->
+  <div class="row g-3 mb-3">
+
+    <!-- Tasa asistencia -->
+    <div class="col-6 col-md-3">
+      <div class="card kpi-card h-100 border-start border-4 border-success">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon bg-success bg-opacity-10 text-success">
+              <i class="fas fa-user-check"></i>
+            </div>
+            <div>
+              <div class="fs-3 fw-bold text-success">{{ tasa_asistencia }}%</div>
+              <div class="text-muted small">Tasa asistencia</div>
+            </div>
+          </div>
+          <div class="progress mt-2" style="height:5px">
+            <div class="progress-bar bg-success" style="width:{{ tasa_asistencia }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasa absentismo -->
+    <div class="col-6 col-md-3">
+      <div class="card kpi-card h-100 border-start border-4 border-danger">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon bg-danger bg-opacity-10 text-danger">
+              <i class="fas fa-user-times"></i>
+            </div>
+            <div>
+              <div class="fs-3 fw-bold text-danger">{{ tasa_absentismo }}%</div>
+              <div class="text-muted small">Absentismo (FA)</div>
+            </div>
+          </div>
+          <div class="progress mt-2" style="height:5px">
+            <div class="progress-bar bg-danger" style="width:{{ tasa_absentismo }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HE Total -->
+    <div class="col-6 col-md-3">
+      <div class="card kpi-card h-100 border-start border-4 border-warning">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+              <i class="fas fa-business-time"></i>
+            </div>
+            <div>
+              <div class="fs-3 fw-bold">{{ he_total|floatformat:1 }}</div>
+              <div class="text-muted small">HE totales (horas)</div>
+            </div>
+          </div>
+          <!-- Mini desglose HE -->
+          <div class="mt-2 small">
+            <span class="badge bg-warning text-dark me-1">25%: {{ he_25_total|floatformat:1 }}h</span>
+            <span class="badge me-1" style="background:#fd7e14">35%: {{ he_35_total|floatformat:1 }}h</span>
+            <span class="badge bg-danger">100%: {{ he_100_total|floatformat:1 }}h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registros -->
+    <div class="col-6 col-md-3">
+      <div class="card kpi-card h-100 border-start border-4 border-info">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon bg-info bg-opacity-10 text-info">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div>
+              <div class="fs-3 fw-bold">{{ total_dias_prog }}</div>
+              <div class="text-muted small">Días-persona prog.</div>
+            </div>
+          </div>
+          <div class="mt-2 small text-muted">
+            <i class="fas fa-check text-success me-1"></i>{{ dias_trabajados }} trabajados
+            &nbsp;<i class="fas fa-times text-danger me-1"></i>{{ faltas }} faltas
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 2: Desglose rápido + Por grupo ── -->
+  <div class="row g-3 mb-3">
+
+    <!-- Desglose ausentismo -->
+    <div class="col-md-4">
+      <div class="card kpi-card h-100">
+        <div class="card-header fw-semibold"><i class="fas fa-chart-pie me-2 text-secondary"></i>Distribución días</div>
+        <div class="card-body">
+          <canvas id="chartDonut" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Por grupo -->
+    <div class="col-md-8">
+      <div class="card kpi-card h-100">
+        <div class="card-header fw-semibold"><i class="fas fa-users me-2 text-primary"></i>Stats por grupo</div>
+        <div class="card-body">
+          <div class="row g-3">
+
+            <!-- STAFF -->
+            <div class="col-md-6">
+              <div class="p-3 rounded-3 bg-primary bg-opacity-10">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="fw-bold text-primary"><i class="fas fa-id-badge me-1"></i>RC STAFF</span>
+                  <span class="badge bg-primary">Banco horas</span>
+                </div>
+                <div class="row text-center g-2">
+                  <div class="col-4">
+                    <div class="fw-bold fs-5">{{ staff_stats.dias|default:0 }}</div>
+                    <div class="text-muted" style="font-size:.72rem">Días prog.</div>
+                  </div>
+                  <div class="col-4">
+                    <div class="fw-bold fs-5 text-danger">{{ staff_stats.faltas|default:0 }}</div>
+                    <div class="text-muted" style="font-size:.72rem">Faltas</div>
+                  </div>
+                  <div class="col-4">
+                    <div class="fw-bold fs-5 text-warning">{{ staff_stats.he25|default:"0"|floatformat:0 }}</div>
+                    <div class="text-muted" style="font-size:.72rem">HE 25% h</div>
+                  </div>
+                </div>
+                <!-- Banco STAFF del mes -->
+                {% if banco_mes.saldo %}
+                <div class="mt-2 small border-top pt-2">
+                  <i class="fas fa-piggy-bank text-success me-1"></i>
+                  Banco: <strong class="text-success">{{ banco_mes.saldo|floatformat:1 }} h saldo</strong>
+                  &nbsp;/ {{ banco_mes.personas }} personas
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- RCO -->
+            <div class="col-md-6">
+              <div class="p-3 rounded-3 bg-info bg-opacity-10">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="fw-bold text-info"><i class="fas fa-hard-hat me-1"></i>RC Operativos</span>
+                  <span class="badge bg-info text-white">HE pagadas</span>
+                </div>
+                <div class="row text-center g-2">
+                  <div class="col-3">
+                    <div class="fw-bold fs-5">{{ rco_stats.dias|default:0 }}</div>
+                    <div class="text-muted" style="font-size:.72rem">Días</div>
+                  </div>
+                  <div class="col-3">
+                    <div class="fw-bold fs-5 text-danger">{{ rco_stats.faltas|default:0 }}</div>
+                    <div class="text-muted" style="font-size:.72rem">Faltas</div>
+                  </div>
+                  <div class="col-3">
+                    <div class="fw-bold fs-5 text-warning">{{ rco_stats.he25|default:"0"|floatformat:0 }}</div>
+                    <div class="text-muted" style="font-size:.72rem">HE 25%</div>
+                  </div>
+                  <div class="col-3">
+                    <div class="fw-bold fs-5 text-danger">{{ rco_stats.he100|default:"0"|floatformat:0 }}</div>
+                    <div class="text-muted" style="font-size:.72rem">HE 100%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Otros resúmenes -->
+          <div class="row g-2 mt-1">
+            <div class="col-4">
+              <div class="text-center p-2 rounded bg-light">
+                <div class="fw-bold fs-5 text-info">{{ vacaciones }}</div>
+                <div class="text-muted small">Vacaciones (VAC)</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="text-center p-2 rounded bg-light">
+                <div class="fw-bold fs-5 text-warning">{{ dm }}</div>
+                <div class="text-muted small">Descanso Médico</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="text-center p-2 rounded bg-light">
+                <div class="fw-bold fs-5 text-secondary">{{ dl_bajadas }}</div>
+                <div class="text-muted small">Bajadas (DL/B)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── ROW 3: Tendencia diaria + Top ausentes ── -->
+  <div class="row g-3">
+
+    <!-- Tendencia diaria -->
+    <div class="col-md-8">
+      <div class="card kpi-card">
+        <div class="card-header fw-semibold">
+          <i class="fas fa-chart-line me-2 text-primary"></i>Tendencia diaria — {{ mes_nombre }} {{ anio }}
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="chartTendencia"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top ausentes -->
+    <div class="col-md-4">
+      <div class="card kpi-card h-100">
+        <div class="card-header fw-semibold">
+          <i class="fas fa-user-slash me-2 text-danger"></i>Top ausentes (FA)
+        </div>
+        <div class="card-body p-0">
+          {% if top_ausentes %}
+          <ul class="list-group list-group-flush">
+            {% for p in top_ausentes %}
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+              <div>
+                <div class="fw-semibold small">{{ p.personal__apellidos_nombres|truncatechars:28 }}</div>
+                <div class="text-muted" style="font-size:.72rem">{{ p.personal__nro_doc }} &nbsp;
+                  <span class="grupo-tag {% if p.grupo == 'STAFF' %}bg-primary text-white{% else %}bg-info text-white{% endif %}">
+                    {{ p.grupo }}
+                  </span>
+                </div>
+              </div>
+              <span class="badge bg-danger rounded-pill">{{ p.total_faltas }} días</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-check-circle fs-2 text-success d-block mb-2"></i>
+            Sin faltas registradas
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── Datos desde Django ──────────────────────────────────────
+const tendenciaData = {{ tendencia_json|safe }};
+
+const dias_trabajados = {{ dias_trabajados }};
+const faltas         = {{ faltas }};
+const vacaciones     = {{ vacaciones }};
+const dm             = {{ dm }};
+const dl_bajadas     = {{ dl_bajadas }};
+const total_prog     = {{ total_dias_prog }};
+const otros          = Math.max(0, total_prog - dias_trabajados - faltas - vacaciones - dm - dl_bajadas);
+
+// ── Donut: distribución días ────────────────────────────────
+new Chart(document.getElementById('chartDonut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Trabajados', 'Faltas', 'Vacaciones', 'Desc.Médico', 'Bajadas', 'Otros'],
+    datasets: [{
+      data: [dias_trabajados, faltas, vacaciones, dm, dl_bajadas, otros],
+      backgroundColor: ['#198754','#dc3545','#0dcaf0','#fd7e14','#6c757d','#adb5bd'],
+      borderWidth: 1,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } }
+    }
+  }
+});
+
+// ── Línea: tendencia diaria ─────────────────────────────────
+const labels      = tendenciaData.map(d => d.fecha);
+const trabajados  = tendenciaData.map(d => d.trabajados);
+const ausentes    = tendenciaData.map(d => d.ausentes);
+
+new Chart(document.getElementById('chartTendencia'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Trabajaron',
+        data: trabajados,
+        borderColor: '#198754',
+        backgroundColor: 'rgba(25,135,84,.12)',
+        tension: .3,
+        fill: true,
+        pointRadius: 3,
+      },
+      {
+        label: 'Faltas (FA)',
+        data: ausentes,
+        borderColor: '#dc3545',
+        backgroundColor: 'rgba(220,53,69,.10)',
+        tension: .3,
+        fill: true,
+        pointRadius: 3,
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 14 } }
+    },
+    scales: {
+      x: { ticks: { font: { size: 11 }, maxRotation: 45 } },
+      y: { beginAtZero: true, ticks: { precision: 0 } }
+    }
+  }
+});
+</script>
+{% endblock %}
