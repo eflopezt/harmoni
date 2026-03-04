@@ -43,6 +43,8 @@ SEED_COMMANDS = [
     ('seed_dossier_plantillas',      'documentos',      'Plantillas de dossier documentario'),
     # 14. Plantillas de constancias
     ('seed_constancias',             'documentos',      'Plantillas de constancias y certificados'),
+    # 15. Perfiles de acceso RBAC (roles del sistema)
+    ('seed_perfiles_acceso',         'core',            'Perfiles de acceso RBAC (admin-rrhh, reclutador, etc.)'),
 ]
 
 
