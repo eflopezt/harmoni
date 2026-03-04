@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel de Cese — Documentos{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="fas fa-user-slash me-2" style="color:#dc2626"></i>Panel de Cese</h4>
+        <p class="text-muted mb-0 small">Documentos de baja: Bajas SUNAT, Boletas de Liquidación y Certificados.</p>
+    </div>
+    <a href="{% url 'pdf_cese_upload' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-upload me-1"></i>Subir PDFs de Cese
+    </a>
+</div>
+
+<!-- Accesos rápidos -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100" style="border-left: 4px solid #f59e0b;">
+            <div class="card-body d-flex align-items-center gap-3">
+                <i class="fas fa-building-columns fa-2x" style="color:#f59e0b"></i>
+                <div>
+                    <div class="fw-semibold small">Bajas SUNAT</div>
+                    <div class="text-muted small">T-Registro · Constancias de cese SUNAT</div>
+                    <a href="{% url 'pdf_cese_upload' %}" class="btn btn-sm btn-outline-warning mt-2">
+                        <i class="fas fa-upload me-1"></i>Subir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100" style="border-left: 4px solid #3b82f6;">
+            <div class="card-body d-flex align-items-center gap-3">
+                <i class="fas fa-file-invoice-dollar fa-2x" style="color:#3b82f6"></i>
+                <div>
+                    <div class="fw-semibold small">Boletas BLIQ</div>
+                    <div class="text-muted small">Liquidaciones finales del S10</div>
+                    <a href="{% url 'pdf_cese_upload' %}" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="fas fa-upload me-1"></i>Subir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100" style="border-left: 4px solid #10b981;">
+            <div class="card-body d-flex align-items-center gap-3">
+                <i class="fas fa-certificate fa-2x" style="color:#10b981"></i>
+                <div>
+                    <div class="fw-semibold small">Certificados</div>
+                    <div class="text-muted small">Cert. Trabajo + 5ta Categoría</div>
+                    <a href="{% url 'constancias_panel' %}" class="btn btn-sm btn-outline-success mt-2">
+                        <i class="fas fa-file-pdf me-1"></i>Generar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Documentos recientes -->
+<div class="card shadow-sm">
+    <div class="card-header" style="background:#f8fafc">
+        <span class="fw-semibold small"><i class="fas fa-history me-2"></i>Documentos de Cese Cargados Recientemente</span>
+    </div>
+    {% if docs_recientes %}
+    <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size:.85rem">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Trabajador</th>
+                    <th>Tipo</th>
+                    <th>Archivo</th>
+                    <th>Fecha carga</th>
+                    <th>Cargado por</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in docs_recientes %}
+                <tr>
+                    <td class="ps-3">
+                        <a href="{% url 'personal_detail' doc.personal.pk %}" class="text-decoration-none fw-medium">
+                            {{ doc.personal.apellidos_nombres }}
+                        </a>
+                        <br><small class="text-muted">{{ doc.personal.nro_doc }}</small>
+                    </td>
+                    <td><span class="badge bg-secondary rounded-pill">{{ doc.tipo.nombre }}</span></td>
+                    <td>
+                        {% if doc.archivo %}
+                        <i class="fas fa-file-pdf text-danger me-1"></i>
+                        <small>{{ doc.nombre_archivo|default:doc.archivo.name }}</small>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ doc.creado_en|date:"d/m/Y H:i" }}</small></td>
+                    <td><small class="text-muted">{{ doc.subido_por.get_full_name|default:doc.subido_por.username }}</small></td>
+                    <td>
+                        <a href="{% url 'documentos_legajo' doc.personal.pk %}" class="btn btn-xs btn-outline-secondary"
+                           style="font-size:.75rem; padding:2px 8px;">
+                            <i class="fas fa-folder-open me-1"></i>Legajo
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-center py-5 text-muted">
+        <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+        <p class="mb-2">No hay documentos de cese cargados aún.</p>
+        <a href="{% url 'pdf_cese_upload' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-upload me-1"></i>Subir PDFs de Cese
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

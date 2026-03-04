@@ -87,8 +87,82 @@
         <a href="{% url 'personal_update' personal.pk %}" class="btn btn-sm btn-warning">
             <i class="fas fa-edit me-1"></i>Editar
         </a>
+        {% if personal.estado == 'Activo' %}
+        <button type="button" class="btn btn-sm btn-danger"
+                data-bs-toggle="modal" data-bs-target="#modalDarBaja"
+                title="Registrar cese del trabajador">
+            <i class="fas fa-user-slash me-1"></i>Dar de Baja
+        </button>
+        {% elif personal.estado == 'Cesado' and request.user.is_superuser %}
+        <form method="post" action="{% url 'personal_reactivar' personal.pk %}" class="d-inline"
+              onsubmit="return confirm('¿Reactivar a {{ personal.apellidos_nombres }}?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success">
+                <i class="fas fa-user-check me-1"></i>Reactivar
+            </button>
+        </form>
+        {% endif %}
     </div>
 </div>
+
+<!-- ── Modal Dar de Baja ─────────────────────────────────────────── -->
+{% if personal.estado == 'Activo' %}
+<div class="modal fade" id="modalDarBaja" tabindex="-1" aria-labelledby="modalDarBajaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header" style="background:#dc2626; color:#fff;">
+        <h6 class="modal-title" id="modalDarBajaLabel">
+            <i class="fas fa-user-slash me-2"></i>Registrar Cese — {{ personal.apellidos_nombres }}
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'personal_dar_baja' personal.pk %}" id="formDarBaja">
+        {% csrf_token %}
+        <div class="modal-body">
+            <div class="alert alert-warning small py-2 mb-3">
+                <i class="fas fa-exclamation-triangle me-1"></i>
+                Esta acción cambiará el estado del trabajador a <strong>Cesado</strong>
+                y creará automáticamente el proceso de offboarding.
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Fecha de Cese <span class="text-danger">*</span></label>
+                <input type="date" name="fecha_cese" class="form-control form-control-sm"
+                       value="{{ personal.fecha_cese|date:'Y-m-d'|default:'' }}" required
+                       max="{{ today|date:'Y-m-d' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Motivo de Cese <span class="text-danger">*</span></label>
+                <select name="motivo_cese" class="form-select form-select-sm" required>
+                    {% for val, label in motivos_cese %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small fw-semibold">Observaciones (opcional)</label>
+                <textarea name="observaciones" class="form-control form-control-sm" rows="3"
+                          placeholder="Ej: Renuncia voluntaria presentada el 28/02/2026..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-sm btn-danger" id="btnConfirmarBaja">
+                <i class="fas fa-user-slash me-1"></i>Confirmar Cese
+            </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('formDarBaja').addEventListener('submit', function(e) {
+    const btn = document.getElementById('btnConfirmarBaja');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando...';
+});
+</script>
+{% endif %}
 
 {# ── KPI chips ──────────────────────────────────────────────────── #}
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;">

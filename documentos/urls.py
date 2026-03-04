@@ -4,6 +4,7 @@ URLs del módulo Documentos - Legajo Digital.
 from django.urls import path
 from documentos import views
 from documentos import views_firma
+from documentos import views_cese
 
 urlpatterns = [
     # Panel principal (admin)
@@ -90,4 +91,10 @@ urlpatterns = [
     path('firma/<int:pk>/sincronizar/', views_firma.firma_sincronizar, name='firma_sincronizar'),
     path('firma/<int:pk>/cancelar/', views_firma.firma_cancelar, name='firma_cancelar'),
     path('firma/sincronizar-todos/', views_firma.firma_sincronizar_todos, name='firma_sincronizar_todos'),
+
+    # ── Flujo de Cese — equivalente digital de la macro Excel ─────────────────
+    path('cese/', views_cese.pdf_cese_panel,    name='pdf_cese_panel'),
+    path('cese/upload/', views_cese.pdf_cese_upload,  name='pdf_cese_upload'),
+    path('cese/procesar/', views_cese.pdf_cese_procesar, name='pdf_cese_procesar'),
+    path('cese/confirmar/', views_cese.pdf_cese_confirmar, name='pdf_cese_confirmar'),
 ]

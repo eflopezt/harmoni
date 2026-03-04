@@ -34,6 +34,7 @@ pyzk>=0.9              # ZKTeco direct connection (TCP/UDP, port 4370)
 # ==========================================
 Pillow>=10.3.0          # ImageField, thumbnails
 xhtml2pdf>=0.2.16       # Generación constancias/documentos PDF
+pdfminer.six>=20221105  # Extracción texto PDF (bajas SUNAT, BLIQ liquidación S10)
 
 # ==========================================
 # DATABASE

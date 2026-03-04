@@ -49,3 +49,5 @@ from .reportes import (
     reporte_asistencia_mensual, reporte_he_detallado,
     reporte_vacaciones, reporte_contratos,
 )
+
+from .cese import personal_dar_baja, personal_reactivar

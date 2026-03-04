@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload PDFs de Cese{% endblock %}
+
+{% block extra_css %}
+<style>
+.drop-zone {
+    border: 2px dashed #0f766e;
+    border-radius: 12px;
+    padding: 40px 24px;
+    text-align: center;
+    background: #f0fdfa;
+    cursor: pointer;
+    transition: all .2s;
+}
+.drop-zone.drag-over { background: #ccfbf1; border-color: #14b8a6; }
+.drop-zone:hover { background: #e6fffa; }
+.results-table th { font-size: .75rem; text-transform: uppercase; letter-spacing: .4px; color: #6b7280; }
+.results-table td { font-size: .85rem; vertical-align: middle; }
+.badge-match    { background: #d1fae5; color: #065f46; }
+.badge-nomatch  { background: #fee2e2; color: #991b1b; }
+.badge-bliq     { background: #dbeafe; color: #1e40af; }
+.badge-baja     { background: #fef3c7; color: #92400e; }
+.badge-unk      { background: #f3f4f6; color: #374151; }
+.progress-mini  { height: 4px; border-radius: 4px; }
+.pdf-icon       { color: #dc2626; font-size: 1.1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="fas fa-file-upload text-teal me-2" style="color:#0f766e"></i>Carga Masiva de PDFs de Cese</h4>
+        <p class="text-muted mb-0 small">
+            Equivalente digital de la macro Excel. Sube múltiples PDFs de <strong>Baja SUNAT (T-Registro)</strong>
+            o <strong>Boletas de Liquidación S10 (BLIQ)</strong> — el sistema identifica automáticamente al trabajador por su DNI.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pdf_cese_panel' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-list me-1"></i>Ver Panel Cese
+        </a>
+        <a href="{% url 'documentos_panel' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
+
+<!-- Zona de drop -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="drop-zone" id="dropZone">
+            <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color:#0f766e; opacity:.6"></i>
+            <p class="mb-1 fw-semibold" style="color:#0f766e">Arrastra aquí tus PDFs de cese</p>
+            <p class="text-muted small mb-3">O haz clic para seleccionar archivos · Máx. {{ max_mb }} MB por PDF</p>
+            <input type="file" id="fileInput" multiple accept=".pdf" class="d-none">
+            <button type="button" class="btn btn-outline-teal btn-sm" onclick="document.getElementById('fileInput').click()"
+                    style="border-color:#0f766e; color:#0f766e">
+                <i class="fas fa-folder-open me-1"></i>Seleccionar PDFs
+            </button>
+        </div>
+
+        <!-- Barra de progreso global -->
+        <div id="progressBar" class="mt-3 d-none">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+                <span id="progressLabel">Procesando...</span>
+                <span id="progressCount">0 / 0</span>
+            </div>
+            <div class="progress progress-mini">
+                <div class="progress-bar bg-teal" id="progressFill" style="width:0%; background:#0f766e"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de resultados -->
+<div id="resultsSection" class="d-none">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background:#f8fafc">
+            <span class="fw-semibold small"><i class="fas fa-table me-2"></i>Resultados del Análisis</span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-success" id="btnConfirmarTodos" onclick="confirmarTodos()">
+                    <i class="fas fa-check-double me-1"></i>Guardar todos con match
+                </button>
+                <span class="text-muted small align-self-center" id="statsLabel"></span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <table class="table results-table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Archivo PDF</th>
+                        <th>Tipo detectado</th>
+                        <th>DNI extraído</th>
+                        <th>Trabajador encontrado</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+    <div id="toastEl" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMsg"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PROCESAR_URL  = '{% url "pdf_cese_procesar" %}';
+const CONFIRMAR_URL = '{% url "pdf_cese_confirmar" %}';
+const CSRF_TOKEN    = '{{ csrf_token }}';
+
+let results = {};  // filename → {resultado, empleado, estado}
+
+// ── Drop zone ────────────────────────────────────────────────────────────────
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',      e => { e.preventDefault(); dropZone.classList.remove('drag-over'); procesarArchivos(e.dataTransfer.files); });
+fileInput.addEventListener('change',   e => procesarArchivos(e.target.files));
+
+// ── Procesar archivos ────────────────────────────────────────────────────────
+async function procesarArchivos(files) {
+    const pdfs = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+    if (!pdfs.length) { showToast('No se detectaron archivos PDF.', 'warning'); return; }
+
+    document.getElementById('resultsSection').classList.remove('d-none');
+    document.getElementById('progressBar').classList.remove('d-none');
+    document.getElementById('progressCount').textContent = `0 / ${pdfs.length}`;
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressLabel').textContent = 'Analizando PDFs...';
+
+    for (let i = 0; i < pdfs.length; i++) {
+        const f = pdfs[i];
+        addRowPending(f.name);
+        await procesarUnPDF(f);
+        const pct = Math.round((i + 1) / pdfs.length * 100);
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressCount').textContent = `${i+1} / ${pdfs.length}`;
+    }
+    document.getElementById('progressLabel').textContent = `Listo — ${pdfs.length} archivos procesados.`;
+    actualizarStats();
+}
+
+async function procesarUnPDF(file) {
+    const fd = new FormData();
+    fd.append('pdf', file);
+    fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
+
+    try {
+        const r = await fetch(PROCESAR_URL, { method: 'POST', body: fd });
+        const data = await r.json();
+        results[file.name] = { data, file, guardado: false };
+        updateRow(file.name, data);
+    } catch (e) {
+        updateRowError(file.name, 'Error de red: ' + e.message);
+    }
+}
+
+// ── Renderizado de filas ─────────────────────────────────────────────────────
+function addRowPending(filename) {
+    const tbody = document.getElementById('resultsBody');
+    const tr = document.createElement('tr');
+    tr.id = 'row-' + CSS.escape(filename);
+    tr.innerHTML = `
+        <td class="ps-3"><i class="fas fa-file-pdf pdf-icon me-2"></i><span class="fw-medium">${escHtml(filename)}</span></td>
+        <td colspan="4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div> <small class="text-muted">Analizando...</small></td>
+        <td></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function updateRow(filename, data) {
+    const tr = document.getElementById('row-' + CSS.escape(filename));
+    if (!tr) return;
+
+    const tipoBadge = tipoBadgeHtml(data.tipo_doc);
+    const emp       = data.empleado;
+    const dniHtml   = data.dni
+        ? `<code class="text-dark">${escHtml(data.dni)}</code>`
+        : `<span class="text-danger small">No detectado</span>`;
+
+    let empHtml, accionHtml, estadoHtml;
+    if (emp) {
+        empHtml = `<strong>${escHtml(emp.nombre)}</strong><br>
+                   <small class="text-muted">${escHtml(emp.cargo)} · ${escHtml(emp.area)}</small>`;
+        estadoHtml = `<span class="badge badge-match px-2 py-1 rounded-pill"><i class="fas fa-check-circle me-1"></i>Match</span>`;
+        accionHtml = `<button class="btn btn-sm btn-success" onclick="confirmarUno('${escHtml(filename)}', ${emp.pk}, '${escHtml(data.tipo_doc)}')"
+                              title="Guardar en legajo de ${escHtml(emp.nombre)}">
+                          <i class="fas fa-save me-1"></i>Guardar
+                      </button>`;
+    } else if (data.error) {
+        empHtml     = `<span class="text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>${escHtml(data.error)}</span>`;
+        estadoHtml  = `<span class="badge badge-nomatch px-2 py-1 rounded-pill">Error</span>`;
+        accionHtml  = `<span class="text-muted small">—</span>`;
+    } else {
+        empHtml     = `<span class="text-muted small">Sin coincidencia (DNI ${data.dni || 'no detectado'})</span>`;
+        estadoHtml  = `<span class="badge badge-nomatch px-2 py-1 rounded-pill"><i class="fas fa-times me-1"></i>Sin match</span>`;
+        accionHtml  = `<a href="/personal/" class="btn btn-sm btn-outline-secondary" target="_blank">
+                          <i class="fas fa-search me-1"></i>Buscar
+                      </a>`;
+    }
+
+    tr.innerHTML = `
+        <td class="ps-3"><i class="fas fa-file-pdf pdf-icon me-2"></i><span class="fw-medium">${escHtml(filename)}</span></td>
+        <td>${tipoBadge}</td>
+        <td>${dniHtml}</td>
+        <td>${empHtml}</td>
+        <td>${estadoHtml}</td>
+        <td class="text-center" id="accion-${CSS.escape(filename)}">${accionHtml}</td>
+    `;
+}
+
+function updateRowError(filename, msg) {
+    const tr = document.getElementById('row-' + CSS.escape(filename));
+    if (!tr) return;
+    tr.innerHTML = `
+        <td class="ps-3"><i class="fas fa-file-pdf pdf-icon me-2"></i>${escHtml(filename)}</td>
+        <td colspan="4" class="text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>${escHtml(msg)}</td>
+        <td></td>
+    `;
+}
+
+function tipoBadgeHtml(tipo) {
+    const map = {
+        'BAJA_SUNAT':  ['badge-baja', 'fa-building-columns', 'Baja SUNAT'],
+        'BLIQ':        ['badge-bliq', 'fa-file-invoice-dollar', 'BLIQ S10'],
+        'DESCONOCIDO': ['badge-unk',  'fa-question-circle',    'Desconocido'],
+    };
+    const [cls, icon, label] = map[tipo] || map['DESCONOCIDO'];
+    return `<span class="badge ${cls} px-2 py-1 rounded-pill"><i class="fas ${icon} me-1"></i>${label}</span>`;
+}
+
+// ── Confirmar (guardar) ──────────────────────────────────────────────────────
+async function confirmarUno(filename, personalPk, tipoDok) {
+    const entry = results[filename];
+    if (!entry || entry.guardado) return;
+
+    const fd = new FormData();
+    fd.append('pdf', entry.file);
+    fd.append('personal_pk', personalPk);
+    fd.append('tipo_doc', tipoDok);
+    fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
+
+    const btn = document.querySelector(`#accion-${CSS.escape(filename)} button`);
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
+
+    try {
+        const r   = await fetch(CONFIRMAR_URL, { method: 'POST', body: fd });
+        const data = await r.json();
+        if (data.success) {
+            entry.guardado = true;
+            const cell = document.getElementById('accion-' + CSS.escape(filename));
+            cell.innerHTML = `<a href="${data.legajo_url}" target="_blank" class="btn btn-sm btn-outline-success">
+                                  <i class="fas fa-external-link-alt me-1"></i>Ver Legajo
+                              </a>`;
+            showToast(`✓ Guardado en legajo de ${data.personal}`, 'success');
+            actualizarStats();
+        } else {
+            showToast('Error: ' + (data.error || 'desconocido'), 'danger');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar'; }
+        }
+    } catch (e) {
+        showToast('Error de red.', 'danger');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar'; }
+    }
+}
+
+async function confirmarTodos() {
+    for (const [filename, entry] of Object.entries(results)) {
+        if (!entry.guardado && entry.data.empleado) {
+            await confirmarUno(filename, entry.data.empleado.pk, entry.data.tipo_doc);
+        }
+    }
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+function actualizarStats() {
+    const total     = Object.keys(results).length;
+    const conMatch  = Object.values(results).filter(e => e.data?.empleado).length;
+    const guardados = Object.values(results).filter(e => e.guardado).length;
+    document.getElementById('statsLabel').textContent =
+        `${guardados} guardados · ${conMatch} con match · ${total} total`;
+}
+
+// ── Utils ────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type = 'success') {
+    const el  = document.getElementById('toastEl');
+    const msgEl = document.getElementById('toastMsg');
+    el.className = `toast align-items-center text-white border-0 bg-${type}`;
+    msgEl.textContent = msg;
+    const t = new bootstrap.Toast(el, { delay: 4000 });
+    t.show();
+}
+</script>
+{% endblock %}

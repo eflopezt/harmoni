@@ -90,6 +90,10 @@ urlpatterns = [
     path('contratos/<int:pk>/editar/', views.contrato_editar, name='contrato_editar'),
     path('contratos/api/stats/', views.contratos_api_stats, name='contratos_api_stats'),
 
+    # Cese y Reactivación
+    path('personal/<int:pk>/dar-baja/', views.personal_dar_baja, name='personal_dar_baja'),
+    path('personal/<int:pk>/reactivar/', views.personal_reactivar, name='personal_reactivar'),
+
     # Reportes RRHH
     path('reportes/', views.reportes_panel, name='reportes_panel'),
     path('reportes/plantilla/', views.reporte_plantilla, name='reporte_plantilla'),

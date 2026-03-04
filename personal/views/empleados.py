@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from django.core.paginator import Paginator
 from decimal import Decimal, InvalidOperation
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 
 from ..models import SubArea, Personal, Roster
 from ..forms import PersonalForm, ImportExcelForm
@@ -361,6 +361,9 @@ def personal_detail(request, pk):
         'permisos_recientes':     permisos_recientes,
         'antiguedad':             antiguedad,
         'pdi_activo':             pdi_activo,
+        # Cese
+        'today':         date.today(),
+        'motivos_cese':  Personal.MOTIVO_CESE_CHOICES,
     }
     context.update(get_context_usuario(request.user))
     return render(request, 'personal/personal_detail.html', context)
