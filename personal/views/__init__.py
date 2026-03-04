@@ -35,6 +35,7 @@ from .usuarios import (
     usuario_list, usuario_vincular, usuario_crear_y_vincular,
     usuario_desvincular, usuario_sincronizar,
     accesos_gestion, accesos_asignar_perfil,
+    accesos_detalle_usuario, accesos_toggle_modulo,
 )
 
 from .timeline import timeline_empleado

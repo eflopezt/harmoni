@@ -177,7 +177,7 @@
               <th>Área</th>
               <th>Perfil Actual</th>
               <th style="width:220px">Cambiar Perfil</th>
-              <th class="text-center pe-4">Módulos</th>
+              <th class="text-center pe-4">Ajustar</th>
             </tr>
           </thead>
           <tbody>
@@ -246,16 +246,15 @@
                 <span class="text-muted small">N/A</span>
                 {% endif %}
               </td>
-              {# Módulos activos #}
-              <td class="text-center pe-4" id="modulos-{{ p.pk }}">
-                {% if p.perfil_acceso %}
-                {% with mods=p.perfil_acceso.as_modulos_dict %}
-                {% with count=0 %}
-                <span class="badge text-bg-light border" title="Módulos visibles">
-                  {% for k, v in mods.items %}{% if v %}●{% endif %}{% endfor %}
-                </span>
-                {% endwith %}
-                {% endwith %}
+              {# Módulos / Edición granular #}
+              <td class="text-center pe-4">
+                {% if not p.usuario.is_superuser %}
+                <button class="btn btn-sm btn-outline-secondary btn-modulos"
+                        data-personal-id="{{ p.pk }}"
+                        data-personal-nombre="{{ p.apellidos_nombres }}"
+                        title="Ver y editar módulos individuales">
+                  <i class="bi bi-sliders2"></i>
+                </button>
                 {% else %}
                 <span class="text-muted small">—</span>
                 {% endif %}
@@ -277,6 +276,58 @@
 
 </div>
 
+{# Modal — Módulos individuales por usuario ───────────────────────────────── #}
+<div class="modal fade" id="modalModulos" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#0f766e,#134e4a)">
+        <h5 class="modal-title text-white">
+          <i class="bi bi-sliders2 me-2"></i>
+          Módulos de <span id="modal-nombre">—</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        {# Leyenda #}
+        <div class="bg-light border-bottom px-4 py-2 d-flex gap-3 flex-wrap" style="font-size:.78rem">
+          <span><span class="badge" style="background:#0f766e">&nbsp;</span> Perfil base</span>
+          <span><span class="badge bg-primary">&nbsp;</span> Override: Concedido</span>
+          <span><span class="badge bg-danger">&nbsp;</span> Override: Revocado</span>
+          <span class="text-muted">Perfil actual: <strong id="modal-perfil">—</strong></span>
+        </div>
+        {# Cargando #}
+        <div id="modal-loading" class="text-center py-5">
+          <div class="spinner-border text-teal" role="status"></div>
+          <p class="text-muted mt-2">Cargando módulos…</p>
+        </div>
+        {# Tabla de módulos #}
+        <div id="modal-body-content" class="d-none">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:.85rem">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Módulo</th>
+                  <th class="text-center">Perfil base</th>
+                  <th class="text-center">Override</th>
+                  <th class="text-center">Efectivo</th>
+                  <th class="text-center pe-4">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="modal-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <small class="text-muted me-auto">
+          Los cambios se aplican de inmediato. El usuario verá el efecto en su próximo request.
+        </small>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {# Toast de feedback ─────────────────────────────────────────────────────── #}
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
   <div id="toast-acceso" class="toast align-items-center border-0" role="alert">
@@ -290,9 +341,12 @@
 
 {% block extra_js %}
 <script>
-const CSRF = '{{ csrf_token }}';
-const URL_ASIGNAR = '{% url "accesos_asignar_perfil" %}';
+const CSRF         = '{{ csrf_token }}';
+const URL_ASIGNAR  = '{% url "accesos_asignar_perfil" %}';
+const URL_DETALLE  = '/accesos/usuario/';   // + personal_pk + /
+const URL_TOGGLE   = '{% url "accesos_toggle_modulo" %}';
 
+// ── Cambiar perfil base ────────────────────────────────────────────────────
 document.querySelectorAll('.btn-asignar').forEach(btn => {
   btn.addEventListener('click', async function () {
     const personalId   = this.dataset.personalId;
@@ -313,15 +367,11 @@ document.querySelectorAll('.btn-asignar').forEach(btn => {
       const data = await resp.json();
 
       if (data.success) {
-        // Actualiza badge de perfil en la fila
         const labelEl = document.getElementById('perfil-label-' + personalId);
-        if (perfilCodigo) {
-          labelEl.innerHTML = `<span class="badge rounded-pill"
-            style="background:#0f766e;color:#fff;font-size:.72rem">${data.perfil_nombre}</span>`;
-        } else {
-          labelEl.innerHTML = `<span class="badge text-bg-warning" style="font-size:.72rem">Sin perfil</span>`;
-        }
-        showToast(`Perfil de ${data.personal_nombre} actualizado a "${data.perfil_nombre}"`, 'success');
+        labelEl.innerHTML = perfilCodigo
+          ? `<span class="badge rounded-pill" style="background:#0f766e;color:#fff;font-size:.72rem">${data.perfil_nombre}</span>`
+          : `<span class="badge text-bg-warning" style="font-size:.72rem">Sin perfil</span>`;
+        showToast(`Perfil de ${data.personal_nombre} → "${data.perfil_nombre}"`, 'success');
       } else {
         showToast('Error: ' + data.error, 'danger');
       }
@@ -334,11 +384,159 @@ document.querySelectorAll('.btn-asignar').forEach(btn => {
   });
 });
 
+// ── Modal de módulos individuales ─────────────────────────────────────────
+let modalPersonalId = null;
+
+document.querySelectorAll('.btn-modulos').forEach(btn => {
+  btn.addEventListener('click', async function () {
+    modalPersonalId = this.dataset.personalId;
+    document.getElementById('modal-nombre').textContent = this.dataset.personalNombre;
+    document.getElementById('modal-perfil').textContent  = '…';
+    document.getElementById('modal-loading').classList.remove('d-none');
+    document.getElementById('modal-body-content').classList.add('d-none');
+
+    new bootstrap.Modal(document.getElementById('modalModulos')).show();
+
+    try {
+      const resp = await fetch(URL_DETALLE + modalPersonalId + '/');
+      const data = await resp.json();
+      if (!data.success) { showToast(data.error, 'danger'); return; }
+
+      document.getElementById('modal-perfil').textContent = data.perfil_nombre || '(sin perfil)';
+      renderModulos(data.modulos, data.personal_pk);
+
+      document.getElementById('modal-loading').classList.add('d-none');
+      document.getElementById('modal-body-content').classList.remove('d-none');
+    } catch (e) {
+      showToast('Error al cargar módulos.', 'danger');
+    }
+  });
+});
+
+function renderModulos(modulos, personalPk) {
+  const tbody = document.getElementById('modal-tbody');
+  tbody.innerHTML = '';
+
+  modulos.forEach(m => {
+    const iconoPerfil  = m.perfil === null  ? '<span class="text-muted">—</span>'
+                       : m.perfil           ? '<i class="bi bi-check-circle-fill text-success"></i>'
+                                            : '<i class="bi bi-x-circle-fill text-danger"></i>';
+
+    let iconoOverride, classFila = '';
+    if (m.override === null) {
+      iconoOverride = '<span class="text-muted small">sin override</span>';
+    } else if (m.override) {
+      iconoOverride = '<span class="badge bg-primary">Concedido</span>';
+      classFila = 'table-primary';
+    } else {
+      iconoOverride = '<span class="badge bg-danger">Revocado</span>';
+      classFila = 'table-danger';
+    }
+
+    const iconoEfectivo = m.efectivo
+      ? '<i class="bi bi-eye-fill text-success"></i> <span class="text-success small">Visible</span>'
+      : '<i class="bi bi-eye-slash-fill text-danger"></i> <span class="text-danger small">Oculto</span>';
+
+    const btnConceder = `<button class="btn btn-xs btn-outline-primary btn-toggle-mod"
+        data-personal-id="${personalPk}" data-modulo="${m.codigo}" data-accion="conceder"
+        title="Dar acceso a este módulo aunque el perfil no lo incluya"
+        ${m.override === true ? 'disabled' : ''}>
+        <i class="bi bi-plus-circle"></i>
+      </button>`;
+
+    const btnRevocar = `<button class="btn btn-xs btn-outline-danger btn-toggle-mod"
+        data-personal-id="${personalPk}" data-modulo="${m.codigo}" data-accion="revocar"
+        title="Quitar acceso aunque el perfil lo incluya"
+        ${m.override === false ? 'disabled' : ''}>
+        <i class="bi bi-dash-circle"></i>
+      </button>`;
+
+    const btnReset = `<button class="btn btn-xs btn-outline-secondary btn-toggle-mod"
+        data-personal-id="${personalPk}" data-modulo="${m.codigo}" data-accion="reset"
+        title="Volver a la regla del perfil"
+        ${m.override === null ? 'disabled' : ''}>
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>`;
+
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr class="${classFila}" id="mod-row-${personalPk}-${m.codigo}">
+        <td class="ps-4 fw-semibold">${m.nombre}</td>
+        <td class="text-center">${iconoPerfil}</td>
+        <td class="text-center">${iconoOverride}</td>
+        <td class="text-center">${iconoEfectivo}</td>
+        <td class="text-center pe-4 d-flex gap-1 justify-content-center">
+          ${btnConceder}${btnRevocar}${btnReset}
+        </td>
+      </tr>`);
+  });
+
+  // Delegación de eventos para los botones de toggle
+  tbody.querySelectorAll('.btn-toggle-mod').forEach(btn => {
+    btn.addEventListener('click', handleToggle);
+  });
+}
+
+async function handleToggle(e) {
+  const btn       = e.currentTarget;
+  const personalId = btn.dataset.personalId;
+  const modulo    = btn.dataset.modulo;
+  const accion    = btn.dataset.accion;
+
+  btn.disabled = true;
+  const origHtml = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:.7rem;height:.7rem"></span>';
+
+  try {
+    const fd = new FormData();
+    fd.append('personal_id', personalId);
+    fd.append('modulo', modulo);
+    fd.append('accion', accion);
+    fd.append('csrfmiddlewaretoken', CSRF);
+
+    const resp = await fetch(URL_TOGGLE, { method: 'POST', body: fd });
+    const data = await resp.json();
+
+    if (data.success) {
+      // Recarga solo la fila afectada (nueva consulta al servidor)
+      const detResp = await fetch(URL_DETALLE + personalId + '/');
+      const detData = await detResp.json();
+      if (detData.success) {
+        const modInfo = detData.modulos.find(m => m.codigo === modulo);
+        if (modInfo) {
+          // Re-renderiza solo esa fila actualizando sus íconos
+          const row = document.getElementById(`mod-row-${personalId}-${modulo}`);
+          if (row) {
+            const labels = { conceder: 'Concedido', revocar: 'Revocado' };
+            row.className = data.nuevo_estado === true ? 'table-primary'
+                          : data.nuevo_estado === false ? 'table-danger' : '';
+          }
+        }
+        // Re-render completo para consistencia
+        renderModulos(detData.modulos, parseInt(personalId));
+      }
+      const etiquetas = { conceder: 'Acceso concedido', revocar: 'Acceso revocado', reset: 'Override eliminado' };
+      showToast(`${etiquetas[accion]}: ${modulo} para ${data.personal_nombre}`, 'success');
+    } else {
+      showToast('Error: ' + data.error, 'danger');
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  } catch (err) {
+    showToast('Error de conexión.', 'danger');
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+  }
+}
+
 function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast-acceso');
   toast.className = `toast align-items-center border-0 text-bg-${type}`;
   document.getElementById('toast-msg').textContent = msg;
-  new bootstrap.Toast(toast, { delay: 3500 }).show();
+  new bootstrap.Toast(toast, { delay: 4000 }).show();
 }
 </script>
+
+<style>
+.btn-xs { padding: .2rem .45rem; font-size: .72rem; }
+</style>
 {% endblock %}

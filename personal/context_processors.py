@@ -240,16 +240,46 @@ def _get_perfil_overrides(user) -> dict:
 
 
 def _calcular_perfil_overrides(user) -> dict:
-    """Consulta el PerfilAcceso del usuario y retorna sus módulos como dict."""
+    """
+    Calcula los módulos visibles del usuario combinando dos capas:
+
+    1) PerfilAcceso (base): define qué módulos ve su rol por defecto.
+       Si no tiene perfil asignado → sin restricciones (ve todo lo que la empresa activa).
+
+    2) PermisoModulo (overrides individuales): registros por usuario que pueden
+       CONCEDER acceso a un módulo que el perfil no incluye, o
+       REVOCAR uno que el perfil sí incluye.
+       → Si existe PermisoModulo(modulo='analytics', puede_ver=True): se AÑADE.
+       → Si existe PermisoModulo(modulo='salarios',  puede_ver=False): se QUITA.
+       Los overrides tienen prioridad sobre el perfil.
+
+    Regla final: empresa_activa AND (perfil_permite OR override_concede)
+                                    y si override_revoca → False aunque el perfil lo permita.
+    """
+    # ── Capa 1: Perfil base ────────────────────────────────────────────
+    base: dict = {}
     try:
         from personal.models import Personal
         personal = Personal.objects.select_related('perfil_acceso').get(usuario=user)
         if personal.perfil_acceso:
-            return personal.perfil_acceso.as_modulos_dict()
+            base = personal.perfil_acceso.as_modulos_dict()
+        # Sin perfil → base vacío (sin restricciones de perfil)
+    except Exception:
+        pass  # Sin Personal → sin restricciones de perfil
+
+    # ── Capa 2: Overrides individuales (PermisoModulo) ─────────────────
+    try:
+        from core.models import PermisoModulo
+        overrides = PermisoModulo.objects.filter(usuario=user).values('modulo', 'puede_ver')
+        for ov in overrides:
+            key = f'mod_{ov["modulo"]}'
+            # puede_ver=True  → concede acceso (incluso si el perfil lo niega)
+            # puede_ver=False → revoca acceso (incluso si el perfil lo permite)
+            base[key] = ov['puede_ver']
     except Exception:
         pass
-    # Sin perfil asignado → sin restricciones de perfil (acceso según config empresa)
-    return {}
+
+    return base
 
 
 # ── API pública de invalidación ────────────────────────────────────────────
@@ -282,7 +312,10 @@ def invalidar_empresas():
 def invalidar_perfil(user_pk: int | None = None):
     """
     Invalida cache del perfil RBAC.
-    Llamar cuando se cambia personal.perfil_acceso o se modifica un PerfilAcceso.
+    Llamar cuando:
+      - Se cambia personal.perfil_acceso
+      - Se modifica un PerfilAcceso (afecta a todos sus usuarios)
+      - Se crea/edita/elimina un PermisoModulo de un usuario
     """
     if user_pk is not None:
         cache.delete(f'harmoni_perfil_{user_pk}_v1')

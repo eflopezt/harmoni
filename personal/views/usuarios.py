@@ -412,6 +412,133 @@ def accesos_gestion(request):
 
 
 @login_required
+def accesos_detalle_usuario(request, personal_pk):
+    """
+    Devuelve JSON con el estado de módulos del usuario:
+    - perfil base (de PerfilAcceso)
+    - overrides individuales (de PermisoModulo)
+    - estado efectivo (la combinación de ambos)
+    Usado para poblar el modal de edición de accesos granulares.
+    """
+    if not _puede_gestionar_accesos(request.user):
+        return JsonResponse({'success': False, 'error': 'Sin permisos.'}, status=403)
+
+    try:
+        personal = Personal.objects.select_related('perfil_acceso', 'usuario').get(pk=personal_pk)
+    except Personal.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Personal no encontrado.'}, status=404)
+
+    from core.models import PermisoModulo, MODULOS_SISTEMA
+
+    # Perfil base
+    perfil_base = personal.perfil_acceso.as_modulos_dict() if personal.perfil_acceso else {}
+
+    # Overrides individuales existentes para este usuario
+    overrides_qs = PermisoModulo.objects.filter(usuario=personal.usuario) if personal.usuario else []
+    overrides = {f'mod_{ov.modulo}': ov.puede_ver for ov in overrides_qs}
+
+    modulos_info = []
+    for codigo_modulo, nombre_modulo in MODULOS_SISTEMA:
+        key = f'mod_{codigo_modulo}'
+        perfil_val   = perfil_base.get(key)   # None si no tiene perfil
+        override_val = overrides.get(key)      # None si sin override
+
+        # Estado efectivo: override tiene prioridad
+        if override_val is not None:
+            efectivo = override_val
+            fuente   = 'override'
+        elif perfil_val is not None:
+            efectivo = perfil_val
+            fuente   = 'perfil'
+        else:
+            efectivo = True   # Sin perfil ni override → acceso completo según empresa
+            fuente   = 'empresa'
+
+        modulos_info.append({
+            'codigo':   codigo_modulo,
+            'nombre':   nombre_modulo,
+            'perfil':   perfil_val,    # None = sin perfil
+            'override': override_val,  # None = sin override personal
+            'efectivo': efectivo,
+            'fuente':   fuente,        # 'perfil' | 'override' | 'empresa'
+        })
+
+    return JsonResponse({
+        'success':         True,
+        'personal_pk':     personal.pk,
+        'personal_nombre': personal.apellidos_nombres,
+        'perfil_nombre':   personal.perfil_acceso.nombre if personal.perfil_acceso else None,
+        'modulos':         modulos_info,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def accesos_toggle_modulo(request):
+    """
+    AJAX: activa, desactiva o resetea el override de un módulo para un usuario.
+      conceder → PermisoModulo(puede_ver=True)  — ve el módulo aunque el perfil lo niegue
+      revocar  → PermisoModulo(puede_ver=False) — no ve aunque el perfil lo incluya
+      reset    → elimina el override — vuelve a la regla del perfil
+    """
+    if not _puede_gestionar_accesos(request.user):
+        return JsonResponse({'success': False, 'error': 'Sin permisos.'}, status=403)
+
+    personal_pk = request.POST.get('personal_id')
+    modulo      = request.POST.get('modulo', '').strip()
+    accion      = request.POST.get('accion', '').strip()
+
+    if accion not in ('conceder', 'revocar', 'reset'):
+        return JsonResponse({'success': False, 'error': 'Acción inválida.'}, status=400)
+
+    from core.models import PermisoModulo, MODULOS_SISTEMA
+    from personal.context_processors import invalidar_perfil
+
+    codigos_validos = {c for c, _ in MODULOS_SISTEMA}
+    if modulo not in codigos_validos:
+        return JsonResponse({'success': False, 'error': f'Módulo "{modulo}" no existe.'}, status=400)
+
+    try:
+        personal = Personal.objects.select_related('usuario').get(pk=personal_pk)
+    except Personal.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Personal no encontrado.'}, status=404)
+
+    if not personal.usuario:
+        return JsonResponse({'success': False, 'error': 'El personal no tiene usuario vinculado.'}, status=400)
+
+    if accion == 'reset':
+        PermisoModulo.objects.filter(usuario=personal.usuario, modulo=modulo).delete()
+        nuevo_estado = None
+        fuente       = 'perfil'
+    else:
+        puede_ver = (accion == 'conceder')
+        PermisoModulo.objects.update_or_create(
+            usuario=personal.usuario,
+            modulo=modulo,
+            defaults={
+                'puede_ver':     puede_ver,
+                'puede_crear':   puede_ver,
+                'puede_editar':  puede_ver,
+                'puede_aprobar': False,
+                'puede_exportar': puede_ver,
+            },
+        )
+        nuevo_estado = puede_ver
+        fuente       = 'override'
+
+    invalidar_perfil(personal.usuario_id)
+
+    return JsonResponse({
+        'success':         True,
+        'modulo':          modulo,
+        'accion':          accion,
+        'nuevo_estado':    nuevo_estado,
+        'fuente':          fuente,
+        'personal_nombre': personal.apellidos_nombres,
+    })
+
+
+@login_required
 @require_http_methods(["POST"])
 def accesos_asignar_perfil(request):
     """

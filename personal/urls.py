@@ -81,6 +81,8 @@ urlpatterns = [
     # Gestión de Accesos (RBAC)
     path('accesos/', views.accesos_gestion, name='accesos_gestion'),
     path('accesos/asignar/', views.accesos_asignar_perfil, name='accesos_asignar_perfil'),
+    path('accesos/usuario/<int:personal_pk>/', views.accesos_detalle_usuario, name='accesos_detalle_usuario'),
+    path('accesos/modulo/', views.accesos_toggle_modulo, name='accesos_toggle_modulo'),
 
     # Contratos y Período de Prueba
     path('contratos/', views.contratos_panel, name='contratos_panel'),
