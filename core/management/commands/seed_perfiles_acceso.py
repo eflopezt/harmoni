@@ -5,11 +5,15 @@ Uso:
     python manage.py seed_perfiles_acceso
     python manage.py seed_perfiles_acceso --reset   # Borra y recrea todos
 
-Perfiles creados:
-  ADMIN_RRHH    — Administrador RRHH: acceso total excepto configuración
-  JEFE_AREA     — Jefe de Área: módulos operativos de su área
-  CONSULTOR     — Consultor / Solo lectura: analytics + reportes
-  EMPLEADO      — Empleado: solo portal de autoservicio (sin admin)
+Perfiles de sistema (es_sistema=True, no eliminables):
+  admin-rrhh        Administrador RRHH     — acceso total excepto config
+  jefe-area         Jefe de Área           — módulos operativos de su área
+  reclutador        Reclutador/Selección   — solo reclutamiento + personal + onboarding
+  analista-nominas  Analista de Planillas  — nóminas + asistencia + personal + docs + préstamos
+  bienestar         Bienestar Laboral      — encuestas + capacitaciones + evaluaciones
+  analista-asist    Analista de Asistencia — asistencia + vacaciones + personal + calendario
+  consultor         Consultor              — lectura + analytics
+  empleado          Empleado               — solo encuestas/calendario (portal)
 """
 from django.core.management.base import BaseCommand
 from core.models import PerfilAcceso
@@ -120,7 +124,6 @@ PERFILES = [
             'mis documentos). No tiene acceso a ningún módulo de administración.'
         ),
         'es_sistema': True,
-        # Todos los módulos admin desactivados — el portal tiene su propio control
         'mod_personal':       False,
         'mod_asistencia':     False,
         'mod_vacaciones':     False,
@@ -128,18 +131,144 @@ PERFILES = [
         'mod_capacitaciones': False,
         'mod_disciplinaria':  False,
         'mod_evaluaciones':   False,
-        'mod_encuestas':      True,   # Puede responder encuestas
+        'mod_encuestas':      True,
         'mod_salarios':       False,
         'mod_reclutamiento':  False,
         'mod_prestamos':      False,
         'mod_viaticos':       False,
         'mod_onboarding':     False,
-        'mod_calendario':     True,   # Puede ver el calendario
+        'mod_calendario':     True,
         'mod_analytics':      False,
         'mod_configuracion':  False,
         'mod_roster':         False,
         'puede_aprobar':      False,
         'puede_exportar':     False,
+    },
+
+    # ── Reclutador / Selección ────────────────────────────────────────────
+    {
+        'codigo': 'reclutador',
+        'nombre': 'Reclutador / Selección',
+        'descripcion': (
+            'Perfil para el equipo de atracción de talento. Gestiona vacantes, '
+            'candidatos y pipeline de selección. Puede ver datos de personal '
+            'para convertir candidatos en empleados y gestionar el onboarding inicial. '
+            'Sin acceso a módulos financieros ni de nóminas.'
+        ),
+        'es_sistema': True,
+        'mod_personal':       True,   # Ver empleados, convertir candidatos
+        'mod_asistencia':     False,
+        'mod_vacaciones':     False,
+        'mod_documentos':     True,   # Gestionar legajos de nuevos ingresos
+        'mod_capacitaciones': False,
+        'mod_disciplinaria':  False,
+        'mod_evaluaciones':   False,
+        'mod_encuestas':      False,
+        'mod_salarios':       False,
+        'mod_reclutamiento':  True,   # Módulo principal
+        'mod_prestamos':      False,
+        'mod_viaticos':       False,
+        'mod_onboarding':     True,   # Gestionar onboarding de nuevos
+        'mod_calendario':     True,
+        'mod_analytics':      False,
+        'mod_configuracion':  False,
+        'mod_roster':         False,
+        'puede_aprobar':      False,
+        'puede_exportar':     True,
+    },
+
+    # ── Analista de Planillas / Nóminas ───────────────────────────────────
+    {
+        'codigo': 'analista-nominas',
+        'nombre': 'Analista de Planillas',
+        'descripcion': (
+            'Perfil para el equipo de compensaciones y planilla. Accede a nóminas, '
+            'asistencia (fuente de datos), estructura salarial, préstamos y viáticos. '
+            'Sin acceso a módulos de gestión de talento (evaluaciones, capacitaciones). '
+            'Puede aprobar descuentos y liquidaciones.'
+        ),
+        'es_sistema': True,
+        'mod_personal':       True,
+        'mod_asistencia':     True,   # Datos de asistencia para planilla
+        'mod_vacaciones':     True,   # Descuentos y provisiones
+        'mod_documentos':     True,   # Boletas de pago
+        'mod_capacitaciones': False,
+        'mod_disciplinaria':  False,
+        'mod_evaluaciones':   False,
+        'mod_encuestas':      False,
+        'mod_salarios':       True,   # Estructura salarial, bandas
+        'mod_reclutamiento':  False,
+        'mod_prestamos':      True,   # Cuotas de descuento
+        'mod_viaticos':       True,   # CDT y conciliación
+        'mod_onboarding':     False,
+        'mod_calendario':     True,
+        'mod_analytics':      False,
+        'mod_configuracion':  False,
+        'mod_roster':         False,
+        'puede_aprobar':      True,
+        'puede_exportar':     True,
+    },
+
+    # ── Bienestar Laboral ─────────────────────────────────────────────────
+    {
+        'codigo': 'bienestar',
+        'nombre': 'Bienestar Laboral',
+        'descripcion': (
+            'Perfil para el área de bienestar y desarrollo organizacional. '
+            'Gestiona encuestas de clima, capacitaciones, evaluaciones de desempeño '
+            'y programas de desarrollo. Sin acceso a datos financieros ni nóminas.'
+        ),
+        'es_sistema': True,
+        'mod_personal':       True,
+        'mod_asistencia':     False,
+        'mod_vacaciones':     False,
+        'mod_documentos':     False,
+        'mod_capacitaciones': True,   # Módulo principal
+        'mod_disciplinaria':  False,
+        'mod_evaluaciones':   True,   # 360°, 9-Box, PDI
+        'mod_encuestas':      True,   # eNPS, clima, pulsos
+        'mod_salarios':       False,
+        'mod_reclutamiento':  False,
+        'mod_prestamos':      False,
+        'mod_viaticos':       False,
+        'mod_onboarding':     True,   # Programas de inducción
+        'mod_calendario':     True,
+        'mod_analytics':      False,
+        'mod_configuracion':  False,
+        'mod_roster':         False,
+        'puede_aprobar':      False,
+        'puede_exportar':     True,
+    },
+
+    # ── Analista de Asistencia / Tareo ────────────────────────────────────
+    {
+        'codigo': 'analista-asistencia',
+        'nombre': 'Analista de Asistencia',
+        'descripcion': (
+            'Perfil para el equipo de control de asistencia y tareo. '
+            'Gestiona importación de marcaciones, horas extras, banco de horas '
+            'y control de vacaciones/permisos. Sin acceso a nóminas ni datos financieros.'
+        ),
+        'es_sistema': True,
+        'mod_personal':       True,
+        'mod_asistencia':     True,   # Módulo principal
+        'mod_vacaciones':     True,   # Aprobación y control
+        'mod_documentos':     False,
+        'mod_capacitaciones': False,
+        'mod_disciplinaria':  False,
+        'mod_evaluaciones':   False,
+        'mod_encuestas':      False,
+        'mod_salarios':       False,
+        'mod_reclutamiento':  False,
+        'mod_prestamos':      False,
+        'mod_viaticos':       False,
+        'mod_onboarding':     False,
+        'mod_calendario':     True,
+        'mod_analytics':      False,
+        'mod_configuracion':  False,
+        'mod_roster':         True,   # Control proyectado de turnos
+        'puede_aprobar':      True,
+        'puede_exportar':     True,
     },
 ]
 

@@ -331,3 +331,127 @@ def usuario_sincronizar(request):
     }
 
     return render(request, 'personal/usuario_sincronizar.html', context)
+
+
+# ── Gestión de Accesos (RBAC) ─────────────────────────────────────────────────
+
+def _puede_gestionar_accesos(user) -> bool:
+    """
+    Puede gestionar accesos quien sea:
+      - Superusuario
+      - Admin RRHH (perfil admin-rrhh)
+      - Cualquier usuario con puede_aprobar=True Y mod_personal=True en su perfil
+    """
+    if user.is_superuser:
+        return True
+    try:
+        personal = Personal.objects.select_related('perfil_acceso').get(usuario=user)
+        p = personal.perfil_acceso
+        if p is None:
+            return False
+        return p.puede_aprobar and p.mod_personal
+    except Personal.DoesNotExist:
+        return False
+
+
+@login_required
+def accesos_gestion(request):
+    """
+    Panel de Gestión de Accesos: lista todos los usuarios con Personal vinculado,
+    muestra su PerfilAcceso actual y permite cambiarlo.
+    Accesible para superusuarios y usuarios con perfil admin-rrhh.
+    """
+    if not _puede_gestionar_accesos(request.user):
+        messages.error(request, 'No tienes permisos para gestionar accesos de usuarios.')
+        return redirect('home')
+
+    from core.models import PerfilAcceso
+
+    # Personal con usuario vinculado (puede loguearse)
+    personal_con_acceso = (
+        Personal.objects
+        .filter(usuario__isnull=False)
+        .select_related('usuario', 'perfil_acceso', 'subarea__area')
+        .order_by('apellidos_nombres')
+    )
+
+    # Filtros
+    buscar     = request.GET.get('buscar', '').strip()
+    filtro_perfil = request.GET.get('perfil', '').strip()
+    filtro_sin_perfil = request.GET.get('sin_perfil', '')
+
+    if buscar:
+        from django.db.models import Q
+        personal_con_acceso = personal_con_acceso.filter(
+            Q(apellidos_nombres__icontains=buscar) |
+            Q(nro_doc__icontains=buscar) |
+            Q(usuario__username__icontains=buscar)
+        )
+    if filtro_perfil:
+        personal_con_acceso = personal_con_acceso.filter(
+            perfil_acceso__codigo=filtro_perfil
+        )
+    if filtro_sin_perfil:
+        personal_con_acceso = personal_con_acceso.filter(perfil_acceso__isnull=True)
+
+    perfiles_disponibles = PerfilAcceso.objects.order_by('nombre')
+
+    # Stats
+    total = Personal.objects.filter(usuario__isnull=False).count()
+    sin_perfil = Personal.objects.filter(usuario__isnull=False, perfil_acceso__isnull=True).count()
+
+    return render(request, 'personal/accesos_gestion.html', {
+        'personal_con_acceso':   personal_con_acceso,
+        'perfiles_disponibles':  perfiles_disponibles,
+        'total_con_acceso':      total,
+        'sin_perfil_count':      sin_perfil,
+        'buscar':                buscar,
+        'filtro_perfil':         filtro_perfil,
+        'filtro_sin_perfil':     filtro_sin_perfil,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def accesos_asignar_perfil(request):
+    """
+    AJAX: asigna o quita un PerfilAcceso a un Personal.
+    Invalida el cache RBAC del usuario afectado.
+    """
+    if not _puede_gestionar_accesos(request.user):
+        return JsonResponse({'success': False, 'error': 'Sin permisos.'}, status=403)
+
+    personal_pk = request.POST.get('personal_id')
+    perfil_codigo = request.POST.get('perfil_codigo', '').strip()  # '' = quitar perfil
+
+    try:
+        personal = Personal.objects.select_related('usuario', 'perfil_acceso').get(pk=personal_pk)
+    except Personal.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Personal no encontrado.'}, status=404)
+
+    from core.models import PerfilAcceso
+    from personal.context_processors import invalidar_perfil
+
+    if perfil_codigo:
+        try:
+            perfil = PerfilAcceso.objects.get(codigo=perfil_codigo)
+        except PerfilAcceso.DoesNotExist:
+            return JsonResponse({'success': False, 'error': f'Perfil "{perfil_codigo}" no existe.'}, status=400)
+        personal.perfil_acceso = perfil
+        perfil_nombre = perfil.nombre
+    else:
+        personal.perfil_acceso = None
+        perfil_nombre = '(sin perfil)'
+
+    personal.save(update_fields=['perfil_acceso'])
+
+    # Invalida cache RBAC del usuario afectado
+    if personal.usuario_id:
+        invalidar_perfil(personal.usuario_id)
+
+    return JsonResponse({
+        'success': True,
+        'personal_nombre': personal.apellidos_nombres,
+        'perfil_nombre':   perfil_nombre,
+        'perfil_codigo':   perfil_codigo,
+    })

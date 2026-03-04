@@ -46,11 +46,23 @@ def harmoni_context(request):
     for key, allowed in perfil_overrides.items():
         if not allowed:
             base[key] = False  # perfil restringe; nunca habilita lo ya desactivado
+    # Exponer capacidades globales del perfil (puede_aprobar / puede_exportar)
+    perfil_obj = _get_perfil_obj(user)
+    if user.is_superuser:
+        base['puede_aprobar']  = True
+        base['puede_exportar'] = True
+    elif perfil_obj is not None:
+        base['puede_aprobar']  = perfil_obj.puede_aprobar
+        base['puede_exportar'] = perfil_obj.puede_exportar
+    else:
+        # Sin perfil → acceso según config, por defecto puede exportar, no aprobar
+        base['puede_aprobar']  = False
+        base['puede_exportar'] = True
     base.update(_get_role_context(user))
     area_ids = base.pop('_area_ids', [])
     base['cambios_pendientes'] = _get_badge_count(user, area_ids)
     # Exponer perfil del usuario al template (para mostrar nombre de rol, etc.)
-    base['perfil_acceso_usuario'] = _get_perfil_obj(user)
+    base['perfil_acceso_usuario'] = perfil_obj
 
     # Multi-empresa
     base['empresa_actual'] = getattr(request, 'empresa_actual', None)
@@ -254,7 +266,7 @@ def invalidar_badge(user_pk: int | None = None):
 
 def invalidar_config():
     """Invalida cache de configuración. Llamar en ConfiguracionSistema.save()."""
-    cache.delete('harmoni_ctx_config_v4')
+    cache.delete('harmoni_ctx_config_v5')
 
 
 def invalidar_rol(user_pk: int):

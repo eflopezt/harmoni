@@ -34,6 +34,7 @@ from .aprobaciones import (
 from .usuarios import (
     usuario_list, usuario_vincular, usuario_crear_y_vincular,
     usuario_desvincular, usuario_sincronizar,
+    accesos_gestion, accesos_asignar_perfil,
 )
 
 from .timeline import timeline_empleado

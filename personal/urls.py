@@ -78,6 +78,10 @@ urlpatterns = [
     path('usuarios/desvincular/<int:user_id>/', views.usuario_desvincular, name='usuario_desvincular'),
     path('usuarios/sincronizar/', views.usuario_sincronizar, name='usuario_sincronizar'),
 
+    # Gestión de Accesos (RBAC)
+    path('accesos/', views.accesos_gestion, name='accesos_gestion'),
+    path('accesos/asignar/', views.accesos_asignar_perfil, name='accesos_asignar_perfil'),
+
     # Contratos y Período de Prueba
     path('contratos/', views.contratos_panel, name='contratos_panel'),
     path('contratos/lista/', views.contratos_lista, name='contratos_lista'),
