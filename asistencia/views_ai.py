@@ -300,8 +300,8 @@ def ai_chat_stream(request):
             for chunk in svc.chat_stream(
                 messages=messages,
                 system=system_prompt,
-                temperature=0.3,
-                num_predict=500,
+                temperature=0.35,
+                num_predict=900,
             ):
                 yield f'data: {chunk}\n\n'
             yield 'data: [DONE]\n\n'
@@ -508,36 +508,79 @@ def ai_analyze_chart(request):
         return response
 
     svc = get_service()
+
+    # Calcular totales para enriquecer el prompt con contexto
+    labels = chart_data.get('labels', [])
+    values = chart_data.get('values', [])
+    total = sum(v for v in values if isinstance(v, (int, float)))
+    items = list(zip(labels, values))
+    top3 = sorted(items, key=lambda x: x[1], reverse=True)[:3] if items else []
+
     prompts = {
         'headcount': (
-            'Analiza la evolucion del headcount de la empresa. '
-            'Identifica tendencias, puntos de inflexion y genera una observacion breve (3-4 lineas).'
+            f'Analiza la evolucion del headcount mensual de esta empresa.\n'
+            f'Datos: {json.dumps(chart_data, ensure_ascii=False)}\n\n'
+            f'Instrucciones:\n'
+            f'1. Identifica la tendencia general (crecimiento, reduccion, estabilidad)\n'
+            f'2. Señala el mes pico y el mes mas bajo con sus valores exactos\n'
+            f'3. Calcula la variacion porcentual entre primer y ultimo dato\n'
+            f'4. Concluye con una interpretacion estrategica de 1 linea\n'
+            f'Formato: 4-5 oraciones directas y especificas. Sin bullet points.'
         ),
         'rotacion': (
-            'Analiza la tendencia de rotacion de personal. '
-            'Indica si es alta o baja para el sector, y sugiere acciones (3-4 lineas).'
+            f'Analiza la tasa de rotacion mensual de personal.\n'
+            f'Datos: {json.dumps(chart_data, ensure_ascii=False)}\n\n'
+            f'Instrucciones:\n'
+            f'1. Indica si la rotacion esta por encima o debajo del benchmark Peru construccion (5-8% anual)\n'
+            f'2. Identifica los meses con picos de rotacion y posibles causas\n'
+            f'3. Calcula el promedio del periodo\n'
+            f'4. Recomienda 1 accion concreta basada en los datos\n'
+            f'Formato: 4-5 oraciones directas. Sin bullet points.'
         ),
         'asistencia': (
-            'Analiza los indicadores de asistencia. '
-            'Identifica patrones y sugiere mejoras (3-4 lineas).'
+            f'Analiza los indicadores de asistencia mensual.\n'
+            f'Datos: {json.dumps(chart_data, ensure_ascii=False)}\n\n'
+            f'Instrucciones:\n'
+            f'1. Identifica si la tasa de asistencia es saludable (benchmark: >95%)\n'
+            f'2. Señala los periodos con mayor ausentismo\n'
+            f'3. Detecta patrones estacionales si los hay\n'
+            f'4. Sugiere 1 accion preventiva especifica\n'
+            f'Formato: 4-5 oraciones directas. Sin bullet points.'
         ),
         'areas': (
-            'Analiza la distribucion de personal por area. '
-            'Identifica areas sobrecargadas o con poco personal (3-4 lineas).'
+            f'Analiza la distribucion de {total} empleados en {len(labels)} areas.\n'
+            f'Datos: {json.dumps(chart_data, ensure_ascii=False)}\n\n'
+            f'Instrucciones:\n'
+            f'1. Las 3 areas mas grandes son: '
+            f'{", ".join(f"{a} ({v}, {v*100//total if total else 0}%)" for a,v in top3)}. '
+            f'Comenta si esta concentracion es razonable\n'
+            f'2. Identifica areas posiblemente subdimensionadas (menos del 3% del total)\n'
+            f'3. Evalua el balance operativo: areas de produccion vs soporte\n'
+            f'4. Recomienda 1 ajuste organizacional especifico\n'
+            f'Formato: 4-5 oraciones directas. Sin bullet points.'
         ),
     }
 
-    system = 'Eres un analista senior de RRHH. Responde en espanol, conciso y profesional.'
-    prompt = prompts.get(chart_type, 'Analiza estos datos y genera observaciones breves.')
-    prompt += f'\n\nDatos: {json.dumps(chart_data, ensure_ascii=False)}'
+    system = (
+        'Eres Harmoni AI, analista senior de RRHH especializado en empresas constructoras Peru. '
+        'Responde SIEMPRE en espanol. '
+        'Sé directo, especifico y usa los numeros exactos de los datos. '
+        'Nunca digas "los datos muestran" o "se puede observar" — ve directo al analisis. '
+        'Nunca inventes datos que no esten en el input.'
+    )
+    prompt = prompts.get(
+        chart_type,
+        f'Analiza estos datos de RRHH e identifica los 3 hallazgos mas importantes '
+        f'con recomendaciones accionables.\nDatos: {json.dumps(chart_data, ensure_ascii=False)}'
+    )
 
     def event_stream():
         try:
             for chunk in svc.generate_stream(
                 prompt=prompt,
                 system=system,
-                temperature=0.3,
-                num_predict=300,
+                temperature=0.4,
+                num_predict=700,
             ):
                 yield f'data: {chunk}\n\n'
             yield 'data: [DONE]\n\n'
@@ -606,8 +649,8 @@ def ai_ask_data(request):
             for chunk in svc.chat_stream(
                 messages=messages,
                 system=system_prompt,
-                temperature=0.3,
-                num_predict=500,
+                temperature=0.35,
+                num_predict=900,
             ):
                 yield f'data: {chunk}\n\n'
             yield 'data: [DONE]\n\n'
