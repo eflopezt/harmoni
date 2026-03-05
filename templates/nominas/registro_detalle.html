@@ -388,7 +388,7 @@
     modalIR5ta.addEventListener('show.bs.modal', function () {
       var content = document.getElementById('ir5ta-content');
       if (content.dataset.loaded) return;
-      fetch("{% url 'nominas_ir5ta_detalle' pk=reg.pk %}", {
+      fetch("{% url 'nominas_registro_ir5ta' pk=reg.pk %}", {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       })
       .then(function(r) { return r.text(); })
