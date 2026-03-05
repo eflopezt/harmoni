@@ -25,7 +25,8 @@ _CONTEXT_CACHE_TTL = 15       # segundos — datos frescos pero no excesivos
 
 MODULE_KEYWORDS: dict[str, list[str]] = {
     'personal':       ['empleado', 'personal', 'headcount', 'staff', 'rco', 'area', 'gerencia'],
-    'asistencia':     ['asistencia', 'tareo', 'faltas', 'marcacion', 'horas extra', 'he '],
+    'asistencia':     ['asistencia', 'tareo', 'faltas', 'marcacion', 'horas extra', 'he ',
+                       'tardanza', 'tardanzas', 'ausentismo', 'inasistencia', 'puntualidad'],
     'vacaciones':     ['vacacion', 'permiso', 'licencia', 'descanso', 'goce'],
     'capacitaciones': ['capacitacion', 'training', 'certificacion', 'curso', 'ssoma'],
     'evaluaciones':   ['evaluacion', 'desempeno', 'okr', 'competencia', 'pdi', '9-box', 'nine box'],
@@ -36,7 +37,8 @@ MODULE_KEYWORDS: dict[str, list[str]] = {
     'comunicaciones': ['comunicado', 'notificacion', 'memo', 'aviso'],
     'reclutamiento':  ['vacante', 'reclutamiento', 'postulacion', 'candidato', 'entrevista'],
     'salarios':       ['salario', 'sueldo', 'remuneracion', 'banda salarial', 'incremento', 'compa-ratio'],
-    'analytics':      ['kpi', 'rotacion', 'tendencia', 'dashboard', 'indicador'],
+    'analytics':      ['kpi', 'rotacion', 'tendencia', 'dashboard', 'indicador', 'ausentismo',
+                       'tasa', 'historico', 'snapshot', 'metricas'],
     'nominas':        ['nomina', 'nómina', 'planilla', 'boleta', 'neto', 'essalud', 'afp', 'gratificacion', 'cts', 'periodo nomina'],
 }
 
@@ -281,9 +283,102 @@ def _collect_salarios(personal, data: dict) -> None:
         logger.debug(f'ai_context salarios: {e}')
 
 
+def _collect_asistencia_detail(personal, data: dict) -> None:
+    """
+    Asistencia detallada del mes en curso: tardanzas, HE, faltas por área.
+    Complementa los datos diarios ya cargados en _build_system_prompt_data_uncached.
+    """
+    try:
+        from asistencia.models import RegistroTareo, SolicitudHE
+        from django.db.models import Sum, Count, Q
+
+        hoy = date.today()
+        inicio_mes = date(hoy.year, hoy.month, 1)
+
+        # Registros del mes
+        tareo_mes = RegistroTareo.objects.filter(
+            fecha__gte=inicio_mes, fecha__lte=hoy, personal__in=personal,
+        )
+
+        # Totales del mes
+        stats = tareo_mes.aggregate(
+            total=Count('id'),
+            faltas=Count('id', filter=Q(codigo_dia__in=['FA', 'F', 'FALTA'])),
+            tardanzas=Count('id', filter=Q(codigo_dia__in=['TA', 'TD', 'TARDA', 'T_TARD'])),
+            sin_salida=Count('id', filter=Q(codigo_dia='SS')),
+        )
+        data['asist_mes_faltas']    = stats['faltas'] or 0
+        data['asist_mes_tardanzas'] = stats['tardanzas'] or 0
+        data['asist_mes_ss']        = stats['sin_salida'] or 0
+
+        # Top 5 áreas con más faltas este mes
+        faltas_area = (
+            tareo_mes.filter(codigo_dia__in=['FA', 'F', 'FALTA'])
+            .values('personal__subarea__area__nombre')
+            .annotate(total=Count('id'))
+            .order_by('-total')[:5]
+        )
+        data['asist_faltas_por_area'] = [
+            {'area': f['personal__subarea__area__nombre'] or 'Sin Área', 'faltas': f['total']}
+            for f in faltas_area
+        ]
+
+        # HE del mes (horas totales y monto)
+        he_mes = SolicitudHE.objects.filter(
+            fecha__gte=inicio_mes, fecha__lte=hoy,
+            personal__in=personal, estado='APROBADO',
+        )
+        he_stats = he_mes.aggregate(
+            total_horas=Sum('horas_aprobadas'),
+            count=Count('id'),
+        )
+        data['he_mes_horas']    = float(he_stats['total_horas'] or 0)
+        data['he_mes_cantidad'] = he_stats['count'] or 0
+
+    except Exception as e:
+        logger.debug(f'_collect_asistencia_detail: {e}')
+
+
+def _collect_analytics_kpis(data: dict) -> None:
+    """KPI Snapshots: últimos 3 meses + alertas activas."""
+    try:
+        from analytics.models import KPISnapshot, AlertaRRHH
+
+        # Últimos 3 snapshots (tendencia reciente)
+        snaps = list(KPISnapshot.objects.order_by('-periodo')[:3])
+        if snaps:
+            data['kpi_snapshots'] = [
+                {
+                    'periodo': s.periodo.strftime('%b %Y'),
+                    'headcount': s.total_empleados,
+                    'rotacion': float(s.tasa_rotacion),
+                    'asistencia': float(s.tasa_asistencia),
+                    'he_horas': float(s.total_he_mes),
+                    'altas': s.altas_mes,
+                    'bajas': s.bajas_mes,
+                }
+                for s in snaps
+            ]
+
+        # Alertas activas
+        alertas = AlertaRRHH.objects.filter(
+            estado='ACTIVA',
+        ).order_by('-severidad', '-creada_en')[:10]
+        if alertas.exists():
+            data['alertas_activas'] = [
+                {'titulo': a.titulo, 'severidad': a.severidad, 'categoria': a.categoria}
+                for a in alertas
+            ]
+            data['alertas_criticas'] = alertas.filter(severidad='CRITICA').count()
+    except Exception as e:
+        logger.debug(f'_collect_analytics_kpis: {e}')
+
+
 # Mapa de módulos → helpers (personal requerido, función)
 _MODULE_COLLECTORS: dict[str, tuple[bool, callable]] = {
     # (necesita_personal, funcion)
+    'asistencia':     (True,  _collect_asistencia_detail),
+    'analytics':      (False, _collect_analytics_kpis),
     'vacaciones':     (True,  _collect_vacaciones),
     'capacitaciones': (True,  _collect_capacitaciones),
     'evaluaciones':   (True,  _collect_evaluaciones),
@@ -405,7 +500,7 @@ def _build_system_prompt_data_uncached(user, modules: list[str] | None = None) -
     # ── KPI snapshot (siempre si disponible) ──
     try:
         from analytics.models import KPISnapshot
-        snap = KPISnapshot.objects.first()
+        snap = KPISnapshot.objects.order_by('-periodo').first()  # el más reciente
         if snap:
             data['kpi_rotacion'] = float(snap.tasa_rotacion)
             data['kpi_asistencia'] = float(snap.tasa_asistencia)
@@ -504,13 +599,50 @@ def build_system_prompt(user, modules: list[str] | None = None) -> str:
         plantilla += f'\n- Top areas: {areas_line}'
     sections.append(plantilla)
 
-    # ASISTENCIA HOY
-    sections.append(
-        'ASISTENCIA HOY:\n'
-        f'- Trabajando: {data.get("asistencia_trabajando", 0)}, '
+    # ASISTENCIA HOY + MES
+    asist_lines = [
+        f'Hoy — Trabajando: {data.get("asistencia_trabajando", 0)}, '
         f'Faltas: {data.get("asistencia_faltas", 0)}, '
         f'Permisos: {data.get("asistencia_permisos", 0)}'
-    )
+    ]
+    if data.get('asist_mes_faltas') is not None:
+        asist_lines.append(
+            f'Este mes — Faltas: {data.get("asist_mes_faltas", 0)}, '
+            f'Tardanzas: {data.get("asist_mes_tardanzas", 0)}, '
+            f'Sin salida (SS): {data.get("asist_mes_ss", 0)}'
+        )
+    if data.get('he_mes_horas') is not None:
+        asist_lines.append(
+            f'HE aprobadas este mes: {data.get("he_mes_horas", 0):.1f} horas '
+            f'({data.get("he_mes_cantidad", 0)} solicitudes)'
+        )
+    if data.get('asist_faltas_por_area'):
+        top_faltas = ', '.join(
+            f'{a["area"]}:{a["faltas"]}' for a in data['asist_faltas_por_area']
+        )
+        asist_lines.append(f'Top areas con faltas: {top_faltas}')
+    sections.append('ASISTENCIA:\n- ' + '\n- '.join(asist_lines))
+
+    # KPI HISTÓRICO (si hay snapshots)
+    if data.get('kpi_snapshots'):
+        snap_lines = []
+        for s in data['kpi_snapshots']:
+            snap_lines.append(
+                f'{s["periodo"]}: {s["headcount"]} empl, '
+                f'rot {s["rotacion"]:.1f}%, asist {s["asistencia"]:.1f}%, '
+                f'HE {s["he_horas"]:.0f}h, +{s["altas"]}/-{s["bajas"]}'
+            )
+        sections.append('KPI HISTÓRICO (últimos 3 meses):\n- ' + '\n- '.join(snap_lines))
+
+    # ALERTAS ACTIVAS
+    if data.get('alertas_activas'):
+        alerts_lines = [
+            f'{a["severidad"]} — {a["titulo"]} [{a["categoria"]}]'
+            for a in data['alertas_activas'][:5]
+        ]
+        crit = data.get('alertas_criticas', 0)
+        header = f'ALERTAS RRHH ({len(data["alertas_activas"])} activas, {crit} críticas):'
+        sections.append(header + '\n- ' + '\n- '.join(alerts_lines))
 
     # APROBACIONES PENDIENTES (agregado de todos los módulos)
     pendientes_lines = []
