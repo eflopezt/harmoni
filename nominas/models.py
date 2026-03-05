@@ -10,7 +10,7 @@ Base legal:
 - DS 003-97-TR: RMV — Remuneración Mínima Vital
 - Ley 29351: EsSalud 9% aporte empleador
 
-UIT 2026: S/ 5,350  |  RMV 2025: S/ 1,025
+UIT 2026: S/ 5,500  |  RMV 2025: S/ 1,025
 """
 from decimal import Decimal
 
@@ -21,7 +21,7 @@ from personal.models import Personal
 
 
 # ── Constantes Legales Perú 2026 ─────────────────────────────────────
-UIT_2026 = Decimal('5350.00')
+UIT_2026 = Decimal('5500.00')   # DS 233-2025-EF
 RMV_2025 = Decimal('1025.00')
 ASIG_FAM = RMV_2025 * Decimal('0.10')   # S/ 102.50
 
@@ -236,3 +236,67 @@ class LineaNomina(models.Model):
 
     def __str__(self):
         return f'{self.concepto.nombre}: S/ {self.monto}'
+
+
+# ══════════════════════════════════════════════════════════════════════
+# PRESUPUESTO DE PLANILLA
+# Permite comparar proyección vs. presupuesto en el flujo de caja
+# ══════════════════════════════════════════════════════════════════════
+
+class PresupuestoPlanilla(models.Model):
+    """
+    Presupuesto mensual de planilla para flujo de caja proyectado.
+    Permite definir montos presupuestados por mes/año y compararlos
+    con la proyección calculada a partir del personal activo.
+    """
+    MESES_ES = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+    anio    = models.SmallIntegerField(verbose_name="Año")
+    mes     = models.SmallIntegerField(verbose_name="Mes", help_text="1-12")
+    empresa = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='presupuestos_planilla',
+        verbose_name='Empresa',
+    )
+
+    # Componentes presupuestados (alineados con engine de proyección)
+    presup_rem_bruta     = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
+                                               verbose_name="Rem. Bruta presupuestada")
+    presup_cond_trabajo  = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
+                                               verbose_name="Cond. Trabajo/Hospedaje (presup.)")
+    presup_alimentacion  = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
+                                               verbose_name="Alimentación (presup.)")
+    presup_essalud       = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
+                                               verbose_name="EsSalud/PLAME (presup.)")
+    presup_gratif        = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
+                                               verbose_name="Gratificaciones provisión (presup.)")
+    presup_cts           = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
+                                               verbose_name="CTS provisión (presup.)")
+    presup_liquidaciones = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
+                                               verbose_name="Liquidaciones (presup.)")
+    presup_total         = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
+                                               verbose_name="Total desembolso presupuestado")
+
+    observaciones = models.TextField(blank=True)
+    creado_por    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                      null=True, blank=True, related_name='+')
+    creado_en     = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Presupuesto de Planilla'
+        verbose_name_plural = 'Presupuestos de Planilla'
+        ordering = ['-anio', '-mes']
+        unique_together = [['anio', 'mes', 'empresa']]
+
+    def __str__(self):
+        label = self.MESES_ES[self.mes] if 1 <= self.mes <= 12 else str(self.mes)
+        return f"Presupuesto Planilla {label}-{self.anio}"
+
+    @property
+    def mes_label(self):
+        label = self.MESES_ES[self.mes] if 1 <= self.mes <= 12 else str(self.mes)
+        return f"{label}-{str(self.anio)[2:]}"

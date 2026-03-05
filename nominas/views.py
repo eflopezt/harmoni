@@ -19,8 +19,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_GET
 
-from .models import ConceptoRemunerativo, LineaNomina, PeriodoNomina, RegistroNomina
+from .models import ConceptoRemunerativo, LineaNomina, PeriodoNomina, RegistroNomina, PresupuestoPlanilla
 from . import engine
+from .flujo_caja_engine import proyectar_flujo_caja
 
 solo_admin = user_passes_test(lambda u: u.is_superuser or u.is_staff)
 
@@ -1109,3 +1110,143 @@ def registro_ir5ta_ajax(request, pk):
         'ir_mensual':        float(ir_mensual),
         'tramos':            tramos,
     })
+
+
+# ─── Flujo de Caja de Planilla ─────────────────────────────────────────────────
+
+@login_required
+@solo_admin
+def flujo_caja_panel(request):
+    """
+    Panel de proyección de flujo de caja de planilla.
+    Muestra proyección mensual de todos los desembolsos de RR.HH.
+    vs. presupuesto aprobado (si existe).
+    """
+    n_meses = int(request.GET.get('meses', 18))
+    n_meses = max(6, min(n_meses, 36))
+
+    meses, empleados = proyectar_flujo_caja(n_meses=n_meses)
+
+    # Enriquecer con presupuesto si existe
+    presupuestos = PresupuestoPlanilla.objects.all()
+    presup_map = {(p.anio, p.mes): p for p in presupuestos}
+    tiene_presupuesto = False
+    for mes in meses:
+        key = (mes['fecha'].year, mes['fecha'].month)
+        presup = presup_map.get(key)
+        if presup:
+            tiene_presupuesto = True
+            mes['presup_total'] = presup.presup_total
+            mes['variacion']    = mes['total_desembolso'] - presup.presup_total
+            mes['variacion_pct'] = (
+                mes['variacion'] / presup.presup_total * 100
+                if presup.presup_total else None
+            )
+
+    # Totales de resumen
+    total_18m         = sum(m['total_desembolso'] for m in meses)
+    promedio_mensual  = total_18m / len(meses) if meses else Decimal('0')
+    headcount_actual  = meses[0]['headcount'] if meses else 0
+    meses_con_vencimientos = sum(1 for m in meses if m['liquidaciones'] > 0)
+    # Empleados cuyo contrato vence dentro del horizonte proyectado
+    from decimal import Decimal as _D
+    from datetime import date as _date
+    from dateutil.relativedelta import relativedelta as _rd
+    _hoy = _date.today()
+    _horizon = _hoy.replace(day=1) + _rd(months=n_meses)
+    empleados_por_vencer = sum(
+        1 for e in empleados
+        if e.get('fecha_fin_contrato') and _hoy.replace(day=1) <= e['fecha_fin_contrato'] < _horizon
+    )
+
+    # Datos para Chart.js
+    chart_labels   = json.dumps([m['mes_label'] for m in meses])
+    chart_neto     = json.dumps([float(m['neto'])          for m in meses])
+    chart_cond     = json.dumps([float(m['cond_trabajo'])   for m in meses])
+    chart_alim     = json.dumps([float(m['alimentacion'])   for m in meses])
+    chart_essalud  = json.dumps([float(m['essalud'])        for m in meses])
+    chart_gratif   = json.dumps([float(m['gratificaciones']) for m in meses])
+    chart_cts      = json.dumps([float(m['cts'])            for m in meses])
+    chart_liq      = json.dumps([float(m['liquidaciones'])  for m in meses])
+    chart_headcount = json.dumps([m['headcount']            for m in meses])
+    chart_total    = json.dumps([float(m['total_desembolso']) for m in meses])
+    chart_presup   = json.dumps([
+        float(m['presup_total']) if m['presup_total'] is not None else None
+        for m in meses
+    ])
+
+    return render(request, 'nominas/flujo_caja.html', {
+        'meses':            meses,
+        'empleados':        empleados,
+        'n_meses':          n_meses,
+        'tiene_presupuesto':      tiene_presupuesto,
+        'total_18m':              total_18m,
+        'promedio_mensual':       promedio_mensual,
+        'headcount_actual':       headcount_actual,
+        'meses_con_vencimientos': meses_con_vencimientos,
+        'empleados_por_vencer':   empleados_por_vencer,
+        # Charts
+        'chart_labels':    chart_labels,
+        'chart_neto':      chart_neto,
+        'chart_cond':      chart_cond,
+        'chart_alim':      chart_alim,
+        'chart_essalud':   chart_essalud,
+        'chart_gratif':    chart_gratif,
+        'chart_cts':       chart_cts,
+        'chart_liq':       chart_liq,
+        'chart_headcount': chart_headcount,
+        'chart_total':     chart_total,
+        'chart_presup':    chart_presup,
+    })
+
+
+@login_required
+@solo_admin
+def presupuesto_guardar(request):
+    """
+    API — guarda o actualiza el presupuesto de un mes.
+    POST JSON: {anio, mes, presup_total, presup_rem_bruta?,
+                presup_cond_trabajo?, presup_alimentacion?,
+                presup_essalud?, presup_gratif?, presup_cts?,
+                presup_liquidaciones?, observaciones?}
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        anio = int(data['anio'])
+        mes  = int(data['mes'])
+
+        def _d(key, default='0'):
+            return Decimal(str(data.get(key, default) or '0'))
+
+        presup, created = PresupuestoPlanilla.objects.update_or_create(
+            anio=anio, mes=mes, empresa=None,
+            defaults={
+                'presup_rem_bruta':     _d('presup_rem_bruta'),
+                'presup_cond_trabajo':  _d('presup_cond_trabajo'),
+                'presup_alimentacion':  _d('presup_alimentacion'),
+                'presup_essalud':       _d('presup_essalud'),
+                'presup_gratif':        _d('presup_gratif'),
+                'presup_cts':           _d('presup_cts'),
+                'presup_liquidaciones': _d('presup_liquidaciones'),
+                'presup_total':         _d('presup_total'),
+                'observaciones':        data.get('observaciones', ''),
+                'creado_por':           request.user,
+            }
+        )
+        return JsonResponse({'ok': True, 'created': created, 'id': presup.pk})
+
+    except (KeyError, ValueError, Exception) as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@solo_admin
+def presupuesto_eliminar(request, anio, mes):
+    """Elimina el presupuesto de un mes específico."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    deleted, _ = PresupuestoPlanilla.objects.filter(anio=anio, mes=mes, empresa=None).delete()
+    return JsonResponse({'ok': True, 'deleted': deleted})

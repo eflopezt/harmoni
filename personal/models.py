@@ -372,6 +372,31 @@ class Personal(models.Model):
             "y NO forma parte de la base de IR 5ta. Solo para referencia y planilla."
         )
     )
+    # Condición de Trabajo / Hospedaje — no remunerativo
+    cond_trabajo_mensual = models.DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Condición de Trabajo / Hospedaje (mensual)",
+        help_text=(
+            "Asignación mensual no remunerativa por condiciones de trabajo (hospedaje en "
+            "proyecto/obra). No forma parte de la base remunerativa ni de IR 5ta. "
+            "Se incluye en el flujo de caja de planilla."
+        )
+    )
+    # Alimentación mensual — no remunerativa
+    alimentacion_mensual = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Alimentación mensual",
+        help_text=(
+            "Asignación mensual de alimentación. No remunerativa (D.Leg. 728 Art. 19°). "
+            "Se incluye en el flujo de caja de planilla."
+        )
+    )
 
     # --- Clasificación de tareo ---
     GRUPO_TAREO_CHOICES = [

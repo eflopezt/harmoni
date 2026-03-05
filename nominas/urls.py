@@ -34,4 +34,9 @@ urlpatterns = [
     # IR 5ta Categoría
     path('ir5ta/', views.ir5ta_panel, name='nominas_ir5ta'),
     path('registros/<int:pk>/ir5ta/', views.registro_ir5ta_ajax, name='nominas_registro_ir5ta'),
+
+    # Flujo de Caja de Planilla
+    path('flujo-caja/', views.flujo_caja_panel, name='nominas_flujo_caja'),
+    path('presupuesto/guardar/', views.presupuesto_guardar, name='nominas_presupuesto_guardar'),
+    path('presupuesto/<int:anio>/<int:mes>/eliminar/', views.presupuesto_eliminar, name='nominas_presupuesto_eliminar'),
 ]
