@@ -816,6 +816,425 @@
   </div>{# /sidebar #}
 
 </div>{# /nom-layout #}
+
+{# ════════════════════════════════════════════════════════════════════════════ #}
+{# PROCESOS ESPECIALES — BUK style                                             #}
+{# ════════════════════════════════════════════════════════════════════════════ #}
+<div id="especiales" class="mt-4 px-1">
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h5 class="fw-bold mb-0" style="color:#0d2b27">
+        <i class="fas fa-layer-group me-2" style="color:#0f766e"></i>Procesos Especiales
+      </h5>
+      <p class="text-muted small mb-0">Gratificaciones · CTS · Utilidades · Liquidaciones</p>
+    </div>
+  </div>
+
+  <div class="accordion accordion-flush border rounded overflow-hidden shadow-sm" id="accordionEspeciales">
+
+    {# ── Gratificación ──────────────────────────────────────────────────────── #}
+    <div class="accordion-item border-0">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed py-3 fw-semibold" type="button"
+                data-bs-toggle="collapse" data-bs-target="#colGrat"
+                style="background:#f8fafc;color:#0d2b27">
+          <span class="d-flex align-items-center gap-3 w-100">
+            <span class="rounded-circle d-flex align-items-center justify-content-center"
+                  style="width:34px;height:34px;background:#ccfbf1;flex-shrink:0">
+              <i class="fas fa-gift" style="color:#0f766e;font-size:.85rem"></i>
+            </span>
+            <span class="flex-grow-1">Gratificación</span>
+            <span class="badge rounded-pill me-2
+              {% if dias_grat <= 30 %}bg-danger{% elif dias_grat <= 60 %}bg-warning text-dark{% else %}bg-light text-dark border{% endif %}
+              " style="font-size:.75rem;font-weight:500">
+              {% if dias_grat == 0 %}Hoy{% else %}{{ proxima_grat_label }} · {{ dias_grat }}d{% endif %}
+            </span>
+            <span class="badge bg-light text-muted border me-2" style="font-size:.72rem">Ley 27735</span>
+            <span class="badge bg-secondary" style="font-size:.72rem">{{ periodos_grat|length }} períodos</span>
+          </span>
+        </button>
+      </h2>
+      <div id="colGrat" class="accordion-collapse collapse">
+        <div class="accordion-body p-0">
+          <div class="row g-0">
+            {# Form crear #}
+            <div class="col-lg-3 border-end p-4" style="background:#f8fafc">
+              <p class="fw-semibold small mb-1" style="color:#0d2b27"><i class="fas fa-plus-circle text-success me-1"></i>Crear proceso</p>
+              <p class="text-muted" style="font-size:.78rem">Próximo: <strong>{{ proxima_grat_label }}</strong> ({{ dias_grat }} días)</p>
+              <form method="post" action="{% url 'nominas_crear_especial' %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo" value="GRATIFICACION">
+                <div class="mb-2">
+                  <label class="form-label small mb-1">Año</label>
+                  <select name="anio" class="form-select form-select-sm">
+                    <option value="{{ anio_actual }}">{{ anio_actual }}</option>
+                    <option value="{{ anio_actual|add:1 }}">{{ anio_actual|add:1 }}</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small mb-1">Período</label>
+                  <select name="mes" class="form-select form-select-sm">
+                    <option value="7" {% if proxima_grat_mes == 7 %}selected{% endif %}>Julio (pago 15 jul)</option>
+                    <option value="12" {% if proxima_grat_mes == 12 %}selected{% endif %}>Diciembre (pago 15 dic)</option>
+                  </select>
+                </div>
+                <button class="btn btn-sm w-100" style="background:#0f766e;color:#fff">
+                  <i class="fas fa-play me-1"></i>Generar proceso
+                </button>
+              </form>
+              <hr class="my-3">
+              <div class="small text-muted lh-sm">
+                <i class="fas fa-balance-scale me-1"></i><strong>Base legal</strong><br>
+                Ley 27735 — equivalente a 1 remuneración mensual. Se paga el 15 de julio y 15 de diciembre.<br>
+                <span class="mt-1 d-block">Bonificación extraordinaria: 9% (EsSalud). Exento si empleado tiene EPS.</span>
+              </div>
+            </div>
+            {# Tabla períodos #}
+            <div class="col-lg-9 p-4">
+              {% if periodos_grat %}
+              <table class="table table-sm table-hover align-middle mb-0" style="font-size:.85rem">
+                <thead style="background:#f0fdf4">
+                  <tr>
+                    <th class="fw-semibold">Período</th>
+                    <th class="fw-semibold">Descripción</th>
+                    <th class="fw-semibold">Estado</th>
+                    <th class="fw-semibold text-end">Trabajadores</th>
+                    <th class="fw-semibold text-end">Total Neto</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in periodos_grat %}
+                  <tr>
+                    <td class="fw-semibold">
+                      {% if p.mes == 7 %}Julio{% else %}Diciembre{% endif %} {{ p.anio }}
+                    </td>
+                    <td class="text-muted">{{ p.descripcion|default:"—" }}</td>
+                    <td><span class="badge bg-{{ p.color_estado }}">{{ p.get_estado_display }}</span></td>
+                    <td class="text-end">{{ p.total_trabajadores|default:"—" }}</td>
+                    <td class="text-end">{% if p.total_neto %}S/ {{ p.total_neto|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td class="text-end">
+                      <a href="{% url 'nominas_periodo_detalle' p.pk %}" class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size:.75rem">Ver</a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <div class="text-center py-5 text-muted">
+                <i class="fas fa-gift fa-2x mb-2 d-block opacity-25"></i>
+                <div class="small">Sin períodos de gratificación. Crea el primero.</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── CTS ────────────────────────────────────────────────────────────────── #}
+    <div class="accordion-item border-0 border-top">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed py-3 fw-semibold" type="button"
+                data-bs-toggle="collapse" data-bs-target="#colCts"
+                style="background:#f8fafc;color:#0d2b27">
+          <span class="d-flex align-items-center gap-3 w-100">
+            <span class="rounded-circle d-flex align-items-center justify-content-center"
+                  style="width:34px;height:34px;background:#e0f2fe;flex-shrink:0">
+              <i class="fas fa-piggy-bank" style="color:#0369a1;font-size:.85rem"></i>
+            </span>
+            <span class="flex-grow-1">CTS</span>
+            <span class="badge rounded-pill me-2
+              {% if dias_cts <= 30 %}bg-danger{% elif dias_cts <= 60 %}bg-warning text-dark{% else %}bg-light text-dark border{% endif %}
+              " style="font-size:.75rem;font-weight:500">
+              {% if dias_cts == 0 %}Hoy{% else %}{{ proxima_cts_label }} · {{ dias_cts }}d{% endif %}
+            </span>
+            <span class="badge bg-light text-muted border me-2" style="font-size:.72rem">D.Leg. 650</span>
+            <span class="badge bg-secondary" style="font-size:.72rem">{{ periodos_cts|length }} períodos</span>
+          </span>
+        </button>
+      </h2>
+      <div id="colCts" class="accordion-collapse collapse">
+        <div class="accordion-body p-0">
+          <div class="row g-0">
+            {# Form crear #}
+            <div class="col-lg-3 border-end p-4" style="background:#f8fafc">
+              <p class="fw-semibold small mb-1" style="color:#0d2b27"><i class="fas fa-plus-circle text-info me-1"></i>Crear proceso</p>
+              <p class="text-muted" style="font-size:.78rem">Próximo: <strong>{{ proxima_cts_label }}</strong> ({{ dias_cts }} días)</p>
+              <form method="post" action="{% url 'nominas_crear_especial' %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo" value="CTS">
+                <div class="mb-2">
+                  <label class="form-label small mb-1">Año</label>
+                  <select name="anio" class="form-select form-select-sm">
+                    <option value="{{ anio_actual }}">{{ anio_actual }}</option>
+                    <option value="{{ anio_actual|add:1 }}">{{ anio_actual|add:1 }}</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small mb-1">Período</label>
+                  <select name="mes" class="form-select form-select-sm">
+                    <option value="5" {% if proxima_cts_mes == 5 %}selected{% endif %}>Mayo — Nov a Abr (pago 15 may)</option>
+                    <option value="11" {% if proxima_cts_mes == 11 %}selected{% endif %}>Noviembre — May a Oct (pago 15 nov)</option>
+                  </select>
+                </div>
+                <button class="btn btn-sm w-100 btn-info text-white">
+                  <i class="fas fa-play me-1"></i>Generar proceso
+                </button>
+              </form>
+              <hr class="my-3">
+              <div class="small text-muted lh-sm">
+                <i class="fas fa-balance-scale me-1"></i><strong>Base legal</strong><br>
+                D.Leg. 650 — ½ remuneración por semestre trabajado. Depósito obligatorio en entidad financiera elegida por el trabajador.
+              </div>
+            </div>
+            {# Tabla períodos #}
+            <div class="col-lg-9 p-4">
+              {% if periodos_cts %}
+              <table class="table table-sm table-hover align-middle mb-0" style="font-size:.85rem">
+                <thead style="background:#e0f2fe">
+                  <tr>
+                    <th class="fw-semibold">Período</th>
+                    <th class="fw-semibold">Descripción</th>
+                    <th class="fw-semibold">Estado</th>
+                    <th class="fw-semibold text-end">Trabajadores</th>
+                    <th class="fw-semibold text-end">Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in periodos_cts %}
+                  <tr>
+                    <td class="fw-semibold">
+                      {% if p.mes == 5 %}Mayo{% else %}Noviembre{% endif %} {{ p.anio }}
+                    </td>
+                    <td class="text-muted">{{ p.descripcion|default:"—" }}</td>
+                    <td><span class="badge bg-{{ p.color_estado }}">{{ p.get_estado_display }}</span></td>
+                    <td class="text-end">{{ p.total_trabajadores|default:"—" }}</td>
+                    <td class="text-end">{% if p.total_neto %}S/ {{ p.total_neto|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td class="text-end">
+                      <a href="{% url 'nominas_periodo_detalle' p.pk %}" class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size:.75rem">Ver</a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <div class="text-center py-5 text-muted">
+                <i class="fas fa-piggy-bank fa-2x mb-2 d-block opacity-25"></i>
+                <div class="small">Sin períodos de CTS registrados.</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Utilidades ─────────────────────────────────────────────────────────── #}
+    <div class="accordion-item border-0 border-top">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed py-3 fw-semibold" type="button"
+                data-bs-toggle="collapse" data-bs-target="#colUtil"
+                style="background:#f8fafc;color:#0d2b27">
+          <span class="d-flex align-items-center gap-3 w-100">
+            <span class="rounded-circle d-flex align-items-center justify-content-center"
+                  style="width:34px;height:34px;background:#fef9c3;flex-shrink:0">
+              <i class="fas fa-chart-line" style="color:#a16207;font-size:.85rem"></i>
+            </span>
+            <span class="flex-grow-1">Utilidades</span>
+            <span class="badge bg-light text-dark border me-2" style="font-size:.75rem;font-weight:500">Anual · Marzo/Abril</span>
+            <span class="badge bg-light text-muted border me-2" style="font-size:.72rem">D.Leg. 892</span>
+            <span class="badge bg-secondary" style="font-size:.72rem">{{ periodos_utilidades|length }} períodos</span>
+          </span>
+        </button>
+      </h2>
+      <div id="colUtil" class="accordion-collapse collapse">
+        <div class="accordion-body p-0">
+          <div class="row g-0">
+            <div class="col-lg-3 border-end p-4" style="background:#f8fafc">
+              <p class="fw-semibold small mb-1" style="color:#0d2b27"><i class="fas fa-plus-circle text-warning me-1"></i>Crear proceso</p>
+              <form method="post" action="{% url 'nominas_crear_especial' %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo" value="UTILIDADES">
+                <input type="hidden" name="mes" value="3">
+                <div class="mb-3">
+                  <label class="form-label small mb-1">Año fiscal</label>
+                  <select name="anio" class="form-select form-select-sm">
+                    <option value="{{ anio_actual|add:-1 }}">{{ anio_actual|add:-1 }}</option>
+                    <option value="{{ anio_actual }}">{{ anio_actual }}</option>
+                  </select>
+                </div>
+                <button class="btn btn-sm w-100 btn-warning text-dark">
+                  <i class="fas fa-play me-1"></i>Generar proceso
+                </button>
+              </form>
+              <hr class="my-3">
+              <div class="small text-muted lh-sm">
+                <i class="fas fa-balance-scale me-1"></i><strong>Base legal</strong><br>
+                D.Leg. 892 — Empresas con +20 trabajadores que generen renta de 3ra categoría. Distribución: 50% días trabajados, 50% remuneraciones.
+              </div>
+            </div>
+            <div class="col-lg-9 p-4">
+              {% if periodos_utilidades %}
+              <table class="table table-sm table-hover align-middle mb-0" style="font-size:.85rem">
+                <thead style="background:#fef9c3">
+                  <tr>
+                    <th class="fw-semibold">Año</th>
+                    <th class="fw-semibold">Descripción</th>
+                    <th class="fw-semibold">Estado</th>
+                    <th class="fw-semibold text-end">Trabajadores</th>
+                    <th class="fw-semibold text-end">Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in periodos_utilidades %}
+                  <tr>
+                    <td class="fw-semibold">{{ p.anio }}</td>
+                    <td class="text-muted">{{ p.descripcion|default:"—" }}</td>
+                    <td><span class="badge bg-{{ p.color_estado }}">{{ p.get_estado_display }}</span></td>
+                    <td class="text-end">{{ p.total_trabajadores|default:"—" }}</td>
+                    <td class="text-end">{% if p.total_neto %}S/ {{ p.total_neto|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td class="text-end">
+                      <a href="{% url 'nominas_periodo_detalle' p.pk %}" class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size:.75rem">Ver</a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <div class="text-center py-5 text-muted">
+                <i class="fas fa-chart-line fa-2x mb-2 d-block opacity-25"></i>
+                <div class="small">Sin utilidades registradas.</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Liquidaciones ──────────────────────────────────────────────────────── #}
+    <div class="accordion-item border-0 border-top">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed py-3 fw-semibold" type="button"
+                data-bs-toggle="collapse" data-bs-target="#colLiq"
+                style="background:#f8fafc;color:#0d2b27">
+          <span class="d-flex align-items-center gap-3 w-100">
+            <span class="rounded-circle d-flex align-items-center justify-content-center"
+                  style="width:34px;height:34px;background:#fee2e2;flex-shrink:0">
+              <i class="fas fa-file-invoice-dollar" style="color:#b91c1c;font-size:.85rem"></i>
+            </span>
+            <span class="flex-grow-1">Liquidaciones</span>
+            <span class="badge bg-light text-dark border me-2" style="font-size:.75rem;font-weight:500">Al cese</span>
+            <span class="badge bg-light text-muted border me-2" style="font-size:.72rem">TUO LPCL</span>
+            <span class="badge bg-secondary" style="font-size:.72rem">{{ periodos_liquidacion|length }} períodos</span>
+          </span>
+        </button>
+      </h2>
+      <div id="colLiq" class="accordion-collapse collapse">
+        <div class="accordion-body p-0">
+          <div class="row g-0">
+            <div class="col-lg-3 border-end p-4" style="background:#f8fafc">
+              <p class="fw-semibold small mb-1" style="color:#0d2b27"><i class="fas fa-plus-circle text-danger me-1"></i>Crear liquidación</p>
+              <form method="post" action="{% url 'nominas_crear_especial' %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo" value="LIQUIDACION">
+                <div class="mb-2">
+                  <label class="form-label small mb-1">Año</label>
+                  <select name="anio" class="form-select form-select-sm">
+                    <option value="{{ anio_actual }}">{{ anio_actual }}</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small mb-1">Mes de cese</label>
+                  <select name="mes" class="form-select form-select-sm">
+                    {% for m, mn in months_choices %}
+                    <option value="{{ m }}">{{ mn }}</option>
+                    {% empty %}
+                    <option value="1">Enero</option><option value="2">Febrero</option>
+                    <option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Setiembre</option><option value="10">Octubre</option>
+                    <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <button class="btn btn-sm w-100 btn-danger">
+                  <i class="fas fa-play me-1"></i>Crear liquidación
+                </button>
+              </form>
+              <hr class="my-3">
+              <div class="small text-muted lh-sm">
+                <i class="fas fa-balance-scale me-1"></i><strong>Base legal</strong><br>
+                TUO LPCL — Incluye CTS proporcional, vacaciones truncas, gratificación trunca e indemnización si corresponde.
+              </div>
+            </div>
+            <div class="col-lg-9 p-4">
+              {% if periodos_liquidacion %}
+              <table class="table table-sm table-hover align-middle mb-0" style="font-size:.85rem">
+                <thead style="background:#fee2e2">
+                  <tr>
+                    <th class="fw-semibold">Período</th>
+                    <th class="fw-semibold">Descripción</th>
+                    <th class="fw-semibold">Estado</th>
+                    <th class="fw-semibold text-end">Trabajadores</th>
+                    <th class="fw-semibold text-end">Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in periodos_liquidacion %}
+                  <tr>
+                    <td class="fw-semibold">{{ p.mes }}/{{ p.anio }}</td>
+                    <td class="text-muted">{{ p.descripcion|default:"—" }}</td>
+                    <td><span class="badge bg-{{ p.color_estado }}">{{ p.get_estado_display }}</span></td>
+                    <td class="text-end">{{ p.total_trabajadores|default:"—" }}</td>
+                    <td class="text-end">{% if p.total_neto %}S/ {{ p.total_neto|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td class="text-end">
+                      <a href="{% url 'nominas_periodo_detalle' p.pk %}" class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size:.75rem">Ver</a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <div class="text-center py-5 text-muted">
+                <i class="fas fa-file-invoice-dollar fa-2x mb-2 d-block opacity-25"></i>
+                <div class="small">Sin liquidaciones registradas.</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>{# /accordion #}
+</div>{# /especiales #}
+
+<script>
+// Auto-expand accordion si la URL tiene #gratificaciones, #cts, etc.
+(function(){
+  var hash = window.location.hash;
+  var map = {
+    '#gratificaciones': 'colGrat',
+    '#cts': 'colCts',
+    '#utilidades': 'colUtil',
+    '#liquidaciones': 'colLiq',
+    '#especiales': 'colGrat',
+  };
+  if (map[hash]) {
+    document.getElementById('especiales').scrollIntoView({ behavior: 'smooth' });
+    var el = document.getElementById(map[hash]);
+    if (el) { new bootstrap.Collapse(el, { toggle: false }).show(); }
+  }
+})();
+</script>
+
 {% endblock %}
 
 {% block extra_js %}

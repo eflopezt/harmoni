@@ -128,6 +128,50 @@ def nominas_panel(request):
     except Exception:
         pass
 
+    # ── Procesos especiales: próximas fechas y períodos ──────────────────────
+    hoy_d = date.today()
+
+    # Próxima gratificación
+    julio_act  = date(hoy_d.year, 7, 15)
+    dic_act    = date(hoy_d.year, 12, 15)
+    julio_sig  = date(hoy_d.year + 1, 7, 15)
+    if hoy_d <= julio_act:
+        proxima_grat       = julio_act
+        proxima_grat_label = f'Julio {hoy_d.year}'
+        proxima_grat_mes   = 7
+    elif hoy_d <= dic_act:
+        proxima_grat       = dic_act
+        proxima_grat_label = f'Diciembre {hoy_d.year}'
+        proxima_grat_mes   = 12
+    else:
+        proxima_grat       = julio_sig
+        proxima_grat_label = f'Julio {hoy_d.year + 1}'
+        proxima_grat_mes   = 7
+    dias_grat = (proxima_grat - hoy_d).days
+
+    # Próxima CTS
+    mayo_act  = date(hoy_d.year, 5, 15)
+    nov_act   = date(hoy_d.year, 11, 15)
+    mayo_sig  = date(hoy_d.year + 1, 5, 15)
+    if hoy_d <= mayo_act:
+        proxima_cts       = mayo_act
+        proxima_cts_label = f'Mayo {hoy_d.year}'
+        proxima_cts_mes   = 5
+    elif hoy_d <= nov_act:
+        proxima_cts       = nov_act
+        proxima_cts_label = f'Noviembre {hoy_d.year}'
+        proxima_cts_mes   = 11
+    else:
+        proxima_cts       = mayo_sig
+        proxima_cts_label = f'Mayo {hoy_d.year + 1}'
+        proxima_cts_mes   = 5
+    dias_cts = (proxima_cts - hoy_d).days
+
+    periodos_grat        = PeriodoNomina.objects.filter(tipo='GRATIFICACION').order_by('-anio', '-mes')[:8]
+    periodos_cts         = PeriodoNomina.objects.filter(tipo='CTS').order_by('-anio', '-mes')[:8]
+    periodos_utilidades  = PeriodoNomina.objects.filter(tipo='UTILIDADES').order_by('-anio', '-mes')[:8]
+    periodos_liquidacion = PeriodoNomina.objects.filter(tipo='LIQUIDACION').order_by('-anio', '-mes')[:8]
+
     return render(request, 'nominas/panel.html', {
         'titulo': 'Nóminas',
         'periodos': periodos,
@@ -142,6 +186,20 @@ def nominas_panel(request):
         'distribucion_conceptos_json': distribucion_conceptos_json,
         'top_sueldos': top_sueldos,
         'masa_salarial_json': masa_salarial_json,
+        # Procesos especiales
+        'proxima_grat': proxima_grat,
+        'proxima_grat_label': proxima_grat_label,
+        'proxima_grat_mes': proxima_grat_mes,
+        'dias_grat': dias_grat,
+        'proxima_cts': proxima_cts,
+        'proxima_cts_label': proxima_cts_label,
+        'proxima_cts_mes': proxima_cts_mes,
+        'dias_cts': dias_cts,
+        'periodos_grat': periodos_grat,
+        'periodos_cts': periodos_cts,
+        'periodos_utilidades': periodos_utilidades,
+        'periodos_liquidacion': periodos_liquidacion,
+        'anio_actual': hoy_d.year,
     })
 
 
@@ -319,7 +377,7 @@ def periodo_exportar(request, pk):
             return float(l.monto) if l else 0.0
 
         writer.writerow([
-            r.personal.numero_documento or '',
+            r.personal.nro_doc or '',
             r.personal.apellidos_nombres,
             r.grupo,
             r.regimen_pension,
@@ -603,7 +661,7 @@ def periodo_boletas_zip(request, pk):
         for reg in registros:
             try:
                 pdf_bytes = generar_boleta_pdf(reg)
-                nro_doc = reg.personal.numero_documento or f'reg{reg.pk}'
+                nro_doc = reg.personal.nro_doc or f'reg{reg.pk}'
                 nombre_archivo = (
                     f'Boleta_{nro_doc}_'
                     f'{periodo.anio}{str(periodo.mes).zfill(2)}.pdf'
@@ -667,47 +725,8 @@ def boleta_pdf(request, pk):
 @login_required
 @solo_admin
 def gratificacion_panel(request):
-    """
-    Panel de gratificaciones semestrales.
-    Muestra períodos tipo GRATIFICACION existentes y permite crear nuevos.
-    Base legal: Ley 27735 — 2 gratificaciones anuales equivalentes a 1 sueldo.
-    """
-    periodos_grat = (
-        PeriodoNomina.objects
-        .filter(tipo='GRATIFICACION')
-        .order_by('-anio', '-mes')
-    )
-
-    uit_2026 = engine.UIT_2026  # S/ 5,350
-    hoy = date.today()
-
-    # Próxima gratificación: Julio 15 del año en curso (si aún no pasó),
-    # o Diciembre 15 del año en curso, o Julio del año siguiente.
-    julio_actual = date(hoy.year, 7, 15)
-    dic_actual   = date(hoy.year, 12, 15)
-    julio_sig    = date(hoy.year + 1, 7, 15)
-
-    if hoy <= julio_actual:
-        proxima_grat = julio_actual
-        proxima_label = f'Julio {hoy.year}'
-    elif hoy <= dic_actual:
-        proxima_grat = dic_actual
-        proxima_label = f'Diciembre {hoy.year}'
-    else:
-        proxima_grat = julio_sig
-        proxima_label = f'Julio {hoy.year + 1}'
-
-    dias_restantes = (proxima_grat - hoy).days
-
-    return render(request, 'nominas/gratificacion_panel.html', {
-        'titulo': 'Gratificaciones',
-        'periodos_grat': periodos_grat,
-        'uit_2026': uit_2026,
-        'proxima_grat': proxima_grat,
-        'proxima_label': proxima_label,
-        'dias_restantes': dias_restantes,
-        'anio_actual': hoy.year,
-    })
+    """Redirige al panel principal con la sección de procesos especiales."""
+    return redirect('/nominas/#gratificaciones')
 
 
 # ─── Crear Período Especial (Gratificación / CTS) ─────────────────────────────
@@ -830,7 +849,7 @@ def ir5ta_panel(request):
         Personal.objects
         .filter(estado='Activo', sueldo_base__isnull=False, sueldo_base__gt=0)
         .order_by('-sueldo_base', 'apellidos_nombres')
-        .values('pk', 'apellidos_nombres', 'numero_documento', 'sueldo_base',
+        .values('pk', 'apellidos_nombres', 'nro_doc', 'sueldo_base',
                 'grupo_tareo', 'asignacion_familiar')
     )
 
@@ -868,7 +887,7 @@ def ir5ta_panel(request):
         empleados.append({
             'pk':               emp['pk'],
             'apellidos_nombres':emp['apellidos_nombres'],
-            'numero_documento': emp['numero_documento'],
+            'numero_documento': emp['nro_doc'],
             'sueldo_base':      sueldo,
             'grupo':            emp.get('grupo_tareo', ''),
             'anual_proyectado': anual,
