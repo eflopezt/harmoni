@@ -578,10 +578,21 @@
 - [x] 7 templates: panel, periodo_form, periodo_detalle, registro_detalle, registro_editar, conceptos, mis_recibos
 - [x] Sidebar: sección "Nóminas" (admin) + "Mis Recibos" (portal)
 - [x] Migración 0001_initial aplicada. Django check: 0 issues.
-- [ ] Gratificaciones julio/diciembre con bonificación extraordinaria 9% (período GRATIFICACION)
-- [ ] CTS mayo/noviembre (período CTS)
+- [x] Gratificaciones julio/diciembre con bonificación extraordinaria 9% (período GRATIFICACION) — engine completo
+- [x] CTS mayo/noviembre (período CTS) — engine completo
 - [ ] Liquidación al cese
 - [ ] Integración contable
+
+### Block 20.2: Plan de Plantilla + Flujo de Caja Avanzado [COMPLETADO — 2026-03-05]
+- [x] Modelo PlanPlantilla: nombre, tipo (OBRA/EMPRESA), período proyección, estado BORRADOR→APROBADO→VIGENTE→CERRADO, notas, creado_por
+- [x] Modelo LineaPlan: plan FK, cargo, tipo_trabajador (STAFF/RCO), n_personas, sueldo_base, cond_trabajo, alimentacion, viaticos, mes_inicio, mes_fin
+- [x] Engine proyectar_desde_plan(plan, n_meses): proyecta cashflow desde líneas del plan (sin depender de Personal real)
+- [x] flujo_caja_engine.py: modo PLAN (?plan=PK) vs REAL (sin param), n_meses = max(1, min(n_meses, 60))
+- [x] viaticos_mensual incluido en engine (REAL y PLAN) y en chart_viaticos
+- [x] 6 vistas Plan: planes_panel, plan_crear, plan_editar, plan_detalle, plan_aprobar, plan_cerrar
+- [x] flujo_caja_panel: parámetro ?plan=PK activa modo PLAN con toggle REAL/PLAN en UI
+- [x] Templates: planes_panel.html, plan_detalle.html con lineas AJAX, flujo_caja.html con selector período + toggle PLAN/REAL
+- [x] Fix: fa-chart-gantt (FA PRO) → fa-chart-bar (FA 6.5.1 Free)
 
 ## Fase 21: Analytics & People Intelligence [COMPLETADA]
 ### Block 21.1: Dashboard Ejecutivo y KPIs [COMPLETADO]
@@ -600,6 +611,29 @@
 - [ ] Predicción de rotación con ML/Ollama (futuro)
 - [ ] Succession planning (futuro)
 - [ ] People analytics avanzado (futuro)
+
+---
+
+## Pendientes activos (al 2026-03-05)
+
+### Plan de Plantilla — Block 20.3 (próxima sesión)
+- [ ] **Pestaña Presupuesto en plan_detalle**: tab adicional con resumen financiero por mes (costo total, por cargo, por área)
+- [ ] **Edición inline de líneas**: editar área, fecha inicio/fin, cargo directamente desde plan_detalle sin modal separado
+- [ ] **Import Excel para LineaPlan**: subir plantilla Excel con columnas cargo/tipo/n_personas/sueldo/cond_trabajo/alimentacion/viaticos/mes_inicio/mes_fin
+- [ ] **Export Excel del plan**: descargar el plan completo como Excel (todas las líneas + proyección cashflow mes a mes)
+- [ ] **Plantilla Excel descargable**: botón "Descargar plantilla" para rellenar e importar
+
+### INFRA
+- [ ] **INFRA.1 Multi-empresa** — ALTA PRIORIDAD. Si Personal no tiene empresa_id pronto, migrar después rompe toda la data
+- [ ] **INFRA.3 Permisos Granulares** — Modelo PermisoModulo creado (lite), pero no por objeto/área/sede
+- [ ] **INFRA.4 Workflow Engine Genérico** — pendiente (onboarding/vacaciones/HE actualmente tienen workflow hardcodeado)
+
+### Módulos
+- [ ] **Nóminas**: Liquidación al cese, integración contable
+- [ ] **Reloj biométrico** (Block 18.2): importación automática ZKTeco, webhook marcaciones tiempo real
+- [ ] **PLAME/PDT** — requiere nómina completa (ya implementada), pendiente generar PDT
+- [ ] **Disparadores automáticos comunicaciones** — cumpleaños, aniversarios, período de prueba (requiere cron/celery)
+- [ ] **Prueba del sistema en producción** — push a Render + migración PostgreSQL
 
 ---
 
@@ -651,4 +685,5 @@ D:\Harmoni\
 - 2026-03-02 (cont.2): Fase 20 Nóminas COMPLETA (4 modelos, engine.py AFP/ONP/EsSalud/IR5ta/gratif/CTS, 24 conceptos seed, 12 vistas, 7 templates, exportar CSV Excel, portal Mis Recibos, sidebar admin+portal). INFRA.3 Permisos Granulares lite COMPLETA (PermisoModulo model, core/permissions.py con decorador requiere_permiso/tiene_permiso/get_permisos_usuario, panel UI matriz módulo×acciones, migración 0003, sidebar Sistema). Notificaciones in-app COMPLETA (views_notif.py: 3 endpoints AJAX json/marcar/marcar-todas, badge counter en header, dropdown últimas 8 notifs, polling 60s, mark-as-read). Home dashboard world-class (6 KPIs, nómina card dark, alertas contratos, quick actions 14 acciones, saludo por hora). Búsqueda global expandida (+vacaciones, +OKRs, +nóminas, 18 resultados). Django check: 0 issues. Total modelos: 99 (PermisoModulo).
 - 2026-03-02 (cont.4): Ollama IA COMPLETO — ai_service.py (OllamaService: test_connection/generate/chat/mapear_columnas/resumir_texto/clasificar_falta + get_service/ia_disponible/mapear_columnas_ia), s10_importer.py _mapear_con_ia() reescrito para usar Ollama (era Anthropic API — violaba arquitectura), ia_test_connection view + URL (POST devuelve {ok, modelos, modelo_activo, error}), configuracion.html tab IA rediseñado (Probar conexión AJAX, status card verde/rojo, chips de modelos clickables con info talla, aviso modelo no instalado con ollama pull command). Fase 4 Import Inteligente COMPLETO — importar.html rediseñado como Import Hub (4 cards: Reloj inline+drag&drop, Synkro, SUNAT, S10 con Ollama badge), importar_view actualiza contexto con stats_synkro/stats_sunat/stats_s10/total_staff/total_rco/ia_disponible, importar_s10.html rediseño completo (breadcrumb, Ollama status badge dinámico, historia S10 5 últimas, columnas detectadas con col-chip, otros importadores links). importar_s10_view mejorado: pasa ia_disponible+ia_modelo al template, POST redirecta al mismo formulario (no al dashboard) para mostrar resultado. Viáticos MEJORADO — gasto_revisar AJAX (APROBADO/RECHAZADO/OBSERVADO con motivo requerido, recalcula monto_rendido), gasto_eliminar AJAX (solo PENDIENTE), viatico_anular (estado→CANCELADO), viaticos_exportar CSV (respeta filtros del panel), detalle.html: columna Acciones con botones aprobar/rechazar/observar/eliminar por gasto, botón Anular en sidebar, tfoot colspan ajustado, JS revisarGasto/pedirMotivo/eliminarGasto, panel.html: botón Exportar CSV. Nóminas Gratificaciones+CTS — calcular_gratificacion() (Ley 27735 + Ley 29351 bonif 9%, proporcional 1-6 meses, descuentos AFP/ONP, IR inafecto), calcular_cts() (DL 650, base=sueldo+asig_fam+1/6 gratif, proporcional 1-6 meses, inafecto pensiones+renta), generar_periodo() dispatch por tipo, 3 conceptos seed nuevos (gratificacion, bonif-extraordinaria, cts-semestral). periodo_detalle.html: alert informativo legal para GRATIFICACION/CTS, columna Días→Meses para esos tipos. Django check: 0 issues.
 - 2026-03-03: MEJORA IA MASIVA — Block 4.1+4.2. Ver detalle arriba en Block 4.1 y Block 4.2. Resumen: 42 campos contexto, 13 tipos chart (áreas/tipo/antigüedad/rotación/headcount/asistencia_semanal/HE/vacaciones/capacitaciones/tipo_contrato/género/edad/pensión), 20+ patrones fallback, 4 niveles cache, widget v2 con exportar .md, suggestion chips contextuales, 12 quick actions, toast notifications, per-bar colors, leyendas dinámicas, icons dinámicos. Testing visual completo: todos los gráficos y features verificados en browser. Django check: 0 issues.
+- 2026-03-05: Plan de Plantilla + Flujo de Caja PLAN/REAL — Block 20.2 COMPLETO (2 modelos: PlanPlantilla+LineaPlan, engine proyectar_desde_plan, modo REAL/PLAN toggle, viaticos en engine, planes_panel+plan_detalle templates, 6 vistas, fix fa-chart-gantt→fa-chart-bar). FIX CRÍTICO Python 3.14 + crispy-forms — personal_form/subarea_form/roster_form reescritos con Bootstrap manual (error: context.__copy__() en Python 3.14 rompe crispy Layout en rendering). personal/forms.py: Layout/FormHelper removidos de PersonalForm/SubAreaForm/RosterForm, Bootstrap clases directamente en widgets. Imports limpiados (Row/Column/Div/Layout removidos). personal_create + personal_update verificados → HTTP 200. Commits: feat(nominas) Plan Plantilla + fix(planes) fa-icon + fix(personal) crispy-forms Python 3.14.
 - 2026-03-02 (cont.3): UX Cese empleado COMPLETO — personal_form.html: JS show/hide motivo_cese al cambiar estado, auto-fill fecha_cese con hoy; personal_detail.html: alerta banner rojo para cesados con fecha+motivo; personal_list.html: row table-secondary, nombre tachado, badge rojo, tooltip Bootstrap con motivo+fecha. Identidad Visual COMPLETA — ConfiguracionSistema: 10 nuevos campos (empresa_direccion, empresa_telefono, empresa_email, empresa_web, logo ImageField, membrete_color, membrete_mostrar, firma_nombre, firma_cargo, firma_imagen), propiedades logo_base64/firma_base64 para xhtml2pdf, migración tareo.0012. documentos/services.py: reescritura completa con _build_membrete_html() (tabla para xhtml2pdf), _build_firma_html(), membrete automático en todos los PDFs. configuracion.html: tab "Identidad Visual" con logo upload+preview+delete, datos contacto, color picker membrete con preview live, firma upload+preview. configuracion_view: manejo enctype multipart/form-data + logic upload/delete imágenes. requirements.txt: Pillow + xhtml2pdf. Filtros STAFF/RCO en personal_list COMPLETO — grupo_tareo filter, total_activos/staff/rco counters, badges clickables, columna Grupo, limpiar filtros, paginación preserva params. plantilla_form.html REDISEÑO COMPLETO — layout 2 columnas (col-lg-8 form + col-lg-4 panel variables), 48 var-chips en 4 grupos (Trabajador/Fechas/Empresa/AFP-Banco), inserción al cursor con toast, verbatim blocks para onclick attrs, botón Ejemplo. sidebar base.html: empresa_nombre dinámico desde harmoni_config. seed_constancias NUEVO (5 plantillas: Constancia Trabajo/Ingresos/Certificado Trabajo/Cese/Carta Presentación). Constancias portal COMPLETO — ConstanciaGenerada model (migración documentos.0006), portal views mis_constancias + portal_generar_constancia, historial con ADMIN/PORTAL badge, registro automático en constancia_generar (admin) + portal, sidebar "Mis Constancias", panel admin actualizado con historial 30 últimas + stats por plantilla, personal_detail dropdown "Generar Constancia" con plantillas disponibles, portal_home acciones rápidas + Mis Boletas. Django check: 0 issues.
