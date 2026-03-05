@@ -635,72 +635,112 @@
 <!-- ════════════════ TAB: IA ════════════════ -->
 <div class="cfg-tab-pane" id="tab-ia">
 
-    <!-- Configuración de conexión -->
+    <!-- ── Proveedor principal ── -->
     <div class="dash-card mb-3">
         <div class="dash-card-body">
             <div class="cfg-section-title">
-                <i class="fas fa-robot me-2 text-primary"></i>Ollama &mdash; IA local en tu servidor
-            </div>
-            <div class="alert mb-4" style="background:rgba(15,118,110,.07);border:1px solid rgba(15,118,110,.2);border-radius:8px;padding:12px 16px;font-size:.82rem;color:#0f4c42;">
-                <i class="fas fa-shield-alt me-2"></i>
-                <strong>100% privado</strong> &mdash; Ollama corre en tu servidor. Los datos de tus empleados nunca salen de tu infraestructura.
-                <span class="text-muted ms-2">
-                    Instalar: <code>winget install Ollama.Ollama</code> (Windows) &middot;
-                    <code>curl -fsSL https://ollama.com/install.sh | sh</code> (Linux/Mac)
-                    &middot; Descargar modelo: <code>ollama pull llama3.2</code>
-                </span>
+                <i class="fas fa-robot me-2 text-primary"></i>Proveedor de Inteligencia Artificial
             </div>
 
+            <!-- Info banners por provider (se muestran/ocultan con JS) -->
+            <div id="iaBannerGemini" style="display:none" class="alert mb-4" style="background:rgba(15,118,110,.07);border:1px solid rgba(15,118,110,.2);border-radius:8px;padding:12px 16px;font-size:.82rem;color:#0f4c42;">
+                <i class="fas fa-star me-2 text-warning"></i>
+                <strong>Gemini 2.0/2.5 Flash</strong> &mdash; Recomendado. Soporta PDFs nativos (OCR sin conversión), streaming, 1M tokens contexto.
+                Obtén tu API key en <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a>.
+                Costo: ~$0.075/M tokens de entrada.
+            </div>
+            <div id="iaBannerDeepSeek" style="display:none" class="alert mb-4" style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:12px 16px;font-size:.82rem;">
+                <i class="fas fa-dollar-sign me-2 text-success"></i>
+                <strong>DeepSeek-V3</strong> &mdash; Más económico (~$0.014/M tokens). API compatible con OpenAI.
+                Obtén tu API key en <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com</a>.
+                Ideal para consultas RAG frecuentes.
+            </div>
+            <div id="iaBannerOpenAI" style="display:none" class="alert mb-4" style="background:rgba(16,163,127,.07);border:1px solid rgba(16,163,127,.2);border-radius:8px;padding:12px 16px;font-size:.82rem;">
+                <i class="fas fa-brain me-2"></i>
+                <strong>OpenAI GPT-4o-mini</strong> &mdash; Balance calidad/precio. API key en
+                <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>.
+                Costo: ~$0.15/M tokens entrada.
+            </div>
+            <div id="iaBannerOllama" style="display:none" class="alert mb-4" style="background:rgba(15,118,110,.07);border:1px solid rgba(15,118,110,.2);border-radius:8px;padding:12px 16px;font-size:.82rem;color:#0f4c42;">
+                <i class="fas fa-server me-2"></i>
+                <strong>Ollama local</strong> &mdash; Corre en tu servidor, sin costo por llamada.
+                Instalar: <code>winget install Ollama.Ollama</code> (Windows) &middot;
+                <code>curl -fsSL https://ollama.com/install.sh | sh</code> (Linux/Mac).
+                Descargar modelo: <code>ollama pull llama3.2</code>
+            </div>
+
+            <!-- Campos principales -->
             <div class="row g-3 align-items-end">
+                <!-- Provider selector -->
                 <div class="col-md-3 cfg-field">
-                    <label>Estado</label>
+                    <label>Proveedor IA</label>
                     <select class="form-select" name="ia_provider" id="selProvider" onchange="actualizarPanelIA()">
                         {% for val, label in config.IA_PROVIDER_CHOICES %}
                         <option value="{{ val }}" {% if config.ia_provider == val %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4 cfg-field" id="panelEndpoint">
-                    <label>Endpoint Ollama</label>
+
+                <!-- API Key (cloud providers) -->
+                <div class="col-md-4 cfg-field" id="panelApiKey" style="display:none">
+                    <label><i class="fas fa-key me-1 text-warning"></i>API Key</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" name="ia_api_key" id="iaApiKey"
+                               value="{{ config.ia_api_key|default:'' }}"
+                               placeholder="sk-... / AIza... / dsk-...">
+                        <button class="btn btn-outline-secondary" type="button" id="btnToggleKey"
+                                onclick="toggleApiKeyVisibility()" title="Mostrar/ocultar key">
+                            <i class="fas fa-eye" id="iconEye"></i>
+                        </button>
+                    </div>
+                    <div class="help-text mt-1">Se guarda encriptada. Nunca visible en logs.</div>
+                </div>
+
+                <!-- Endpoint (Ollama / DeepSeek custom) -->
+                <div class="col-md-4 cfg-field" id="panelEndpoint" style="display:none">
+                    <label>Endpoint</label>
                     <input type="text" class="form-control" name="ia_endpoint" id="iaEndpoint"
                            value="{{ config.ia_endpoint }}" placeholder="http://localhost:11434">
+                    <div class="help-text mt-1" id="endpointHint"></div>
                 </div>
-                <div class="col-md-3 cfg-field" id="panelModelo">
-                    <label>Modelo activo</label>
+
+                <!-- Modelo -->
+                <div class="col-md-3 cfg-field" id="panelModelo" style="display:none">
+                    <label>Modelo</label>
                     <input type="text" class="form-control" name="ia_modelo" id="iaModelo"
-                           value="{{ config.ia_modelo }}" placeholder="llama3.2">
-                    <div class="help-text mt-1"><code>llama3.2</code> &middot; <code>mistral</code> &middot; <code>qwen2.5</code></div>
+                           value="{{ config.ia_modelo }}" placeholder="gemini-2.0-flash">
+                    <div class="help-text mt-1" id="modeloHint"></div>
                 </div>
-                <div class="col-md-2 cfg-field" id="panelTestBtn">
+
+                <!-- Botón probar -->
+                <div class="col-md-2 cfg-field" id="panelTestBtn" style="display:none">
                     <button type="button" class="btn btn-outline-primary w-100"
-                            id="btnTestOllama" onclick="testOllamaConnection()">
+                            id="btnTestIA" onclick="testIAConnection()">
                         <i class="fas fa-plug me-1" id="btnTestIcon"></i><span id="btnTestLabel">Probar</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Panel de estado (oculto hasta hacer test) -->
+            <!-- Panel de estado test -->
             <div id="iaStatusArea" style="display:none; margin-top:14px;">
                 <div id="iaStatusCard" style="border-radius:8px; padding:12px 16px; font-size:.83rem; border:1px solid;">
                     <div class="d-flex align-items-center gap-2 mb-1">
                         <span id="iaStatusIcon" style="font-size:1rem;"></span>
                         <strong id="iaStatusTitle" style="font-size:.85rem;"></strong>
-                        <code class="ms-auto" style="font-size:.72rem; color:#64748b;" id="iaStatusEndpoint"></code>
                     </div>
-                    <!-- Modelos disponibles (click para seleccionar) -->
+                    <div id="iaStatusInfo" style="font-size:.79rem;color:#475569;margin-top:4px;"></div>
+                    <!-- Modelos Ollama (click para seleccionar) -->
                     <div id="iaModelosArea" style="display:none; margin-top:8px;">
                         <div style="font-size:.73rem; color:#475569; margin-bottom:5px;">
                             <i class="fas fa-cubes me-1"></i>Modelos instalados &mdash; clic para usar:
                         </div>
                         <div id="iaModelosList" class="d-flex flex-wrap gap-1"></div>
                     </div>
-                    <!-- Modelo no encontrado -->
                     <div id="iaModeloWarning" style="display:none; margin-top:6px; font-size:.78rem; color:#b45309;">
                         <i class="fas fa-exclamation-triangle me-1"></i>
                         El modelo <strong id="iaModeloWarningNombre"></strong> no está instalado.
                         Ejecuta: <code id="iaModeloPullCmd"></code>
                     </div>
-                    <!-- Error -->
                     <div id="iaErrorArea" style="display:none; font-size:.8rem; color:#dc2626; margin-top:4px;">
                         <i class="fas fa-exclamation-circle me-1"></i>
                         <span id="iaErrorMsg"></span>
@@ -710,12 +750,12 @@
         </div>
     </div>
 
-    <!-- Funciones habilitadas (solo visible cuando OLLAMA activo) -->
+    <!-- ── Funciones habilitadas ── -->
     <div class="dash-card mb-3" id="panelActivacion" style="display:none">
         <div class="dash-card-body">
             <div class="cfg-section-title">Funciones habilitadas</div>
 
-            <div class="cfg-switch-row">
+            <div class="cfg-switch-row mb-3">
                 <div class="form-check form-switch mb-0">
                     <input class="form-check-input" type="checkbox" name="ia_mapeo_activo"
                            id="iaMapeoActivo" value="1" {% if config.ia_mapeo_activo %}checked{% endif %}>
@@ -726,41 +766,80 @@
                         Detecci&oacute;n autom&aacute;tica de columnas al importar
                     </div>
                     <div class="help-text" style="margin-top:2px">
-                        Cuando el archivo tiene encabezados no estándar, Ollama los analiza y sugiere el mapeo.
-                        Funciona con importaciones S10, Synkro y planillas personalizadas.
+                        Analiza encabezados de Excel no estándar y sugiere el mapeo. Funciona con S10, Synkro y planillas personalizadas.
+                    </div>
+                </div>
+            </div>
+
+            <!-- OCR Provider (solo visible si hay API key Gemini) -->
+            <div id="panelOcrProvider">
+                <div class="cfg-section-title mt-3">
+                    <i class="fas fa-file-pdf me-2 text-danger"></i>OCR — PDFs escaneados
+                </div>
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-4 cfg-field">
+                        <label>Proveedor OCR</label>
+                        <select class="form-select" name="ia_ocr_provider" id="selOcrProvider">
+                            {% for val, label in config.IA_OCR_PROVIDER_CHOICES %}
+                            <option value="{{ val }}" {% if config.ia_ocr_provider == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="help-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Gemini Files API</strong>: sube el PDF directamente a Gemini (hasta 50 MB, 1M token contexto).
+                            No requiere conversión a imagen. Ideal para boletas, T-Registro, planillas escaneadas.
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tips de modelos -->
-    <div class="dash-card" id="panelTipsModelos" style="display:none">
+    <!-- ── Guía de precios ── -->
+    <div class="dash-card" id="panelGuiaProviders">
         <div class="dash-card-body">
-            <div class="cfg-section-title">Guía de modelos</div>
+            <div class="cfg-section-title">Comparativa de proveedores</div>
             <div class="row g-2">
-                <div class="col-md-4">
-                    <div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:.8rem;background:#f8fafc;">
-                        <div class="fw-semibold mb-1"><i class="fas fa-microchip me-1 text-success"></i>CPU &mdash; ultraligeros</div>
-                        <code>ollama pull qwen2.5:0.5b</code> (395 MB)<br>
-                        <code>ollama pull llama3.2:1b</code> (1.3 GB)<br>
-                        <span class="text-muted">Rápidos, suficientes para mapeo de columnas.</span>
+                <div class="col-md-3">
+                    <div style="border:1px solid #fbbf24;border-radius:8px;padding:12px;font-size:.79rem;background:#fffbeb;">
+                        <div class="fw-semibold mb-1"><i class="fas fa-star me-1 text-warning"></i>Gemini 2.0 Flash</div>
+                        <div class="text-muted mb-1">Recomendado</div>
+                        <code>gemini-2.0-flash</code><br>
+                        <code>gemini-2.5-flash-preview-04-17</code><br>
+                        <span class="text-success fw-semibold">~$0.075/M tokens</span> entrada<br>
+                        <span class="text-muted">OCR PDF nativo ✓ &middot; 1M ctx ✓</span>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:.8rem;background:#f8fafc;">
-                        <div class="fw-semibold mb-1"><i class="fas fa-balance-scale me-1 text-warning"></i>CPU/GPU &mdash; equilibrado</div>
-                        <code>ollama pull llama3.2</code> (2 GB)<br>
-                        <code>ollama pull mistral</code> (4.1 GB)<br>
-                        <span class="text-muted">Buen balance calidad/velocidad.</span>
+                <div class="col-md-3">
+                    <div style="border:1px solid #86efac;border-radius:8px;padding:12px;font-size:.79rem;background:#f0fdf4;">
+                        <div class="fw-semibold mb-1"><i class="fas fa-dollar-sign me-1 text-success"></i>DeepSeek-V3</div>
+                        <div class="text-muted mb-1">Más económico</div>
+                        <code>deepseek-chat</code><br>
+                        <code>deepseek-reasoner</code><br>
+                        <span class="text-success fw-semibold">~$0.014/M tokens</span> entrada<br>
+                        <span class="text-muted">API OpenAI-compatible ✓</span>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:.8rem;background:#f8fafc;">
-                        <div class="fw-semibold mb-1"><i class="fas fa-image me-1 text-primary"></i>Multimodal (PDFs)</div>
-                        <code>ollama pull llava</code> (4.5 GB)<br>
-                        <code>ollama pull llava:13b</code> (8 GB)<br>
-                        <span class="text-muted">Requiere GPU. Para PDF Splitter IA.</span>
+                <div class="col-md-3">
+                    <div style="border:1px solid #bfdbfe;border-radius:8px;padding:12px;font-size:.79rem;background:#eff6ff;">
+                        <div class="fw-semibold mb-1"><i class="fas fa-brain me-1 text-primary"></i>OpenAI GPT-4o-mini</div>
+                        <div class="text-muted mb-1">General purpose</div>
+                        <code>gpt-4o-mini</code><br>
+                        <code>gpt-4o</code><br>
+                        <span class="text-warning fw-semibold">~$0.15/M tokens</span> entrada<br>
+                        <span class="text-muted">Embeddings ✓ &middot; Vision ✓</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:.79rem;background:#f8fafc;">
+                        <div class="fw-semibold mb-1"><i class="fas fa-server me-1 text-secondary"></i>Ollama (local)</div>
+                        <div class="text-muted mb-1">Sin costo por llamada</div>
+                        <code>llama3.2</code> (2 GB)<br>
+                        <code>mistral</code> (4.1 GB)<br>
+                        <span class="text-secondary fw-semibold">$0 / llamada</span><br>
+                        <span class="text-muted">Requiere servidor propio</span>
                     </div>
                 </div>
             </div>
@@ -1062,48 +1141,94 @@ function toggleProgramaOtro() {
     if (s10) s10.style.display = (val === 'S10') ? '' : 'none';
 }
 
-// ── IA / Ollama ─────────────────────────────────────────────────────────────
+// ── IA / Multi-Provider ──────────────────────────────────────────────────────
+
+// Configuración por provider: {campos visibles, modelo default, placeholder endpoint, hints}
+const IA_PROVIDER_CONFIG = {
+    GEMINI:   { apiKey:true, endpoint:false, modelo:true, modeloHint:'gemini-2.0-flash &middot; gemini-2.5-flash-preview-04-17', modeloPlaceholder:'gemini-2.0-flash', banner:'iaBannerGemini' },
+    DEEPSEEK: { apiKey:true, endpoint:true,  modelo:true, modeloHint:'deepseek-chat &middot; deepseek-reasoner', modeloPlaceholder:'deepseek-chat', endpointHint:'Por defecto: https://api.deepseek.com/v1', banner:'iaBannerDeepSeek' },
+    OPENAI:   { apiKey:true, endpoint:false, modelo:true, modeloHint:'gpt-4o-mini &middot; gpt-4o', modeloPlaceholder:'gpt-4o-mini', banner:'iaBannerOpenAI' },
+    OLLAMA:   { apiKey:false, endpoint:true, modelo:true, modeloHint:'llama3.2 &middot; mistral &middot; qwen2.5', modeloPlaceholder:'llama3.2', endpointHint:'Por defecto: http://localhost:11434', banner:'iaBannerOllama' },
+    NINGUNO:  { apiKey:false, endpoint:false, modelo:false, banner:null },
+};
 
 function actualizarPanelIA() {
-    const esOllama = document.getElementById('selProvider').value === 'OLLAMA';
-    ['panelModelo','panelEndpoint','panelTestBtn','panelActivacion','panelTipsModelos'].forEach(id => {
+    const provider = document.getElementById('selProvider').value;
+    const cfg = IA_PROVIDER_CONFIG[provider] || IA_PROVIDER_CONFIG.NINGUNO;
+
+    // Ocultar todos los banners primero
+    ['iaBannerGemini','iaBannerDeepSeek','iaBannerOpenAI','iaBannerOllama'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = esOllama ? '' : 'none';
+        if (el) el.style.display = 'none';
     });
-    if (!esOllama) {
-        document.getElementById('iaStatusArea').style.display = 'none';
+    if (cfg.banner) {
+        const b = document.getElementById(cfg.banner);
+        if (b) b.style.display = '';
+    }
+
+    // Campos condicionales
+    const show = (id, visible) => { const el=document.getElementById(id); if(el) el.style.display=visible?'':'none'; };
+    show('panelApiKey',   cfg.apiKey);
+    show('panelEndpoint', cfg.endpoint);
+    show('panelModelo',   cfg.modelo);
+    show('panelTestBtn',  provider !== 'NINGUNO');
+    show('panelActivacion', provider !== 'NINGUNO');
+    show('panelGuiaProviders', true);
+
+    // Hints y placeholders
+    if (cfg.modelo) {
+        document.getElementById('modeloHint').innerHTML = cfg.modeloHint || '';
+        document.getElementById('iaModelo').placeholder = cfg.modeloPlaceholder || '';
+    }
+    if (cfg.endpoint) {
+        document.getElementById('endpointHint').innerHTML = cfg.endpointHint || '';
+    }
+
+    // Ocultar status si cambia provider
+    document.getElementById('iaStatusArea').style.display = 'none';
+}
+
+function toggleApiKeyVisibility() {
+    const inp  = document.getElementById('iaApiKey');
+    const icon = document.getElementById('iconEye');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        inp.type = 'password';
+        icon.className = 'fas fa-eye';
     }
 }
 
-function testOllamaConnection() {
-    const endpoint = document.getElementById('iaEndpoint').value.trim() || 'http://localhost:11434';
-    const modelo   = document.getElementById('iaModelo').value.trim()   || 'llama3.2';
-    const btn      = document.getElementById('btnTestOllama');
-    const icon     = document.getElementById('btnTestIcon');
-    const label    = document.getElementById('btnTestLabel');
+function testIAConnection() {
+    const provider = document.getElementById('selProvider').value;
+    const apiKey   = (document.getElementById('iaApiKey')  || {}).value || '';
+    const endpoint = (document.getElementById('iaEndpoint') || {}).value || '';
+    const modelo   = (document.getElementById('iaModelo')   || {}).value || '';
+    const btn   = document.getElementById('btnTestIA');
+    const icon  = document.getElementById('btnTestIcon');
+    const label = document.getElementById('btnTestLabel');
 
-    // Estado: cargando
     btn.disabled = true;
-    icon.className  = 'fas fa-spinner fa-spin me-1';
+    icon.className = 'fas fa-spinner fa-spin me-1';
     label.textContent = 'Probando...';
 
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    const formData  = new FormData();
-    formData.append('endpoint', endpoint);
-    formData.append('modelo', modelo);
-    formData.append('csrfmiddlewaretoken', csrfToken);
+    const fd = new FormData();
+    fd.append('provider', provider);
+    fd.append('api_key',  apiKey.trim());
+    fd.append('endpoint', endpoint.trim());
+    fd.append('modelo',   modelo.trim());
+    fd.append('csrfmiddlewaretoken', csrfToken);
 
-    fetch('{% url "asistencia_ia_test" %}', {
-        method: 'POST',
-        body: formData,
-    })
+    fetch('{% url "asistencia_ia_test" %}', { method:'POST', body:fd })
     .then(r => r.json())
     .then(data => {
-        const statusArea = document.getElementById('iaStatusArea');
-        const statusCard = document.getElementById('iaStatusCard');
-        const statusIcon = document.getElementById('iaStatusIcon');
+        const statusArea  = document.getElementById('iaStatusArea');
+        const statusCard  = document.getElementById('iaStatusCard');
+        const statusIcon  = document.getElementById('iaStatusIcon');
         const statusTitle = document.getElementById('iaStatusTitle');
-        const statusEp    = document.getElementById('iaStatusEndpoint');
+        const statusInfo  = document.getElementById('iaStatusInfo');
         const modelosArea = document.getElementById('iaModelosArea');
         const modelosList = document.getElementById('iaModelosList');
         const modeloWarn  = document.getElementById('iaModeloWarning');
@@ -1111,75 +1236,66 @@ function testOllamaConnection() {
         const errorMsg    = document.getElementById('iaErrorMsg');
 
         statusArea.style.display = '';
-        statusEp.textContent = endpoint;
+        errorArea.style.display  = 'none';
+        modeloWarn.style.display = 'none';
+        modelosArea.style.display = 'none';
 
         if (data.ok) {
-            // Éxito
             statusCard.style.cssText = 'border-radius:8px;padding:12px 16px;font-size:.83rem;border:1px solid #86efac;background:#f0fdf4;';
             statusIcon.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
-            statusTitle.textContent = 'Conectado a Ollama';
-            errorArea.style.display = 'none';
+            statusTitle.textContent = '¡Conectado!';
+            statusInfo.innerHTML = data.info || '';
 
-            // Lista de modelos
-            if (data.modelos && data.modelos.length > 0) {
+            // Modelos instalados (solo Ollama)
+            if (data.modelos && data.modelos.length > 0 && provider === 'OLLAMA') {
                 modelosArea.style.display = '';
                 modelosList.innerHTML = '';
                 data.modelos.forEach(m => {
                     const chip = document.createElement('span');
-                    chip.style.cssText = 'background:#e0f2fe;color:#0369a1;border-radius:4px;padding:2px 8px;font-size:.72rem;cursor:pointer;border:1px solid #bae6fd;';
+                    chip.style.cssText = 'background:#e0f2fe;color:#0369a1;border-radius:4px;padding:2px 8px;font-size:.72rem;cursor:pointer;border:1px solid #bae6fd;margin:2px;display:inline-block;';
                     chip.textContent = m;
                     chip.title = 'Clic para usar este modelo';
                     chip.onclick = () => {
                         document.getElementById('iaModelo').value = m.split(':')[0];
-                        // Reset todos los chips
-                        modelosList.querySelectorAll('span').forEach(c => c.style.background = '#e0f2fe');
+                        modelosList.querySelectorAll('span').forEach(c => { c.style.background='#e0f2fe'; c.style.color='#0369a1'; });
                         chip.style.background = '#0284c7';
                         chip.style.color = '#fff';
                     };
-                    // Resaltar si es el modelo activo
-                    if (data.modelo_activo && m.toLowerCase().startsWith(modelo.split(':')[0].toLowerCase())) {
+                    const base = modelo.split(':')[0].toLowerCase();
+                    if (data.modelo_activo && m.toLowerCase().startsWith(base)) {
                         chip.style.background = '#0284c7';
                         chip.style.color = '#fff';
                     }
                     modelosList.appendChild(chip);
                 });
-            } else {
-                modelosArea.style.display = '';
-                modelosList.innerHTML = '<span style="color:#64748b;font-size:.78rem;">Sin modelos instalados aún. Ejecuta <code>ollama pull llama3.2</code></span>';
+                if (!data.modelo_activo) {
+                    modeloWarn.style.display = '';
+                    document.getElementById('iaModeloWarningNombre').textContent = modelo;
+                    document.getElementById('iaModeloPullCmd').textContent = `ollama pull ${modelo.split(':')[0]}`;
+                }
             }
-
-            // Advertencia si el modelo no está instalado
-            if (!data.modelo_activo) {
-                modeloWarn.style.display = '';
-                document.getElementById('iaModeloWarningNombre').textContent = modelo;
-                document.getElementById('iaModeloPullCmd').textContent = `ollama pull ${modelo.split(':')[0]}`;
-            } else {
-                modeloWarn.style.display = 'none';
-            }
-
         } else {
-            // Error
             statusCard.style.cssText = 'border-radius:8px;padding:12px 16px;font-size:.83rem;border:1px solid #fca5a5;background:#fff1f2;';
             statusIcon.innerHTML = '<i class="fas fa-times-circle text-danger"></i>';
-            statusTitle.textContent = 'Sin conexión';
-            modelosArea.style.display = 'none';
-            modeloWarn.style.display = 'none';
+            statusTitle.textContent = 'Error de conexión';
+            statusInfo.innerHTML = '';
             errorArea.style.display = '';
             errorMsg.textContent = data.error || 'Error desconocido.';
         }
     })
     .catch(err => {
-        document.getElementById('iaStatusArea').style.display = '';
+        const statusArea = document.getElementById('iaStatusArea');
+        statusArea.style.display = '';
         document.getElementById('iaStatusCard').style.cssText = 'border-radius:8px;padding:12px 16px;font-size:.83rem;border:1px solid #fca5a5;background:#fff1f2;';
         document.getElementById('iaStatusIcon').innerHTML = '<i class="fas fa-times-circle text-danger"></i>';
         document.getElementById('iaStatusTitle').textContent = 'Error de red';
+        document.getElementById('iaStatusInfo').innerHTML = '';
         document.getElementById('iaErrorArea').style.display = '';
         document.getElementById('iaErrorMsg').textContent = err.toString();
-        document.getElementById('iaModelosArea').style.display = 'none';
     })
     .finally(() => {
         btn.disabled = false;
-        icon.className  = 'fas fa-plug me-1';
+        icon.className = 'fas fa-plug me-1';
         label.textContent = 'Probar';
     });
 }

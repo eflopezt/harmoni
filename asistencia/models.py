@@ -1260,23 +1260,38 @@ class ConfiguracionSistema(models.Model):
         verbose_name="Día de Envío (0=Lun … 6=Dom)",
         help_text="Día de la semana para enviar el resumen semanal")
 
-    # ── IA / Ollama local ──
+    # ── IA / Multi-Provider (Fase 4.4) ──
     IA_PROVIDER_CHOICES = [
-        ('OLLAMA',  'Ollama (Local — Llama / Mistral)'),
-        ('NINGUNO', 'Sin IA'),
+        ('GEMINI',   'Gemini (Google — recomendado)'),
+        ('DEEPSEEK', 'DeepSeek (más económico)'),
+        ('OPENAI',   'OpenAI (GPT-4o-mini)'),
+        ('OLLAMA',   'Ollama (Local — sin costo)'),
+        ('NINGUNO',  'Sin IA'),
+    ]
+    IA_OCR_PROVIDER_CHOICES = [
+        ('GEMINI',  'Gemini 2.5 Flash (PDF nativos)'),
+        ('NINGUNO', 'Sin OCR IA'),
     ]
     ia_provider = models.CharField(
         max_length=20, choices=IA_PROVIDER_CHOICES, default='NINGUNO',
-        verbose_name="Proveedor de IA",
-        help_text="Motor de IA local (Ollama) para detección automática de columnas")
+        verbose_name="Proveedor de IA (Chat/RAG)",
+        help_text="Proveedor para chat, análisis y mapeo de columnas")
+    ia_api_key = models.CharField(
+        max_length=500, blank=True, default='',
+        verbose_name="API Key del proveedor",
+        help_text="Clave API de Gemini, DeepSeek u OpenAI. No aplica para Ollama.")
     ia_endpoint = models.CharField(
         max_length=200, blank=True, default='http://localhost:11434',
-        verbose_name="Endpoint Ollama",
-        help_text="URL del servidor Ollama. Por defecto: http://localhost:11434")
+        verbose_name="Endpoint (Ollama / DeepSeek custom)",
+        help_text="URL del servidor. Ollama: http://localhost:11434 | DeepSeek: https://api.deepseek.com/v1")
     ia_modelo = models.CharField(
-        max_length=100, blank=True, default='llama3.2',
-        verbose_name="Modelo Ollama",
-        help_text="Nombre del modelo instalado. Ej: llama3.2, mistral, qwen2.5")
+        max_length=100, blank=True, default='gemini-2.0-flash',
+        verbose_name="Modelo",
+        help_text="Gemini: gemini-2.0-flash | DeepSeek: deepseek-chat | OpenAI: gpt-4o-mini | Ollama: llama3.2")
+    ia_ocr_provider = models.CharField(
+        max_length=20, choices=IA_OCR_PROVIDER_CHOICES, default='NINGUNO',
+        verbose_name="Proveedor OCR (PDFs escaneados)",
+        help_text="Gemini Files API para OCR de PDFs escaneados. Requiere ia_api_key de Gemini.")
     ia_mapeo_activo = models.BooleanField(
         default=False,
         verbose_name="Activar Mapeo IA de Columnas",

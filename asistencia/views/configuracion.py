@@ -136,10 +136,12 @@ def configuracion_view(request):
         config.email_asunto_semanal = request.POST.get('email_asunto_semanal', config.email_asunto_semanal)
         config.email_dia_envio = int(request.POST.get('email_dia_envio', config.email_dia_envio))
 
-        # IA (Ollama local)
-        config.ia_provider = request.POST.get('ia_provider', config.ia_provider)
-        config.ia_endpoint = request.POST.get('ia_endpoint', config.ia_endpoint).strip()
-        config.ia_modelo = request.POST.get('ia_modelo', config.ia_modelo).strip()
+        # IA — Multi-Provider (Fase 4.4)
+        config.ia_provider    = request.POST.get('ia_provider', config.ia_provider)
+        config.ia_api_key     = request.POST.get('ia_api_key', getattr(config, 'ia_api_key', '')).strip()
+        config.ia_endpoint    = request.POST.get('ia_endpoint', config.ia_endpoint).strip()
+        config.ia_modelo      = request.POST.get('ia_modelo', config.ia_modelo).strip()
+        config.ia_ocr_provider = request.POST.get('ia_ocr_provider', getattr(config, 'ia_ocr_provider', 'NINGUNO'))
         config.ia_mapeo_activo = request.POST.get('ia_mapeo_activo') == '1'
 
         # S10
@@ -188,21 +190,59 @@ def configuracion_view(request):
 @require_POST
 def ia_test_connection(request):
     """
-    Verifica conectividad con el servidor Ollama configurado.
-    Recibe endpoint y modelo vía POST (los valores del formulario, aún sin guardar).
-    Devuelve JSON con estado, lista de modelos disponibles y disponibilidad del modelo.
+    Verifica conectividad con el provider IA seleccionado.
+    Recibe provider, api_key, endpoint, modelo vía POST.
+    Devuelve JSON con {ok, info, error, modelos (Ollama)}.
     """
-    from asistencia.services.ai_service import OllamaService
+    from asistencia.services.ai_service import (
+        GeminiService, OpenAICompatibleService, OllamaService
+    )
 
-    endpoint = request.POST.get('endpoint', 'http://localhost:11434').strip()
-    modelo   = request.POST.get('modelo',   'llama3.2').strip()
+    provider = request.POST.get('provider', 'OLLAMA').strip()
+    api_key  = request.POST.get('api_key',  '').strip()
+    endpoint = request.POST.get('endpoint', '').strip()
+    modelo   = request.POST.get('modelo',   '').strip()
 
-    if not endpoint:
-        return JsonResponse({'ok': False, 'error': 'Endpoint vacío.', 'modelos': []})
+    try:
+        if provider == 'GEMINI':
+            if not api_key:
+                return JsonResponse({'ok': False, 'error': 'API Key requerida para Gemini.', 'info': ''})
+            svc = GeminiService(api_key=api_key, modelo=modelo or 'gemini-2.0-flash')
 
-    svc    = OllamaService(endpoint=endpoint, modelo=modelo)
-    result = svc.test_connection()
-    return JsonResponse(result)
+        elif provider == 'DEEPSEEK':
+            if not api_key:
+                return JsonResponse({'ok': False, 'error': 'API Key requerida para DeepSeek.', 'info': ''})
+            svc = OpenAICompatibleService(
+                api_key=api_key,
+                modelo=modelo or 'deepseek-chat',
+                base_url=endpoint or 'https://api.deepseek.com/v1',
+                provider_label='DEEPSEEK',
+            )
+
+        elif provider == 'OPENAI':
+            if not api_key:
+                return JsonResponse({'ok': False, 'error': 'API Key requerida para OpenAI.', 'info': ''})
+            svc = OpenAICompatibleService(
+                api_key=api_key,
+                modelo=modelo or 'gpt-4o-mini',
+                base_url='https://api.openai.com/v1',
+                provider_label='OPENAI',
+            )
+
+        elif provider == 'OLLAMA':
+            svc = OllamaService(
+                endpoint=endpoint or 'http://localhost:11434',
+                modelo=modelo or 'llama3.2',
+            )
+
+        else:
+            return JsonResponse({'ok': False, 'error': f'Provider "{provider}" no reconocido.', 'info': ''})
+
+        result = svc.test_connection()
+        return JsonResponse(result)
+
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e), 'info': ''})
 
 
 # ---------------------------------------------------------------------------

@@ -77,13 +77,13 @@ def importar_view(request):
     config = ConfiguracionSistema.get()
     ia_provider   = getattr(config, 'ia_provider', 'NINGUNO')
     ia_modelo     = getattr(config, 'ia_modelo', '') or ''
-    ia_endpoint   = getattr(config, 'ia_endpoint', 'http://localhost:11434') or 'http://localhost:11434'
+    ia_endpoint   = getattr(config, 'ia_endpoint', '') or ''
     ia_disponible = False
-    if ia_provider == 'OLLAMA':
+    if ia_provider != 'NINGUNO':
         try:
-            from asistencia.services.ai_service import OllamaService
-            svc = OllamaService(endpoint=ia_endpoint, modelo=ia_modelo)
-            ia_disponible = svc.test_connection()['ok']
+            from asistencia.services.ai_service import get_service
+            svc = get_service()
+            ia_disponible = svc.test_connection()['ok'] if svc else False
         except Exception:
             pass
 
@@ -404,15 +404,13 @@ def importar_s10_view(request):
     config = ConfiguracionSistema.get()
     ia_provider  = getattr(config, 'ia_provider', 'NINGUNO')
     ia_modelo    = getattr(config, 'ia_modelo', '') or ''
-    ia_endpoint  = getattr(config, 'ia_endpoint', 'http://localhost:11434') or 'http://localhost:11434'
 
-    # Verificar conectividad Ollama solo si está configurado (rápido, 5s timeout)
+    # Verificar conectividad con el provider configurado
     ia_disponible = False
-    if ia_provider == 'OLLAMA':
+    if ia_provider != 'NINGUNO':
         try:
-            from asistencia.services.ai_service import OllamaService
-            svc = OllamaService(endpoint=ia_endpoint, modelo=ia_modelo)
-            ia_disponible = svc.test_connection()['ok']
+            svc = get_service()
+            ia_disponible = svc.test_connection()['ok'] if svc else False
         except Exception:
             pass
 
