@@ -199,7 +199,7 @@ class IAService(ABC):
 class GeminiService(IAService):
     """
     Google Gemini via google-genai SDK (v1+).
-    Modelos: gemini-2.0-flash, gemini-2.5-flash-preview-04-17
+    Modelos: gemini-2.5-flash-preview-04-17, gemini-2.0-flash-lite
     Streaming nativo soportado.
 
     Nota: se usa `google.genai` (nuevo) NO `google.generativeai` (deprecado).
@@ -207,7 +207,7 @@ class GeminiService(IAService):
     """
     provider_name = 'GEMINI'
 
-    def __init__(self, api_key: str, modelo: str = 'gemini-2.0-flash'):
+    def __init__(self, api_key: str, modelo: str = 'gemini-2.5-flash-preview-04-17'):
         self.api_key = api_key
         self.modelo = modelo
         self._client = None
@@ -709,7 +709,7 @@ def get_service() -> IAService | None:
         if provider == 'GEMINI' and api_key:
             svc = GeminiService(
                 api_key=api_key,
-                modelo=modelo or 'gemini-2.0-flash',
+                modelo=modelo or 'gemini-2.5-flash-preview-04-17',
             )
         elif provider == 'DEEPSEEK' and api_key:
             svc = OpenAICompatibleService(
@@ -797,7 +797,7 @@ def get_ocr_service() -> 'GeminiService | None':
             ocr_key = getattr(config, 'ia_api_key', '') or ''
         if not ocr_key:
             return None
-        modelo = config.ia_modelo or 'gemini-2.0-flash'
+        modelo = config.ia_modelo or 'gemini-2.5-flash-preview-04-17'
         return GeminiService(api_key=ocr_key, modelo=modelo)
     except Exception as e:
         logger.debug(f'get_ocr_service: {e}')

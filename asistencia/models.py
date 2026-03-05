@@ -1285,9 +1285,9 @@ class ConfiguracionSistema(models.Model):
         verbose_name="Endpoint (Ollama / DeepSeek custom)",
         help_text="URL del servidor. Ollama: http://localhost:11434 | DeepSeek: https://api.deepseek.com/v1")
     ia_modelo = models.CharField(
-        max_length=100, blank=True, default='gemini-2.0-flash',
+        max_length=100, blank=True, default='gemini-2.5-flash-preview-04-17',
         verbose_name="Modelo",
-        help_text="Gemini: gemini-2.0-flash | DeepSeek: deepseek-chat | OpenAI: gpt-4o-mini | Ollama: llama3.2")
+        help_text="Gemini: gemini-2.5-flash-preview-04-17 | DeepSeek: deepseek-chat | OpenAI: gpt-4o-mini | Ollama: llama3.2")
     ia_ocr_provider = models.CharField(
         max_length=20, choices=IA_OCR_PROVIDER_CHOICES, default='NINGUNO',
         verbose_name="Proveedor OCR (PDFs escaneados)",

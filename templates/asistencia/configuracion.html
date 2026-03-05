@@ -708,7 +708,7 @@
                 <div class="col-md-3 cfg-field" id="panelModelo" style="display:none">
                     <label>Modelo</label>
                     <input type="text" class="form-control" name="ia_modelo" id="iaModelo"
-                           value="{{ config.ia_modelo }}" placeholder="gemini-2.0-flash">
+                           value="{{ config.ia_modelo }}" placeholder="gemini-2.5-flash-preview-04-17">
                     <div class="help-text mt-1" id="modeloHint"></div>
                 </div>
 
@@ -824,10 +824,10 @@
             <div class="row g-2">
                 <div class="col-md-3">
                     <div style="border:1px solid #fbbf24;border-radius:8px;padding:12px;font-size:.79rem;background:#fffbeb;">
-                        <div class="fw-semibold mb-1"><i class="fas fa-star me-1 text-warning"></i>Gemini 2.0 Flash</div>
+                        <div class="fw-semibold mb-1"><i class="fas fa-star me-1 text-warning"></i>Gemini 2.5 Flash</div>
                         <div class="text-muted mb-1">Recomendado</div>
-                        <code>gemini-2.0-flash</code><br>
                         <code>gemini-2.5-flash-preview-04-17</code><br>
+                        <code>gemini-2.0-flash-lite</code><br>
                         <span class="text-success fw-semibold">~$0.075/M tokens</span> entrada<br>
                         <span class="text-muted">OCR PDF nativo ✓ &middot; 1M ctx ✓</span>
                     </div>
@@ -1165,7 +1165,7 @@ function toggleProgramaOtro() {
 
 // Configuración por provider: {campos visibles, modelo default, placeholder endpoint, hints}
 const IA_PROVIDER_CONFIG = {
-    GEMINI:   { apiKey:true, endpoint:false, modelo:true, modeloHint:'gemini-2.0-flash &middot; gemini-2.5-flash-preview-04-17', modeloPlaceholder:'gemini-2.0-flash', banner:'iaBannerGemini' },
+    GEMINI:   { apiKey:true, endpoint:false, modelo:true, modeloHint:'gemini-2.5-flash-preview-04-17 &middot; gemini-2.0-flash-lite', modeloPlaceholder:'gemini-2.5-flash-preview-04-17', banner:'iaBannerGemini' },
     DEEPSEEK: { apiKey:true, endpoint:true,  modelo:true, modeloHint:'deepseek-chat &middot; deepseek-reasoner', modeloPlaceholder:'deepseek-chat', endpointHint:'Por defecto: https://api.deepseek.com/v1', banner:'iaBannerDeepSeek' },
     OPENAI:   { apiKey:true, endpoint:false, modelo:true, modeloHint:'gpt-4o-mini &middot; gpt-4o', modeloPlaceholder:'gpt-4o-mini', banner:'iaBannerOpenAI' },
     OLLAMA:   { apiKey:false, endpoint:true, modelo:true, modeloHint:'llama3.2 &middot; mistral &middot; qwen2.5', modeloPlaceholder:'llama3.2', endpointHint:'Por defecto: http://localhost:11434', banner:'iaBannerOllama' },
