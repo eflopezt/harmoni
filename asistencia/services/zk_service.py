@@ -284,8 +284,8 @@ class ZKService:
 
         personal_map: dict[str, object] = {}
         if self.reloj.campo_id_empleado == 'USER_ID' and user_ids:
-            qs = Personal.objects.filter(dni__in=user_ids).only('id', 'dni')
-            personal_map = {p.dni: p for p in qs}
+            qs = Personal.objects.filter(nro_doc__in=user_ids).only('id', 'nro_doc')
+            personal_map = {p.nro_doc: p for p in qs}
 
         nuevos = omitidos = sin_match = 0
 
@@ -409,12 +409,12 @@ class ZKService:
         user_ids = {uid for uid, _ in grupos}
         pers_qs = (
             Personal.objects
-            .filter(dni__in=user_ids)
-            .select_related('cargo', 'subarea__area')
-            .only('dni', 'nombre_completo', 'grupo_tareo',
-                  'condicion', 'cargo__nombre', 'subarea__area__nombre')
+            .filter(nro_doc__in=user_ids)
+            .select_related('subarea__area')
+            .only('nro_doc', 'apellidos_nombres', 'grupo_tareo',
+                  'condicion', 'subarea__area__nombre')
         )
-        personal_map: dict[str, object] = {p.dni: p for p in pers_qs}
+        personal_map: dict[str, object] = {p.nro_doc: p for p in pers_qs}
 
         registros = []
         for (uid, fecha_dia), marcas in grupos.items():

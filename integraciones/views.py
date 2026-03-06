@@ -6,11 +6,12 @@ Panel central de exportaciones hacia sistemas externos SUNAT, AFP, bancos.
 import io
 from datetime import date
 
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .models import LogExportacion
 from .exportadores import (
@@ -29,6 +30,7 @@ def _periodo_actual():
     return f'{hoy.year}-{hoy.month:02d}'
 
 
+@login_required
 @solo_admin
 def panel(request):
     from personal.models import Personal
@@ -101,6 +103,7 @@ def panel(request):
     return render(request, 'integraciones/panel.html', context)
 
 
+@login_required
 @solo_admin
 def exportar_t_registro_altas(request):
     from personal.models import Personal
@@ -130,6 +133,7 @@ def exportar_t_registro_altas(request):
     )
     return response
 
+@login_required
 @solo_admin
 def exportar_t_registro_bajas(request):
     from personal.models import Personal
@@ -162,6 +166,7 @@ def exportar_t_registro_bajas(request):
     return response
 
 
+@login_required
 @solo_admin
 def exportar_planilla_excel(request):
     from personal.models import Personal
@@ -197,6 +202,7 @@ def exportar_planilla_excel(request):
     return response
 
 
+@login_required
 @solo_admin
 def exportar_afp_net(request):
     from personal.models import Personal
@@ -228,6 +234,7 @@ def exportar_afp_net(request):
     return response
 
 
+@login_required
 @solo_admin
 def exportar_pago_banco(request):
     from personal.models import Personal
@@ -260,6 +267,7 @@ def exportar_pago_banco(request):
     return response
 
 
+@login_required
 @solo_admin
 def exportar_essalud(request):
     from personal.models import Personal
@@ -285,6 +293,7 @@ def exportar_essalud(request):
     return response
 
 
+@login_required
 @solo_admin
 def preview_exportacion(request):
     from personal.models import Personal
@@ -334,6 +343,7 @@ def preview_exportacion(request):
     return JsonResponse(data)
 
 
+@login_required
 @solo_admin
 def exportar_plame(request):
     '''Genera archivo PLAME (PDT 601) para SUNAT.'''
@@ -374,6 +384,7 @@ def exportar_plame(request):
     return response
 
 
+@login_required
 @solo_admin
 def exportar_banco_especifico(request, banco):
     '''
@@ -432,6 +443,7 @@ def exportar_banco_especifico(request, banco):
 # CONTABLES — Asientos de planilla
 # ──────────────────────────────────────────────────────────────────────
 
+@login_required
 @solo_admin
 def exportar_contable(request, formato):
     """
@@ -502,6 +514,7 @@ def exportar_contable(request, formato):
     return response
 
 
+@login_required
 @solo_admin
 def panel_contable(request):
     """Panel de exportaciones contables — muestra formatos disponibles y selector de periodo."""
@@ -521,6 +534,7 @@ def panel_contable(request):
 # PLAME PREVIEW
 # ──────────────────────────────────────────────────────────────────────
 
+@login_required
 @solo_admin
 def plame_preview(request):
     """
@@ -583,7 +597,7 @@ def plame_preview(request):
         total_essalud += aporte_essalud
 
         registros.append({
-            'dni': p.dni,
+            'dni': p.nro_doc,
             'nombre': p.apellidos_nombres,
             'sueldo': base,
             'regimen': p.regimen_pension or '—',
@@ -618,6 +632,7 @@ def plame_preview(request):
 # AFP NET PANEL
 # ──────────────────────────────────────────────────────────────────────
 
+@login_required
 @solo_admin
 def afp_net_panel(request):
     """
@@ -641,7 +656,7 @@ def afp_net_panel(request):
         empleados = Personal.objects.filter(
             estado='Activo', regimen_pension='AFP', afp=afp_nombre
         ).order_by('apellidos_nombres').values(
-            'dni', 'apellidos_nombres', 'sueldo_base', 'afp'
+            'nro_doc', 'apellidos_nombres', 'sueldo_base', 'afp'
         )[:20]
 
         total_empleados = Personal.objects.filter(
@@ -652,7 +667,8 @@ def afp_net_panel(request):
             estado='Activo', regimen_pension='AFP', afp=afp_nombre
         ).aggregate(s=Sum('sueldo_base'))['s'] or 0
 
-        aporte_estimado = (total_aporte * 0.13) if total_aporte else 0
+        from decimal import Decimal
+        aporte_estimado = (total_aporte * Decimal('0.13')) if total_aporte else Decimal('0')
 
         ultimo_export = LogExportacion.objects.filter(
             tipo='AFP_NET', estado='OK'
@@ -687,6 +703,7 @@ def afp_net_panel(request):
 # BIOMETRICO IMPORT
 # ──────────────────────────────────────────────────────────────────────
 
+@login_required
 @solo_admin
 def biometrico_import(request):
     """
@@ -782,6 +799,7 @@ def biometrico_import(request):
 # CONFIGURACION DEL SISTEMA
 # ──────────────────────────────────────────────────────────────────────
 
+@login_required
 @solo_admin
 def configuracion_sistema(request):
     """
@@ -861,12 +879,40 @@ def configuracion_sistema(request):
                 zapsign_key = request.POST.get('zapsign_api_key', '')
                 if zapsign_key:
                     config.zapsign_api_key = zapsign_key
+                # Telegram Bot — solo actualizar token si se proporcionó (seguridad)
+                tg_token = request.POST.get('telegram_bot_token', '').strip()
+                if tg_token:
+                    config.telegram_bot_token = tg_token
+                config.telegram_channel_id = request.POST.get('telegram_channel_id', '').strip()
+                # WhatsApp Business Cloud API
+                wa_phone_id = request.POST.get('whatsapp_phone_number_id', '').strip()
+                wa_token    = request.POST.get('whatsapp_access_token', '').strip()
+                if wa_phone_id:
+                    config.whatsapp_phone_number_id = wa_phone_id
+                if wa_token:
+                    config.whatsapp_access_token = wa_token
+                config.whatsapp_to_number = request.POST.get('whatsapp_to_number', '').strip()
 
             elif tab == 'ia':
                 config.ia_provider = request.POST.get('ia_provider', config.ia_provider)
+                # API key para proveedores cloud — solo actualizar si se proporcionó
+                api_key = request.POST.get('ia_api_key', '').strip()
+                if api_key:
+                    config.ia_api_key = api_key
                 config.ia_endpoint = request.POST.get('ia_endpoint', config.ia_endpoint)
                 config.ia_modelo = request.POST.get('ia_modelo', config.ia_modelo)
+                config.ia_ocr_provider = request.POST.get('ia_ocr_provider', config.ia_ocr_provider)
+                # Key Gemini dedicada para OCR (permite DeepSeek chat + Gemini OCR)
+                gemini_key = request.POST.get('ia_gemini_api_key', '').strip()
+                if gemini_key:
+                    config.ia_gemini_api_key = gemini_key
                 config.ia_mapeo_activo = 'ia_mapeo_activo' in request.POST
+                # Invalidar caché del servicio IA para que tome la nueva config
+                try:
+                    from asistencia.services.ai_service import _ia_cache
+                    _ia_cache.clear()
+                except Exception:
+                    pass
 
             config.actualizado_por = request.user
             config.save()
@@ -888,9 +934,176 @@ def configuracion_sistema(request):
         'config': config,
         'modo_choices': ConfiguracionSistema.MODO_SISTEMA_CHOICES,
         'programa_choices': ConfiguracionSistema.PROGRAMA_NOMINA_CHOICES,
-        'ia_choices': ConfiguracionSistema.IA_PROVIDER_CHOICES,
+        'ia_choices':     ConfiguracionSistema.IA_PROVIDER_CHOICES,
+        'ia_ocr_choices': ConfiguracionSistema.IA_OCR_PROVIDER_CHOICES,
         'he_tipo_choices': ConfiguracionSistema.HE_TIPO_CHOICES,
         'export_formato_choices': ConfiguracionSistema.EXPORT_FORMATO_CHOICES,
         'tab_activo': request.GET.get('tab', 'general'),
     }
     return render(request, 'configuracion/configuracion_sistema.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCTR — SEGURO COMPLEMENTARIO DE TRABAJO DE RIESGO
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def sctr_panel(request):
+    """Panel principal de pólizas SCTR con alertas de vencimiento."""
+    from .models import PolizaSCTR
+    from django.utils import timezone
+    hoy = timezone.localdate()
+
+    polizas = PolizaSCTR.objects.all().order_by('fecha_fin', 'tipo')
+
+    # Estadísticas
+    vigentes     = [p for p in polizas if p.estado == 'VIGENTE' and not p.esta_vencida]
+    por_vencer   = [p for p in vigentes if p.esta_proxima_a_vencer]
+    vencidas     = [p for p in polizas if p.esta_vencida or p.estado == 'VENCIDA']
+
+    # Auto-actualizar estado si venció
+    for p in polizas:
+        if p.esta_vencida and p.estado == 'VIGENTE':
+            p.estado = 'VENCIDA'
+            p.save(update_fields=['estado'])
+
+    polizas = PolizaSCTR.objects.all().order_by('fecha_fin', 'tipo')
+
+    return render(request, 'integraciones/sctr_panel.html', {
+        'titulo':       'Control SCTR — Pólizas y Vencimientos',
+        'polizas':      polizas,
+        'vigentes':     len([p for p in polizas if p.estado == 'VIGENTE']),
+        'por_vencer':   len([p for p in polizas if p.esta_proxima_a_vencer and p.estado == 'VIGENTE']),
+        'vencidas':     len([p for p in polizas if p.esta_vencida or p.estado == 'VENCIDA']),
+        'hoy':          hoy,
+        'tipo_choices': PolizaSCTR.TIPO_CHOICES,
+        'prov_choices': PolizaSCTR.PROVEEDOR_CHOICES,
+        'estado_choices': PolizaSCTR.ESTADO_CHOICES,
+    })
+
+
+@login_required
+def sctr_crear(request):
+    """Crear nueva póliza SCTR."""
+    from .models import PolizaSCTR
+    if request.method == 'POST':
+        tipo      = request.POST.get('tipo', '')
+        numero    = request.POST.get('numero_poliza', '').strip()
+        proveedor = request.POST.get('proveedor', '')
+        prov_otro = request.POST.get('proveedor_otro', '').strip()
+        fecha_ini = request.POST.get('fecha_inicio', '')
+        fecha_fin = request.POST.get('fecha_fin', '')
+        monto     = request.POST.get('monto_asegurado', '0').strip()
+        aporte    = request.POST.get('aporte_pct', '0').strip()
+        cubiertos = request.POST.get('trabajadores_cubiertos', '0').strip()
+        dias_alerta = request.POST.get('dias_alerta', '30').strip()
+        renovacion  = 'renovacion_auto' in request.POST
+        obs       = request.POST.get('observaciones', '').strip()
+
+        if not all([tipo, numero, proveedor, fecha_ini, fecha_fin]):
+            messages.error(request, 'Tipo, número, proveedor y fechas son obligatorios.')
+            return redirect('sctr_crear')
+
+        try:
+            from datetime import datetime
+            fi = datetime.strptime(fecha_ini, '%Y-%m-%d').date()
+            ff = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, 'Fechas inválidas.')
+            return redirect('sctr_crear')
+
+        from decimal import Decimal
+        poliza = PolizaSCTR.objects.create(
+            tipo                   = tipo,
+            numero_poliza          = numero,
+            proveedor              = proveedor,
+            proveedor_otro         = prov_otro,
+            fecha_inicio           = fi,
+            fecha_fin              = ff,
+            monto_asegurado        = Decimal(monto or '0'),
+            aporte_pct             = Decimal(aporte or '0'),
+            trabajadores_cubiertos = int(cubiertos or 0),
+            dias_alerta            = int(dias_alerta or 30),
+            renovacion_auto        = renovacion,
+            observaciones          = obs,
+            estado                 = 'VIGENTE',
+            activa                 = True,
+            creado_por             = request.user,
+        )
+        # Subir archivo si hay
+        if request.FILES.get('archivo'):
+            poliza.archivo = request.FILES['archivo']
+            poliza.save(update_fields=['archivo'])
+
+        messages.success(request, f'Póliza {numero} creada exitosamente.')
+        return redirect('sctr_panel')
+
+    from .models import PolizaSCTR
+    return render(request, 'integraciones/sctr_form.html', {
+        'titulo':       'Nueva Póliza SCTR',
+        'tipo_choices': PolizaSCTR.TIPO_CHOICES,
+        'prov_choices': PolizaSCTR.PROVEEDOR_CHOICES,
+        'accion':       'crear',
+    })
+
+
+@login_required
+def sctr_editar(request, pk):
+    """Editar póliza SCTR existente."""
+    from .models import PolizaSCTR
+    poliza = get_object_or_404(PolizaSCTR, pk=pk)
+
+    if request.method == 'POST':
+        poliza.tipo                   = request.POST.get('tipo', poliza.tipo)
+        poliza.numero_poliza          = request.POST.get('numero_poliza', poliza.numero_poliza).strip()
+        poliza.proveedor              = request.POST.get('proveedor', poliza.proveedor)
+        poliza.proveedor_otro         = request.POST.get('proveedor_otro', poliza.proveedor_otro).strip()
+        poliza.observaciones          = request.POST.get('observaciones', poliza.observaciones).strip()
+        poliza.renovacion_auto        = 'renovacion_auto' in request.POST
+        poliza.activa                 = 'activa' in request.POST
+
+        try:
+            from datetime import datetime
+            poliza.fecha_inicio = datetime.strptime(request.POST['fecha_inicio'], '%Y-%m-%d').date()
+            poliza.fecha_fin    = datetime.strptime(request.POST['fecha_fin'],    '%Y-%m-%d').date()
+        except (KeyError, ValueError):
+            pass
+
+        try:
+            from decimal import Decimal
+            poliza.monto_asegurado        = Decimal(request.POST.get('monto_asegurado', '0'))
+            poliza.aporte_pct             = Decimal(request.POST.get('aporte_pct', '0'))
+            poliza.trabajadores_cubiertos = int(request.POST.get('trabajadores_cubiertos', '0'))
+            poliza.dias_alerta            = int(request.POST.get('dias_alerta', '30'))
+        except (ValueError, Exception):
+            pass
+
+        if request.FILES.get('archivo'):
+            poliza.archivo = request.FILES['archivo']
+
+        poliza.save()
+        messages.success(request, f'Póliza {poliza.numero_poliza} actualizada.')
+        return redirect('sctr_panel')
+
+    return render(request, 'integraciones/sctr_form.html', {
+        'titulo':       f'Editar Póliza — {poliza.numero_poliza}',
+        'poliza':       poliza,
+        'tipo_choices': PolizaSCTR.TIPO_CHOICES,
+        'prov_choices': PolizaSCTR.PROVEEDOR_CHOICES,
+        'accion':       'editar',
+    })
+
+
+@login_required
+@require_POST
+def sctr_estado(request, pk):
+    """Toggle estado de póliza (activa/cancelada/renovacion)."""
+    from .models import PolizaSCTR
+    poliza = get_object_or_404(PolizaSCTR, pk=pk)
+    nuevo_estado = request.POST.get('estado', '')
+    if nuevo_estado in dict(PolizaSCTR.ESTADO_CHOICES):
+        poliza.estado = nuevo_estado
+        poliza.activa = nuevo_estado not in ('CANCELADA', 'VENCIDA')
+        poliza.save(update_fields=['estado', 'activa'])
+        messages.success(request, f'Estado de póliza {poliza.numero_poliza} actualizado a {poliza.get_estado_display()}.')
+    return redirect('sctr_panel')

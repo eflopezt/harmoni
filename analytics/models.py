@@ -141,3 +141,34 @@ class AlertaRRHH(models.Model):
 
     def __str__(self):
         return f"[{self.severidad}] {self.titulo}"
+
+
+class DashboardWidget(models.Model):
+    """
+    Gráfico personalizado guardado por el usuario en su dashboard de IA.
+    Creado cuando el usuario le pide a Harmoni AI "fijar en el dashboard".
+    """
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='dashboard_widgets',
+        verbose_name="Usuario")
+    titulo = models.CharField(max_length=200, verbose_name="Título")
+    chart_type = models.CharField(
+        max_length=50, verbose_name="Tipo de gráfico",
+        help_text="bar, line, doughnut, etc.")
+    data_source = models.CharField(
+        max_length=100, verbose_name="Fuente de datos",
+        help_text="areas, headcount, genero, etc.")
+    config_json = models.JSONField(
+        default=dict, verbose_name="Configuración del gráfico",
+        help_text="Spec completo del gráfico (labels, values, colors, etc.)")
+    posicion = models.PositiveIntegerField(default=0, verbose_name="Posición")
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Widget Dashboard"
+        verbose_name_plural = "Widgets Dashboard"
+        ordering = ['posicion', '-creado_en']
+
+    def __str__(self):
+        return f"{self.titulo} ({self.user.username})"

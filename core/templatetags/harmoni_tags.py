@@ -82,6 +82,15 @@ def abs_value(value):
 
 
 @register.filter
+def subtract(value, arg):
+    """Resta segura entre dos números. Uso: {{ total|subtract:parcial }}"""
+    try:
+        return int(value) - int(arg)
+    except (ValueError, TypeError):
+        return value
+
+
+@register.filter
 def compa_ratio_clase(value):
     """
     Devuelve la clase CSS Bootstrap para el badge de compa-ratio.

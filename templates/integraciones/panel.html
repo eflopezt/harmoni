@@ -130,6 +130,10 @@
          class="btn btn-sm btn-outline-warning">
         <i class="fas fa-fingerprint me-1"></i>Importar Biométrico
       </a>
+      <a href="{% url 'sctr_panel' %}"
+         class="btn btn-sm btn-outline-danger">
+        <i class="fas fa-shield-alt me-1"></i>SCTR
+      </a>
     </div>
   </div>
 </div>
@@ -424,7 +428,7 @@
             Genera asientos de planilla para Concar, SIGO, SAP/Generico y SIRE SUNAT (PLE Libro Diario).
           </p>
         </div>
-        <a href="{% url "integ_contable_panel" %}" class="btn btn-outline-success ms-auto">
+        <a href="{% url 'integ_contable_panel' %}" class="btn btn-outline-success ms-auto">
           <i class="fas fa-arrow-right me-1"></i>Ir a Contabilidad
         </a>
       </div>

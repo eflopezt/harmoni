@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Liquidaciones al Cese — Nóminas{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  {# ── Header ── #}
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-0">
+        <i class="fas fa-file-invoice-dollar me-2" style="color:#b91c1c;"></i>
+        Liquidaciones al Cese
+      </h4>
+      <p class="text-muted small mb-0">Cálculo de haberes finales: rem. trunca, gratif., CTS y vacaciones truncas.</p>
+    </div>
+    <a href="{% url 'nominas_panel' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Volver a Nóminas
+    </a>
+  </div>
+
+  {# ── Mensajes ── #}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  <div class="row g-4">
+
+    {# ═══ Columna izquierda: Pendientes ═══ #}
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header d-flex align-items-center gap-2"
+             style="background:#fee2e2; border-bottom:1px solid #fca5a5;">
+          <i class="fas fa-exclamation-circle text-danger"></i>
+          <strong class="text-danger">Pendientes de Liquidar</strong>
+          {% if pendientes %}
+          <span class="badge bg-danger ms-auto">{{ pendientes|length }}</span>
+          {% endif %}
+        </div>
+        <div class="card-body p-0">
+          {% if pendientes %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th>Empleado</th>
+                  <th>Área / Cargo</th>
+                  <th>Fecha Cese</th>
+                  <th>Motivo</th>
+                  <th class="text-end">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in pendientes %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ p.apellidos_nombres }}</div>
+                    <small class="text-muted">DNI {{ p.nro_doc }}</small>
+                  </td>
+                  <td>
+                    <small>{{ p.subarea.area.nombre|default:"—" }}</small><br>
+                    <small class="text-muted">{{ p.cargo|default:"—" }}</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-danger bg-opacity-10 text-danger fw-semibold">
+                      {{ p.fecha_cese|date:"d/m/Y" }}
+                    </span>
+                  </td>
+                  <td><small>{{ p.get_motivo_cese_display|default:"—" }}</small></td>
+                  <td class="text-end">
+                    <a href="{% url 'nominas_liquidacion_detalle' p.pk %}"
+                       class="btn btn-sm btn-danger">
+                      <i class="fas fa-calculator me-1"></i>Liquidar
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-5 text-center text-muted">
+            <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+            <p class="mb-0">No hay empleados cesados pendientes de liquidación.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ═══ Columna derecha: Ya Liquidados ═══ #}
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header d-flex align-items-center gap-2"
+             style="background:#f0fdf4; border-bottom:1px solid #bbf7d0;">
+          <i class="fas fa-check-circle text-success"></i>
+          <strong class="text-success">Liquidados Recientemente</strong>
+        </div>
+        <div class="card-body p-0">
+          {% if ya_liquidados %}
+          <ul class="list-group list-group-flush">
+            {% for p in ya_liquidados|slice:":12" %}
+            <li class="list-group-item d-flex align-items-center justify-content-between py-2">
+              <div>
+                <div class="fw-semibold small">{{ p.apellidos_nombres }}</div>
+                <small class="text-muted">{{ p.fecha_cese|date:"d/m/Y" }} — {{ p.get_motivo_cese_display|default:"" }}</small>
+              </div>
+              <a href="{% url 'nominas_liquidacion_detalle' p.pk %}"
+                 class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-eye"></i>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="p-4 text-center text-muted small">
+            <i class="fas fa-inbox fa-lg mb-2"></i>
+            <p class="mb-0">Sin liquidaciones registradas aún.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── Períodos LIQUIDACION ── #}
+      {% if periodos_liq %}
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header">
+          <small class="fw-semibold text-muted text-uppercase">
+            <i class="fas fa-calendar-check me-1"></i>Períodos de Liquidación
+          </small>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th>Período</th>
+                  <th class="text-center">Empleados</th>
+                  <th class="text-end">Neto Total</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for periodo in periodos_liq %}
+                <tr>
+                  <td>
+                    <a href="{% url 'nominas_periodo_detalle' periodo.pk %}"
+                       class="text-decoration-none fw-semibold">
+                      {{ periodo.descripcion|default:periodo }}
+                    </a>
+                    <br><small class="text-muted">{{ periodo.fecha_pago|date:"d/m/Y" }}</small>
+                  </td>
+                  <td class="text-center">{{ periodo.total_trabajadores }}</td>
+                  <td class="text-end">S/ {{ periodo.total_neto|floatformat:2|intcomma }}</td>
+                  <td>
+                    {% if periodo.estado == 'APROBADO' %}
+                    <span class="badge bg-success">Aprobado</span>
+                    {% elif periodo.estado == 'CALCULADO' %}
+                    <span class="badge bg-warning text-dark">Calculado</span>
+                    {% elif periodo.estado == 'CERRADO' %}
+                    <span class="badge bg-secondary">Cerrado</span>
+                    {% else %}
+                    <span class="badge bg-light text-dark">{{ periodo.get_estado_display }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>{# /col-lg-5 #}
+  </div>{# /row #}
+
+</div>
+{% endblock %}

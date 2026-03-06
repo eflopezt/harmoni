@@ -24,116 +24,379 @@
             </p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{% url 'analytics_dashboard' %}" class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);">
+            <a href="{% url 'analytics_dashboard' %}" class="btn btn-sm"
+               style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);">
                 <i class="fas fa-chart-bar me-1"></i>Analytics Cl&aacute;sico
             </a>
         </div>
     </div>
 </div>
 
-<!-- KPI Strip -->
-<div class="kpi-row mb-3" style="grid-template-columns:repeat(6,1fr);">
+<!-- KPI Strip (8 KPIs) -->
+<div class="kpi-row mb-3" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr));">
     <div class="kpi-card">
-        <div><div class="kpi-val" style="color:#0f766e">{{ total_empleados }}</div><div class="kpi-lbl">Total Empleados</div></div>
-        <div class="kpi-icon" style="background:rgba(15,118,110,.1);color:#0f766e"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="kpi-val" style="color:#0f766e">{{ total_empleados }}</div>
+            <div class="kpi-lbl">Total Empleados</div>
+        </div>
+        <div class="kpi-icon" style="background:rgba(15,118,110,.1);color:#0f766e">
+            <i class="fas fa-users"></i>
+        </div>
     </div>
     <div class="kpi-card">
-        <div><div class="kpi-val" style="color:#0891b2">{{ empleados_staff }}</div><div class="kpi-lbl">STAFF</div></div>
-        <div class="kpi-icon" style="background:rgba(8,145,178,.1);color:#0891b2"><i class="fas fa-user-tie"></i></div>
+        <div>
+            <div class="kpi-val" style="color:#0891b2">{{ empleados_staff }}</div>
+            <div class="kpi-lbl">STAFF</div>
+        </div>
+        <div class="kpi-icon" style="background:rgba(8,145,178,.1);color:#0891b2">
+            <i class="fas fa-user-tie"></i>
+        </div>
     </div>
     <div class="kpi-card">
-        <div><div class="kpi-val" style="color:#d97706">{{ empleados_rco }}</div><div class="kpi-lbl">RCO</div></div>
-        <div class="kpi-icon" style="background:rgba(217,119,6,.1);color:#d97706"><i class="fas fa-hard-hat"></i></div>
+        <div>
+            <div class="kpi-val" style="color:#d97706">{{ empleados_rco }}</div>
+            <div class="kpi-lbl">RCO</div>
+        </div>
+        <div class="kpi-icon" style="background:rgba(217,119,6,.1);color:#d97706">
+            <i class="fas fa-hard-hat"></i>
+        </div>
     </div>
     <div class="kpi-card">
-        <div><div class="kpi-val text-success">{{ altas_mes }}</div><div class="kpi-lbl">Altas este mes</div></div>
-        <div class="kpi-icon" style="background:rgba(16,185,129,.1);color:#10b981"><i class="fas fa-user-plus"></i></div>
+        <div>
+            <div class="kpi-val text-success">{{ altas_mes }}</div>
+            <div class="kpi-lbl">Altas mes</div>
+        </div>
+        <div class="kpi-icon" style="background:rgba(16,185,129,.1);color:#10b981">
+            <i class="fas fa-user-plus"></i>
+        </div>
     </div>
     <div class="kpi-card">
-        <div><div class="kpi-val text-danger">{{ bajas_mes }}</div><div class="kpi-lbl">Bajas este mes</div></div>
-        <div class="kpi-icon" style="background:rgba(239,68,68,.1);color:#ef4444"><i class="fas fa-user-minus"></i></div>
+        <div>
+            <div class="kpi-val text-danger">{{ bajas_mes }}</div>
+            <div class="kpi-lbl">Bajas mes</div>
+        </div>
+        <div class="kpi-icon" style="background:rgba(239,68,68,.1);color:#ef4444">
+            <i class="fas fa-user-minus"></i>
+        </div>
+    </div>
+    {% if tasa_asistencia_actual %}
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-val" style="color:{% if tasa_asistencia_actual >= 95 %}#059669{% elif tasa_asistencia_actual >= 90 %}#d97706{% else %}#dc2626{% endif %}">
+                {{ tasa_asistencia_actual }}%
+            </div>
+            <div class="kpi-lbl">Asistencia mes</div>
+        </div>
+        <div class="kpi-icon" style="background:rgba(8,145,178,.1);color:#0891b2">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+    </div>
+    {% endif %}
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-val" style="color:#7c3aed">
+                {% widthratio empleados_staff total_empleados 100 %}%
+            </div>
+            <div class="kpi-lbl">% STAFF</div>
+        </div>
+        <div class="kpi-icon" style="background:rgba(124,58,237,.1);color:#7c3aed">
+            <i class="fas fa-percentage"></i>
+        </div>
     </div>
     <div class="kpi-card">
-        <div><div class="kpi-val" style="color:#7c3aed">{% widthratio empleados_staff total_empleados 100 %}%</div><div class="kpi-lbl">% STAFF</div></div>
-        <div class="kpi-icon" style="background:rgba(124,58,237,.1);color:#7c3aed"><i class="fas fa-percentage"></i></div>
+        <div>
+            <div class="kpi-val {% if total_alertas > 0 %}text-danger{% else %}text-success{% endif %}">
+                {{ total_alertas }}
+            </div>
+            <div class="kpi-lbl">Alertas activas</div>
+        </div>
+        <div class="kpi-icon" style="background:rgba(239,68,68,.1);color:#ef4444">
+            <i class="fas fa-bell"></i>
+        </div>
     </div>
 </div>
 
-<!-- Charts Grid -->
-<div class="exec-grid">
+<!-- ════════════════════════════════════════
+     AI INTELLIGENCE PANEL (Hero Feature)
+════════════════════════════════════════ -->
+<div class="ai-intel-panel">
+    <div class="ai-intel-header">
+        <div class="ai-intel-title">
+            <i class="fas fa-brain"></i>
+            Harmoni Intelligence
+            <span class="ai-intel-tag">An&aacute;lisis Ejecutivo</span>
+        </div>
+        <div class="ai-intel-actions">
+            <span id="aiIntelStatus" style="font-size:.7rem;color:rgba(255,255,255,.6);"></span>
+            <button id="aiIntelRefresh" class="ai-intel-refresh-btn" title="Regenerar análisis">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+        </div>
+    </div>
+    <div id="aiIntelBody" class="ai-intel-body">
+        <div class="ai-intel-loading" id="aiIntelLoading">
+            <i class="fas fa-spinner fa-spin"></i>
+            Generando an&aacute;lisis ejecutivo de RRHH...
+        </div>
+    </div>
+</div>
 
-    <!-- Headcount Trend -->
+<!-- People Risk Panel -->
+<div class="exec-risk-panel">
+    <div class="risk-panel-title">
+        <i class="fas fa-shield-alt" style="color:#d97706"></i>
+        People Risk &amp; Se&ntilde;ales Cr&iacute;ticas
+    </div>
+    <div class="risk-cards-row">
+
+        <!-- Contratos por vencer -->
+        <a href="{% url 'personal_list' %}?tipo_contrato=PLAZO_FIJO"
+           class="risk-card {% if contratos_vencen > 5 %}risk-high{% elif contratos_vencen > 0 %}risk-warn{% else %}risk-ok{% endif %}">
+            <div class="risk-card-icon">
+                <i class="fas fa-file-signature"></i>
+            </div>
+            <div class="risk-card-info">
+                <div class="risk-card-val">{{ contratos_vencen }}</div>
+                <div class="risk-card-label">Contratos vencen<br>en 60 d&iacute;as</div>
+            </div>
+        </a>
+
+        <!-- Ausentismo crítico -->
+        <a href="{% url 'asistencia_vista' %}"
+           class="risk-card {% if ausentismo_critico > 3 %}risk-high{% elif ausentismo_critico > 0 %}risk-warn{% else %}risk-ok{% endif %}">
+            <div class="risk-card-icon">
+                <i class="fas fa-user-slash"></i>
+            </div>
+            <div class="risk-card-info">
+                <div class="risk-card-val">{{ ausentismo_critico }}</div>
+                <div class="risk-card-label">Ausentismo<br>cr&iacute;tico (&gt;3 faltas/mes)</div>
+            </div>
+        </a>
+
+        <!-- Alertas RRHH -->
+        <a href="{% url 'analytics_dashboard' %}"
+           class="risk-card {% if total_alertas > 5 %}risk-high{% elif total_alertas > 0 %}risk-warn{% else %}risk-ok{% endif %}">
+            <div class="risk-card-icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="risk-card-info">
+                <div class="risk-card-val">{{ total_alertas }}</div>
+                <div class="risk-card-label">Alertas RRHH<br>activas</div>
+            </div>
+        </a>
+
+        <!-- Altas vs Bajas -->
+        <div class="risk-card {% if bajas_mes > altas_mes %}risk-warn{% else %}risk-ok{% endif %}">
+            <div class="risk-card-icon">
+                <i class="fas fa-balance-scale"></i>
+            </div>
+            <div class="risk-card-info">
+                <div class="risk-card-val" style="font-size:1rem;line-height:1.3;">
+                    +{{ altas_mes }} / -{{ bajas_mes }}
+                </div>
+                <div class="risk-card-label">Altas / Bajas<br>este mes</div>
+            </div>
+        </div>
+
+        {% if total_alertas > 0 and top_alertas %}
+        <!-- Última alerta critica -->
+        {% with top_alertas.0 as alerta %}
+        <div class="risk-card {% if alerta.severidad == 'CRITICAL' %}risk-high{% else %}risk-warn{% endif %}"
+             style="grid-column: span 2; cursor:default;">
+            <div class="risk-card-icon" style="width:30px;height:30px;font-size:.8rem;">
+                <i class="fas fa-exclamation"></i>
+            </div>
+            <div class="risk-card-info" style="flex:1;min-width:0;">
+                <div style="font-size:.72rem;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;">
+                    {{ alerta.severidad }}
+                </div>
+                <div style="font-size:.78rem;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    {{ alerta.titulo|truncatechars:60 }}
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     ASK HARMONI AI — Conversación primero
+════════════════════════════════════════ -->
+<div class="exec-ask-area" id="execAskArea">
+    <div class="exec-ask-header">
+        <div>
+            <h6 class="mb-0">
+                <i class="fas fa-comment-dots me-2" style="color:#5eead4"></i>
+                Pregunta a Harmoni AI
+            </h6>
+            <p class="mb-0 mt-1" style="font-size:.72rem;color:rgba(255,255,255,.55);">
+                Tiene acceso a todos los datos de tu empresa en tiempo real
+            </p>
+        </div>
+        <button id="execClearChat" title="Limpiar conversación"
+                style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);
+                       padding:4px 10px;border-radius:6px;font-size:.73rem;cursor:pointer;display:none;">
+            <i class="fas fa-trash-alt me-1"></i>Limpiar
+        </button>
+    </div>
+
+    <!-- Quick chips -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <button class="exec-ask-chip" data-q="¿Cuántos empleados activos hay y cómo se distribuyen por área?">Resumen headcount</button>
+        <button class="exec-ask-chip" data-q="¿Cuál es el área con mayor ausentismo este mes?">Ausentismo por área</button>
+        <button class="exec-ask-chip" data-q="Dame un resumen ejecutivo del estado actual de RRHH con los indicadores más críticos">Resumen ejecutivo</button>
+        <button class="exec-ask-chip" data-q="¿Qué recomiendas para reducir la rotación?">Reducir rotación</button>
+        <button class="exec-ask-chip" data-q="¿Quién tuvo más faltas este mes?">Top faltas</button>
+        <button class="exec-ask-chip" data-q="Muéstrame un gráfico de personal por área">Gráfico áreas</button>
+        <button class="exec-ask-chip" data-q="Muéstrame un gráfico de STAFF vs RCO por mes">STAFF vs RCO</button>
+        <button class="exec-ask-chip" data-q="Muéstrame un gráfico de altas y bajas mensuales y guárdalo en mi dashboard">Altas vs Bajas ⊕</button>
+    </div>
+
+    <!-- Input bar -->
+    <div class="exec-ask-input-bar">
+        <input type="file" id="execFileInput"
+               accept=".pdf,.xlsx,.xls,.csv,.txt,.md,.png,.jpg,.jpeg,.webp"
+               style="display:none">
+        <button id="execFileAttachBtn" class="exec-file-attach-btn" type="button"
+                title="Adjuntar archivo (PDF, Excel, imagen)">
+            <i class="fas fa-paperclip"></i>
+        </button>
+        <input type="text" id="execAskInput" class="exec-ask-input"
+               placeholder="Pregunta sobre tus datos de RRHH...">
+        <button id="execAskBtn" class="exec-send-btn">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+    <div id="execFilePillRow" class="d-flex flex-wrap gap-2 mt-2"></div>
+
+    <!-- Conversation thread (Q&A acumulativo) -->
+    <div id="execChatThread" class="exec-chat-thread" style="display:none;"></div>
+</div>
+
+<!-- ════════════════════════════════════════
+     Charts Grid — 2 cols, 4 rows = 8 charts
+════════════════════════════════════════ -->
+<div class="exec-grid mb-3">
+
+    <!-- 1. Headcount Trend -->
     <div class="exec-card">
         <div class="exec-chart-section">
             <h6><i class="fas fa-chart-line me-1 text-primary"></i>Evoluci&oacute;n Headcount</h6>
-            <div style="position:relative;height:220px;"><canvas id="chartHeadcount"></canvas></div>
+            <div style="position:relative;height:200px;"><canvas id="chartHeadcount"></canvas></div>
         </div>
         <div class="exec-ai-commentary" id="aiHeadcount">
             <div class="exec-ai-badge"><i class="fas fa-robot"></i> An&aacute;lisis IA</div>
-            <div class="ai-text text-muted" style="font-size:.8rem;">Cargando an&aacute;lisis...</div>
+            <div class="ai-text text-muted" style="font-size:.79rem;">Cargando an&aacute;lisis...</div>
         </div>
     </div>
 
-    <!-- Rotación -->
+    <!-- 2. Rotación -->
     <div class="exec-card">
         <div class="exec-chart-section">
             <h6><i class="fas fa-exchange-alt me-1 text-warning"></i>Rotaci&oacute;n Mensual (%)</h6>
-            <div style="position:relative;height:220px;"><canvas id="chartRotacion"></canvas></div>
+            <div style="position:relative;height:200px;"><canvas id="chartRotacion"></canvas></div>
         </div>
         <div class="exec-ai-commentary" id="aiRotacion">
             <div class="exec-ai-badge"><i class="fas fa-robot"></i> An&aacute;lisis IA</div>
-            <div class="ai-text text-muted" style="font-size:.8rem;">Cargando an&aacute;lisis...</div>
+            <div class="ai-text text-muted" style="font-size:.79rem;">Cargando an&aacute;lisis...</div>
         </div>
     </div>
 
-    <!-- Distribución por Área -->
+    <!-- 3. Distribución por Área -->
     <div class="exec-card">
         <div class="exec-chart-section">
             <h6><i class="fas fa-building me-1" style="color:#7c3aed"></i>Distribuci&oacute;n por &Aacute;rea</h6>
-            <div style="position:relative;height:220px;"><canvas id="chartAreas"></canvas></div>
+            <div style="position:relative;height:200px;"><canvas id="chartAreas"></canvas></div>
         </div>
         <div class="exec-ai-commentary" id="aiAreas">
             <div class="exec-ai-badge"><i class="fas fa-robot"></i> An&aacute;lisis IA</div>
-            <div class="ai-text text-muted" style="font-size:.8rem;">Cargando an&aacute;lisis...</div>
+            <div class="ai-text text-muted" style="font-size:.79rem;">Cargando an&aacute;lisis...</div>
         </div>
     </div>
 
-    <!-- Antigüedad -->
+    <!-- 4. Antigüedad -->
     <div class="exec-card">
         <div class="exec-chart-section">
             <h6><i class="fas fa-hourglass-half me-1 text-info"></i>Antig&uuml;edad del Personal</h6>
-            <div style="position:relative;height:220px;"><canvas id="chartAntiguedad"></canvas></div>
+            <div style="position:relative;height:200px;"><canvas id="chartAntiguedad"></canvas></div>
         </div>
         <div class="exec-ai-commentary" id="aiAntiguedad">
             <div class="exec-ai-badge"><i class="fas fa-robot"></i> An&aacute;lisis IA</div>
-            <div class="ai-text text-muted" style="font-size:.8rem;">Cargando an&aacute;lisis...</div>
+            <div class="ai-text text-muted" style="font-size:.79rem;">Cargando an&aacute;lisis...</div>
         </div>
     </div>
 
+    <!-- 5. Género -->
+    <div class="exec-card">
+        <div class="exec-chart-section">
+            <h6><i class="fas fa-venus-mars me-1" style="color:#db2777"></i>Distribuci&oacute;n por G&eacute;nero</h6>
+            <div style="position:relative;height:200px;"><canvas id="chartGenero"></canvas></div>
+        </div>
+        <div class="exec-ai-commentary" id="aiGenero">
+            <div class="exec-ai-badge"><i class="fas fa-robot"></i> An&aacute;lisis IA</div>
+            <div class="ai-text text-muted" style="font-size:.79rem;">Cargando an&aacute;lisis...</div>
+        </div>
+    </div>
+
+    <!-- 6. Edad -->
+    <div class="exec-card">
+        <div class="exec-chart-section">
+            <h6><i class="fas fa-birthday-cake me-1" style="color:#2563eb"></i>Distribuci&oacute;n por Edad</h6>
+            <div style="position:relative;height:200px;"><canvas id="chartEdad"></canvas></div>
+        </div>
+        <div class="exec-ai-commentary" id="aiEdad">
+            <div class="exec-ai-badge"><i class="fas fa-robot"></i> An&aacute;lisis IA</div>
+            <div class="ai-text text-muted" style="font-size:.79rem;">Cargando an&aacute;lisis...</div>
+        </div>
+    </div>
+
+    {% if trend_asistencia != '[]' %}
+    <!-- 7. Asistencia % Trend -->
+    <div class="exec-card">
+        <div class="exec-chart-section">
+            <h6><i class="fas fa-calendar-check me-1 text-success"></i>Tasa de Asistencia (%)</h6>
+            <div style="position:relative;height:200px;"><canvas id="chartAsistencia"></canvas></div>
+        </div>
+        <div class="exec-ai-commentary" id="aiAsistencia">
+            <div class="exec-ai-badge"><i class="fas fa-robot"></i> An&aacute;lisis IA</div>
+            <div class="ai-text text-muted" style="font-size:.79rem;">Cargando an&aacute;lisis...</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if trend_he != '[]' %}
+    <!-- 8. Horas Extra -->
+    <div class="exec-card">
+        <div class="exec-chart-section">
+            <h6><i class="fas fa-clock me-1" style="color:#d97706"></i>Horas Extra Mensuales</h6>
+            <div style="position:relative;height:200px;"><canvas id="chartHE"></canvas></div>
+        </div>
+        <div class="exec-ai-commentary" id="aiHE">
+            <div class="exec-ai-badge"><i class="fas fa-robot"></i> An&aacute;lisis IA</div>
+            <div class="ai-text text-muted" style="font-size:.79rem;">Cargando an&aacute;lisis...</div>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 
-<!-- Ask AI Section -->
-<div class="exec-ask-area">
-    <h6 class="mb-3">
-        <i class="fas fa-comment-dots me-2" style="color:#5eead4"></i>
-        Pregunta a Harmoni AI sobre tus datos
-    </h6>
-    <div class="d-flex gap-2">
-        <input type="text" id="execAskInput" class="exec-ask-input"
-               placeholder="Ej: Cual es el area con mas horas extra? Que tendencia muestra la rotacion?">
-        <button id="execAskBtn" class="btn" style="background:linear-gradient(135deg,#0f766e,#134e4a);color:#5eead4;white-space:nowrap;">
-            <i class="fas fa-paper-plane me-1"></i>Preguntar
-        </button>
-    </div>
-    <div class="d-flex flex-wrap gap-2 mt-2">
-        <button class="exec-ask-chip" data-q="Cual area tiene mayor ausentismo?">Ausentismo por area</button>
-        <button class="exec-ask-chip" data-q="Que recomiendas para reducir la rotacion?">Reducir rotacion</button>
-        <button class="exec-ask-chip" data-q="Cual es la tendencia de horas extra este anio?">Tendencia HE</button>
-        <button class="exec-ask-chip" data-q="Dame un resumen ejecutivo del estado actual de RRHH">Resumen ejecutivo</button>
-    </div>
-    <div id="execAskAnswer" class="exec-ask-answer" style="display:none;">
-        <div class="exec-ai-badge"><i class="fas fa-robot"></i> Respuesta IA</div>
-        <div id="execAskText" class="text" style="font-size:.86rem;color:#334155;line-height:1.6;"></div>
+<!-- ════════════════════════════════════════
+     Mis Gráficos Personalizados (widgets saved via AI)
+════════════════════════════════════════ -->
+<div id="myWidgetsSection" style="display:none; margin-bottom:16px;">
+    <div class="exec-risk-panel" style="margin-bottom:0;">
+        <div class="risk-panel-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>
+                <i class="fas fa-thumbtack me-2" style="color:#0f766e"></i>
+                Mis Gráficos Personalizados
+            </span>
+            <small style="font-size:.72rem;color:#64748b;font-weight:400;">
+                Guardados desde el chat — <a href="#execAskArea" style="color:#0f766e;">Agregar otro</a>
+            </small>
+        </div>
+        <div id="myWidgetsGrid" class="exec-grid" style="margin-top:12px;"></div>
     </div>
 </div>
 
@@ -155,77 +418,70 @@
         'rgba(244,63,94,.8)', 'rgba(59,130,246,.8)', 'rgba(168,85,247,.8)',
     ];
 
-    const chartOpts = {
+    const baseOpts = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-            y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }
+            x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 } } }
         }
     };
 
     // ── Charts ──
 
+    const trendLabels = {{ trend_labels|safe }};
+
     // 1. Headcount
-    const labels = {{ trend_labels|safe }};
     new Chart(document.getElementById('chartHeadcount'), {
         type: 'line',
         data: {
-            labels: labels,
+            labels: trendLabels,
             datasets: [{
                 label: 'Headcount',
                 data: {{ trend_headcount|safe }},
                 borderColor: '#0f766e',
                 backgroundColor: 'rgba(15,118,110,.08)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 3,
-                pointBackgroundColor: '#0f766e',
+                fill: true, tension: 0.3, pointRadius: 3,
             }]
         },
-        options: chartOpts
+        options: baseOpts
     });
 
     // 2. Rotación
     new Chart(document.getElementById('chartRotacion'), {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: trendLabels,
             datasets: [{
                 label: 'Rotación %',
                 data: {{ trend_rotacion|safe }},
                 backgroundColor: 'rgba(245,158,11,.6)',
-                borderColor: '#f59e0b',
-                borderWidth: 1,
                 borderRadius: 4,
             }]
         },
-        options: {...chartOpts, scales: {...chartOpts.scales, y: {...chartOpts.scales.y, beginAtZero: true}}}
+        options: {...baseOpts, scales: {...baseOpts.scales, y: {...baseOpts.scales.y, beginAtZero: true}}}
     });
 
-    // 3. Distribución por Área (doughnut)
+    // 3. Áreas (doughnut)
     new Chart(document.getElementById('chartAreas'), {
         type: 'doughnut',
         data: {
             labels: {{ areas_labels|safe }},
             datasets: [{
                 data: {{ areas_values|safe }},
-                backgroundColor: tealPalette,
-                borderWidth: 2,
-                borderColor: '#fff',
+                backgroundColor: tealPalette, borderWidth: 2, borderColor: '#fff',
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false, cutout: '55%',
             plugins: {
-                legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } }
+                legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 10, padding: 6 } }
             }
         }
     });
 
-    // 4. Antigüedad (bar horizontal)
+    // 4. Antigüedad (horizontal bar)
     new Chart(document.getElementById('chartAntiguedad'), {
         type: 'bar',
         data: {
@@ -238,18 +494,108 @@
             }]
         },
         options: {
-            ...chartOpts,
-            indexAxis: 'y',
+            ...baseOpts, indexAxis: 'y',
             scales: {
-                x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } }, beginAtZero: true },
-                y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 } }, beginAtZero: true },
+                y: { grid: { display: false }, ticks: { font: { size: 9 } } }
             }
         }
     });
 
-    // ── AI Commentary for each chart ──
+    // 5. Género (doughnut)
+    new Chart(document.getElementById('chartGenero'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Masculino', 'Femenino'{% if genero_otro > 0 %}, 'Otro/No reg.'{% endif %}],
+            datasets: [{
+                data: [{{ genero_m }}, {{ genero_f }}{% if genero_otro > 0 %}, {{ genero_otro }}{% endif %}],
+                backgroundColor: ['rgba(8,145,178,.8)', 'rgba(219,39,119,.8)'{% if genero_otro > 0 %}, 'rgba(148,163,184,.6)'{% endif %}],
+                borderWidth: 2, borderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '55%',
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, padding: 6 } },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const t = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                            return ` ${ctx.label}: ${ctx.raw} (${t ? ((ctx.raw/t)*100).toFixed(1) : 0}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 6. Edad (bar)
+    new Chart(document.getElementById('chartEdad'), {
+        type: 'bar',
+        data: {
+            labels: {{ edad_labels|safe }},
+            datasets: [{
+                label: 'Empleados',
+                data: {{ edad_values|safe }},
+                backgroundColor: ['rgba(20,184,166,.7)', 'rgba(15,118,110,.7)', 'rgba(8,145,178,.7)', 'rgba(124,58,237,.7)', 'rgba(217,119,6,.7)'],
+                borderRadius: 4,
+            }]
+        },
+        options: {...baseOpts, scales: {...baseOpts.scales, y: {...baseOpts.scales.y, beginAtZero: true}}}
+    });
+
+    // 7. Asistencia %
+    {% if trend_asistencia != '[]' %}
+    const asistData = {{ trend_asistencia|safe }};
+    if (asistData.length > 0 && document.getElementById('chartAsistencia')) {
+        new Chart(document.getElementById('chartAsistencia'), {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Asistencia %',
+                    data: asistData,
+                    borderColor: '#059669',
+                    backgroundColor: 'rgba(5,150,105,.08)',
+                    fill: true, tension: 0.3, pointRadius: 3,
+                }]
+            },
+            options: {
+                ...baseOpts,
+                scales: {
+                    x: baseOpts.scales.x,
+                    y: { ...baseOpts.scales.y, min: 70, max: 100 }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // 8. Horas Extra
+    {% if trend_he != '[]' %}
+    const heData = {{ trend_he|safe }};
+    if (heData.length > 0 && document.getElementById('chartHE')) {
+        new Chart(document.getElementById('chartHE'), {
+            type: 'bar',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Horas Extra',
+                    data: heData,
+                    backgroundColor: 'rgba(217,119,6,.65)',
+                    borderRadius: 4,
+                }]
+            },
+            options: {...baseOpts, scales: {...baseOpts.scales, y: {...baseOpts.scales.y, beginAtZero: true}}}
+        });
+    }
+    {% endif %}
+
+    // ── AI Chart Commentary (paralelo) ──
     async function analyzeChart(chartType, data, targetId) {
-        const el = document.querySelector('#' + targetId + ' .ai-text');
+        const container = document.getElementById(targetId);
+        if (!container) return;
+        const el = container.querySelector('.ai-text');
         if (!el) return;
 
         try {
@@ -258,126 +604,593 @@
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
                 body: JSON.stringify({ chart: chartType, data: data }),
             });
-
             if (!resp.ok) {
                 el.textContent = 'Análisis no disponible.';
                 el.classList.remove('text-muted');
                 return;
             }
-
             const reader = resp.body.getReader();
             const decoder = new TextDecoder();
             let text = '';
-
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                const chunk = decoder.decode(value, { stream: true });
-                for (const line of chunk.split('\n')) {
-                    if (line.startsWith('data: ')) {
-                        const token = line.slice(6);
-                        if (token === '[DONE]') continue;
-                        text += token;
-                        el.innerHTML = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-                    }
+                for (const line of decoder.decode(value, {stream:true}).split('\n')) {
+                    if (!line.startsWith('data: ')) continue;
+                    const token = line.slice(6);
+                    if (token === '[DONE]') continue;
+                    text += token;
+                    el.innerHTML = renderMd(text);
+                    el.classList.remove('text-muted');
                 }
             }
-            el.classList.remove('text-muted');
-        } catch (e) {
+        } catch(e) {
             el.textContent = 'Análisis IA no disponible.';
         }
     }
 
-    // Check IA status first, then analyze
+    function renderMd(t) {
+        if (!t) return '';
+        t = t.replace(/\\n/g, '\n');
+        t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        t = t.replace(/\n/g,'<br>');
+        return t;
+    }
+
+    // Run all chart analyses in parallel after checking IA status
     fetch('/asistencia/ia/status/').then(r => r.json()).then(st => {
         if (!st.available) {
             document.querySelectorAll('.exec-ai-commentary .ai-text').forEach(el => {
-                el.textContent = 'IA no disponible. Configura Ollama en Configuración.';
+                el.textContent = 'IA no disponible. Configura el proveedor en Configuración.';
             });
             return;
         }
 
-        analyzeChart('headcount', {
-            labels: {{ trend_labels|safe }},
-            values: {{ trend_headcount|safe }}
-        }, 'aiHeadcount');
+        // Lanzar todos los análisis en paralelo
+        Promise.allSettled([
+            analyzeChart('headcount', { labels: trendLabels, values: {{ trend_headcount|safe }} }, 'aiHeadcount'),
+            analyzeChart('rotacion',  { labels: trendLabels, values: {{ trend_rotacion|safe }} }, 'aiRotacion'),
+            analyzeChart('areas',     { labels: {{ areas_labels|safe }}, values: {{ areas_values|safe }} }, 'aiAreas'),
+            analyzeChart('antiguedad',{ labels: {{ antiguedad_labels|safe }}, values: {{ antiguedad_values|safe }} }, 'aiAntiguedad'),
+            analyzeChart('genero',    { labels: ['Masculino','Femenino'], values: [{{ genero_m }}, {{ genero_f }}] }, 'aiGenero'),
+            analyzeChart('edad',      { labels: {{ edad_labels|safe }}, values: {{ edad_values|safe }} }, 'aiEdad'),
+            {% if trend_asistencia != '[]' %}
+            analyzeChart('asistencia_mes', { labels: trendLabels, values: {{ trend_asistencia|safe }} }, 'aiAsistencia'),
+            {% endif %}
+            {% if trend_he != '[]' %}
+            analyzeChart('he_mes', { labels: trendLabels, values: {{ trend_he|safe }} }, 'aiHE'),
+            {% endif %}
+        ]);
 
-        analyzeChart('rotacion', {
-            labels: {{ trend_labels|safe }},
-            values: {{ trend_rotacion|safe }}
-        }, 'aiRotacion');
+        // AI Intelligence Hero Panel — se lanza después para no bloquear los gráficos
+        setTimeout(loadIntelPanel, 200);
+    }).catch(() => {
+        document.querySelectorAll('.exec-ai-commentary .ai-text').forEach(el => {
+            el.textContent = 'Error al conectar con IA.';
+        });
+    });
 
-        analyzeChart('areas', {
-            labels: {{ areas_labels|safe }},
-            values: {{ areas_values|safe }}
-        }, 'aiAreas');
+    // ── AI Intelligence Hero Panel ──
+    const intelBody  = document.getElementById('aiIntelBody');
+    const intelLoad  = document.getElementById('aiIntelLoading');
+    const intelRefresh = document.getElementById('aiIntelRefresh');
+    const intelStatus  = document.getElementById('aiIntelStatus');
+    let intelRunning = false;
 
-        analyzeChart('areas', {
-            labels: {{ antiguedad_labels|safe }},
-            values: {{ antiguedad_values|safe }},
-            tipo: 'antiguedad'
-        }, 'aiAntiguedad');
-    }).catch(() => {});
+    async function loadIntelPanel() {
+        if (intelRunning) return;
+        intelRunning = true;
+        intelRefresh.disabled = true;
+        intelStatus.textContent = 'Generando...';
 
-    // ── Ask AI ──
-    const askInput = document.getElementById('execAskInput');
-    const askBtn = document.getElementById('execAskBtn');
-    const askAnswer = document.getElementById('execAskAnswer');
-    const askText = document.getElementById('execAskText');
+        // Rebuild loading state
+        intelBody.innerHTML = `
+            <div class="ai-intel-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                Analizando {{ total_empleados }} colaboradores, tendencias y alertas...
+            </div>`;
 
-    async function askAI(question) {
-        if (!question.trim()) return;
-        askAnswer.style.display = 'block';
-        askText.innerHTML = '<span class="text-muted">Pensando...</span>';
+        const prompt = `Dame un análisis ejecutivo completo en 5-7 puntos del estado actual de RRHH. ` +
+            `Incluye: headcount y variación reciente, rotación vs benchmark industria peruana, ` +
+            `tasa de asistencia, distribución de género y antigüedad (señala si hay concentración de riesgo), ` +
+            `alertas críticas activas, contratos por vencer, y 2-3 recomendaciones prioritarias para la gerencia. ` +
+            `Sé específico con números exactos. Responde en español.`;
 
         try {
             const resp = await fetch('/asistencia/ia/preguntar/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                body: JSON.stringify({ question: question }),
+                body: JSON.stringify({ question: prompt }),
             });
-
-            if (!resp.ok) {
-                askText.textContent = 'No se pudo generar respuesta.';
-                return;
-            }
+            if (!resp.ok) throw new Error('Error HTTP ' + resp.status);
 
             const reader = resp.body.getReader();
             const decoder = new TextDecoder();
             let text = '';
+            let first = true;
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                const chunk = decoder.decode(value, { stream: true });
-                for (const line of chunk.split('\n')) {
-                    if (line.startsWith('data: ')) {
-                        const token = line.slice(6);
-                        if (token === '[DONE]') continue;
-                        text += token;
-                        askText.innerHTML = text
-                            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                            .replace(/\n/g, '<br>');
-                    }
+                for (const line of decoder.decode(value, {stream:true}).split('\n')) {
+                    if (!line.startsWith('data: ')) continue;
+                    const token = line.slice(6);
+                    if (token === '[DONE]' || token === '[FALLBACK]') continue;
+                    text += token;
+                    if (first) { intelBody.innerHTML = ''; first = false; }
+                    intelBody.innerHTML = renderIntelMd(text);
                 }
             }
-        } catch (e) {
-            askText.textContent = 'Error de conexión con IA.';
+            if (!text) intelBody.textContent = 'No se pudo generar el análisis.';
+            intelStatus.textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+        } catch(e) {
+            intelBody.textContent = 'Error al generar análisis ejecutivo: ' + e.message;
+            intelStatus.textContent = '';
+        }
+
+        intelRunning = false;
+        intelRefresh.disabled = false;
+    }
+
+    function renderIntelMd(t) {
+        if (!t) return '';
+        t = t.replace(/\\n/g, '\n');
+        // Escape HTML first
+        const div = document.createElement('div');
+        div.textContent = t;
+        let h = div.innerHTML;
+        // Markdown
+        h = h.replace(/^### (.+)$/gm, '<h6 style="font-size:.82rem;font-weight:700;color:#0f766e;margin:10px 0 3px;">$1</h6>');
+        h = h.replace(/^## (.+)$/gm, '<h5 style="font-size:.86rem;font-weight:700;color:#0f766e;margin:10px 0 4px;">$1</h5>');
+        h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        h = h.replace(/^[-*•]\s+(.+)$/gm, '<li>$1</li>');
+        h = h.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul style="margin:6px 0 6px 18px;padding:0;">$1</ul>');
+        h = h.replace(/^(\d+)\.\s+(.+)$/gm, '<li>$2</li>');
+        h = h.replace(/\n/g,'<br>');
+        h = h.replace(/<\/ul><br>/g,'</ul>');
+        h = h.replace(/<\/h[56]><br>/g, (m) => m.replace('<br>',''));
+        return h;
+    }
+
+    intelRefresh.addEventListener('click', loadIntelPanel);
+
+    // ── Ask AI — conversational thread ──
+    const askInput        = document.getElementById('execAskInput');
+    const askBtn          = document.getElementById('execAskBtn');
+    const execClearBtn    = document.getElementById('execClearChat');
+    const execChatThread  = document.getElementById('execChatThread');
+
+    // File attach
+    const execFileInput     = document.getElementById('execFileInput');
+    const execFileAttachBtn = document.getElementById('execFileAttachBtn');
+    const execFilePillRow   = document.getElementById('execFilePillRow');
+    let execAttachedFile = null;
+    let execUploading    = false;
+    let askHistory       = [];
+    let askStreaming      = false;
+
+    if (execFileAttachBtn && execFileInput) {
+        execFileAttachBtn.addEventListener('click', () => {
+            if (execAttachedFile) execClearFile();
+            else execFileInput.click();
+        });
+        execFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            execFileInput.value = '';
+            await execUploadFile(file);
+        });
+    }
+
+    async function execUploadFile(file) {
+        if (execUploading) return;
+        if (file.size > 10 * 1024 * 1024) { alert('Archivo demasiado grande (máx. 10 MB)'); return; }
+        execUploading = true;
+        execFileAttachBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const fd = new FormData();
+        fd.append('file', file);
+        try {
+            const resp = await fetch('/asistencia/ia/upload/', {
+                method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd,
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.ok) { alert('Error: ' + (data.error || 'No se pudo procesar')); execClearFile(); return; }
+            execAttachedFile = data;
+            const iconMap = { pdf:'fa-file-pdf', excel:'fa-file-excel', image:'fa-image', text:'fa-file-alt' };
+            const icon = iconMap[data.type] || 'fa-file';
+            execFilePillRow.style.display = 'flex';
+            execFilePillRow.innerHTML = `<div class="ai-file-pill ${data.type}">
+                <i class="fas ${icon}"></i>
+                <span class="ai-file-pill-name">${data.name} (${data.size_kb} KB)</span>
+                <button class="ai-file-pill-remove" onclick="window._execClearFile()"><i class="fas fa-times"></i></button>
+            </div>`;
+            execFileAttachBtn.className = 'exec-file-attach-btn has-file';
+            execFileAttachBtn.innerHTML = '<i class="fas fa-times"></i>';
+            askInput.placeholder = `Pregunta sobre ${data.name}...`;
+        } catch(e) { alert('Error: ' + e.message); execClearFile(); }
+        finally { execUploading = false; }
+    }
+
+    function execClearFile() {
+        execAttachedFile = null; execUploading = false;
+        execFilePillRow.style.display = 'none'; execFilePillRow.innerHTML = '';
+        execFileAttachBtn.className = 'exec-file-attach-btn';
+        execFileAttachBtn.innerHTML = '<i class="fas fa-paperclip"></i>';
+        askInput.placeholder = 'Pregunta sobre tus datos de RRHH...';
+    }
+    window._execClearFile = execClearFile;
+
+    // ── Pin widget card ──
+    function buildPinCard(pinData) {
+        const card = document.createElement('div');
+        card.className = 'ai-pin-card';
+        const safeJson = escHtml(JSON.stringify(pinData));
+        card.innerHTML = `
+            <div class="ai-pin-card-icon"><i class="fas fa-thumbtack"></i></div>
+            <div class="ai-pin-card-body">
+                <div class="ai-pin-card-title">Guardar en Mi Dashboard</div>
+                <div class="ai-pin-card-subtitle">${escHtml(pinData.title||'Gráfico')}</div>
+            </div>
+            <button class="ai-pin-save-btn" onclick="window.aiSaveWidget(this, '${safeJson}')">
+                <i class="fas fa-thumbtack me-1"></i>Fijar gráfico
+            </button>`;
+        return card;
+    }
+
+    window.aiSaveWidget = async function(btn, pinDataStr) {
+        try {
+            const pinData = JSON.parse(pinDataStr);
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+            const resp = await fetch('/analytics/widgets/guardar/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ title: pinData.title, chart_spec: pinData }),
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                btn.className = 'ai-pin-save-btn ai-pin-success';
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Guardado — <a href="/analytics/ia/" style="color:#5eead4;text-decoration:underline;">Ver Dashboard IA</a>';
+                loadMyWidgets();
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>' + (data.error || 'Error al guardar');
+            }
+        } catch(e) {
+            btn.disabled = false;
+            btn.innerHTML = 'Error de conexión';
+        }
+    };
+
+    // ── Chart rendering for inline Ask-AI responses ──
+    let inlineChartCounter = 0;
+    function buildInlineChart(spec) {
+        inlineChartCounter++;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'exec-inline-chart-wrapper';
+        const title = document.createElement('div');
+        title.className = 'exec-inline-chart-title';
+        const iconMap2 = { doughnut:'fa-chart-pie', bar:'fa-chart-bar', line:'fa-chart-line' };
+        title.innerHTML = `<i class="fas ${iconMap2[spec.chart]||'fa-chart-pie'} me-1" style="color:#0f766e"></i>${escHtml(spec.title||'')}`;
+        wrapper.appendChild(title);
+        const canvasDiv = document.createElement('div');
+        canvasDiv.className = 'exec-inline-chart-canvas';
+        const canvas = document.createElement('canvas');
+        canvas.id = 'execInlineChart_' + inlineChartCounter;
+        canvasDiv.appendChild(canvas);
+        wrapper.appendChild(canvasDiv);
+        // Render chart after DOM insertion
+        setTimeout(() => {
+            try { renderInlineChart(canvas, spec); } catch(e) {}
+        }, 50);
+        return wrapper;
+    }
+
+    function renderInlineChart(canvas, spec) {
+        if (typeof Chart === 'undefined') return;
+        const ctx = canvas.getContext('2d');
+        const co = { responsive: true, maintainAspectRatio: false, animation: { duration: 500 } };
+        if (spec.chart === 'doughnut') {
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: spec.labels, datasets: [{ data: spec.values, backgroundColor: spec.colors, borderWidth: 2, borderColor: '#fff' }] },
+                options: { ...co, cutout: '55%', plugins: { legend: { position: 'bottom', labels: { font: {size:9}, boxWidth:10, padding:5 } }, tooltip: { callbacks: { label: (c) => { const t=c.dataset.data.reduce((a,b)=>a+b,0); return ` ${c.label}: ${c.raw} (${t?((c.raw/t)*100).toFixed(1):0}%)`; } } } } }
+            });
+        } else if (spec.chart === 'bar') {
+            if (spec.multi_series && spec.values2) {
+                const isStacked = spec.stacked !== false;
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: spec.labels, datasets: [
+                        { label: (spec.series_labels&&spec.series_labels[0])||'Serie 1', data: spec.values, backgroundColor: spec.colors[0]||'rgba(15,118,110,.7)', borderRadius: 3 },
+                        { label: (spec.series_labels&&spec.series_labels[1])||'Serie 2', data: spec.values2, backgroundColor: spec.colors[1]||'rgba(239,68,68,.7)', borderRadius: 3 },
+                    ]},
+                    options: { ...co, plugins: { legend: { display:true, position:'bottom', labels:{font:{size:9},boxWidth:10,padding:5} } }, scales: { x:{stacked:isStacked, grid:{display:false},ticks:{font:{size:9}}}, y:{stacked:isStacked, grid:{color:'#f1f5f9'},ticks:{font:{size:9}},beginAtZero:true} } }
+                });
+            } else {
+                const bg = spec.colors.length > 1 ? spec.colors.slice(0, spec.values.length) : (spec.colors[0]||'rgba(15,118,110,.7)');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: spec.labels, datasets: [{ label: spec.title, data: spec.values, backgroundColor: bg, borderRadius: 4 }] },
+                    options: { ...co, plugins: { legend: { display: false } }, scales: { x: { grid:{display:false}, ticks:{font:{size:9}} }, y: { grid:{color:'#f1f5f9'}, ticks:{font:{size:9}}, beginAtZero:true } } }
+                });
+            }
+        } else if (spec.chart === 'line') {
+            const lineDs = [{
+                label: (spec.series_labels&&spec.series_labels[0])||spec.title,
+                data: spec.values, borderColor: spec.colors[0]||'#0f766e',
+                backgroundColor: 'rgba(15,118,110,.08)', fill: !spec.multi_series, tension: 0.3, pointRadius: 3
+            }];
+            if (spec.multi_series && spec.values2) {
+                lineDs.push({ label: (spec.series_labels&&spec.series_labels[1])||'Serie 2', data: spec.values2, borderColor: spec.colors[1]||'#d97706', backgroundColor:'rgba(217,119,6,.06)', fill:false, tension:0.3, pointRadius:3 });
+            }
+            new Chart(ctx, {
+                type: 'line',
+                data: { labels: spec.labels, datasets: lineDs },
+                options: { ...co, plugins: { legend: { display:!!spec.multi_series, position:'bottom', labels:{font:{size:9},boxWidth:10,padding:5} } }, scales: { x: { grid:{display:false}, ticks:{font:{size:9}} }, y: { grid:{color:'#f1f5f9'}, ticks:{font:{size:9}} } } }
+            });
         }
     }
 
-    askBtn.addEventListener('click', () => { askAI(askInput.value); askInput.value = ''; });
-    askInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); askAI(askInput.value); askInput.value = ''; }
-    });
+    function escHtml(s) {
+        const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+    }
 
-    document.querySelectorAll('.exec-ask-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            const q = chip.dataset.q;
-            askInput.value = q;
-            askAI(q);
-        });
+    async function askAI(question) {
+        if (!question.trim() || askStreaming) return;
+        askStreaming = true;
+        askBtn.disabled = true;
+
+        const fileCtx = execAttachedFile ? {...execAttachedFile} : null;
+        if (fileCtx) execClearFile();
+
+        // Show thread + clear button
+        if (execChatThread) execChatThread.style.display = 'block';
+        if (execClearBtn)   execClearBtn.style.display = '';
+
+        // ── Build turn (question bubble + answer area) ──
+        const turnEl = document.createElement('div');
+        turnEl.className = 'exec-chat-turn';
+
+        // Question bubble
+        const qEl = document.createElement('div');
+        qEl.className = 'exec-chat-question';
+        if (fileCtx) {
+            qEl.innerHTML = `<small style="opacity:.7;display:block;margin-bottom:3px;"><i class="fas fa-paperclip me-1"></i>${escHtml(fileCtx.name)}</small>${escHtml(question)}`;
+        } else {
+            qEl.textContent = question;
+        }
+        turnEl.appendChild(qEl);
+
+        // Answer container
+        const answerEl = document.createElement('div');
+        answerEl.className = 'exec-chat-answer streaming';
+        answerEl.innerHTML = '<span style="color:#94a3b8"><i class="fas fa-spinner fa-spin me-1"></i>Pensando...</span>';
+        turnEl.appendChild(answerEl);
+
+        if (execChatThread) {
+            execChatThread.appendChild(turnEl);
+            execChatThread.scrollTop = execChatThread.scrollHeight;
+        }
+
+        try {
+            const reqBody = { message: question, history: askHistory.slice(-6) };
+            if (fileCtx) {
+                reqBody.file_context = { type: fileCtx.type, name: fileCtx.name, content: fileCtx.content||'', truncated: fileCtx.truncated||false };
+            }
+
+            const resp = await fetch('/asistencia/ia/chat/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify(reqBody),
+            });
+            if (!resp.ok) {
+                answerEl.innerHTML = '<span style="color:#ef4444">No se pudo generar respuesta.</span>';
+                answerEl.classList.remove('streaming');
+                return;
+            }
+
+            const reader  = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let text        = '';
+            let isFallback  = false;
+            let initialized = false;
+            let chartsGrid  = null;
+            let textEl      = null;
+            let lastSpec    = null;
+
+            function initAnswer() {
+                if (initialized) return;
+                initialized = true;
+                answerEl.innerHTML = '';
+                const chartsContainer = document.createElement('div');
+                chartsContainer.className = 'exec-answer-charts-container';
+                textEl = document.createElement('div');
+                textEl.className = 'answer-text';
+                answerEl.appendChild(chartsContainer);
+                answerEl.appendChild(textEl);
+                chartsGrid = { container: chartsContainer, grid: null };
+            }
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                for (const line of decoder.decode(value, {stream:true}).split('\n')) {
+                    if (!line.startsWith('data: ')) continue;
+                    const token = line.slice(6);
+                    if (token === '[DONE]')     continue;
+                    if (token === '[MAXIMIZE]') continue;
+                    if (token === '[FALLBACK]') { isFallback = true; continue; }
+
+                    // Pin widget marker
+                    const pm = token.match(/^\[PIN_WIDGET\](.*)\[\/PIN_WIDGET\]$/);
+                    if (pm) {
+                        try {
+                            const pinData = JSON.parse(pm[1]);
+                            if (lastSpec) { pinData.chart = lastSpec.chart; pinData.chart_spec = lastSpec; }
+                            initAnswer();
+                            const pinArea = document.createElement('div');
+                            pinArea.className = 'exec-chat-pin-area';
+                            pinArea.appendChild(buildPinCard(pinData));
+                            answerEl.appendChild(pinArea);
+                        } catch(e) {}
+                        continue;
+                    }
+
+                    // Chart marker
+                    const cm = token.match(/^\[CHART\](.*)\[\/CHART\]$/);
+                    if (cm) {
+                        try {
+                            const spec = JSON.parse(cm[1]);
+                            lastSpec = spec;
+                            initAnswer();
+                            if (!chartsGrid.grid) {
+                                const g = document.createElement('div');
+                                g.className = 'exec-answer-charts';
+                                chartsGrid.container.appendChild(g);
+                                chartsGrid.grid = g;
+                            }
+                            chartsGrid.grid.appendChild(buildInlineChart(spec));
+                        } catch(e) {
+                            text += token;
+                            initAnswer();
+                            if (textEl) textEl.innerHTML = renderAskMd(text);
+                        }
+                        if (execChatThread) execChatThread.scrollTop = execChatThread.scrollHeight;
+                        continue;
+                    }
+
+                    // Download button
+                    const dlm = token.match(/^\[DOWNLOAD:(\w+)\]$/);
+                    text += dlm ? `[DOWNLOAD:${dlm[1]}]` : token;
+
+                    initAnswer();
+                    if (textEl) textEl.innerHTML = renderAskMd(text);
+                    if (execChatThread) execChatThread.scrollTop = execChatThread.scrollHeight;
+                }
+            }
+
+            answerEl.classList.remove('streaming');
+
+            if (isFallback && !chartsGrid?.grid) {
+                initAnswer();
+                const badge = document.createElement('div');
+                badge.className = 'ai-fallback-badge';
+                badge.style.marginBottom = '8px';
+                badge.innerHTML = '<i class="fas fa-database me-1"></i>Respuesta directa (sin IA)';
+                answerEl.insertBefore(badge, answerEl.firstChild);
+            }
+
+            askHistory.push({ role: 'user', content: question });
+            askHistory.push({ role: 'assistant', content: text });
+
+        } catch(e) {
+            answerEl.innerHTML = '<span style="color:#ef4444">Error de conexión con IA.</span>';
+            answerEl.classList.remove('streaming');
+        } finally {
+            askStreaming = false;
+            askBtn.disabled = false;
+            if (execChatThread) execChatThread.scrollTop = execChatThread.scrollHeight;
+        }
+    }
+
+    function renderAskMd(t) {
+        if (!t) return '';
+        t = t.replace(/\\n/g, '\n');
+        const d = document.createElement('div'); d.textContent = t;
+        let h = d.innerHTML;
+        h = h.replace(/\[DOWNLOAD:(\w+)\]/g,
+            `<button class="ai-download-btn" onclick="window.aiDownloadReport('$1')">
+             <i class="fas fa-file-excel"></i> Descargar Reporte Ejecutivo (.xlsx)</button>`);
+        h = h.replace(/^### (.+)$/gm, '<strong style="font-size:.83rem;color:#0f766e;">$1</strong>');
+        h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        h = h.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
+        h = h.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul style="margin:5px 0 5px 18px;padding:0;">$1</ul>');
+        h = h.replace(/\n/g,'<br>');
+        h = h.replace(/<\/ul><br>/g,'</ul>');
+        return h;
+    }
+
+    askBtn.addEventListener('click', () => {
+        const q = askInput.value.trim();
+        if (q) { askInput.value = ''; askAI(q); }
     });
+    askInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); const q = askInput.value.trim(); if(q){ askInput.value=''; askAI(q); } }
+    });
+    document.querySelectorAll('.exec-ask-chip').forEach(chip => {
+        chip.addEventListener('click', () => { askInput.value = ''; askAI(chip.dataset.q); });
+    });
+    // Clear conversation
+    if (execClearBtn) {
+        execClearBtn.addEventListener('click', () => {
+            askHistory = [];
+            if (execChatThread) { execChatThread.innerHTML = ''; execChatThread.style.display = 'none'; }
+            execClearBtn.style.display = 'none';
+        });
+    }
+
+    // ── Mis Gráficos Personalizados ──
+    async function loadMyWidgets() {
+        try {
+            const resp = await fetch('/analytics/widgets/', {
+                headers: { 'X-CSRFToken': CSRF }
+            });
+            const data = await resp.json();
+            const widgets = data.widgets || [];
+            const section = document.getElementById('myWidgetsSection');
+            const grid = document.getElementById('myWidgetsGrid');
+            if (!widgets.length || !section || !grid) return;
+            section.style.display = 'block';
+            grid.innerHTML = '';
+            widgets.forEach(w => {
+                const card = document.createElement('div');
+                card.className = 'exec-card';
+                const spec = w.config || {};
+                const chartId = 'widget_' + w.id;
+                const chartIcon = {'doughnut':'fa-chart-pie','bar':'fa-chart-bar','line':'fa-chart-line'}[spec.chart||'bar'] || 'fa-chart-pie';
+                card.innerHTML = `
+                    <div class="exec-chart-section" style="position:relative;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                            <h6 style="margin:0;font-size:.82rem;"><i class="fas ${chartIcon} me-1" style="color:#0f766e"></i>${escHtml(w.titulo)}</h6>
+                            <button onclick="window._deleteWidget(${w.id}, this)" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:.75rem;padding:2px 6px;" title="Quitar del dashboard"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div style="position:relative;height:180px;"><canvas id="${chartId}"></canvas></div>
+                        ${spec.summary ? `<div class="exec-ai-badge" style="margin-top:6px;font-size:.7rem;">${escHtml(spec.summary)}</div>` : ''}
+                    </div>`;
+                grid.appendChild(card);
+                setTimeout(() => {
+                    const canvas = document.getElementById(chartId);
+                    if (canvas) try { renderInlineChart(canvas, spec); } catch(e) {}
+                }, 80);
+            });
+        } catch(e) { /* silent fail */ }
+    }
+
+    window._deleteWidget = async function(widgetId, btn) {
+        if (!confirm('¿Quitar este gráfico del dashboard?')) return;
+        try {
+            btn.disabled = true;
+            const resp = await fetch(`/analytics/widgets/${widgetId}/eliminar/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF },
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                const card = btn.closest('.exec-card');
+                if (card) {
+                    card.style.transition = 'opacity .3s';
+                    card.style.opacity = '0';
+                    setTimeout(() => { card.remove(); loadMyWidgets(); }, 300);
+                }
+            }
+        } catch(e) { btn.disabled = false; }
+    };
+
+    // Load saved widgets on page load
+    loadMyWidgets();
+
 })();
 </script>
 {% endblock %}

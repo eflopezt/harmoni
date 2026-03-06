@@ -824,7 +824,8 @@ def boleta_pdf(request, pk):
 @solo_admin
 def gratificacion_panel(request):
     """Redirige al panel principal con la sección de procesos especiales."""
-    return redirect('/nominas/#gratificaciones')
+    from django.urls import reverse
+    return redirect(reverse('nominas_panel') + '#gratificaciones')
 
 
 # ─── Crear Período Especial (Gratificación / CTS) ─────────────────────────────
@@ -1384,6 +1385,24 @@ def plan_detalle(request, pk):
     from personal.models import Area
     areas = Area.objects.filter(activa=True).order_by('nombre')
 
+    # ── Agregados para la pestaña Presupuesto ─────────────────────────
+    from collections import defaultdict
+    _by_cargo: dict = defaultdict(lambda: {'cantidad': 0, 'costo_mes': Decimal('0'), 'cargos': 0})
+    _by_area:  dict = defaultdict(lambda: {'cantidad': 0, 'costo_mes': Decimal('0')})
+    for pos in posiciones:
+        cargo_key = pos['cargo']
+        area_key  = pos.get('area__nombre') or 'Sin área'
+        n         = pos['cantidad']
+        costo_mes = (Decimal(str(pos['sueldo_base'])) * Decimal('1.09')) * n
+        _by_cargo[cargo_key]['cantidad']  += n
+        _by_cargo[cargo_key]['costo_mes'] += costo_mes
+        _by_cargo[cargo_key]['cargos']    += 1
+        _by_area[area_key]['cantidad']    += n
+        _by_area[area_key]['costo_mes']   += costo_mes
+
+    by_cargo_list = sorted(_by_cargo.items(), key=lambda x: -float(x[1]['costo_mes']))
+    by_area_list  = sorted(_by_area.items(),  key=lambda x: -float(x[1]['costo_mes']))
+
     return render(request, 'nominas/plan_detalle.html', {
         'plan':             plan,
         'meses':            meses,
@@ -1401,6 +1420,8 @@ def plan_detalle(request, pk):
         'total_horizonte':  total_horizonte,
         'headcount_pico':   headcount_pico,
         'areas':            areas,
+        'by_cargo_list':    by_cargo_list,
+        'by_area_list':     by_area_list,
     })
 
 
@@ -1484,3 +1505,276 @@ def plan_actualizar_estado(request, pk):
         return JsonResponse({'ok': True, 'estado': plan.estado, 'badge': plan.badge_estado})
     except (KeyError, Exception) as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PLAN PLANTILLA — Excel Import / Export
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def plan_plantilla_excel(request):
+    """Descarga una plantilla XLSX en blanco para importar líneas al plan."""
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Líneas Plan'
+
+    headers = [
+        'Cargo / Puesto *', 'Área (nombre)', 'N° Posiciones *',
+        'Sueldo Base *', 'Asig. Familiar (Si/No)', 'Cond. Trabajo Mensual',
+        'Alimentación Mensual', 'Régimen (AFP/ONP/SIN_PENSION)',
+        'AFP (Habitat/Integra/Prima/Profuturo)', 'Fecha Inicio (YYYY-MM-DD) *',
+        'Fecha Fin (YYYY-MM-DD)', 'Notas',
+    ]
+    fill_h  = PatternFill('solid', fgColor='0D2B27')
+    fnt_h   = Font(color='5EEAD4', bold=True, size=10)
+    brd_h   = Border(bottom=Side(style='thin', color='5EEAD4'))
+    aln_c   = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill = fill_h; cell.font = fnt_h
+        cell.alignment = aln_c; cell.border = brd_h
+    ws.row_dimensions[1].height = 32
+
+    # Fila de ejemplo
+    example = [
+        'Ing. de Campo', 'Operaciones', 2, 4500.00, 'Si', 300.00,
+        200.00, 'AFP', 'Integra', '2026-04-01', '2026-12-31', 'Personal foráneo',
+    ]
+    fnt_ex = Font(size=9, color='64748B', italic=True)
+    for col, val in enumerate(example, 1):
+        cell = ws.cell(row=2, column=col, value=val)
+        cell.font = fnt_ex
+        cell.alignment = Alignment(horizontal='center')
+
+    # Anchos de columna
+    widths = [22, 18, 12, 12, 16, 16, 16, 22, 24, 18, 18, 22]
+    for col, w in enumerate(widths, 1):
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="plantilla_plan.xlsx"'
+    return response
+
+
+@login_required
+@solo_admin
+def plan_export_excel(request, pk):
+    """Exporta el plan completo como XLSX: hoja Líneas + hoja Proyección mensual."""
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font, Alignment
+    from openpyxl.utils import get_column_letter
+
+    plan   = get_object_or_404(PlanPlantilla.objects.prefetch_related('lineas__area'), pk=pk)
+    meses, _ = proyectar_desde_plan(plan)
+
+    wb     = openpyxl.Workbook()
+    fill_h = PatternFill('solid', fgColor='0D2B27')
+    fnt_h  = Font(color='5EEAD4', bold=True, size=10)
+    fnt_d  = Font(size=9)
+    aln_c  = Alignment(horizontal='center', vertical='center')
+    aln_l  = Alignment(horizontal='left', vertical='center')
+
+    # ── Hoja 1: Líneas ───────────────────────────────────────────────
+    ws1 = wb.active
+    ws1.title = 'Líneas'
+
+    hdrs1 = ['ID', 'Cargo', 'Área', 'Cantidad', 'Sueldo Base',
+             'Asig. Familiar', 'Cond. Trabajo', 'Alimentación',
+             'Régimen', 'AFP', 'Inicio Puesto', 'Fin Puesto', 'Notas']
+    for c, h in enumerate(hdrs1, 1):
+        cell = ws1.cell(row=1, column=c, value=h)
+        cell.fill = fill_h; cell.font = fnt_h; cell.alignment = aln_c
+    ws1.row_dimensions[1].height = 22
+
+    lineas = plan.lineas.select_related('area').order_by('orden', 'pk')
+    for row, ln in enumerate(lineas, 2):
+        vals = [
+            ln.pk, ln.cargo,
+            ln.area.nombre if ln.area else '',
+            ln.cantidad, float(ln.sueldo_base),
+            'Sí' if ln.asignacion_familiar else 'No',
+            float(ln.cond_trabajo_mensual),
+            float(ln.alimentacion_mensual),
+            ln.regimen_pension, ln.afp or '',
+            ln.fecha_inicio_puesto.strftime('%Y-%m-%d'),
+            ln.fecha_fin_puesto.strftime('%Y-%m-%d') if ln.fecha_fin_puesto else '',
+            ln.notas or '',
+        ]
+        for c, v in enumerate(vals, 1):
+            cell = ws1.cell(row=row, column=c, value=v)
+            cell.font = fnt_d
+            cell.alignment = aln_c if c != 2 else aln_l
+            if c == 5:
+                cell.number_format = '"S/ "#,##0.00'
+            elif c in (7, 8):
+                cell.number_format = '"S/ "#,##0.00'
+
+    for c, w in enumerate([6,22,18,8,13,10,13,13,10,12,12,12,22], 1):
+        ws1.column_dimensions[get_column_letter(c)].width = w
+
+    # ── Hoja 2: Proyección mensual ───────────────────────────────────
+    ws2 = wb.create_sheet('Proyección')
+
+    hdrs2 = ['Mes', 'Headcount', 'Rem. Bruta', 'Neto Empleados',
+             'Cond. Trabajo', 'Alimentación', 'EsSalud (9%)',
+             'Gratificaciones', 'CTS', 'Liquidaciones',
+             'Total Desembolso', 'Acumulado']
+    for c, h in enumerate(hdrs2, 1):
+        cell = ws2.cell(row=1, column=c, value=h)
+        cell.fill = fill_h; cell.font = fnt_h; cell.alignment = aln_c
+    ws2.row_dimensions[1].height = 22
+
+    for row, m in enumerate(meses, 2):
+        vals = [
+            m['mes_label'], m['headcount'],
+            float(m.get('rem_bruta', 0)), float(m['neto']),
+            float(m['cond_trabajo']), float(m['alimentacion']),
+            float(m['essalud']), float(m['gratificaciones']),
+            float(m['cts']), float(m['liquidaciones']),
+            float(m['total_desembolso']), float(m.get('acumulado', 0)),
+        ]
+        for c, v in enumerate(vals, 1):
+            cell = ws2.cell(row=row, column=c, value=v)
+            cell.font = fnt_d; cell.alignment = aln_c
+            if c >= 3:
+                cell.number_format = '"S/ "#,##0.00'
+
+    # Fila TOTAL con fórmulas
+    tot = len(meses) + 2
+    fnt_tot  = Font(bold=True, size=9)
+    fill_tot = PatternFill('solid', fgColor='D1FAE5')
+    ws2.cell(row=tot, column=1, value='TOTAL').font = fnt_tot
+    for c in range(2, 13):
+        col_l = get_column_letter(c)
+        v = f'=SUM({col_l}2:{col_l}{tot-1})' if c >= 3 else ''
+        cell = ws2.cell(row=tot, column=c, value=v)
+        cell.fill = fill_tot; cell.font = fnt_tot; cell.alignment = aln_c
+        if c >= 3:
+            cell.number_format = '"S/ "#,##0.00'
+
+    for c, w in enumerate([12,10,14,14,14,14,14,14,14,14,16,16], 1):
+        ws2.column_dimensions[get_column_letter(c)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    safe = plan.nombre.replace(' ', '_').replace('/', '-')[:40]
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="Plan_{safe}.xlsx"'
+    return response
+
+
+@login_required
+@solo_admin
+def plan_import_excel(request, pk):
+    """Importa líneas desde un archivo XLSX. POST multipart con campo 'archivo'."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    plan    = get_object_or_404(PlanPlantilla, pk=pk)
+    archivo = request.FILES.get('archivo')
+    if not archivo:
+        return JsonResponse({'error': 'No se recibió archivo'}, status=400)
+    if not archivo.name.lower().endswith(('.xlsx', '.xlsm')):
+        return JsonResponse({'error': 'Solo se aceptan archivos .xlsx'}, status=400)
+
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(archivo, data_only=True)
+        ws = wb.active
+    except Exception as e:
+        return JsonResponse({'error': f'No se pudo leer el archivo: {e}'}, status=400)
+
+    from personal.models import Area
+    from datetime import date as _date
+    import re as _re
+    import django.db.models as _models
+
+    area_map  = {a.nombre.strip().lower(): a.pk for a in Area.objects.all()}
+    max_orden = LineaPlan.objects.filter(plan=plan).aggregate(
+        m=_models.Max('orden'))['m'] or 0
+
+    to_create = []
+    errors    = []
+
+    def parse_date(val):
+        if val is None:
+            return None
+        if isinstance(val, _date):
+            return val
+        if hasattr(val, 'date') and callable(val.date):
+            return val.date()
+        s = str(val).strip()
+        m = _re.match(r'(\d{4})-(\d{2})-(\d{2})', s)
+        if m:
+            return _date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        return None
+
+    for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        if not any(c for c in row if c is not None and str(c).strip()):
+            continue
+        try:
+            cargo     = str(row[0] or '').strip()
+            area_name = str(row[1] or '').strip()
+            cantidad  = int(row[2] or 1)
+            sueldo    = Decimal(str(row[3] or 0))
+            asig_fam  = str(row[4] or 'No').strip().lower() in ('si', 'sí', 'yes', '1', 'true')
+            cond_trab = Decimal(str(row[5] or 0))
+            alim      = Decimal(str(row[6] or 0))
+            regimen   = str(row[7] or 'AFP').strip().upper()
+            afp_val   = str(row[8] or '').strip()
+            fecha_ini = parse_date(row[9])
+            fecha_fin = parse_date(row[10])
+            notas     = str(row[11] or '').strip()[:300]
+
+            if not cargo:
+                errors.append({'fila': row_idx, 'msg': 'Cargo vacío — fila ignorada'})
+                continue
+            if sueldo <= 0:
+                errors.append({'fila': row_idx, 'msg': f'"{cargo}": sueldo inválido'})
+                continue
+            if regimen not in ('AFP', 'ONP', 'SIN_PENSION'):
+                regimen = 'AFP'
+            if not fecha_ini:
+                fecha_ini = plan.fecha_inicio
+
+            max_orden += 1
+            to_create.append(LineaPlan(
+                plan=plan,
+                cargo=cargo[:150],
+                area_id=area_map.get(area_name.lower()),
+                cantidad=max(1, min(cantidad, 999)),
+                sueldo_base=sueldo,
+                asignacion_familiar=asig_fam,
+                cond_trabajo_mensual=cond_trab,
+                alimentacion_mensual=alim,
+                regimen_pension=regimen,
+                afp=afp_val[:20] if regimen == 'AFP' else '',
+                fecha_inicio_puesto=fecha_ini,
+                fecha_fin_puesto=fecha_fin,
+                notas=notas,
+                orden=max_orden,
+            ))
+        except Exception as exc:
+            errors.append({'fila': row_idx, 'msg': str(exc)})
+
+    if to_create:
+        LineaPlan.objects.bulk_create(to_create)
+
+    return JsonResponse({'ok': True, 'created': len(to_create), 'errors': errors})

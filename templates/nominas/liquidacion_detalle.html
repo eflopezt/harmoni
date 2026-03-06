@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  {# ── Header ── #}
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-0">
+        <i class="fas fa-file-invoice-dollar me-2" style="color:#b91c1c;"></i>
+        Liquidación al Cese
+      </h4>
+      <p class="text-muted small mb-0">
+        {{ personal.apellidos_nombres }} —
+        Cese: {{ liq.fecha_cese|date:"d/m/Y" }} —
+        {{ personal.get_motivo_cese_display|default:"" }}
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      {% if registro %}
+      <a href="{% url 'nominas_liquidacion_pdf' personal.pk %}"
+         class="btn btn-sm btn-outline-danger" target="_blank">
+        <i class="fas fa-file-pdf me-1"></i>Boleta PDF
+      </a>
+      {% endif %}
+      <a href="{% url 'nominas_liquidaciones' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Volver
+      </a>
+    </div>
+  </div>
+
+  {# Mensajes #}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  {% if registro %}
+  <div class="alert alert-success d-flex gap-2">
+    <i class="fas fa-check-circle fa-lg mt-1 flex-shrink-0"></i>
+    <div>
+      <strong>Liquidación ya generada.</strong>
+      Período: <a href="{% url 'nominas_periodo_detalle' registro.periodo.pk %}">
+        {{ registro.periodo.descripcion|default:registro.periodo }}
+      </a> —
+      Registro #{{ registro.pk }}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+
+    {# ═══ Datos del empleado ═══ #}
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header">
+          <small class="fw-semibold text-muted text-uppercase">
+            <i class="fas fa-user me-1"></i>Datos del Empleado
+          </small>
+        </div>
+        <div class="card-body">
+          <dl class="row small mb-0">
+            <dt class="col-6 text-muted">DNI</dt>
+            <dd class="col-6">{{ personal.nro_doc }}</dd>
+
+            <dt class="col-6 text-muted">Área</dt>
+            <dd class="col-6">{{ personal.subarea.area.nombre|default:"—" }}</dd>
+
+            <dt class="col-6 text-muted">Cargo</dt>
+            <dd class="col-6">{{ personal.cargo|default:"—" }}</dd>
+
+            <dt class="col-6 text-muted">Fecha Alta</dt>
+            <dd class="col-6">{{ personal.fecha_alta|date:"d/m/Y"|default:"—" }}</dd>
+
+            <dt class="col-6 text-muted">Fecha Cese</dt>
+            <dd class="col-6 text-danger fw-semibold">{{ liq.fecha_cese|date:"d/m/Y" }}</dd>
+
+            <dt class="col-6 text-muted">Motivo</dt>
+            <dd class="col-6">{{ personal.get_motivo_cese_display|default:"—" }}</dd>
+
+            <dt class="col-6 text-muted">Régimen</dt>
+            <dd class="col-6">{{ liq.regimen_pension }}</dd>
+
+            <dt class="col-6 text-muted">Sueldo Base</dt>
+            <dd class="col-6 fw-semibold">S/ {{ liq.sueldo_base|floatformat:2|intcomma }}</dd>
+
+            {% if liq.asig_fam %}
+            <dt class="col-6 text-muted">Asig. Familiar</dt>
+            <dd class="col-6">S/ {{ liq.asig_fam|floatformat:2|intcomma }}</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    {# ═══ Cálculo de Liquidación ═══ #}
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header" style="background:#fef2f2; border-bottom:1px solid #fca5a5;">
+          <small class="fw-semibold text-uppercase" style="color:#b91c1c;">
+            <i class="fas fa-calculator me-1"></i>Cálculo de Liquidación
+          </small>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Concepto</th>
+                <th class="text-center">Detalle</th>
+                <th class="text-end">Monto (S/)</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              {# Haberes #}
+              <tr class="table-light">
+                <td colspan="3" class="fw-semibold small text-uppercase text-muted py-1 px-3">
+                  Haberes
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <i class="fas fa-calendar-day text-primary me-1"></i>
+                  Remuneración Trunca
+                </td>
+                <td class="text-center text-muted small">
+                  {{ liq.dias_mes }} días × S/ {{ liq.sueldo_base|floatformat:2|intcomma }} / 30
+                </td>
+                <td class="text-end fw-semibold">{{ liq.rem_trunca|floatformat:2|intcomma }}</td>
+              </tr>
+
+              <tr>
+                <td>
+                  <i class="fas fa-gift text-warning me-1"></i>
+                  Gratificación Trunca
+                  <small class="text-muted">(Ley 27735)</small>
+                </td>
+                <td class="text-center text-muted small">
+                  {{ liq.meses_gratif }} mes{% if liq.meses_gratif != 1 %}es{% endif %} × S/ {{ liq.sueldo_base|floatformat:2|intcomma }} / 6
+                </td>
+                <td class="text-end fw-semibold">{{ liq.gratif_trunca|floatformat:2|intcomma }}</td>
+              </tr>
+
+              <tr>
+                <td>
+                  <i class="fas fa-award text-info me-1"></i>
+                  Bonificación Extraordinaria
+                  <small class="text-muted">(9% gratif — Ley 29351)</small>
+                </td>
+                <td class="text-center text-muted small">
+                  9% × S/ {{ liq.gratif_trunca|floatformat:2|intcomma }}
+                </td>
+                <td class="text-end fw-semibold">{{ liq.bonus_ext|floatformat:2|intcomma }}</td>
+              </tr>
+
+              <tr>
+                <td>
+                  <i class="fas fa-piggy-bank text-success me-1"></i>
+                  CTS Trunca
+                  <small class="text-muted">(DL 650)</small>
+                </td>
+                <td class="text-center text-muted small">
+                  {{ liq.meses_cts }} mes{% if liq.meses_cts != 1 %}es{% endif %} × S/ {{ liq.base_cts|floatformat:2|intcomma }} / 12
+                </td>
+                <td class="text-end fw-semibold">{{ liq.cts_trunca|floatformat:2|intcomma }}</td>
+              </tr>
+
+              {% if liq.vac_pendientes %}
+              <tr>
+                <td>
+                  <i class="fas fa-umbrella-beach text-orange me-1" style="color:#ea580c;"></i>
+                  Vacaciones Pendientes
+                  <small class="text-muted">({{ liq.dias_pendientes }} días)</small>
+                </td>
+                <td class="text-center text-muted small">
+                  {{ liq.dias_pendientes }} días × S/ {{ liq.sueldo_base|floatformat:2|intcomma }} / 30
+                </td>
+                <td class="text-end fw-semibold">{{ liq.vac_pendientes|floatformat:2|intcomma }}</td>
+              </tr>
+              {% endif %}
+
+              {% if liq.vac_truncas %}
+              <tr>
+                <td>
+                  <i class="fas fa-hourglass-half text-secondary me-1"></i>
+                  Vacaciones Truncas
+                  <small class="text-muted">({{ liq.dias_truncos|floatformat:1 }} días — DL 713)</small>
+                </td>
+                <td class="text-center text-muted small">
+                  {{ liq.dias_truncos|floatformat:1 }} días × S/ {{ liq.sueldo_base|floatformat:2|intcomma }} / 30
+                </td>
+                <td class="text-end fw-semibold">{{ liq.vac_truncas|floatformat:2|intcomma }}</td>
+              </tr>
+              {% endif %}
+
+              {# Total haberes #}
+              <tr style="background:#f0fdf4; font-weight:700;">
+                <td colspan="2">Total Haberes</td>
+                <td class="text-end text-success">S/ {{ liq.total_haberes|floatformat:2|intcomma }}</td>
+              </tr>
+
+              {# Descuentos #}
+              <tr class="table-light">
+                <td colspan="3" class="fw-semibold small text-uppercase text-muted py-1 px-3">
+                  Descuentos
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <i class="fas fa-minus-circle text-danger me-1"></i>
+                  {{ liq.regimen_pension }}
+                  <small class="text-muted">
+                    {% if liq.regimen_pension == 'ONP' %}(13% sobre rem. + gratif.){% else %}(aporte + comisión + seguro){% endif %}
+                  </small>
+                </td>
+                <td class="text-center text-muted small">
+                  Base: S/ {{ liq.rem_trunca|floatformat:2|intcomma }} + S/ {{ liq.gratif_trunca|floatformat:2|intcomma }}
+                </td>
+                <td class="text-end text-danger">({{ liq.descto_pension|floatformat:2|intcomma }})</td>
+              </tr>
+
+              {# Neto #}
+              <tr style="background:#eff6ff; font-weight:700; font-size:1.05rem;">
+                <td colspan="2">
+                  <i class="fas fa-hand-holding-usd me-1 text-primary"></i>
+                  Neto a Pagar
+                </td>
+                <td class="text-end text-primary">S/ {{ liq.neto_pagar|floatformat:2|intcomma }}</td>
+              </tr>
+
+              {# EsSalud empleador (referencial) #}
+              <tr class="text-muted" style="font-size:.85rem;">
+                <td colspan="2">
+                  <i class="fas fa-building me-1"></i>
+                  EsSalud Empleador <small>(referencial, no descuenta del trabajador)</small>
+                </td>
+                <td class="text-end">({{ liq.essalud_empleador|floatformat:2|intcomma }})</td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {# ── Botón Generar ── #}
+      {% if not registro %}
+      <div class="d-flex justify-content-end mt-3">
+        <form method="post" action="{% url 'nominas_liquidacion_generar' personal.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger px-4"
+                  onclick="return confirm('¿Confirmar generación de liquidación por S/ {{ liq.neto_pagar|floatformat:2 }}?')">
+            <i class="fas fa-file-invoice-dollar me-2"></i>
+            Generar Liquidación — S/ {{ liq.neto_pagar|floatformat:2|intcomma }}
+          </button>
+        </form>
+      </div>
+      <p class="text-end text-muted small mt-1">
+        Esta acción registra la liquidación en nóminas. Podrás aprobarla desde el panel de períodos.
+      </p>
+      {% else %}
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <a href="{% url 'nominas_periodo_detalle' registro.periodo.pk %}"
+           class="btn btn-outline-primary">
+          <i class="fas fa-external-link-alt me-1"></i>Ver Período
+        </a>
+        <a href="{% url 'nominas_liquidacion_pdf' personal.pk %}"
+           class="btn btn-danger" target="_blank">
+          <i class="fas fa-file-pdf me-1"></i>Descargar Boleta PDF
+        </a>
+      </div>
+      {% endif %}
+
+    </div>{# /col-lg-8 #}
+  </div>{# /row #}
+
+</div>
+{% endblock %}

@@ -105,7 +105,7 @@
             <tbody>
               {% for emp in afp.empleados %}
               <tr>
-                <td class="font-monospace">{{ emp.dni }}</td>
+                <td class="font-monospace">{{ emp.nro_doc }}</td>
                 <td>{{ emp.apellidos_nombres }}</td>
                 <td class="text-end">
                   {% if emp.sueldo_base %}S/ {{ emp.sueldo_base|floatformat:2 }}{% else %}—{% endif %}

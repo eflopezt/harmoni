@@ -97,6 +97,8 @@ class SaldoVacacional(models.Model):
             self.estado = 'GOZADO'
         elif self.dias_gozados > 0:
             self.estado = 'PARCIAL'
+        else:
+            self.estado = 'PENDIENTE'
         self.save(update_fields=['dias_pendientes', 'estado'])
 
 
@@ -363,7 +365,9 @@ class VentaVacaciones(models.Model):
         return f"Venta {self.dias_vendidos}d — {self.personal} — S/ {self.monto}"
 
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
         super().save(*args, **kwargs)
-        # Actualizar saldo
-        self.saldo.dias_vendidos += self.dias_vendidos
-        self.saldo.recalcular()
+        # Actualizar saldo solo al crear (evitar double-count en re-saves)
+        if is_new:
+            self.saldo.dias_vendidos += self.dias_vendidos
+            self.saldo.recalcular()

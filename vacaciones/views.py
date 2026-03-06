@@ -245,7 +245,7 @@ def permisos_panel(request):
         pendientes_total=Count('id', filter=Q(estado='PENDIENTE')),
         aprobadas_mes=Count('id', filter=Q(estado='APROBADA', fecha_inicio__gte=inicio_mes_perm)),
         rechazadas_mes=Count('id', filter=Q(estado='RECHAZADA', fecha_inicio__gte=inicio_mes_perm)),
-        dias_aprobados_mes=Sum('dias_habiles', filter=Q(estado='APROBADA', fecha_inicio__gte=inicio_mes_perm)),
+        dias_aprobados_mes=Sum('dias', filter=Q(estado='APROBADA', fecha_inicio__gte=inicio_mes_perm)),
     )
 
     context = {

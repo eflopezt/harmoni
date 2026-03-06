@@ -47,12 +47,12 @@
                         <label class="form-label">Asunto (template)</label>
                         <input type="text" name="asunto_template" class="form-control"
                                value="{{ plantilla.asunto_template|default:'' }}" required>
-                        <small class="text-muted">Admite variables: {{ "{{ nombre }}" }}, {{ "{{ fecha }}" }}, etc.</small>
+                        <small class="text-muted">Admite variables: {% verbatim %}{{ nombre }}, {{ fecha }}{% endverbatim %}, etc.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Cuerpo (template HTML)</label>
                         <textarea name="cuerpo_template" class="form-control" rows="8" required>{{ plantilla.cuerpo_template|default:'' }}</textarea>
-                        <small class="text-muted">HTML con variables Django. Ej: &lt;p&gt;Hola {{ "{{ nombre }}" }}&lt;/p&gt;</small>
+                        <small class="text-muted">HTML con variables Django. Ej: &lt;p&gt;Hola {% verbatim %}{{ nombre }}{% endverbatim %}&lt;/p&gt;</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Variables disponibles</label>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Liquidación al Cese — {{ personal.apellidos_nombres }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
+  .page { max-width: 720px; margin: 0 auto; padding: 30px; }
+
+  /* ── Header ── */
+  .header { display: flex; justify-content: space-between; align-items: flex-start;
+            padding-bottom: 14px; border-bottom: 3px solid #0d2b27; margin-bottom: 18px; }
+  .empresa-name { font-size: 17px; font-weight: 700; color: #0d2b27; }
+  .empresa-ruc  { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .doc-title    { text-align: right; }
+  .doc-title h1 { font-size: 15px; font-weight: 700; color: #b91c1c; }
+  .doc-title .fecha { font-size: 10px; color: #6b7280; margin-top: 4px; }
+
+  /* ── Info empleado ── */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+               background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+               padding: 14px; margin-bottom: 18px; }
+  .info-item label { font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+                     color: #6b7280; display: block; margin-bottom: 2px; }
+  .info-item span  { font-weight: 600; }
+
+  /* ── Tabla de conceptos ── */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+  th { background: #0d2b27; color: #fff; padding: 7px 10px; font-size: 10px;
+       text-align: left; font-weight: 600; }
+  th.right, td.right { text-align: right; }
+  td { padding: 6px 10px; border-bottom: 1px solid #f3f4f6; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .section-header td { background: #f1f5f9; font-weight: 600; font-size: 10px;
+                       text-transform: uppercase; letter-spacing: .05em; color: #475569; }
+  .total-row td { font-weight: 700; font-size: 12px; background: #ecfdf5 !important;
+                  color: #065f46; }
+  .neto-row td  { font-weight: 700; font-size: 13px; background: #eff6ff !important;
+                  color: #1d4ed8; border-top: 2px solid #93c5fd; }
+  .ref-row td   { color: #6b7280; font-style: italic; }
+  .descto-row .amount { color: #b91c1c; }
+
+  /* ── Firma ── */
+  .firmas { display: flex; justify-content: space-between; margin-top: 40px; }
+  .firma-box { text-align: center; width: 200px; }
+  .firma-line { border-top: 1px solid #1a1a1a; padding-top: 6px; font-size: 10px; color: #374151; }
+
+  /* ── Footer ── */
+  .footer { text-align: center; margin-top: 20px; font-size: 9px; color: #9ca3af;
+            border-top: 1px solid #e5e7eb; padding-top: 10px; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  {# ── Print button (non-PDF) ── #}
+  <div class="no-print" style="text-align:right; margin-bottom:12px;">
+    <button onclick="window.print()"
+            style="background:#b91c1c;color:#fff;border:none;padding:7px 18px;
+                   border-radius:6px;font-size:12px;cursor:pointer;">
+      🖨 Imprimir / Guardar PDF
+    </button>
+  </div>
+
+  {# ── Header ── #}
+  <div class="header">
+    <div>
+      <div class="empresa-name">{{ empresa }}</div>
+      {% if ruc %}<div class="empresa-ruc">RUC: {{ ruc }}</div>{% endif %}
+    </div>
+    <div class="doc-title">
+      <h1>BOLETA DE LIQUIDACIÓN AL CESE</h1>
+      <div class="fecha">Fecha de emisión: {{ hoy|date:"d/m/Y" }}</div>
+    </div>
+  </div>
+
+  {# ── Datos empleado ── #}
+  <div class="info-grid">
+    <div class="info-item">
+      <label>Apellidos y Nombres</label>
+      <span>{{ personal.apellidos_nombres }}</span>
+    </div>
+    <div class="info-item">
+      <label>DNI</label>
+      <span>{{ personal.nro_doc }}</span>
+    </div>
+    <div class="info-item">
+      <label>Área / Cargo</label>
+      <span>{{ personal.subarea.area.nombre|default:"—" }} / {{ personal.cargo|default:"—" }}</span>
+    </div>
+    <div class="info-item">
+      <label>Régimen Pensionario</label>
+      <span>{{ liq.regimen_pension }}</span>
+    </div>
+    <div class="info-item">
+      <label>Fecha de Ingreso</label>
+      <span>{{ personal.fecha_alta|date:"d/m/Y"|default:"—" }}</span>
+    </div>
+    <div class="info-item">
+      <label>Fecha de Cese</label>
+      <span style="color:#b91c1c;">{{ liq.fecha_cese|date:"d/m/Y" }}</span>
+    </div>
+    <div class="info-item">
+      <label>Motivo de Cese</label>
+      <span>{{ personal.get_motivo_cese_display|default:"—" }}</span>
+    </div>
+    <div class="info-item">
+      <label>Sueldo Base</label>
+      <span>S/ {{ liq.sueldo_base|floatformat:2 }}</span>
+    </div>
+  </div>
+
+  {# ── Tabla de liquidación ── #}
+  <table>
+    <thead>
+      <tr>
+        <th style="width:45%;">Concepto</th>
+        <th>Base / Detalle</th>
+        <th class="right" style="width:130px;">Monto (S/)</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      {# Haberes #}
+      <tr class="section-header">
+        <td colspan="3">HABERES</td>
+      </tr>
+
+      <tr>
+        <td>Remuneración Trunca</td>
+        <td>{{ liq.dias_mes }} días × S/ {{ liq.sueldo_base|floatformat:2 }} / 30</td>
+        <td class="right">{{ liq.rem_trunca|floatformat:2 }}</td>
+      </tr>
+
+      <tr>
+        <td>Gratificación Trunca (Ley 27735)</td>
+        <td>{{ liq.meses_gratif }} mes(es) × rem. base / 6</td>
+        <td class="right">{{ liq.gratif_trunca|floatformat:2 }}</td>
+      </tr>
+
+      <tr>
+        <td>Bonificación Extraordinaria (Ley 29351)</td>
+        <td>9% × S/ {{ liq.gratif_trunca|floatformat:2 }}</td>
+        <td class="right">{{ liq.bonus_ext|floatformat:2 }}</td>
+      </tr>
+
+      <tr>
+        <td>CTS Trunca (DL 650)</td>
+        <td>{{ liq.meses_cts }} mes(es) × base S/ {{ liq.base_cts|floatformat:2 }} / 12</td>
+        <td class="right">{{ liq.cts_trunca|floatformat:2 }}</td>
+      </tr>
+
+      {% if liq.vac_pendientes %}
+      <tr>
+        <td>Vacaciones Pendientes ({{ liq.dias_pendientes }} días)</td>
+        <td>{{ liq.dias_pendientes }} días × S/ {{ liq.sueldo_base|floatformat:2 }} / 30</td>
+        <td class="right">{{ liq.vac_pendientes|floatformat:2 }}</td>
+      </tr>
+      {% endif %}
+
+      {% if liq.vac_truncas %}
+      <tr>
+        <td>Vacaciones Truncas (DL 713)</td>
+        <td>{{ liq.dias_truncos|floatformat:1 }} días × S/ {{ liq.sueldo_base|floatformat:2 }} / 30</td>
+        <td class="right">{{ liq.vac_truncas|floatformat:2 }}</td>
+      </tr>
+      {% endif %}
+
+      {# Total haberes #}
+      <tr class="total-row">
+        <td colspan="2">TOTAL HABERES</td>
+        <td class="right">{{ liq.total_haberes|floatformat:2 }}</td>
+      </tr>
+
+      {# Descuentos #}
+      <tr class="section-header">
+        <td colspan="3">DESCUENTOS</td>
+      </tr>
+
+      <tr class="descto-row">
+        <td>
+          {{ liq.regimen_pension }}
+          {% if liq.regimen_pension == 'ONP' %}(13% ONP — DL 19990){% else %}(AFP — aporte + comisión + seguro){% endif %}
+        </td>
+        <td>Sobre rem. trunca + gratif. trunca</td>
+        <td class="right amount">({{ liq.descto_pension|floatformat:2 }})</td>
+      </tr>
+
+      {# Neto a pagar #}
+      <tr class="neto-row">
+        <td colspan="2">NETO A PAGAR</td>
+        <td class="right">S/ {{ liq.neto_pagar|floatformat:2 }}</td>
+      </tr>
+
+      {# EsSalud referencial #}
+      <tr class="ref-row">
+        <td colspan="2">EsSalud Empleador (referencial — no descuenta del trabajador)</td>
+        <td class="right">({{ liq.essalud_empleador|floatformat:2 }})</td>
+      </tr>
+
+    </tbody>
+  </table>
+
+  {# ── Firmas ── #}
+  <div class="firmas">
+    <div class="firma-box">
+      <div style="height:50px;"></div>
+      <div class="firma-line">
+        Jefe de RRHH<br>{{ empresa }}
+      </div>
+    </div>
+    <div class="firma-box">
+      <div style="height:50px;"></div>
+      <div class="firma-line">
+        {{ personal.apellidos_nombres }}<br>DNI: {{ personal.nro_doc }}
+      </div>
+    </div>
+  </div>
+
+  {# ── Footer ── #}
+  <div class="footer">
+    Documento generado por Harmoni ERP el {{ hoy|date:"d/m/Y" }} —
+    Cese: {{ liq.fecha_cese|date:"d/m/Y" }} —
+    Base legal: DL 713, Ley 27735, Ley 29351, DL 650, DL 19990, Res. SBS 2026
+  </div>
+
+</div>
+</body>
+</html>

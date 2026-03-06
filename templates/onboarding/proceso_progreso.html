@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize harmoni_tags %}
 
 {% block title %}{{ titulo }}{% endblock %}
 
@@ -134,7 +134,7 @@
 <div class="alert alert-{{ alerta_nivel }} d-flex align-items-center py-2 mb-3" style="font-size:.87rem;">
     {% if alerta_nivel == 'danger' %}
     <i class="fas fa-fire me-2"></i>
-    <span><strong>Proceso vencido.</strong> La fecha estimada de fin ya pasó ({{ dias_restantes|abs }} días de retraso).</span>
+    <span><strong>Proceso vencido.</strong> La fecha estimada de fin ya pasó ({{ dias_restantes|abs_value }} días de retraso).</span>
     {% else %}
     <i class="fas fa-exclamation-triangle me-2"></i>
     <span><strong>En riesgo.</strong> Quedan solo <strong>{{ dias_restantes }} días</strong> para la fecha estimada de fin ({{ fecha_fin|date:"d/m/Y" }}).</span>

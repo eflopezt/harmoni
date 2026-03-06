@@ -7,12 +7,13 @@ import json
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Avg, Count, Max, Min, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.contrib import messages
+from django.views.decorators.http import require_POST, require_GET
 
 from .models import KPISnapshot, AlertaRRHH
 from .services import generar_snapshot, generar_alertas
@@ -565,7 +566,7 @@ def predictive_insights(request):
         from capacitaciones.models import AsistenciaCapacitacion
         con_capacitacion = set(
             AsistenciaCapacitacion.objects
-            .filter(capacitacion__fecha_inicio__gte=hace_1y, asistio=True)
+            .filter(capacitacion__fecha_inicio__gte=hace_1y, estado__in=['ASISTIO', 'PARCIAL'])
             .values_list('personal_id', flat=True)
         )
     except Exception:
@@ -838,7 +839,7 @@ def attrition_risk(request):
         from capacitaciones.models import AsistenciaCapacitacion
         caps = AsistenciaCapacitacion.objects.filter(
             capacitacion__fecha_inicio__gte=hace_1y,
-            asistio=True,
+            estado__in=['ASISTIO', 'PARCIAL'],
         ).values_list('personal_id', flat=True)
         con_capacitacion = set(caps)
     except Exception:
@@ -1249,6 +1250,81 @@ def ai_dashboard(request):
         '+5 años': activos.filter(fecha_alta__lt=hoy - timedelta(days=365 * 5)).count(),
     }
 
+    # Género
+    genero_m = activos.filter(sexo='M').count()
+    genero_f = activos.filter(sexo='F').count()
+    genero_otro = total - genero_m - genero_f
+
+    # Distribución etaria
+    edad_rangos = {'18-25': 0, '26-35': 0, '36-45': 0, '46-55': 0, '56+': 0}
+    con_nacimiento = activos.filter(fecha_nacimiento__isnull=False)
+    for p in con_nacimiento.only('fecha_nacimiento'):
+        try:
+            e = (hoy - p.fecha_nacimiento).days // 365
+            if e <= 25:
+                edad_rangos['18-25'] += 1
+            elif e <= 35:
+                edad_rangos['26-35'] += 1
+            elif e <= 45:
+                edad_rangos['36-45'] += 1
+            elif e <= 55:
+                edad_rangos['46-55'] += 1
+            else:
+                edad_rangos['56+'] += 1
+        except Exception:
+            pass
+
+    # People Risk
+    hoy_60 = hoy + timedelta(days=60)
+    contratos_vencen = 0
+    try:
+        contratos_vencen = Personal.objects.filter(
+            estado='Activo',
+            tipo_contrato='PLAZO_FIJO',
+            fecha_fin_contrato__gte=hoy,
+            fecha_fin_contrato__lte=hoy_60,
+        ).count()
+    except Exception:
+        pass
+
+    ausentismo_critico = 0
+    try:
+        from asistencia.models import RegistroTareo
+        from django.db.models import Count as DjCount
+        ausentismo_critico = (
+            RegistroTareo.objects.filter(
+                fecha__gte=inicio_mes, fecha__lte=hoy,
+                codigo_dia__in=['F', 'FALTA'],
+            )
+            .values('personal_id')
+            .annotate(faltas=DjCount('id'))
+            .filter(faltas__gt=3)
+        ).count()
+    except Exception:
+        pass
+
+    # Tasa asistencia mes actual
+    tasa_asistencia_actual = None
+    try:
+        from asistencia.models import RegistroTareo
+        registros_mes = RegistroTareo.objects.filter(fecha__gte=inicio_mes, fecha__lte=hoy)
+        total_reg = registros_mes.count()
+        asistidos = registros_mes.exclude(
+            codigo_dia__in=['F', 'FALTA', 'SIN_MARCACION', 'FERIADO']).count()
+        if total_reg > 0:
+            tasa_asistencia_actual = round(asistidos / total_reg * 100, 1)
+    except Exception:
+        pass
+
+    # Snapshots para deltas
+    snapshots_recientes = KPISnapshot.objects.order_by('-periodo')[:2]
+    ultimo_snapshot = snapshots_recientes[0] if snapshots_recientes else None
+    penultimo_snapshot = snapshots_recientes[1] if len(snapshots_recientes) > 1 else None
+
+    # Alertas
+    total_alertas = AlertaRRHH.objects.filter(estado='ACTIVA').count()
+    top_alertas = list(AlertaRRHH.objects.filter(estado='ACTIVA').order_by('-creado_en')[:3])
+
     context = {
         'total_empleados': total,
         'empleados_staff': staff,
@@ -1264,8 +1340,91 @@ def ai_dashboard(request):
         'trend_he': json.dumps(trend_he, cls=DecimalEncoder),
         'antiguedad_labels': json.dumps(list(antiguedad.keys())),
         'antiguedad_values': json.dumps(list(antiguedad.values())),
+        # Género y edad
+        'genero_m': genero_m,
+        'genero_f': genero_f,
+        'genero_otro': genero_otro,
+        'edad_labels': json.dumps(list(edad_rangos.keys())),
+        'edad_values': json.dumps(list(edad_rangos.values())),
+        'total_con_nacimiento': con_nacimiento.count(),
+        # People Risk
+        'contratos_vencen': contratos_vencen,
+        'ausentismo_critico': ausentismo_critico,
+        'tasa_asistencia_actual': tasa_asistencia_actual,
+        'ultimo_snapshot': ultimo_snapshot,
+        'penultimo_snapshot': penultimo_snapshot,
+        'total_alertas': total_alertas,
+        'top_alertas': top_alertas,
     }
     return render(request, 'analytics/ai_dashboard.html', context)
+
+
+# ─────────────────────────────────────────────────
+# DASHBOARD WIDGETS — Gráficos personalizados
+# ─────────────────────────────────────────────────
+
+@login_required
+@require_GET
+def list_widgets(request):
+    """Lista los widgets guardados del usuario."""
+    from .models import DashboardWidget
+    widgets = DashboardWidget.objects.filter(
+        user=request.user, activo=True).order_by('posicion', '-creado_en')
+    data = [{
+        'id': w.id,
+        'titulo': w.titulo,
+        'chart_type': w.chart_type,
+        'data_source': w.data_source,
+        'config': w.config_json,
+        'posicion': w.posicion,
+    } for w in widgets]
+    return JsonResponse({'widgets': data})
+
+
+@login_required
+@require_POST
+def save_widget(request):
+    """Guarda un widget personalizado en el dashboard del usuario."""
+    from .models import DashboardWidget
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    titulo = body.get('titulo', 'Gráfico')[:200]
+    chart_type = body.get('chart_type', 'bar')[:50]
+    data_source = body.get('data_source', 'custom')[:100]
+    config = body.get('config', {})
+
+    # Límite: máximo 8 widgets por usuario
+    count = DashboardWidget.objects.filter(user=request.user, activo=True).count()
+    if count >= 8:
+        return JsonResponse({'error': 'Máximo 8 widgets en el dashboard'}, status=400)
+
+    widget = DashboardWidget.objects.create(
+        user=request.user,
+        titulo=titulo,
+        chart_type=chart_type,
+        data_source=data_source,
+        config_json=config,
+        posicion=count,
+    )
+    return JsonResponse({'ok': True, 'id': widget.id, 'titulo': titulo})
+
+
+@login_required
+def delete_widget(request, pk):
+    """Elimina (desactiva) un widget del dashboard."""
+    from .models import DashboardWidget
+    if request.method not in ('DELETE', 'POST'):
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    try:
+        widget = DashboardWidget.objects.get(pk=pk, user=request.user)
+        widget.activo = False
+        widget.save()
+        return JsonResponse({'ok': True})
+    except DashboardWidget.DoesNotExist:
+        return JsonResponse({'error': 'No encontrado'}, status=404)
 
 
 @solo_admin
@@ -1352,7 +1511,7 @@ def api_team_health(request):
         from capacitaciones.models import AsistenciaCapacitacion
         con_cap = (
             AsistenciaCapacitacion.objects
-            .filter(capacitacion__fecha_inicio__gte=hace_1y, asistio=True)
+            .filter(capacitacion__fecha_inicio__gte=hace_1y, estado__in=['ASISTIO', 'PARCIAL'])
             .values('personal_id').distinct().count()
         )
         cap_score = round(con_cap / total * 100, 1)
@@ -1440,7 +1599,7 @@ def api_rotacion_riesgo_top(request):
         from capacitaciones.models import AsistenciaCapacitacion
         con_capacitacion = set(
             AsistenciaCapacitacion.objects
-            .filter(capacitacion__fecha_inicio__gte=hace_1y, asistio=True)
+            .filter(capacitacion__fecha_inicio__gte=hace_1y, estado__in=['ASISTIO', 'PARCIAL'])
             .values_list('personal_id', flat=True)
         )
     except Exception:

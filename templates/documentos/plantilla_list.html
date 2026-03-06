@@ -73,30 +73,32 @@
         <h6 class="mb-0"><i class="fas fa-info-circle text-info me-2"></i>Variables disponibles en plantillas</h6>
     </div>
     <div class="card-body small">
+        {% verbatim %}
         <div class="row g-2">
             <div class="col-md-4">
                 <strong>Empleado:</strong><br>
-                <code>{{ "{{" }} personal.apellidos_nombres {{ "}}" }}</code><br>
-                <code>{{ "{{" }} personal.nro_doc {{ "}}" }}</code><br>
-                <code>{{ "{{" }} personal.cargo {{ "}}" }}</code><br>
-                <code>{{ "{{" }} personal.grupo_tareo {{ "}}" }}</code><br>
-                <code>{{ "{{" }} personal.sueldo_base {{ "}}" }}</code><br>
-                <code>{{ "{{" }} personal.subarea.area.nombre {{ "}}" }}</code>
+                <code>{{ personal.apellidos_nombres }}</code><br>
+                <code>{{ personal.nro_doc }}</code><br>
+                <code>{{ personal.cargo }}</code><br>
+                <code>{{ personal.grupo_tareo }}</code><br>
+                <code>{{ personal.sueldo_base }}</code><br>
+                <code>{{ personal.subarea.area.nombre }}</code>
             </div>
             <div class="col-md-4">
                 <strong>Fechas:</strong><br>
-                <code>{{ "{{" }} hoy_texto {{ "}}" }}</code><br>
-                <code>{{ "{{" }} fecha_alta_texto {{ "}}" }}</code><br>
-                <code>{{ "{{" }} fecha_cese_texto {{ "}}" }}</code><br>
-                <code>{{ "{{" }} antiguedad {{ "}}" }}</code>
+                <code>{{ hoy_texto }}</code><br>
+                <code>{{ fecha_alta_texto }}</code><br>
+                <code>{{ fecha_cese_texto }}</code><br>
+                <code>{{ antiguedad }}</code>
             </div>
             <div class="col-md-4">
                 <strong>Empresa:</strong><br>
-                <code>{{ "{{" }} empresa.nombre {{ "}}" }}</code><br>
-                <code>{{ "{{" }} empresa.ruc {{ "}}" }}</code><br>
-                <code>{{ "{{" }} empresa.direccion {{ "}}" }}</code>
+                <code>{{ empresa.nombre }}</code><br>
+                <code>{{ empresa.ruc }}</code><br>
+                <code>{{ empresa.direccion }}</code>
             </div>
         </div>
+        {% endverbatim %}
     </div>
 </div>
 

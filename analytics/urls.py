@@ -26,6 +26,11 @@ urlpatterns = [
     # Dashboard IA Ejecutivo
     path('ia/', views.ai_dashboard, name='analytics_ai_dashboard'),
 
+    # Dashboard Widgets personalizados (IA → guardar gráficos)
+    path('widgets/', views.list_widgets, name='analytics_list_widgets'),
+    path('widgets/guardar/', views.save_widget, name='analytics_save_widget'),
+    path('widgets/<int:pk>/eliminar/', views.delete_widget, name='analytics_delete_widget'),
+
     # API JSON (para gráficos y widgets)
     path('api/kpi/', views.api_kpi_actual, name='analytics_api_kpi'),
     path('api/tendencias/', views.api_tendencias, name='analytics_api_tendencias'),

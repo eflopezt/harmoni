@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize harmoni_tags %}
 
 {% block title %}Resultados: {{ encuesta.titulo }}{% endblock %}
 
@@ -352,7 +352,7 @@
         <div class="respuesta-texto-card">"{{ t }}"</div>
         {% endfor %}
         {% if item.total_respuestas > item.textos|length %}
-        <p class="text-muted" style="font-size:.75rem;">... y {{ item.total_respuestas|add:-item.textos|length }} respuestas más.</p>
+        {% with n=item.textos|length %}<p class="text-muted" style="font-size:.75rem;">... y {{ item.total_respuestas|subtract:n }} respuestas más.</p>{% endwith %}
         {% endif %}
       </div>
       {% else %}
