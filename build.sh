@@ -18,6 +18,6 @@ echo "=== Running initial setup ==="
 python manage.py setup_harmoni --no-input 2>/dev/null || true
 
 echo "=== Loading demo data ==="
-python manage.py seed_demo_data --solo-modulos 2>/dev/null || true
+python manage.py seed_demo_data 2>/dev/null || true
 
 echo "=== Build complete ==="
