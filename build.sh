@@ -20,7 +20,7 @@ python manage.py setup_harmoni --no-input || true
 echo "=== Loading employees fixture (280 real employees) ==="
 python manage.py loaddata core/fixtures/empleados.json || true
 
-echo "=== Loading additional demo data (modules) ==="
-python manage.py seed_demo_data --solo-modulos || true
+echo "=== Loading modules fixture (vacaciones, caps, prestamos, etc) ==="
+python manage.py loaddata core/fixtures/modulos_demo.json || true
 
 echo "=== Build complete ==="
