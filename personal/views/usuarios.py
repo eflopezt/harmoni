@@ -582,3 +582,187 @@ def accesos_asignar_perfil(request):
         'perfil_nombre':   perfil_nombre,
         'perfil_codigo':   perfil_codigo,
     })
+
+
+# ── Portal: Crear / Restablecer Acceso ───────────────────────────────────────
+
+@login_required
+@require_http_methods(["POST"])
+def portal_crear_acceso(request, personal_pk):
+    """
+    Crea acceso al Portal del Empleado para un Personal dado.
+
+    Lógica:
+        - Username = DNI (estándar, fácil de recordar)
+        - Password inicial = DNI (el empleado debe cambiarlo en el primer login)
+        - Vincula el User creado a personal.usuario
+        - Envía email de bienvenida con credenciales si tiene email configurado
+        - Devuelve JSON para AJAX desde personal_detail
+
+    Acceso: superusuarios y usuarios con puede_aprobar + mod_personal.
+    """
+    if not _puede_gestionar_accesos(request.user):
+        return JsonResponse({'success': False, 'error': 'Sin permisos para gestionar accesos.'}, status=403)
+
+    try:
+        personal = Personal.objects.select_related('usuario').get(pk=personal_pk)
+    except Personal.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Personal no encontrado.'}, status=404)
+
+    if personal.usuario:
+        return JsonResponse({
+            'success': False,
+            'error': f'Ya tiene acceso al portal (usuario: {personal.usuario.username}).',
+        }, status=400)
+
+    if not personal.nro_doc:
+        return JsonResponse({'success': False, 'error': 'El empleado no tiene número de documento registrado.'}, status=400)
+
+    from django.contrib.auth.models import User
+    from django.db import transaction
+
+    username = personal.nro_doc.strip()
+
+    if User.objects.filter(username=username).exists():
+        # El username (DNI) ya existe — vincular si no está asignado a nadie
+        usuario_existente = User.objects.get(username=username)
+        if hasattr(usuario_existente, 'personal_data'):
+            return JsonResponse({
+                'success': False,
+                'error': f'El usuario "{username}" ya existe y está asignado a otro empleado.',
+            }, status=400)
+        # Vincular el usuario existente
+        personal.usuario = usuario_existente
+        personal.save(update_fields=['usuario'])
+        return JsonResponse({
+            'success': True,
+            'mensaje': f'Usuario existente "{username}" vinculado al empleado.',
+            'username': username,
+            'creado':  False,
+        })
+
+    email = personal.correo_corporativo or personal.correo_personal or ''
+
+    # Parsear apellidos_nombres → first_name / last_name
+    partes     = personal.apellidos_nombres.strip().split(',')
+    last_name  = partes[0].strip()[:150] if partes else ''
+    first_name = partes[1].strip()[:150] if len(partes) > 1 else ''
+
+    with transaction.atomic():
+        usuario = User.objects.create_user(
+            username   = username,
+            password   = username,         # contraseña inicial = DNI
+            email      = email,
+            first_name = first_name,
+            last_name  = last_name,
+            is_staff   = False,
+            is_active  = True,
+        )
+        personal.usuario = usuario
+        personal.save(update_fields=['usuario'])
+
+    # Enviar email de bienvenida si tiene correo
+    if email:
+        try:
+            from comunicaciones.services import NotificacionService
+            nombre_display = personal.nombre_completo if hasattr(personal, 'nombre_completo') else personal.apellidos_nombres
+
+            try:
+                from asistencia.models import ConfiguracionSistema
+                empresa = ConfiguracionSistema.get().empresa_nombre
+            except Exception:
+                empresa = 'Harmoni'
+
+            asunto = f'Bienvenido al Portal del Empleado — {empresa}'
+            cuerpo = (
+                f'Hola {nombre_display},\n\n'
+                f'Se ha creado tu acceso al Portal del Empleado de {empresa}.\n\n'
+                f'Tus credenciales de ingreso:\n'
+                f'  • Usuario: {username}\n'
+                f'  • Contraseña inicial: {username} (tu número de documento)\n\n'
+                f'Por seguridad, te recomendamos cambiar tu contraseña luego del primer ingreso.\n\n'
+                f'Saludos,\nEquipo de Recursos Humanos — {empresa}'
+            )
+            NotificacionService.enviar(
+                destinatario = personal,
+                asunto       = asunto,
+                cuerpo       = cuerpo,
+                tipo         = 'EMAIL',
+            )
+        except Exception:
+            pass  # El acceso se creó igual — el email es best-effort
+
+    return JsonResponse({
+        'success':  True,
+        'mensaje':  f'Acceso creado. Usuario: {username} | Contraseña inicial: DNI del empleado.',
+        'username': username,
+        'creado':   True,
+        'email_enviado': bool(email),
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def portal_reset_credenciales(request, personal_pk):
+    """
+    Restablece la contraseña del portal al DNI del empleado y (opcionalmente) envía email.
+
+    Útil cuando el empleado olvidó su contraseña o necesita re-envio de credenciales.
+    La nueva contraseña queda como el DNI — el empleado debe cambiarla luego.
+    """
+    if not _puede_gestionar_accesos(request.user):
+        return JsonResponse({'success': False, 'error': 'Sin permisos para gestionar accesos.'}, status=403)
+
+    try:
+        personal = Personal.objects.select_related('usuario').get(pk=personal_pk)
+    except Personal.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Personal no encontrado.'}, status=404)
+
+    if not personal.usuario:
+        return JsonResponse({'success': False, 'error': 'El empleado no tiene acceso al portal.'}, status=400)
+
+    if not personal.nro_doc:
+        return JsonResponse({'success': False, 'error': 'El empleado no tiene número de documento registrado.'}, status=400)
+
+    nueva_password = personal.nro_doc.strip()
+    personal.usuario.set_password(nueva_password)
+    personal.usuario.save(update_fields=['password'])
+
+    email = personal.correo_corporativo or personal.correo_personal or ''
+
+    if email:
+        try:
+            from comunicaciones.services import NotificacionService
+            nombre_display = personal.nombre_completo if hasattr(personal, 'nombre_completo') else personal.apellidos_nombres
+
+            try:
+                from asistencia.models import ConfiguracionSistema
+                empresa = ConfiguracionSistema.get().empresa_nombre
+            except Exception:
+                empresa = 'Harmoni'
+
+            asunto = f'Restablecimiento de contraseña — Portal {empresa}'
+            cuerpo = (
+                f'Hola {nombre_display},\n\n'
+                f'Se ha restablecido tu contraseña del Portal del Empleado de {empresa}.\n\n'
+                f'Tus credenciales actuales:\n'
+                f'  • Usuario: {personal.usuario.username}\n'
+                f'  • Nueva contraseña: {nueva_password} (tu número de documento)\n\n'
+                f'Por seguridad, cambia tu contraseña luego del primer ingreso.\n\n'
+                f'Saludos,\nEquipo de Recursos Humanos — {empresa}'
+            )
+            NotificacionService.enviar(
+                destinatario = personal,
+                asunto       = asunto,
+                cuerpo       = cuerpo,
+                tipo         = 'EMAIL',
+            )
+        except Exception:
+            pass
+
+    return JsonResponse({
+        'success':       True,
+        'mensaje':       f'Contraseña restablecida al DNI del empleado.',
+        'username':      personal.usuario.username,
+        'email_enviado': bool(email),
+    })

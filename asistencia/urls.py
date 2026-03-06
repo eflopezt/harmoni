@@ -51,6 +51,7 @@ urlpatterns = [
     path('ia/analizar/', views_ai.ai_analyze_chart, name='ia_analyze_chart'),
     path('ia/preguntar/', views_ai.ai_ask_data, name='ia_ask_data'),
     path('ia/exportar/', views_ai.ai_export_report, name='ia_export_report'),
+    path('ia/upload/', views_ai.ai_upload_file, name='ia_upload_file'),
 
     # Parámetros (homologaciones, feriados, regímenes)
     path('parametros/', views.parametros_view, name='asistencia_parametros'),

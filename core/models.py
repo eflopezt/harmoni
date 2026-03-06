@@ -331,3 +331,70 @@ class PermisoModulo(models.Model):
 
     def __str__(self):
         return f'{self.usuario} — {self.get_modulo_display()}'
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BASE DE CONOCIMIENTO IA (RAG — Fase A: keyword search / Fase B: pgvector)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class KnowledgeArticle(models.Model):
+    """
+    Artículo de conocimiento para el asistente IA de Harmoni.
+
+    La IA busca artículos relevantes para cada pregunta y los inyecta en el
+    system prompt, permitiendo respuestas precisas sobre ley laboral peruana,
+    políticas internas y procesos del sistema.
+
+    Fase A (actual): búsqueda por keywords (ilike).
+    Fase B (futura): columna `embedding vector(1536)` con pgvector para
+                     búsqueda semántica por similitud de coseno.
+    """
+
+    CATEGORIA_CHOICES = [
+        ('ley_laboral',   'Ley Laboral Perú'),
+        ('beneficios',    'Beneficios Sociales (CTS, Grat., etc.)'),
+        ('planilla',      'Planilla y Remuneraciones'),
+        ('asistencia',    'Asistencia y Jornada'),
+        ('vacaciones',    'Vacaciones y Permisos'),
+        ('disciplinaria', 'Procedimiento Disciplinario'),
+        ('politica_rrhh', 'Políticas RRHH Internas'),
+        ('proceso',       'Procesos del Sistema Harmoni'),
+        ('onboarding',    'Onboarding y Offboarding'),
+        ('faq',           'Preguntas Frecuentes'),
+        ('otro',          'Otro'),
+    ]
+
+    titulo     = models.CharField(max_length=300)
+    categoria  = models.CharField(max_length=20, choices=CATEGORIA_CHOICES, db_index=True)
+    contenido  = models.TextField(
+        help_text='Texto en markdown. Sé específico y conciso — la IA usa esto como contexto directo.'
+    )
+    tags       = models.CharField(
+        max_length=500, blank=True,
+        help_text='Palabras clave separadas por coma. Mejoran la búsqueda. Ej: horas extra, 25%, artículo 10'
+    )
+    prioridad  = models.PositiveSmallIntegerField(
+        default=5,
+        help_text='1=alta, 10=baja. Artículos de menor número aparecen primero en resultados.'
+    )
+    activo     = models.BooleanField(default=True, db_index=True)
+    creado_en  = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    # ── Fase B: embedding vector (descomenta cuando tengas pgvector) ──
+    # embedding = models.BinaryField(null=True, blank=True)  # placeholder
+    # Para activar pgvector real: pip install pgvector y usar VectorField(dimensions=1536)
+
+    class Meta:
+        app_label = 'core'
+        verbose_name = 'Artículo de Conocimiento IA'
+        verbose_name_plural = 'Base de Conocimiento IA'
+        ordering = ['prioridad', 'categoria', 'titulo']
+
+    def __str__(self):
+        return f'[{self.get_categoria_display()}] {self.titulo}'
+
+    def snippet(self, chars: int = 120) -> str:
+        """Primeros N chars del contenido para previsualización."""
+        c = self.contenido.strip()
+        return c[:chars] + '…' if len(c) > chars else c

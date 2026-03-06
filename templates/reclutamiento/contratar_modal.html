@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Contratar — {{ postulacion.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:680px;">
+
+  {# Header #}
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="fw-bold mb-0">
+        <i class="fas fa-user-check me-2 text-success"></i>Contratar Candidato
+      </h4>
+      <p class="text-muted small mb-0">
+        {{ postulacion.nombre_completo }} → {{ postulacion.vacante.titulo }}
+      </p>
+    </div>
+    <a href="{% url 'postulacion_detalle' postulacion.pk %}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+
+  {# Mensajes #}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  <form method="post" action="{% url 'contratar_candidato' postulacion.pk %}">
+    {% csrf_token %}
+
+    {# ── Resumen candidato ── #}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header" style="background:#f0fdf4; border-bottom:1px solid #bbf7d0;">
+        <small class="fw-semibold text-uppercase text-success">
+          <i class="fas fa-id-card me-1"></i>Datos del Candidato
+        </small>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 small">
+          <div class="col-sm-6">
+            <span class="text-muted">Nombre:</span>
+            <strong class="ms-1">{{ postulacion.nombre_completo }}</strong>
+          </div>
+          <div class="col-sm-6">
+            <span class="text-muted">Email:</span>
+            <span class="ms-1">{{ postulacion.email|default:"—" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <span class="text-muted">Puesto:</span>
+            <strong class="ms-1">{{ postulacion.vacante.titulo }}</strong>
+          </div>
+          <div class="col-sm-6">
+            <span class="text-muted">Área:</span>
+            <span class="ms-1">{{ postulacion.vacante.area.nombre|default:"—" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <span class="text-muted">Fuente:</span>
+            <span class="ms-1">{{ postulacion.get_fuente_display }}</span>
+          </div>
+          <div class="col-sm-6">
+            <span class="text-muted">Sal. pretendido:</span>
+            <span class="ms-1">
+              {% if postulacion.salario_pretendido %}
+                S/ {{ postulacion.salario_pretendido|floatformat:2|intcomma }}
+              {% else %}—{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Datos de contratación ── #}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header">
+        <small class="fw-semibold text-uppercase text-muted">
+          <i class="fas fa-file-contract me-1"></i>Datos de Contratación
+        </small>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">
+              Número de Documento (DNI) <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="nro_doc" class="form-control"
+                   maxlength="20" required
+                   placeholder="Ingrese el DNI del nuevo empleado">
+            <div class="form-text">Debe ser único en el sistema.</div>
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">
+              Fecha de Alta <span class="text-danger">*</span>
+            </label>
+            <input type="date" name="fecha_alta" class="form-control"
+                   value="{{ hoy|date:'Y-m-d' }}" required>
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Tipo de Trabajador</label>
+            <select name="tipo_trab" class="form-select">
+              <option value="Empleado" selected>Empleado</option>
+              <option value="Obrero">Obrero</option>
+            </select>
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Sueldo Base (S/)</label>
+            <input type="number" name="sueldo_base" class="form-control"
+                   min="0" step="0.01"
+                   value="{{ postulacion.salario_pretendido|default:'' }}"
+                   placeholder="0.00">
+            <div class="form-text">Puede actualizarse después en el perfil.</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    {# ── Onboarding ── #}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header" style="background:#f0f9ff; border-bottom:1px solid #bae6fd;">
+        <small class="fw-semibold text-uppercase" style="color:#0284c7;">
+          <i class="fas fa-rocket me-1"></i>Onboarding Automático
+        </small>
+      </div>
+      <div class="card-body">
+        {% if plantillas_onb %}
+        <label class="form-label fw-semibold">Plantilla de Onboarding</label>
+        <select name="plantilla_id" class="form-select mb-2">
+          <option value="">— Usar primera plantilla activa —</option>
+          {% for plt in plantillas_onb %}
+          <option value="{{ plt.pk }}">
+            {{ plt.nombre }}
+            ({{ plt.pasos.count }} paso{% if plt.pasos.count != 1 %}s{% endif %})
+          </option>
+          {% endfor %}
+        </select>
+        <div class="form-text">
+          <i class="fas fa-info-circle me-1 text-info"></i>
+          Se creará automáticamente un proceso de onboarding con todos los pasos de la plantilla.
+        </div>
+        {% else %}
+        <div class="alert alert-warning mb-0 small">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          No hay plantillas de onboarding activas.
+          El empleado será creado sin proceso de onboarding automático.
+          <a href="{% url 'plantillas_onboarding' %}" class="alert-link">Crear plantilla</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Botones ── #}
+    <div class="d-flex justify-content-between align-items-center">
+      <p class="small text-muted mb-0">
+        <i class="fas fa-info-circle me-1"></i>
+        Se crearán: Registro de Personal + Proceso de Onboarding + Notificación de bienvenida.
+      </p>
+      <div class="d-flex gap-2">
+        <a href="{% url 'postulacion_detalle' postulacion.pk %}"
+           class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-success px-4"
+                onclick="return confirm('¿Confirmar contratación de {{ postulacion.nombre_completo }}?')">
+          <i class="fas fa-user-check me-2"></i>Confirmar Contratación
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

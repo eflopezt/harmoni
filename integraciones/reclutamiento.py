@@ -6,6 +6,8 @@ Clases:
     - BumeranExporter:        Export XML/JSON compatible con importacion masiva Bumeran Peru
     - LinkedInJobsPublisher:  Publicacion via API OAuth2 (v2/simpleJobPostings)
     - PortalPropio:           Verificacion del estado del portal empleo interno
+    - TelegramJobPublisher:   Publica oferta en canal Telegram via Bot API (gratis, real-time)
+    - WhatsAppBusinessPublisher: Publica oferta via WhatsApp Business Cloud API (Meta Graph API)
 
 Uso:
     from integraciones.reclutamiento import ComputrabajoExporter, BumeranExporter, LinkedInJobsPublisher
@@ -750,3 +752,399 @@ class PortalPropio:
     def get_url_vacante(self, vacante, base_url: str = '') -> str:
         """Retorna la URL del portal empleo para la vacante."""
         return f'{base_url.rstrip("/")}/reclutamiento/empleo/{vacante.pk}/'
+
+
+# ══════════════════════════════════════════════════════════════
+# TELEGRAM BOT PUBLISHER
+# ══════════════════════════════════════════════════════════════
+
+class TelegramJobPublisher:
+    """
+    Publica ofertas de empleo en un canal de Telegram via Bot API.
+
+    API oficial: https://core.telegram.org/bots/api#sendmessage
+    Endpoint:    POST https://api.telegram.org/bot{TOKEN}/sendMessage
+
+    Ventajas sobre otras plataformas:
+      - API gratuita, sin aprobación ni costo por mensaje
+      - Alcance inmediato (push notification a todos los suscriptores)
+      - Muy popular en Perú para grupos y canales de empleos
+      - Soporta formato HTML/Markdown para mensajes enriquecidos
+      - No tiene límites de publicación relevantes para RR.HH.
+
+    Configuración requerida:
+      1. Crear un bot en Telegram vía @BotFather → obtener BOT_TOKEN
+      2. Crear un canal público (ej: @empleos_miempresa) o grupo
+      3. Agregar el bot como administrador del canal con permiso de publicar
+      4. Obtener CHAT_ID:
+         - Canal público:  "@nombre_canal" (ej: "@empleos_acme")
+         - Canal privado:  "-100XXXXXXXXXX" (usar @userinfobot para obtener el ID)
+      5. Guardar BOT_TOKEN y CHAT_ID en Configuración del Sistema
+
+    Formato del mensaje publicado:
+      🔔 *NUEVA OPORTUNIDAD LABORAL*
+      📌 Puesto: NOMBRE DEL PUESTO
+      🏢 Área: AREA
+      📍 Modalidad: MODALIDAD — Tipo: TIPO CONTRATO
+      💰 Rango salarial: S/ XXXX – S/ YYYY (si aplica)
+      📋 Descripción breve...
+      ✅ Requisitos: experiencia, educación
+      📩 Postular en: [LINK AL PORTAL]
+      📅 Cierre: FECHA LÍMITE
+    """
+
+    PLATAFORMA  = 'TELEGRAM'
+    API_BASE    = 'https://api.telegram.org'
+    TIMEOUT_SEG = 10
+
+    def publicar_vacante(
+        self,
+        vacante,
+        bot_token: str = '',
+        chat_id: str   = '',
+        portal_url: str = '',
+    ) -> dict:
+        """
+        Envía el mensaje de la oferta al canal Telegram.
+
+        Args:
+            vacante:    instancia de Vacante
+            bot_token:  token del bot Telegram (ej: "123456:ABC-DEF1234...")
+            chat_id:    ID del canal (ej: "@empleos_empresa" o "-1001234567890")
+            portal_url: URL pública al portal de empleo (para incluir en el mensaje)
+
+        Returns:
+            dict estandarizado: {'ok', 'plataforma', 'mensaje', 'url_publicada', 'error', 'message_id'}
+        """
+        import json
+        import urllib.request
+        import urllib.error
+
+        if not bot_token:
+            return {
+                'ok':          False,
+                'plataforma':  self.PLATAFORMA,
+                'error':       'BOT TOKEN requerido. Configúralo en Configuración → Integraciones → Telegram.',
+                'mensaje':     '',
+                'url_publicada': '',
+            }
+
+        if not chat_id:
+            return {
+                'ok':          False,
+                'plataforma':  self.PLATAFORMA,
+                'error':       'CHAT ID requerido. Puede ser "@nombre_canal" o el ID numérico del grupo/canal.',
+                'mensaje':     '',
+                'url_publicada': '',
+            }
+
+        texto = self._construir_mensaje(vacante, portal_url)
+        payload = {
+            'chat_id':    chat_id,
+            'text':       texto,
+            'parse_mode': 'HTML',
+            'disable_web_page_preview': False,
+        }
+
+        endpoint = f'{self.API_BASE}/bot{bot_token}/sendMessage'
+
+        try:
+            body = json.dumps(payload).encode('utf-8')
+            req  = urllib.request.Request(
+                endpoint,
+                data    = body,
+                headers = {'Content-Type': 'application/json'},
+                method  = 'POST',
+            )
+            with urllib.request.urlopen(req, timeout=self.TIMEOUT_SEG) as resp:
+                data       = json.loads(resp.read().decode('utf-8'))
+                message_id = data.get('result', {}).get('message_id')
+                # URL del mensaje en el canal (solo funciona con canales públicos)
+                canal_limpio = chat_id.lstrip('@')
+                url_msg = (
+                    f'https://t.me/{canal_limpio}/{message_id}'
+                    if not chat_id.startswith('-') else ''
+                )
+                return {
+                    'ok':          True,
+                    'plataforma':  self.PLATAFORMA,
+                    'mensaje':     f'Oferta publicada en Telegram. Message ID: {message_id}',
+                    'url_publicada': url_msg,
+                    'message_id':  message_id,
+                    'respuesta_api': data,
+                    'error':       None,
+                    'texto_enviado': texto,
+                }
+
+        except urllib.error.HTTPError as exc:
+            try:
+                err_body = json.loads(exc.read().decode('utf-8'))
+                descripcion = err_body.get('description', str(exc))
+            except Exception:
+                descripcion = str(exc)
+            return {
+                'ok':          False,
+                'plataforma':  self.PLATAFORMA,
+                'error':       f'Telegram API Error {exc.code}: {descripcion}',
+                'mensaje':     '',
+                'url_publicada': '',
+            }
+        except Exception as exc:
+            return {
+                'ok':          False,
+                'plataforma':  self.PLATAFORMA,
+                'error':       f'Error de conexión: {exc}',
+                'mensaje':     '',
+                'url_publicada': '',
+            }
+
+    def _construir_mensaje(self, vacante, portal_url: str = '') -> str:
+        """
+        Construye el texto HTML del mensaje para Telegram.
+        Usa etiquetas HTML básicas soportadas por Telegram: <b>, <i>, <a>, <code>.
+        """
+        lineas = ['🔔 <b>NUEVA OPORTUNIDAD LABORAL</b>']
+        lineas.append('')
+        lineas.append(f'📌 <b>{vacante.titulo}</b>')
+
+        if hasattr(vacante, 'area') and vacante.area:
+            lineas.append(f'🏢 Área: {vacante.area.nombre}')
+
+        # Modalidad / tipo contrato
+        modalidad = getattr(vacante, 'get_modalidad_display', lambda: '')()
+        tipo_cont = getattr(vacante, 'get_tipo_contrato_display', lambda: '')()
+        if modalidad or tipo_cont:
+            partes = [p for p in [modalidad, tipo_cont] if p]
+            lineas.append(f'📍 {" — ".join(partes)}')
+
+        # Rango salarial
+        sal_min = getattr(vacante, 'salario_minimo', None)
+        sal_max = getattr(vacante, 'salario_maximo', None)
+        if sal_min and sal_max:
+            lineas.append(f'💰 S/ {sal_min:,.0f} – S/ {sal_max:,.0f}')
+        elif sal_min:
+            lineas.append(f'💰 Desde S/ {sal_min:,.0f}')
+
+        # Descripción (primeras 200 chars)
+        desc = getattr(vacante, 'descripcion', '') or ''
+        if desc:
+            desc_corta = desc[:220].strip()
+            if len(desc) > 220:
+                desc_corta += '…'
+            lineas.append('')
+            lineas.append(f'📋 {desc_corta}')
+
+        # Requisitos
+        req_edu  = getattr(vacante, 'get_educacion_display', lambda: '')()
+        req_exp  = getattr(vacante, 'experiencia_minima', None)
+        if req_edu or req_exp:
+            lineas.append('')
+            req_txt = []
+            if req_edu and req_edu != 'No requerido':
+                req_txt.append(req_edu)
+            if req_exp:
+                req_txt.append(f'{req_exp} año(s) de experiencia')
+            if req_txt:
+                lineas.append(f'✅ Requisitos: {", ".join(req_txt)}')
+
+        # Link al portal
+        lineas.append('')
+        if portal_url:
+            lineas.append(f'📩 <a href="{portal_url}">Postular aquí</a>')
+        else:
+            lineas.append('📩 Envía tu CV al área de Recursos Humanos')
+
+        # Fecha límite
+        fecha_lim = getattr(vacante, 'fecha_limite', None)
+        if fecha_lim:
+            lineas.append(f'📅 Cierre: <b>{fecha_lim.strftime("%d/%m/%Y")}</b>')
+
+        lineas.append('')
+        lineas.append('#empleo #trabajo #peru #rrhh')
+
+        return '\n'.join(lineas)
+
+    def generar_preview(self, vacante, portal_url: str = '') -> dict:
+        """Genera preview del mensaje sin enviarlo (para mostrar en UI)."""
+        return {
+            'ok':          True,
+            'plataforma':  self.PLATAFORMA,
+            'mensaje':     'Vista previa generada (no enviado — falta token o chat_id)',
+            'url_publicada': '',
+            'error':       None,
+            'es_preview':  True,
+            'texto_enviado': self._construir_mensaje(vacante, portal_url),
+        }
+
+
+# ══════════════════════════════════════════════════════════════
+# WHATSAPP BUSINESS CLOUD API PUBLISHER
+# ══════════════════════════════════════════════════════════════
+
+class WhatsAppBusinessPublisher:
+    """
+    Publica ofertas de empleo via WhatsApp Business Cloud API (Meta Graph API).
+
+    API oficial: https://developers.facebook.com/docs/whatsapp/cloud-api/messages/text-messages
+    Endpoint:    POST https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages
+    Auth:        Bearer {ACCESS_TOKEN}
+
+    Notas:
+        - WhatsApp Business API envia a numeros individuales (no canales).
+        - Soporta multiples destinatarios separados por coma.
+        - El numero receptor debe haber iniciado conversacion o usar template aprobado.
+        - Para job posting masivo: registrar candidatos con opt-in.
+
+    Configuracion en ConfiguracionSistema:
+        whatsapp_phone_number_id: ID del numero en Meta Developer Console.
+        whatsapp_access_token:    Token permanente de la Meta Business App.
+        whatsapp_to_number:       Numero(s) en formato 51XXXXXXXXX, separados por coma.
+    """
+
+    PLATAFORMA  = "WHATSAPP"
+    API_BASE    = "https://graph.facebook.com/v18.0"
+    TIMEOUT_SEG = 15
+
+    def publicar_vacante(
+        self,
+        vacante,
+        phone_number_id="",
+        access_token="",
+        to_numbers="",
+        portal_url="",
+    ):
+        import json
+        import urllib.request
+        import urllib.error
+
+        if not phone_number_id:
+            return {
+                "ok": False, "plataforma": self.PLATAFORMA,
+                "error": "PHONE_NUMBER_ID requerido. Configuralo en Configuracion > Integraciones > WhatsApp.",
+                "mensaje": "", "url_publicada": "",
+            }
+        if not access_token:
+            return {
+                "ok": False, "plataforma": self.PLATAFORMA,
+                "error": "ACCESS TOKEN requerido. Obtenerlo en Meta Business Developer Console.",
+                "mensaje": "", "url_publicada": "",
+            }
+
+        numeros = [n.strip() for n in to_numbers.split(",") if n.strip()]
+        if not numeros:
+            return {
+                "ok": False, "plataforma": self.PLATAFORMA,
+                "error": "Debe configurar al menos un numero de destino (formato: 51XXXXXXXXX).",
+                "mensaje": "", "url_publicada": "",
+            }
+
+        texto    = self._construir_mensaje(vacante, portal_url)
+        endpoint = f"{self.API_BASE}/{phone_number_id}/messages"
+        headers  = {
+            "Content-Type":  "application/json",
+            "Authorization": f"Bearer {access_token}",
+        }
+
+        enviados = []
+        fallidos  = []
+
+        for numero in numeros:
+            payload = {
+                "messaging_product": "whatsapp",
+                "recipient_type":    "individual",
+                "to":                numero,
+                "type":              "text",
+                "text": {"preview_url": True, "body": texto},
+            }
+            try:
+                body = json.dumps(payload).encode("utf-8")
+                req  = urllib.request.Request(endpoint, data=body, headers=headers, method="POST")
+                with urllib.request.urlopen(req, timeout=self.TIMEOUT_SEG) as resp:
+                    data   = json.loads(resp.read().decode("utf-8"))
+                    msg_id = data.get("messages", [{}])[0].get("id", "") if data.get("messages") else ""
+                    enviados.append({"numero": numero, "message_id": msg_id})
+            except urllib.error.HTTPError as exc:
+                try:
+                    err_body = json.loads(exc.read().decode("utf-8"))
+                    desc = err_body.get("error", {}).get("message", str(exc))
+                except Exception:
+                    desc = str(exc)
+                fallidos.append({"numero": numero, "error": f"HTTP {exc.code}: {desc}"})
+            except Exception as exc:
+                fallidos.append({"numero": numero, "error": str(exc)})
+
+        ok = len(enviados) > 0
+        if ok and not fallidos:
+            mensaje = f"Oferta enviada a {len(enviados)} numero(s) de WhatsApp."
+        elif ok:
+            mensaje = (
+                f"Enviado a {len(enviados)} numero(s). "
+                f"Fallo en {len(fallidos)}: {', '.join(f['numero'] for f in fallidos)}."
+            )
+        else:
+            mensaje = f"Todos los envios fallaron ({len(fallidos)} numero(s))."
+
+        return {
+            "ok":          ok,
+            "plataforma":  self.PLATAFORMA,
+            "mensaje":     mensaje,
+            "url_publicada": "",
+            "error":       None if ok else mensaje,
+            "enviados":    enviados,
+            "fallidos":    fallidos,
+            "texto_enviado": texto,
+            "respuesta_api": {"enviados": enviados, "fallidos": fallidos},
+        }
+
+    def _construir_mensaje(self, vacante, portal_url=""):
+        """Texto WhatsApp: usa *negrita* (no HTML)."""
+        lineas = ["🔔 *NUEVA OPORTUNIDAD LABORAL*", ""]
+        lineas.append(f"📌 *{vacante.titulo}*")
+
+        if hasattr(vacante, "area") and vacante.area:
+            lineas.append(f"🏢 {vacante.area.nombre}")
+        if getattr(vacante, "modalidad", None):
+            lineas.append(f"📍 {vacante.get_modalidad_display()}")
+
+        if getattr(vacante, "salario_min", None) or getattr(vacante, "salario_max", None):
+            partes = []
+            if vacante.salario_min:
+                partes.append(f"{vacante.moneda} {vacante.salario_min:,.0f}")
+            if vacante.salario_max:
+                partes.append(f"{vacante.moneda} {vacante.salario_max:,.0f}")
+            lineas.append(f"💰 {' - '.join(partes)}")
+        else:
+            lineas.append("💰 A convenir")
+
+        if getattr(vacante, "descripcion", None):
+            desc = vacante.descripcion.strip()
+            if len(desc) > 280:
+                desc = desc[:277] + "..."
+            lineas += ["", "📋 *Descripcion:*", desc]
+
+        if getattr(vacante, "requisitos", None):
+            req = vacante.requisitos.strip()
+            if len(req) > 220:
+                req = req[:217] + "..."
+            lineas += ["", "✅ *Requisitos:*", req]
+
+        if portal_url:
+            lineas += ["", f"📩 *Postular:* {portal_url}"]
+
+        if getattr(vacante, "fecha_limite", None):
+            lineas.append(f"📅 Cierre: {vacante.fecha_limite.strftime('%d/%m/%Y')}")
+
+        lineas += ["", "#empleo #trabajo #peru #rrhh"]
+        return "\n".join(lineas)
+
+    def generar_preview(self, vacante, portal_url=""):
+        """Preview sin enviar (sin credenciales configuradas)."""
+        return {
+            "ok":          True,
+            "plataforma":  self.PLATAFORMA,
+            "mensaje":     "Vista previa generada (no enviado — falta phone_number_id o access_token)",
+            "url_publicada": "",
+            "error":       None,
+            "es_preview":  True,
+            "texto_enviado": self._construir_mensaje(vacante, portal_url),
+        }

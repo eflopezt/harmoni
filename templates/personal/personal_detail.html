@@ -518,8 +518,160 @@ document.getElementById('formDarBaja').addEventListener('submit', function(e) {
             </div>
         </div>
         {% endif %}
+
+        {# ── Acceso al Portal del Empleado ── #}
+        {% if user.is_superuser %}
+        <div class="card shadow-sm mb-3" id="card-portal-acceso">
+            <div class="card-body">
+                <div class="info-section mb-0">
+                    <h6><i class="fas fa-door-open me-2"></i>Acceso al Portal del Empleado</h6>
+
+                    {% if personal.usuario %}
+                    {# Tiene acceso — mostrar info y opciones #}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-success">
+                            <i class="fas fa-check me-1"></i>Activo
+                        </span>
+                        <span class="small text-muted">
+                            Usuario: <strong class="text-dark">{{ personal.usuario.username }}</strong>
+                        </span>
+                        {% if not personal.usuario.is_active %}
+                        <span class="badge bg-warning text-dark">Desactivado</span>
+                        {% endif %}
+                    </div>
+                    <div class="small text-muted mb-3">
+                        <i class="fas fa-envelope me-1"></i>
+                        {{ personal.usuario.email|default:"Sin email registrado" }}
+                        &nbsp;·&nbsp;
+                        Último acceso:
+                        {% if personal.usuario.last_login %}
+                            {{ personal.usuario.last_login|date:"d/m/Y H:i" }}
+                        {% else %}
+                            Nunca
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-outline-warning btn-sm" id="btnResetCredenciales"
+                                onclick="portalResetCredenciales({{ personal.pk }})">
+                            <i class="fas fa-key me-1"></i>Restablecer Contraseña
+                        </button>
+                        <a href="{% url 'accesos_gestion' %}?buscar={{ personal.nro_doc }}"
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-shield-alt me-1"></i>Gestionar Permisos
+                        </a>
+                    </div>
+
+                    {% else %}
+                    {# Sin acceso — botón crear #}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-secondary">
+                            <i class="fas fa-times me-1"></i>Sin acceso
+                        </span>
+                        <span class="small text-muted">El empleado no puede iniciar sesión en el portal.</span>
+                    </div>
+                    {% if not personal.nro_doc %}
+                    <div class="alert alert-warning py-2 px-3 small mb-0">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Se necesita número de documento para crear el acceso.
+                    </div>
+                    {% else %}
+                    <div class="small text-muted mb-3">
+                        Se creará con usuario <strong>{{ personal.nro_doc }}</strong>
+                        y contraseña inicial igual al DNI.
+                        {% if personal.correo_corporativo or personal.correo_personal %}
+                        Se enviará un email de bienvenida con las credenciales.
+                        {% else %}
+                        <span class="text-warning"><i class="fas fa-exclamation-circle me-1"></i>Sin email — no se enviará notificación.</span>
+                        {% endif %}
+                    </div>
+                    <button class="btn btn-success btn-sm" id="btnCrearAcceso"
+                            onclick="portalCrearAcceso({{ personal.pk }})">
+                        <i class="fas fa-user-plus me-1"></i>Crear Acceso al Portal
+                    </button>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+<script>
+function portalCrearAcceso(personalPk) {
+    const btn = document.getElementById('btnCrearAcceso');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...'; }
+
+    fetch(`/personal/personal/${personalPk}/portal/crear/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                        || getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', data.mensaje + (data.email_enviado ? ' Email enviado.' : ''));
+            setTimeout(() => location.reload(), 1800);
+        } else {
+            showToast('danger', data.error || 'Error al crear acceso.');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus me-1"></i>Crear Acceso al Portal'; }
+        }
+    })
+    .catch(() => {
+        showToast('danger', 'Error de red. Intenta nuevamente.');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus me-1"></i>Crear Acceso al Portal'; }
+    });
+}
+
+function portalResetCredenciales(personalPk) {
+    if (!confirm('¿Restablecer la contraseña al número de documento del empleado?')) return;
+    const btn = document.getElementById('btnResetCredenciales');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Restableciendo...'; }
+
+    fetch(`/personal/personal/${personalPk}/portal/reset/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                        || getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', data.mensaje + (data.email_enviado ? ' Email enviado con las nuevas credenciales.' : ''));
+        } else {
+            showToast('danger', data.error || 'Error al restablecer contraseña.');
+        }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-key me-1"></i>Restablecer Contraseña'; }
+    })
+    .catch(() => {
+        showToast('danger', 'Error de red. Intenta nuevamente.');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-key me-1"></i>Restablecer Contraseña'; }
+    });
+}
+
+function showToast(type, message) {
+    const existing = document.getElementById('portal-toast');
+    if (existing) existing.remove();
+    const div = document.createElement('div');
+    div.id = 'portal-toast';
+    div.className = `alert alert-${type} alert-dismissible fade show position-fixed bottom-0 end-0 m-3`;
+    div.style.zIndex = '9999';
+    div.style.maxWidth = '380px';
+    div.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(div);
+    setTimeout(() => { if (div.parentNode) div.remove(); }, 5000);
+}
+
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? match[2] : '';
+}
+</script>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!--  VISTA 360° — tabs con datos de todos los módulos             -->
@@ -553,7 +705,7 @@ document.getElementById('formDarBaja').addEventListener('submit', function(e) {
               · {{ ultimo_registro_nomina.dias_trabajados }} días trabajados
             </small>
           </div>
-          <a href="{% url 'nominas:boleta_pdf' ultimo_registro_nomina.pk %}" class="btn btn-sm btn-outline-danger" target="_blank">
+          <a href="{% url 'nominas_boleta_pdf' ultimo_registro_nomina.pk %}" class="btn btn-sm btn-outline-danger" target="_blank">
             <i class="fas fa-file-pdf me-1"></i>Boleta PDF
           </a>
         </div>

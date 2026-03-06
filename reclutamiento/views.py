@@ -22,6 +22,8 @@ from integraciones.reclutamiento import (
     BumeranExporter,
     LinkedInJobsPublisher,
     PortalPropio,
+    TelegramJobPublisher,
+    WhatsAppBusinessPublisher,
 )
 from personal.models import Area
 from .models import (
@@ -756,6 +758,20 @@ PLATAFORMAS_DISPONIBLES = [
         'tipo':        'API',
     },
     {
+        'id':          'telegram',
+        'nombre':      'Telegram Bot',
+        'icono':       'bi bi-telegram',
+        'descripcion': 'Publica en un canal de Telegram via Bot API (requiere token y chat_id)',
+        'tipo':        'API',
+    },
+    {
+        'id':          'whatsapp',
+        'nombre':      'WhatsApp Business',
+        'icono':       'bi bi-whatsapp',
+        'descripcion': 'Envia a número(s) via WhatsApp Business Cloud API (Meta Graph API)',
+        'tipo':        'API',
+    },
+    {
         'id':          'portal',
         'nombre':      'Portal de Empleo Propio',
         'icono':       'bi bi-globe',
@@ -879,6 +895,72 @@ def _ejecutar_publicador(request, vacante, plataforma_id: str, base_url: str) ->
 
         return publisher.publicar_vacante(vacante, access_token, organization_id)
 
+    elif plataforma_id == 'telegram':
+        publisher = TelegramJobPublisher()
+
+        # Credenciales desde POST o ConfiguracionSistema
+        bot_token = request.POST.get('telegram_bot_token', '').strip()
+        chat_id   = request.POST.get('telegram_chat_id', '').strip()
+
+        if not bot_token or not chat_id:
+            try:
+                from asistencia.models import ConfiguracionSistema
+                config = ConfiguracionSistema.objects.first()
+                if config:
+                    if not bot_token:
+                        bot_token = getattr(config, 'telegram_bot_token', '') or ''
+                    if not chat_id:
+                        chat_id = getattr(config, 'telegram_channel_id', '') or ''
+            except Exception:
+                pass
+
+        portal_url = f'{base_url}/empleo/{vacante.pk}/postular/'
+
+        if not bot_token or not chat_id:
+            # Devolver preview del mensaje sin publicar
+            return publisher.generar_preview(vacante, portal_url=portal_url)
+
+        return publisher.publicar_vacante(
+            vacante,
+            bot_token=bot_token,
+            chat_id=chat_id,
+            portal_url=portal_url,
+        )
+
+    elif plataforma_id == 'whatsapp':
+        publisher = WhatsAppBusinessPublisher()
+
+        phone_number_id = request.POST.get('whatsapp_phone_number_id', '').strip()
+        access_token    = request.POST.get('whatsapp_access_token', '').strip()
+        to_numbers      = request.POST.get('whatsapp_to_number', '').strip()
+
+        if not phone_number_id or not access_token or not to_numbers:
+            try:
+                from asistencia.models import ConfiguracionSistema
+                config = ConfiguracionSistema.objects.first()
+                if config:
+                    if not phone_number_id:
+                        phone_number_id = getattr(config, 'whatsapp_phone_number_id', '') or ''
+                    if not access_token:
+                        access_token = getattr(config, 'whatsapp_access_token', '') or ''
+                    if not to_numbers:
+                        to_numbers = getattr(config, 'whatsapp_to_number', '') or ''
+            except Exception:
+                pass
+
+        portal_url = f'{base_url}/empleo/{vacante.pk}/postular/'
+
+        if not phone_number_id or not access_token or not to_numbers:
+            return publisher.generar_preview(vacante, portal_url=portal_url)
+
+        return publisher.publicar_vacante(
+            vacante,
+            phone_number_id=phone_number_id,
+            access_token=access_token,
+            to_numbers=to_numbers,
+            portal_url=portal_url,
+        )
+
     elif plataforma_id == 'portal':
         portal = PortalPropio()
         return portal.publicar_vacante(vacante, base_url=base_url)
@@ -901,6 +983,8 @@ def _guardar_log_publicacion(vacante, resultado: dict, usuario) -> None:
         'COMPUTRABAJO': 'COMPUTRABAJO',
         'BUMERAN':      'BUMERAN',
         'LINKEDIN':     'LINKEDIN',
+        'TELEGRAM':     'TELEGRAM',
+        'WHATSAPP':     'WHATSAPP',
         'PORTAL':       'PORTAL',
     }
     plataforma_code = mapa_plataforma.get(plataforma_id.upper(), 'PORTAL')
@@ -1539,3 +1623,162 @@ def dashboard_reclutamiento(request):
         'vacantes_prioridad_json': vacantes_prioridad_json,
     }
     return render(request, 'reclutamiento/dashboard.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONTRATAR CANDIDATO → onboarding automático
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def contratar_candidato(request, pk):
+    """
+    GET  → Modal/form para ingresar datos de contratación.
+    POST → Crea Personal + ProcesoOnboarding automático.
+
+    Flujo:
+      1. Validar nro_doc único y fecha_alta
+      2. Crear Personal desde datos de Postulacion + form
+      3. Marcar Postulacion como CONTRATADA + vincular personal_creado
+      4. Mover etapa del pipeline a "Contratado"
+      5. Auto-crear ProcesoOnboarding desde primera PlantillaOnboarding activa
+      6. Notificar vía NotificacionService
+    """
+    from .models import Postulacion, EtapaPipeline
+    from personal.models import Personal
+
+    postulacion = get_object_or_404(Postulacion, pk=pk, estado='ACTIVA')
+
+    # Plantillas de onboarding disponibles
+    from onboarding.models import PlantillaOnboarding
+    plantillas_onb = PlantillaOnboarding.objects.filter(activa=True).order_by('nombre')
+
+    if request.method == 'GET':
+        return render(request, 'reclutamiento/contratar_modal.html', {
+            'postulacion': postulacion,
+            'plantillas_onb': plantillas_onb,
+            'hoy': date.today(),
+        })
+
+    # ── POST: procesar contratación ───────────────────────────────────────────
+    nro_doc    = request.POST.get('nro_doc', '').strip()
+    fecha_alta = request.POST.get('fecha_alta', '').strip()
+    tipo_trab  = request.POST.get('tipo_trab', 'Empleado')
+    sueldo_raw = request.POST.get('sueldo_base', '0').strip()
+    plantilla_id = request.POST.get('plantilla_id', '').strip()
+
+    # Validaciones
+    if not nro_doc:
+        messages.error(request, 'El número de documento es obligatorio.')
+        return redirect('contratar_candidato', pk=pk)
+
+    if Personal.objects.filter(nro_doc=nro_doc).exists():
+        messages.error(request, f'Ya existe un empleado con el documento {nro_doc}.')
+        return redirect('contratar_candidato', pk=pk)
+
+    if not fecha_alta:
+        messages.error(request, 'La fecha de alta es obligatoria.')
+        return redirect('contratar_candidato', pk=pk)
+
+    try:
+        from datetime import datetime
+        fecha_alta_dt = datetime.strptime(fecha_alta, '%Y-%m-%d').date()
+    except ValueError:
+        messages.error(request, 'Fecha de alta inválida.')
+        return redirect('contratar_candidato', pk=pk)
+
+    try:
+        from decimal import Decimal
+        sueldo = Decimal(sueldo_raw) if sueldo_raw else Decimal('0')
+    except Exception:
+        sueldo = Decimal('0')
+
+    from django.db import transaction
+    with transaction.atomic():
+        # ── 1. Crear Personal ──────────────────────────────────────────────
+        personal = Personal.objects.create(
+            apellidos_nombres = postulacion.nombre_completo,
+            nro_doc           = nro_doc,
+            tipo_doc          = 'DNI',
+            cargo             = postulacion.vacante.titulo[:150],
+            tipo_trab         = tipo_trab,
+            fecha_alta        = fecha_alta_dt,
+            sueldo_base       = sueldo,
+            correo_personal   = postulacion.email,
+            estado            = 'Activo',
+            # Área desde la vacante si existe
+            **(
+                {'subarea': postulacion.vacante.area.subareas.filter(activa=True).first()}
+                if postulacion.vacante.area_id and
+                   postulacion.vacante.area.subareas.filter(activa=True).exists()
+                else {}
+            ),
+        )
+
+        # ── 2. Vincular postulacion ────────────────────────────────────────
+        postulacion.estado         = 'CONTRATADA'
+        postulacion.personal_creado = personal
+        postulacion.save(update_fields=['estado', 'personal_creado'])
+
+        # ── 3. Mover etapa pipeline a "Contratado" ─────────────────────────
+        etapa_contratado = EtapaPipeline.objects.filter(codigo='contratado').first()
+        if etapa_contratado:
+            postulacion.etapa = etapa_contratado
+            postulacion.save(update_fields=['etapa'])
+
+        # ── 4. Auto-crear ProcesoOnboarding ───────────────────────────────
+        proceso_onb = None
+        plantilla   = None
+        if plantilla_id:
+            plantilla = PlantillaOnboarding.objects.filter(pk=plantilla_id, activa=True).first()
+        if not plantilla:
+            plantilla = PlantillaOnboarding.objects.filter(activa=True).order_by('id').first()
+
+        if plantilla:
+            from onboarding.models import ProcesoOnboarding, PasoOnboarding
+            proceso_onb = ProcesoOnboarding.objects.create(
+                personal      = personal,
+                plantilla     = plantilla,
+                fecha_ingreso = fecha_alta_dt,
+                fecha_inicio  = date.today(),
+                estado        = 'EN_CURSO',
+                iniciado_por  = request.user,
+                notas         = f'Generado automáticamente al contratar desde reclutamiento. '
+                                f'Postulación #{postulacion.pk} — Vacante: {postulacion.vacante.titulo}',
+            )
+            # Generar pasos desde plantilla
+            for paso_tpl in plantilla.pasos.all().order_by('orden'):
+                PasoOnboarding.objects.create(
+                    proceso      = proceso_onb,
+                    paso_plantilla = paso_tpl,
+                    orden        = paso_tpl.orden,
+                    titulo       = paso_tpl.titulo,
+                    estado       = 'PENDIENTE',
+                    fecha_limite = fecha_alta_dt + timedelta(days=paso_tpl.dias_plazo),
+                )
+
+        # ── 5. Notificar al personal recién contratado (in-app) ──────────
+        try:
+            from comunicaciones.services import NotificacionService
+            cuerpo_notif = (
+                f'<p>Bienvenido/a <strong>{personal.apellidos_nombres}</strong>. '
+                f'Tu incorporación como <strong>{personal.cargo}</strong> ha sido registrada '
+                f'con fecha de ingreso <strong>{fecha_alta_dt:%d/%m/%Y}</strong>.</p>'
+                + (f'<p>Tu proceso de onboarding "<strong>{plantilla.nombre}</strong>" '
+                   f'ha sido iniciado automáticamente.</p>' if plantilla else '')
+            )
+            NotificacionService.enviar(
+                destinatario = personal,
+                asunto       = f'¡Bienvenido/a, {personal.apellidos_nombres.split(",")[0].strip()}!',
+                cuerpo       = cuerpo_notif,
+                tipo         = 'IN_APP',
+            )
+        except Exception:
+            pass  # La notificación no bloquea el flujo
+
+    msg = f'✅ {personal.apellidos_nombres} contratado/a exitosamente.'
+    if proceso_onb:
+        msg += f' Onboarding "{plantilla.nombre}" iniciado ({plantilla.pasos.count()} pasos).'
+    messages.success(request, msg)
+
+    # Redirigir al registro de personal recién creado
+    return redirect('personal_detail', pk=personal.pk)

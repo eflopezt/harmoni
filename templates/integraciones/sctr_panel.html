@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load humanize harmoni_tags %}
+
+{% block title %}Control SCTR — Integraciones{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  {# ── Header ── #}
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-bold mb-0">
+        <i class="fas fa-shield-alt me-2" style="color:#0f766e;"></i>
+        Control SCTR
+      </h4>
+      <p class="text-muted small mb-0">
+        Seguro Complementario de Trabajo de Riesgo — Pólizas y vencimientos (Ley 26790 / DS 003-98-SA)
+      </p>
+    </div>
+    <a href="{% url 'sctr_crear' %}" class="btn btn-success">
+      <i class="fas fa-plus me-1"></i>Nueva Póliza
+    </a>
+  </div>
+
+  {# Mensajes #}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  {# ── KPI Cards ── #}
+  <div class="row g-3 mb-4">
+    <div class="col-sm-4">
+      <div class="card border-0 shadow-sm text-center py-3">
+        <div class="fw-bold" style="font-size:2rem;color:#0f766e;">{{ vigentes }}</div>
+        <div class="text-muted small">Pólizas Vigentes</div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card border-0 shadow-sm text-center py-3"
+           style="border-left:4px solid #f59e0b !important;">
+        <div class="fw-bold text-warning" style="font-size:2rem;">{{ por_vencer }}</div>
+        <div class="text-muted small">Próximas a Vencer</div>
+        <div class="text-muted" style="font-size:.72rem;">(en los próximos 30 días)</div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card border-0 shadow-sm text-center py-3"
+           style="border-left:4px solid #ef4444 !important;">
+        <div class="fw-bold text-danger" style="font-size:2rem;">{{ vencidas }}</div>
+        <div class="text-muted small">Vencidas / Canceladas</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Tabla de pólizas ── #}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span class="fw-semibold">
+        <i class="fas fa-list me-1 text-muted"></i>Pólizas SCTR
+      </span>
+      <small class="text-muted">Hoy: {{ hoy|date:"d/m/Y" }}</small>
+    </div>
+
+    {% if polizas %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th>Tipo</th>
+            <th>N° Póliza</th>
+            <th>Aseguradora</th>
+            <th>Vigencia</th>
+            <th class="text-center">Días</th>
+            <th class="text-center">Cubiertos</th>
+            <th class="text-end">Tasa (%)</th>
+            <th>Estado</th>
+            <th class="text-center">Arch.</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in polizas %}
+          <tr {% if p.esta_vencida %}class="table-danger bg-opacity-50"{% elif p.esta_proxima_a_vencer %}class="table-warning bg-opacity-50"{% endif %}>
+            <td>
+              {% if p.tipo == 'SALUD' %}
+              <span class="badge" style="background:#0284c7;">Salud</span>
+              {% elif p.tipo == 'PENSION' %}
+              <span class="badge" style="background:#7c3aed;">Pensión</span>
+              {% else %}
+              <span class="badge" style="background:#0f766e;">Ambos</span>
+              {% endif %}
+            </td>
+            <td class="font-monospace fw-semibold">{{ p.numero_poliza }}</td>
+            <td>{{ p.proveedor_nombre }}</td>
+            <td>
+              <small class="text-muted">{{ p.fecha_inicio|date:"d/m/Y" }}</small>
+              <i class="fas fa-arrow-right mx-1 text-muted" style="font-size:.65rem;"></i>
+              <strong>{{ p.fecha_fin|date:"d/m/Y" }}</strong>
+            </td>
+            <td class="text-center">
+              {% if p.esta_vencida %}
+              <span class="badge bg-danger">
+                Venció hace {{ p.dias_para_vencer|abs_value }} d.
+              </span>
+              {% elif p.esta_proxima_a_vencer %}
+              <span class="badge bg-warning text-dark">
+                {{ p.dias_para_vencer }} d.
+              </span>
+              {% else %}
+              <span class="text-success fw-semibold">{{ p.dias_para_vencer }} d.</span>
+              {% endif %}
+            </td>
+            <td class="text-center">{{ p.trabajadores_cubiertos|default:"—" }}</td>
+            <td class="text-end">
+              {% if p.aporte_pct %}{{ p.aporte_pct|floatformat:2 }}%{% else %}—{% endif %}
+            </td>
+            <td>
+              {% if p.estado == 'VIGENTE' and not p.esta_vencida %}
+              <span class="badge bg-success">Vigente</span>
+              {% elif p.estado == 'VIGENTE' and p.esta_vencida %}
+              <span class="badge bg-danger">Vencida</span>
+              {% elif p.estado == 'RENOVACION' %}
+              <span class="badge bg-info">En Renovación</span>
+              {% elif p.estado == 'CANCELADA' %}
+              <span class="badge bg-secondary">Cancelada</span>
+              {% else %}
+              <span class="badge bg-danger">{{ p.get_estado_display }}</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if p.archivo %}
+              <a href="{{ p.archivo.url }}" target="_blank" class="text-danger" title="Ver PDF">
+                <i class="fas fa-file-pdf"></i>
+              </a>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'sctr_editar' p.pk %}"
+                   class="btn btn-xs btn-outline-primary py-0 px-2">
+                  <i class="fas fa-edit"></i>
+                </a>
+                {# Toggle estado #}
+                {% if p.estado != 'CANCELADA' %}
+                <form method="post" action="{% url 'sctr_estado' p.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="estado" value="CANCELADA">
+                  <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-2"
+                          title="Cancelar póliza"
+                          onclick="return confirm('¿Cancelar esta póliza?')">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </form>
+                {% endif %}
+                {% if p.estado == 'VIGENTE' %}
+                <form method="post" action="{% url 'sctr_estado' p.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="estado" value="RENOVACION">
+                  <button type="submit" class="btn btn-xs btn-outline-warning py-0 px-2"
+                          title="Marcar en renovación">
+                    <i class="fas fa-sync"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card-body text-center text-muted py-5">
+      <i class="fas fa-shield-alt fa-3x mb-3 opacity-25"></i>
+      <p class="mb-0">No hay pólizas SCTR registradas.</p>
+      <a href="{% url 'sctr_crear' %}" class="btn btn-success mt-3">
+        <i class="fas fa-plus me-1"></i>Registrar Primera Póliza
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {# ── Info legal ── #}
+  <div class="alert alert-info d-flex gap-2 mt-4 small">
+    <i class="fas fa-balance-scale fa-lg mt-1 flex-shrink-0"></i>
+    <div>
+      <strong>Marco Legal SCTR:</strong>
+      Obligatorio para trabajadores en actividades de alto riesgo (Anexo 5, DS 009-97-SA).
+      Cubre: accidentes de trabajo, enfermedades profesionales, invalidez, muerte y gastos de sepelio.
+      Tasas según nivel de riesgo: <strong>0.66%</strong> (riesgo 1) —
+      <strong>3.22%</strong> (riesgo 4) sobre remuneración mensual del trabajador.
+    </div>
+  </div>
+
+</div>
+
+<style>
+.btn-xs { font-size:.72rem; }
+</style>
+{% endblock %}

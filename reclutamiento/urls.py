@@ -16,6 +16,7 @@ urlpatterns = [
     path('postulacion/<int:pk>/', views.postulacion_detalle, name='postulacion_detalle'),
     path('postulacion/<int:pk>/mover/', views.postulacion_mover_etapa, name='postulacion_mover_etapa'),
     path('postulacion/<int:pk>/descartar/', views.postulacion_descartar, name='postulacion_descartar'),
+    path('postulacion/<int:pk>/contratar/', views.contratar_candidato, name='contratar_candidato'),
 
     # ── Admin: Notas y Entrevistas ──
     path('postulacion/<int:postulacion_pk>/nota/', views.nota_agregar, name='nota_agregar'),

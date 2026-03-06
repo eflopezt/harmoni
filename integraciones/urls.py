@@ -41,4 +41,10 @@ urlpatterns = [
 
     # Configuracion del sistema
     path('configuracion/', views.configuracion_sistema, name='configuracion_sistema'),
+
+    # SCTR — Seguro Complementario de Trabajo de Riesgo
+    path('sctr/', views.sctr_panel, name='sctr_panel'),
+    path('sctr/crear/', views.sctr_crear, name='sctr_crear'),
+    path('sctr/<int:pk>/editar/', views.sctr_editar, name='sctr_editar'),
+    path('sctr/<int:pk>/estado/', views.sctr_estado, name='sctr_estado'),
 ]

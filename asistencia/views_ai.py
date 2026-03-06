@@ -30,6 +30,7 @@ from .services.ai_context import (
     detect_individual_query,
     detect_module_context,
     detect_multiple_chart_requests,
+    detect_pin_to_dashboard,
     generate_chart_data,
     generate_dashboard_data,
     get_individual_ranking,
@@ -145,8 +146,11 @@ def ai_chat_stream(request):
         return JsonResponse({'error': 'JSON inválido'}, status=400)
 
     message = body.get('message', '').strip()
-    if not message:
+    file_context = body.get('file_context')  # {'type': 'pdf|excel|image|text', 'name': ..., 'content': ...}
+    if not message and not file_context:
         return JsonResponse({'error': 'Mensaje vacío'}, status=400)
+    if not message:
+        message = f'Analiza este archivo y dame un resumen ejecutivo con los puntos clave.'
 
     history = body.get('history', [])
 
@@ -207,7 +211,7 @@ def ai_chat_stream(request):
     # ── Fallback sin IA si Ollama no está disponible ──
     if not ollama_ok:
         # Charts también funcionan sin Ollama (datos vienen de BD)
-        chart_reqs = detect_multiple_chart_requests(message)
+        chart_reqs = detect_multiple_chart_requests(message, history)
         chart_datas = []
         if chart_reqs:
             for cr in chart_reqs:
@@ -241,6 +245,14 @@ def ai_chat_stream(request):
                     if len(chart_datas) > 1:
                         analysis += f' (+{len(chart_datas) - 1} gráfico(s) adicional(es) mostrado(s))'
                     yield f'data: {_sse_text(analysis)}\n\n'
+                if wants_pin:
+                    pin_payload = json.dumps({
+                        'titulo': first.get('title', 'Gráfico'),
+                        'chart_type': first.get('chart', 'bar'),
+                        'data_source': chart_reqs[0].get('type', 'custom') if chart_reqs else 'custom',
+                        'config': first,
+                    }, ensure_ascii=False)
+                    yield f'data: [PIN_WIDGET]{pin_payload}[/PIN_WIDGET]\n\n'
             elif indiv_data is not None:
                 if indiv_data:
                     ranking_text = '\n'.join(
@@ -272,8 +284,11 @@ def ai_chat_stream(request):
         response['X-Accel-Buffering'] = 'no'
         return response
 
+    # ── Detectar si quiere fijar un gráfico en el dashboard ──
+    wants_pin = detect_pin_to_dashboard(message)
+
     # ── Detectar si pide uno o más gráficos ──
-    chart_reqs = detect_multiple_chart_requests(message)
+    chart_reqs = detect_multiple_chart_requests(message, history)
     chart_datas = []
     if chart_reqs:
         for cr in chart_reqs:
@@ -285,6 +300,15 @@ def ai_chat_stream(request):
     modules = detect_module_context(message)
     system_prompt = build_system_prompt(request.user, modules=modules)
 
+    # ── RAG: inyectar conocimiento base relevante ──
+    try:
+        from core.knowledge_service import get_knowledge_context
+        knowledge_ctx = get_knowledge_context(message, limit=4)
+        if knowledge_ctx:
+            system_prompt = system_prompt + '\n\n' + knowledge_ctx
+    except Exception:
+        pass  # knowledge_service es opcional, no bloquea el chat
+
     # Limitar historial a los últimos 10 turnos
     messages = []
     for msg in history[-10:]:
@@ -295,6 +319,25 @@ def ai_chat_stream(request):
 
     # Construir mensaje enriquecido para el LLM
     ai_message = message
+
+    # ── Archivo adjunto: inyectar contenido en el prompt ──
+    if file_context:
+        fc_type = file_context.get('type', '')
+        fc_name = file_context.get('name', 'archivo')
+        fc_content = file_context.get('content', '')
+
+        if fc_type == 'image':
+            # Para imágenes no inyectamos el base64 en texto — se pasa directo al modelo
+            # Nota: GeminiService soporta imágenes inline. OpenAI/DeepSeek text-only, ignoramos imagen.
+            pass
+        elif fc_content:
+            trunc_note = ' [contenido truncado a 12000 chars]' if file_context.get('truncated') else ''
+            ai_message = (
+                f'[ARCHIVO ADJUNTO: {fc_name}{trunc_note}]\n'
+                f'{fc_content}\n'
+                f'[FIN ARCHIVO]\n\n'
+                f'Pregunta del usuario: {message}'
+            )
 
     if indiv_data is not None:
         # Datos individuales exactos de BD — inyectar en el prompt
@@ -352,6 +395,17 @@ def ai_chat_stream(request):
                 num_predict=900,
             ):
                 yield f'data: {chunk}\n\n'
+
+            # Si quiere fijar, enviar marker al final
+            if wants_pin and chart_datas:
+                pin_payload = json.dumps({
+                    'titulo': chart_datas[0].get('title', 'Gráfico'),
+                    'chart_type': chart_datas[0].get('chart', 'bar'),
+                    'data_source': chart_reqs[0].get('type', 'custom') if chart_reqs else 'custom',
+                    'config': chart_datas[0],
+                }, ensure_ascii=False)
+                yield f'data: [PIN_WIDGET]{pin_payload}[/PIN_WIDGET]\n\n'
+
             yield 'data: [DONE]\n\n'
         except Exception as e:
             logger.warning(f'ai_chat_stream error: {e}')
@@ -528,7 +582,7 @@ def _static_chart_analysis(chart_type: str, chart_data: dict) -> str:
 def ai_analyze_chart(request):
     """
     Genera análisis narrativo de un gráfico/sección de datos.
-    Body JSON: {"chart": "headcount|rotacion|asistencia|areas", "data": {...}}
+    Body JSON: {"chart": "headcount|rotacion|asistencia|areas|antiguedad|genero|edad|he_mes", "data": {...}}
     Retorna SSE streaming.
     """
     try:
@@ -557,69 +611,107 @@ def ai_analyze_chart(request):
 
     svc = get_service()
 
-    # Calcular totales para enriquecer el prompt con contexto
+    # Sistema con contexto rico de la empresa (módulo personal)
+    try:
+        system = build_system_prompt(request.user, modules=['personal'])
+        system += (
+            '\n\nROL PARA ANÁLISIS DE GRÁFICO:\n'
+            '- Analiza el gráfico con los datos exactos del input\n'
+            '- Máximo 4-5 oraciones directas, sin bullet points\n'
+            '- Usa los números exactos, calcula porcentajes cuando aplique\n'
+            '- Menciona benchmarks de la industria peruana cuando sea relevante\n'
+            '- Nunca digas "los datos muestran" o "se puede observar" — ve directo\n'
+            '- Nunca inventes datos que no estén en el input'
+        )
+    except Exception:
+        system = (
+            'Eres Harmoni AI, analista senior de RRHH especializado en empresas Peru. '
+            'Responde SIEMPRE en español. '
+            'Sé directo, usa números exactos. '
+            'Máximo 4-5 oraciones. Sin bullet points.'
+        )
+
+    # Calcular totales y top items para enriquecer los prompts
     labels = chart_data.get('labels', [])
     values = chart_data.get('values', [])
     total = sum(v for v in values if isinstance(v, (int, float)))
     items = list(zip(labels, values))
     top3 = sorted(items, key=lambda x: x[1], reverse=True)[:3] if items else []
+    data_json = json.dumps(chart_data, ensure_ascii=False)
 
     prompts = {
         'headcount': (
-            f'Analiza la evolucion del headcount mensual de esta empresa.\n'
-            f'Datos: {json.dumps(chart_data, ensure_ascii=False)}\n\n'
-            f'Instrucciones:\n'
-            f'1. Identifica la tendencia general (crecimiento, reduccion, estabilidad)\n'
-            f'2. Señala el mes pico y el mes mas bajo con sus valores exactos\n'
-            f'3. Calcula la variacion porcentual entre primer y ultimo dato\n'
-            f'4. Concluye con una interpretacion estrategica de 1 linea\n'
-            f'Formato: 4-5 oraciones directas y especificas. Sin bullet points.'
+            f'Analiza la evolución del headcount de los últimos {len(labels)} meses.\n'
+            f'Datos: {data_json}\n\n'
+            f'1. Identifica la tendencia: crecimiento, reducción o estabilidad\n'
+            f'2. Señala el mes pico ({max(values) if values else "?"}) y el mes mínimo ({min(values) if values else "?"})\n'
+            f'3. Calcula la variación entre el primer y último dato\n'
+            f'4. Concluye con una interpretación estratégica para gerencia'
         ),
         'rotacion': (
-            f'Analiza la tasa de rotacion mensual de personal.\n'
-            f'Datos: {json.dumps(chart_data, ensure_ascii=False)}\n\n'
-            f'Instrucciones:\n'
-            f'1. Indica si la rotacion esta por encima o debajo del benchmark Peru construccion (5-8% anual)\n'
-            f'2. Identifica los meses con picos de rotacion y posibles causas\n'
-            f'3. Calcula el promedio del periodo\n'
-            f'4. Recomienda 1 accion concreta basada en los datos\n'
-            f'Formato: 4-5 oraciones directas. Sin bullet points.'
+            f'Analiza la tasa de rotación mensual de personal.\n'
+            f'Datos: {data_json}\n\n'
+            f'1. Promedio del periodo: {(sum(values)/len(values)):.2f}% mensual. '
+            f'Benchmark Peru construccion/mineria: 2-4% mensual. ¿Está dentro?\n'
+            f'2. ¿Qué meses tuvieron picos y cuál podría ser la causa?\n'
+            f'3. Recomienda 1 acción específica basada en los datos'
         ),
         'asistencia': (
-            f'Analiza los indicadores de asistencia mensual.\n'
-            f'Datos: {json.dumps(chart_data, ensure_ascii=False)}\n\n'
-            f'Instrucciones:\n'
-            f'1. Identifica si la tasa de asistencia es saludable (benchmark: >95%)\n'
-            f'2. Señala los periodos con mayor ausentismo\n'
-            f'3. Detecta patrones estacionales si los hay\n'
-            f'4. Sugiere 1 accion preventiva especifica\n'
-            f'Formato: 4-5 oraciones directas. Sin bullet points.'
+            f'Analiza la tasa de asistencia/presencia mensual.\n'
+            f'Datos: {data_json}\n\n'
+            f'1. Benchmark saludable: >95%. El promedio aquí es {(sum(values)/len(values)):.1f}%\n'
+            f'2. ¿Hay meses con caídas? ¿Detectas estacionalidad?\n'
+            f'3. Sugiere 1 acción preventiva concreta'
+        ),
+        'asistencia_mes': (
+            f'Analiza la tasa de asistencia/presencia mensual.\n'
+            f'Datos: {data_json}\n\n'
+            f'1. Benchmark saludable: >95%. El promedio aquí es {(sum(values)/len(values)):.1f}% si hay datos\n'
+            f'2. ¿Hay meses con caídas notables?\n'
+            f'3. Sugiere 1 acción preventiva concreta'
         ),
         'areas': (
-            f'Analiza la distribucion de {total} empleados en {len(labels)} areas.\n'
-            f'Datos: {json.dumps(chart_data, ensure_ascii=False)}\n\n'
-            f'Instrucciones:\n'
-            f'1. Las 3 areas mas grandes son: '
-            f'{", ".join(f"{a} ({v}, {v*100//total if total else 0}%)" for a,v in top3)}. '
-            f'Comenta si esta concentracion es razonable\n'
-            f'2. Identifica areas posiblemente subdimensionadas (menos del 3% del total)\n'
-            f'3. Evalua el balance operativo: areas de produccion vs soporte\n'
-            f'4. Recomienda 1 ajuste organizacional especifico\n'
-            f'Formato: 4-5 oraciones directas. Sin bullet points.'
+            f'Analiza la distribución de {total} empleados en {len(labels)} áreas.\n'
+            f'Datos: {data_json}\n\n'
+            f'Top 3 áreas: {", ".join(f"{a} ({v}, {v*100//total if total else 0}%)" for a,v in top3)}.\n'
+            f'1. ¿Es razonable esta concentración para el tipo de empresa?\n'
+            f'2. ¿Hay áreas subdimensionadas (<3% del total)?\n'
+            f'3. Recomienda 1 ajuste organizacional'
+        ),
+        'antiguedad': (
+            f'Analiza la distribución de antigüedad del personal ({total} empleados).\n'
+            f'Datos: {data_json}\n\n'
+            f'1. ¿Qué proporción tiene menos de 1 año? Eso indica rotación o crecimiento reciente\n'
+            f'2. ¿Hay suficiente personal senior (>3 años) para transferencia de conocimiento?\n'
+            f'3. Evalúa el riesgo operativo por concentración en ciertos rangos'
+        ),
+        'genero': (
+            f'Analiza la distribución de género del personal ({total} empleados).\n'
+            f'Datos: {data_json}\n\n'
+            f'1. ¿Cuál es la proporción M/F? ¿Es típica del sector construcción/minería en Peru?\n'
+            f'2. ¿Qué implica esta distribución para políticas de diversidad e inclusión?\n'
+            f'3. ¿Hay oportunidades de mejora en equidad de género?'
+        ),
+        'edad': (
+            f'Analiza la distribución etaria del personal ({total} empleados con fecha nacimiento registrada).\n'
+            f'Datos: {data_json}\n\n'
+            f'1. ¿Qué rango etario predomina? ¿Es una plantilla joven, madura o mixta?\n'
+            f'2. Implicaciones para: capacitación, sucesión, beneficios y clima laboral\n'
+            f'3. ¿Hay riesgo de pérdida de conocimiento por concentración en rangos mayores?'
+        ),
+        'he_mes': (
+            f'Analiza las horas extra mensuales acumuladas.\n'
+            f'Datos: {data_json}\n\n'
+            f'1. ¿Hay tendencia creciente de HE? Eso puede indicar subdimensionamiento\n'
+            f'2. ¿Hay meses con picos? ¿Coinciden con cierre de proyectos o temporadas?\n'
+            f'3. Recomienda 1 acción: ¿contratar más personal o gestionar mejor la carga?'
         ),
     }
 
-    system = (
-        'Eres Harmoni AI, analista senior de RRHH especializado en empresas constructoras Peru. '
-        'Responde SIEMPRE en espanol. '
-        'Sé directo, especifico y usa los numeros exactos de los datos. '
-        'Nunca digas "los datos muestran" o "se puede observar" — ve directo al analisis. '
-        'Nunca inventes datos que no esten en el input.'
-    )
     prompt = prompts.get(
         chart_type,
-        f'Analiza estos datos de RRHH e identifica los 3 hallazgos mas importantes '
-        f'con recomendaciones accionables.\nDatos: {json.dumps(chart_data, ensure_ascii=False)}'
+        f'Analiza estos datos de RRHH, identifica 3 hallazgos clave con números exactos '
+        f'y da 1 recomendación accionable para gerencia.\nDatos: {data_json}'
     )
 
     def event_stream():
@@ -628,7 +720,7 @@ def ai_analyze_chart(request):
                 prompt=prompt,
                 system=system,
                 temperature=0.4,
-                num_predict=700,
+                num_predict=500,
             ):
                 yield f'data: {chunk}\n\n'
             yield 'data: [DONE]\n\n'
@@ -664,6 +756,22 @@ def ai_ask_data(request):
     if not question:
         return JsonResponse({'error': 'Pregunta vacía'}, status=400)
 
+    # ── Archivo adjunto opcional ──
+    file_context = body.get('file_context')
+    ai_question = question
+    if file_context:
+        fc_type = file_context.get('type', '')
+        fc_name = file_context.get('name', 'archivo')
+        fc_content = file_context.get('content', '')
+        if fc_type != 'image' and fc_content:
+            trunc_note = ' [contenido truncado a 12000 chars]' if file_context.get('truncated') else ''
+            ai_question = (
+                f'[ARCHIVO ADJUNTO: {fc_name}{trunc_note}]\n'
+                f'{fc_content}\n'
+                f'[FIN ARCHIVO]\n\n'
+                f'Pregunta del usuario: {question}'
+            )
+
     svc = get_service()
     ollama_ok = _is_ollama_reachable()
 
@@ -690,7 +798,7 @@ def ai_ask_data(request):
     modules = detect_module_context(question)
     system_prompt = build_system_prompt(request.user, modules=modules)
 
-    messages = [{'role': 'user', 'content': question}]
+    messages = [{'role': 'user', 'content': ai_question}]
 
     def event_stream():
         try:
@@ -761,3 +869,142 @@ def ai_export_report(request):
     except Exception as e:
         logger.error(f'ai_export_report error: {e}')
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# ─────────────────────────────────────────────────
+# UPLOAD ARCHIVO ADJUNTO
+# ─────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def ai_upload_file(request):
+    """
+    Procesa archivo adjunto para el chat IA.
+    Soporta: PDF (extrae texto), Excel (.xlsx), imágenes (JPG/PNG).
+    Retorna JSON con contenido extraído para incluir en el contexto.
+    Max tamaño: 10MB.
+    """
+    file = request.FILES.get('file')
+    if not file:
+        return JsonResponse({'ok': False, 'error': 'No se recibió archivo.'}, status=400)
+
+    MAX_SIZE = 10 * 1024 * 1024  # 10MB
+    if file.size > MAX_SIZE:
+        return JsonResponse({'ok': False, 'error': 'Archivo muy grande (máx 10MB).'}, status=400)
+
+    name = file.name or 'archivo'
+    ext = name.lower().rsplit('.', 1)[-1] if '.' in name else ''
+    content_bytes = file.read()
+
+    try:
+        # ── PDF ──────────────────────────────────────────────────────
+        if ext == 'pdf':
+            try:
+                import fitz  # PyMuPDF
+            except ImportError:
+                return JsonResponse({'ok': False, 'error': 'PyMuPDF no instalado. pip install pymupdf'})
+
+            doc = fitz.open(stream=content_bytes, filetype='pdf')
+            pages_text = [page.get_text() for page in doc]
+            doc.close()
+            full_text = '\n'.join(pages_text).strip()
+
+            if not full_text:
+                return JsonResponse({
+                    'ok': False,
+                    'error': 'PDF escaneado sin texto extraíble. Activa OCR con Gemini en Configuración.',
+                })
+
+            # Truncate a 12000 chars (≈3000 tokens) para no saturar el contexto
+            truncated = full_text[:12000]
+            was_truncated = len(full_text) > 12000
+            preview = full_text[:120].replace('\n', ' ').strip() + ('...' if len(full_text) > 120 else '')
+
+            return JsonResponse({
+                'ok': True,
+                'type': 'pdf',
+                'name': name,
+                'pages': len(pages_text),
+                'content': truncated,
+                'truncated': was_truncated,
+                'preview': preview,
+                'size_kb': round(file.size / 1024, 1),
+            })
+
+        # ── EXCEL ─────────────────────────────────────────────────────
+        elif ext in ('xlsx', 'xls'):
+            try:
+                import openpyxl
+                from io import BytesIO
+            except ImportError:
+                return JsonResponse({'ok': False, 'error': 'openpyxl no instalado.'})
+
+            wb = openpyxl.load_workbook(BytesIO(content_bytes), read_only=True, data_only=True)
+            sheets_text = []
+            for sheet_name in list(wb.sheetnames)[:4]:
+                ws = wb[sheet_name]
+                rows = []
+                for row in ws.iter_rows(max_row=80, values_only=True):
+                    if any(c is not None for c in row):
+                        rows.append(' | '.join(str(c or '').strip() for c in row if c is not None))
+                if rows:
+                    sheets_text.append(f'## Hoja: {sheet_name}\n' + '\n'.join(rows[:60]))
+            wb.close()
+
+            text = '\n\n'.join(sheets_text)
+            if not text.strip():
+                return JsonResponse({'ok': False, 'error': 'Excel sin datos legibles.'})
+
+            truncated = text[:10000]
+            preview = f'Excel: {name} — {len(wb.sheetnames)} hoja(s)'
+
+            return JsonResponse({
+                'ok': True,
+                'type': 'excel',
+                'name': name,
+                'sheets': len(wb.sheetnames),
+                'content': truncated,
+                'truncated': len(text) > 10000,
+                'preview': preview,
+                'size_kb': round(file.size / 1024, 1),
+            })
+
+        # ── IMAGEN ────────────────────────────────────────────────────
+        elif ext in ('jpg', 'jpeg', 'png', 'webp', 'gif'):
+            import base64
+            b64 = base64.b64encode(content_bytes).decode()
+            mime = 'image/jpeg' if ext in ('jpg', 'jpeg') else f'image/{ext}'
+
+            return JsonResponse({
+                'ok': True,
+                'type': 'image',
+                'name': name,
+                'content': b64,
+                'mime': mime,
+                'preview': f'Imagen: {name}',
+                'size_kb': round(file.size / 1024, 1),
+            })
+
+        # ── TEXTO PLANO ───────────────────────────────────────────────
+        elif ext in ('txt', 'csv', 'md'):
+            text = content_bytes.decode('utf-8', errors='replace')
+            truncated = text[:10000]
+            return JsonResponse({
+                'ok': True,
+                'type': 'text',
+                'name': name,
+                'content': truncated,
+                'truncated': len(text) > 10000,
+                'preview': text[:100].replace('\n', ' ').strip(),
+                'size_kb': round(file.size / 1024, 1),
+            })
+
+        else:
+            return JsonResponse({
+                'ok': False,
+                'error': f'Formato .{ext} no soportado. Use: PDF, Excel, JPG, PNG o TXT.',
+            }, status=400)
+
+    except Exception as e:
+        logger.warning(f'ai_upload_file error: {e}')
+        return JsonResponse({'ok': False, 'error': f'Error procesando archivo: {str(e)[:120]}'}, status=500)

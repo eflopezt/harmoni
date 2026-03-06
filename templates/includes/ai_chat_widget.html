@@ -91,8 +91,15 @@ Se muestra solo si Ollama o fallback están disponibles.
             </button>
         </div>
 
+        <!-- File Pill Row (appears when a file is attached) -->
+        <div class="ai-file-pill-row" id="aiFilePillRow"></div>
+
         <!-- Input -->
         <div class="ai-chat-input-area">
+            <input type="file" id="aiFileInput" accept=".pdf,.xlsx,.xls,.csv,.txt,.md,.png,.jpg,.jpeg,.webp" style="display:none">
+            <button id="aiFileAttachBtn" class="ai-file-attach-btn" type="button" title="Adjuntar archivo (PDF, Excel, imagen)">
+                <i class="fas fa-paperclip"></i>
+            </button>
             <textarea id="aiChatInput" placeholder="Escribe tu consulta..." rows="1" maxlength="1000"></textarea>
             <button id="aiChatSend" title="Enviar">
                 <i class="fas fa-paper-plane"></i>

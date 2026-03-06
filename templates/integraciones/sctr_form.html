@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{{ titulo }} — SCTR{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:700px;">
+
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="fw-bold mb-0">
+        <i class="fas fa-shield-alt me-2" style="color:#0f766e;"></i>
+        {{ titulo }}
+      </h4>
+      <p class="text-muted small mb-0">Seguro Complementario de Trabajo de Riesgo</p>
+    </div>
+    <a href="{% url 'sctr_panel' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  <form method="post" enctype="multipart/form-data"
+        action="{% if accion == 'editar' %}{% url 'sctr_editar' poliza.pk %}{% else %}{% url 'sctr_crear' %}{% endif %}">
+    {% csrf_token %}
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header">
+        <small class="fw-semibold text-uppercase text-muted">
+          <i class="fas fa-id-badge me-1"></i>Identificación de la Póliza
+        </small>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Tipo SCTR <span class="text-danger">*</span></label>
+            <select name="tipo" class="form-select" required>
+              {% for val, lbl in tipo_choices %}
+              <option value="{{ val }}"
+                {% if poliza.tipo == val %}selected{% endif %}>
+                {{ lbl }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">N° de Póliza <span class="text-danger">*</span></label>
+            <input type="text" name="numero_poliza" class="form-control font-monospace"
+                   value="{{ poliza.numero_poliza|default:'' }}" required
+                   placeholder="Ej: SCTR-2026-001">
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Aseguradora <span class="text-danger">*</span></label>
+            <select name="proveedor" class="form-select" required id="selProveedor">
+              {% for val, lbl in prov_choices %}
+              <option value="{{ val }}"
+                {% if poliza.proveedor == val %}selected{% endif %}>
+                {{ lbl }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-sm-6" id="provOtroGroup"
+               style="{% if not poliza.proveedor == 'OTRO' %}display:none;{% endif %}">
+            <label class="form-label fw-semibold">Nombre Aseguradora</label>
+            <input type="text" name="proveedor_otro" class="form-control"
+                   value="{{ poliza.proveedor_otro|default:'' }}"
+                   placeholder="Nombre de la aseguradora">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header">
+        <small class="fw-semibold text-uppercase text-muted">
+          <i class="fas fa-calendar-alt me-1"></i>Vigencia y Cobertura
+        </small>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Vigencia Desde <span class="text-danger">*</span></label>
+            <input type="date" name="fecha_inicio" class="form-control"
+                   value="{{ poliza.fecha_inicio|date:'Y-m-d'|default:'' }}" required>
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Vigencia Hasta <span class="text-danger">*</span></label>
+            <input type="date" name="fecha_fin" class="form-control"
+                   value="{{ poliza.fecha_fin|date:'Y-m-d'|default:'' }}" required>
+          </div>
+
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Trabajadores Cubiertos</label>
+            <input type="number" name="trabajadores_cubiertos" class="form-control"
+                   min="0" value="{{ poliza.trabajadores_cubiertos|default:'0' }}">
+          </div>
+
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Monto Asegurado (S/)</label>
+            <input type="number" name="monto_asegurado" class="form-control"
+                   min="0" step="0.01"
+                   value="{{ poliza.monto_asegurado|default:'0' }}"
+                   placeholder="0.00">
+            <div class="form-text">4 UIT = S/ 21,000 por trabajador</div>
+          </div>
+
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Tasa Aporte (%)</label>
+            <input type="number" name="aporte_pct" class="form-control"
+                   min="0" step="0.0001" max="10"
+                   value="{{ poliza.aporte_pct|default:'0' }}"
+                   placeholder="0.00">
+            <div class="form-text">0.66% – 3.22% según riesgo</div>
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Días de Alerta Previos</label>
+            <input type="number" name="dias_alerta" class="form-control"
+                   min="1" max="90"
+                   value="{{ poliza.dias_alerta|default:'30' }}">
+            <div class="form-text">Días antes del vencimiento para activar alerta</div>
+          </div>
+
+          <div class="col-sm-6 d-flex align-items-center">
+            <div class="mt-2">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="renovacion_auto"
+                       id="chkRenovAuto"
+                       {% if poliza.renovacion_auto %}checked{% endif %}>
+                <label class="form-check-label" for="chkRenovAuto">
+                  <strong>Renovación Automática</strong>
+                </label>
+              </div>
+              {% if accion == 'editar' %}
+              <div class="form-check form-switch mt-1">
+                <input class="form-check-input" type="checkbox" name="activa"
+                       id="chkActiva"
+                       {% if poliza.activa %}checked{% endif %}>
+                <label class="form-check-label" for="chkActiva">
+                  Póliza Activa
+                </label>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header">
+        <small class="fw-semibold text-uppercase text-muted">
+          <i class="fas fa-paperclip me-1"></i>Documento y Observaciones
+        </small>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">PDF de la Póliza</label>
+            <input type="file" name="archivo" class="form-control" accept=".pdf,.jpg,.png">
+            {% if poliza.archivo %}
+            <div class="form-text">
+              Archivo actual:
+              <a href="{{ poliza.archivo.url }}" target="_blank">
+                <i class="fas fa-file-pdf text-danger me-1"></i>Ver PDF
+              </a>
+            </div>
+            {% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Observaciones</label>
+            <textarea name="observaciones" class="form-control" rows="3"
+                      placeholder="Condiciones especiales, cláusulas importantes...">{{ poliza.observaciones|default:'' }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{% url 'sctr_panel' %}" class="btn btn-outline-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-success px-4">
+        <i class="fas fa-save me-1"></i>
+        {% if accion == 'editar' %}Guardar Cambios{% else %}Crear Póliza{% endif %}
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+// Mostrar campo proveedor_otro cuando se selecciona "OTRO"
+const selProv = document.getElementById('selProveedor');
+const grpOtro = document.getElementById('provOtroGroup');
+function toggleOtro() {
+  grpOtro.style.display = selProv.value === 'OTRO' ? '' : 'none';
+}
+if (selProv) {
+  selProv.addEventListener('change', toggleOtro);
+  toggleOtro();
+}
+</script>
+{% endblock %}

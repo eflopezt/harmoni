@@ -8,6 +8,7 @@
 
     const CHAT_URL = '/asistencia/ia/chat/';
     const STATUS_URL = '/asistencia/ia/status/';
+    const UPLOAD_URL = '/asistencia/ia/upload/';
 
     let chatHistory = [];
     let isStreaming = false;
@@ -17,9 +18,14 @@
     let isMaximized = false;
     let backdropEl = null;
 
+    // ── File attachment state ──
+    let attachedFile = null;   // { type, name, content, preview, size_kb, truncated }
+    let isUploading = false;
+
     // ── DOM refs ──
     let fab, panel, messagesEl, inputEl, sendBtn, quickActions;
     let statusDot, statusText;
+    let fileInput, fileAttachBtn, filePillRow;
 
     // ── CSRF Token ──
     function getCsrf() {
@@ -41,6 +47,9 @@
         quickActions = document.getElementById('aiQuickActions');
         statusDot = document.querySelector('.ai-status-dot');
         statusText = document.querySelector('.ai-chat-subtitle');
+        fileInput = document.getElementById('aiFileInput');
+        fileAttachBtn = document.getElementById('aiFileAttachBtn');
+        filePillRow = document.getElementById('aiFilePillRow');
 
         if (!fab || !panel) return;
 
@@ -128,6 +137,23 @@
             exportBtn.addEventListener('click', exportConversation);
         }
 
+        // File attachment
+        if (fileAttachBtn && fileInput) {
+            fileAttachBtn.addEventListener('click', () => {
+                if (attachedFile) {
+                    clearAttachedFile();
+                } else {
+                    fileInput.click();
+                }
+            });
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                fileInput.value = '';  // Reset so same file can be re-selected
+                await uploadFile(file);
+            });
+        }
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             // Ctrl+Shift+H to toggle chat
@@ -208,6 +234,102 @@
                 if (chart) chart.resize();
             });
         }, 350);
+    }
+
+    // ── File Attachment ──
+    async function uploadFile(file) {
+        if (isUploading || isStreaming) return;
+
+        // Size check: 10 MB max
+        if (file.size > 10 * 1024 * 1024) {
+            showToast('Archivo demasiado grande (máx. 10 MB)');
+            return;
+        }
+
+        isUploading = true;
+
+        // Show uploading pill immediately
+        showFilePill({
+            type: 'uploading',
+            name: file.name,
+            icon: 'fa-spinner',
+        });
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const resp = await fetch(UPLOAD_URL, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCsrf() },
+                body: formData,
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.ok) {
+                showToast('Error: ' + (data.error || 'No se pudo procesar el archivo'));
+                clearAttachedFile();
+                return;
+            }
+            attachedFile = data;  // { type, name, content, preview, size_kb, truncated }
+            showFilePill(attachedFile);
+            // Update attach button style
+            if (fileAttachBtn) {
+                fileAttachBtn.classList.add('has-file');
+                fileAttachBtn.title = 'Quitar archivo adjunto';
+                fileAttachBtn.querySelector('i').className = 'fas fa-times';
+            }
+            // Focus input for question
+            inputEl.focus();
+            inputEl.placeholder = `Pregunta sobre ${attachedFile.name}...`;
+        } catch (e) {
+            showToast('Error al subir archivo: ' + e.message);
+            clearAttachedFile();
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    function clearAttachedFile() {
+        attachedFile = null;
+        isUploading = false;
+        if (filePillRow) filePillRow.innerHTML = '';
+        if (fileAttachBtn) {
+            fileAttachBtn.classList.remove('has-file');
+            fileAttachBtn.title = 'Adjuntar archivo (PDF, Excel, imagen)';
+            fileAttachBtn.querySelector('i').className = 'fas fa-paperclip';
+        }
+        if (inputEl) inputEl.placeholder = 'Escribe tu consulta...';
+    }
+
+    function showFilePill(fileInfo) {
+        if (!filePillRow) return;
+        filePillRow.innerHTML = '';
+
+        const iconMap = {
+            'pdf': 'fa-file-pdf',
+            'excel': 'fa-file-excel',
+            'image': 'fa-image',
+            'text': 'fa-file-alt',
+            'uploading': 'fa-spinner',
+        };
+        const typeClass = fileInfo.type || 'text';
+        const icon = iconMap[fileInfo.type] || 'fa-file';
+        const sizeStr = fileInfo.size_kb ? ` (${fileInfo.size_kb} KB)` : '';
+
+        const pill = document.createElement('div');
+        pill.className = `ai-file-pill ${typeClass}`;
+        pill.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <span class="ai-file-pill-name" title="${escapeHtml(fileInfo.name)}">${escapeHtml(fileInfo.name)}${sizeStr}</span>
+            ${fileInfo.type !== 'uploading'
+                ? `<button class="ai-file-pill-remove" title="Quitar archivo"><i class="fas fa-times"></i></button>`
+                : ''}
+        `;
+
+        if (fileInfo.type !== 'uploading') {
+            pill.querySelector('.ai-file-pill-remove').addEventListener('click', clearAttachedFile);
+        }
+        filePillRow.appendChild(pill);
     }
 
     function clearChat() {
@@ -334,8 +456,10 @@
         'edad': ['Gráfico por género', 'Gráfico por antigüedad', 'Empleados activos'],
         'area': ['Gráfico por género', 'Gráfico por edad', 'Empleados activos'],
         'grafico': ['Gráfico por género', 'Gráfico por edad', 'Gráfico de HE'],
-        'dashboard': ['Exportar reporte en Excel', 'Gráfico por área', 'Resumen general'],
+        'dashboard': ['Exportar reporte en Excel', 'Gráfico por área y guárdalo en mi dashboard', 'Resumen general'],
         'gerencia': ['Exportar reporte en Excel', 'Dashboard de gerencia', 'Gráfico por área'],
+        'guardar': ['Gráfico de personal por área y guárdalo en mi dashboard', 'Dashboard de gerencia', 'Resumen general'],
+        'fijar': ['Gráfico de personal por área y guárdalo en mi dashboard', 'Resumen general'],
         'reporte': ['Dashboard de gerencia', 'Resumen general', 'Gráfico por área'],
         'excel': ['Dashboard de gerencia', 'Resumen general', 'Empleados activos'],
         '_default': ['Resumen general', '¿Cuántos empleados hay?', 'Gráfico por área'],
@@ -489,6 +613,7 @@
             });
         } else if (spec.chart === 'bar') {
             if (spec.multi_series && spec.values2) {
+                const isStacked = spec.stacked !== false; // default true for backward compat
                 new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -498,22 +623,22 @@
                                 label: (spec.series_labels && spec.series_labels[0]) || 'Serie 1',
                                 data: spec.values,
                                 backgroundColor: spec.colors[0] || 'rgba(15,118,110,.7)',
-                                borderRadius: 4,
+                                borderRadius: 3,
                             },
                             {
                                 label: (spec.series_labels && spec.series_labels[1]) || 'Serie 2',
                                 data: spec.values2,
                                 backgroundColor: spec.colors[1] || 'rgba(239,68,68,.7)',
-                                borderRadius: 4,
+                                borderRadius: 3,
                             },
                         ],
                     },
                     options: {
                         ...commonOptions,
-                        plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 9 } } } },
+                        plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, padding: 5 } } },
                         scales: {
-                            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 } } },
-                            y: { stacked: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 } }, beginAtZero: true },
+                            x: { stacked: isStacked, grid: { display: false }, ticks: { font: { size: 9 } } },
+                            y: { stacked: isStacked, grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 } }, beginAtZero: true },
                         },
                     },
                 });
@@ -544,24 +669,41 @@
                 });
             }
         } else if (spec.chart === 'line') {
+            // Support multi-series line: spec.multi_series + spec.values2
+            const lineDatasets = [{
+                label: (spec.series_labels && spec.series_labels[0]) || spec.title,
+                data: spec.values,
+                borderColor: spec.colors[0] || '#0f766e',
+                backgroundColor: 'rgba(15,118,110,.08)',
+                fill: !spec.multi_series,
+                tension: 0.3,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+            }];
+            if (spec.multi_series && spec.values2) {
+                lineDatasets.push({
+                    label: (spec.series_labels && spec.series_labels[1]) || 'Serie 2',
+                    data: spec.values2,
+                    borderColor: spec.colors[1] || '#d97706',
+                    backgroundColor: 'rgba(217,119,6,.06)',
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                });
+            }
             new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: spec.labels,
-                    datasets: [{
-                        label: spec.title,
-                        data: spec.values,
-                        borderColor: spec.colors[0] || '#0f766e',
-                        backgroundColor: 'rgba(15,118,110,.08)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
-                    }]
-                },
+                data: { labels: spec.labels, datasets: lineDatasets },
                 options: {
                     ...commonOptions,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: {
+                            display: spec.multi_series || false,
+                            position: 'bottom',
+                            labels: { font: { size: 9 }, boxWidth: 10, padding: 5 }
+                        }
+                    },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { size: 9 } } },
                         y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 } } }
@@ -570,6 +712,53 @@
             });
         }
     }
+
+    // ── Pin-to-Dashboard Card ──
+    function buildPinCard(pinData) {
+        const card = document.createElement('div');
+        card.className = 'ai-pin-card';
+        card.innerHTML = `
+            <div class="ai-pin-card-icon"><i class="fas fa-thumbtack"></i></div>
+            <div class="ai-pin-card-body">
+                <div class="ai-pin-card-title">¿Guardar en tu Dashboard IA?</div>
+                <div class="ai-pin-card-subtitle">${escapeHtml(pinData.titulo || 'Gráfico')}</div>
+            </div>
+            <button class="ai-pin-save-btn" onclick="window.aiSaveWidget(this, ${JSON.stringify(JSON.stringify(pinData))})">
+                <i class="fas fa-check"></i> Guardar
+            </button>`;
+        return card;
+    }
+
+    window.aiSaveWidget = async function(btn, pinDataStr) {
+        try {
+            const pinData = JSON.parse(pinDataStr);
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const resp = await fetch('/analytics/widgets/guardar/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+                body: JSON.stringify({
+                    titulo: pinData.titulo,
+                    chart_type: pinData.chart_type,
+                    data_source: pinData.data_source,
+                    config: pinData.config,
+                }),
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                const card = btn.closest('.ai-pin-card');
+                if (card) {
+                    card.innerHTML = `<div class="ai-pin-success"><i class="fas fa-check-circle"></i> Guardado en tu <a href="/analytics/ia/" target="_blank">Dashboard IA</a></div>`;
+                }
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Guardar';
+                alert(data.error || 'Error al guardar');
+            }
+        } catch (e) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Guardar'; }
+        }
+    };
 
     // ── Send ──
     function sendFromInput() {
@@ -581,15 +770,32 @@
     }
 
     async function sendMessage(text) {
-        if (isStreaming) return;
+        if (isStreaming || isUploading) return;
         isStreaming = true;
         sendBtn.disabled = true;
+
+        // Snapshot and clear attached file before sending
+        const fileCtx = attachedFile ? { ...attachedFile } : null;
+        if (fileCtx) clearAttachedFile();
 
         // Hide quick actions after first message
         quickActions.style.display = 'none';
         removeSuggestionChips();
 
-        appendMessage('user', text);
+        // Build user bubble (with optional file badge)
+        const userDiv = document.createElement('div');
+        userDiv.className = 'ai-msg ai-msg-user';
+        let userHtml = '';
+        if (fileCtx) {
+            const fileIconMap = { pdf: 'fa-file-pdf', excel: 'fa-file-excel', image: 'fa-image', text: 'fa-file-alt' };
+            const fileIcon = fileIconMap[fileCtx.type] || 'fa-file';
+            userHtml += `<div class="ai-msg-file-badge"><i class="fas ${fileIcon}"></i> ${escapeHtml(fileCtx.name)}</div>`;
+        }
+        userHtml += `<div class="ai-msg-content">${escapeHtml(text)}</div>`;
+        userDiv.innerHTML = userHtml;
+        messagesEl.appendChild(userDiv);
+        scrollToBottom();
+
         chatHistory.push({ role: 'user', content: text });
 
         const typingEl = showTyping();
@@ -598,16 +804,26 @@
         let currentChartData = null;
 
         try {
+            const requestBody = {
+                message: text,
+                history: chatHistory.slice(-10),
+            };
+            // Include file context if a file was attached (send content, not base64 image directly)
+            if (fileCtx) {
+                requestBody.file_context = {
+                    type: fileCtx.type,
+                    name: fileCtx.name,
+                    content: fileCtx.content || '',
+                    truncated: fileCtx.truncated || false,
+                };
+            }
             const response = await fetch(CHAT_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCsrf(),
                 },
-                body: JSON.stringify({
-                    message: text,
-                    history: chatHistory.slice(-10),
-                }),
+                body: JSON.stringify(requestBody),
             });
 
             removeTyping();
@@ -668,6 +884,18 @@
                             const target = textContainer || bubble;
                             target.innerHTML = renderMarkdown(fullResponse);
                             scrollToBottom();
+                            continue;
+                        }
+
+                        // ── Detect pin-to-dashboard marker ──
+                        const pinMatch = token.match(/^\[PIN_WIDGET\](.*)\[\/PIN_WIDGET\]$/);
+                        if (pinMatch) {
+                            try {
+                                const pinData = JSON.parse(pinMatch[1]);
+                                const pinCard = buildPinCard(pinData);
+                                bubble.appendChild(pinCard);
+                                scrollToBottom();
+                            } catch (e) { /* skip if malformed */ }
                             continue;
                         }
 
@@ -753,6 +981,7 @@
         text = text.replace(/\[CHART\][^\[]*\[\/CHART\]/g, '');
         text = text.replace(/\[FALLBACK\]/g, '');
         text = text.replace(/\[MAXIMIZE\]/g, '');
+        text = text.replace(/\[PIN_WIDGET\].*?\[\/PIN_WIDGET\]/gs, '');
         return text.trim();
     }
 
@@ -844,7 +1073,10 @@
             const badge = msg.isFallback ? ' _(respuesta directa)_' : '';
             md += `${role}${badge}:\n\n${msg.content}\n\n`;
             if (msg.chartData) {
-                md += `📊 _[Gráfico: ${msg.chartData.title}]_\n\n`;
+                // chartData can be a single object or an array (multi-chart)
+                const charts = Array.isArray(msg.chartData) ? msg.chartData : [msg.chartData];
+                const titles = charts.map(c => c.title || '?').join(', ');
+                md += `📊 _[Gráfico${charts.length > 1 ? 's' : ''}: ${titles}]_\n\n`;
             }
             md += `---\n\n`;
         });

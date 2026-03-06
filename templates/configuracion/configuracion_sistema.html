@@ -598,6 +598,90 @@
             app.zapsign.com.br/settings/tokens</a>
           </div>
         </div>
+
+        {# ── Telegram Bot ── #}
+        <div class="col-12">
+          <h5 class="fw-bold text-muted border-bottom pb-2 mt-2">
+            <i class="bi bi-telegram me-2" style="color:#229ED9;"></i>Telegram Bot — Reclutamiento
+          </h5>
+          <p class="text-muted small">
+            Permite publicar ofertas de empleo automáticamente en un canal de Telegram.
+            Crea un bot en <a href="https://t.me/BotFather" target="_blank">@BotFather</a>,
+            agrega el bot como administrador del canal y pega el token aquí.
+          </p>
+        </div>
+
+        <div class="col-md-7">
+          <label class="form-label">Token del Bot de Telegram</label>
+          <input type="password" name="telegram_bot_token" class="form-control font-monospace"
+                 value="{{ config.telegram_bot_token }}"
+                 placeholder="123456:ABC-DEFGhijklmnop..."
+                 autocomplete="new-password">
+          <div class="form-text">
+            Obtenlo desde <a href="https://t.me/BotFather" target="_blank">@BotFather</a>
+            → <em>/newbot</em> → copia el token de acceso.
+          </div>
+        </div>
+
+        <div class="col-md-5">
+          <label class="form-label">ID / Username del Canal</label>
+          <input type="text" name="telegram_channel_id" class="form-control"
+                 value="{{ config.telegram_channel_id }}"
+                 placeholder="@empleos_miempresa o -100XXXXXXX">
+          <div class="form-text">
+            <code>@username</code> para canales públicos,
+            <code>-100XXXXXXX</code> para canales privados.
+            El bot debe ser <strong>admin</strong> del canal.
+          </div>
+        </div>
+
+        {# ── WhatsApp Business Cloud API ── #}
+        <div class="col-12">
+          <h5 class="fw-bold text-muted border-bottom pb-2 mt-2">
+            <i class="bi bi-whatsapp me-2" style="color:#25D366;"></i>WhatsApp Business — Reclutamiento
+          </h5>
+          <p class="text-muted small">
+            Permite enviar ofertas de empleo a número(s) de WhatsApp via Meta Cloud API.
+            Requiere una cuenta de
+            <a href="https://developers.facebook.com/apps/" target="_blank">Meta Business</a>
+            con WhatsApp Cloud API habilitada y un número de teléfono de empresa verificado.
+          </p>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Phone Number ID</label>
+          <input type="text" name="whatsapp_phone_number_id" class="form-control font-monospace"
+                 value="{{ config.whatsapp_phone_number_id }}"
+                 placeholder="123456789012345">
+          <div class="form-text">
+            ID del número en Meta Developer Console → tu App → WhatsApp → Phone Numbers.
+            <strong>No</strong> es el número de teléfono real.
+          </div>
+        </div>
+
+        <div class="col-md-8">
+          <label class="form-label">Access Token (token del sistema)</label>
+          <input type="password" name="whatsapp_access_token" class="form-control font-monospace"
+                 value="{{ config.whatsapp_access_token }}"
+                 placeholder="EAAxxxxx... (dejar vacío para mantener el actual)"
+                 autocomplete="new-password">
+          <div class="form-text">
+            Token permanente de la app. Usar <em>System User Token</em> (nunca token de usuario temporal).
+            Obtener en: Meta Business Suite → Configuración → Usuarios del Sistema.
+          </div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Número(s) Destino por Defecto</label>
+          <input type="text" name="whatsapp_to_number" class="form-control"
+                 value="{{ config.whatsapp_to_number }}"
+                 placeholder="51987654321, 51912345678">
+          <div class="form-text">
+            Formato internacional sin <code>+</code>: <code>51XXXXXXXXX</code>.
+            Separar por coma para múltiples. El número receptor debe haber iniciado
+            conversación con el bot primero (ventana de 24h de Meta).
+          </div>
+        </div>
       </div>
 
       <div class="d-flex justify-content-end mt-4 pt-3 border-top">
@@ -618,21 +702,30 @@
       <input type="hidden" name="tab" value="ia">
 
       <div class="row g-4">
+
+        {# ── Header ── #}
         <div class="col-12">
-          <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="d-flex align-items-center gap-3 mb-1">
             <div class="rounded-circle d-flex align-items-center justify-content-center"
                  style="width:48px;height:48px;background:rgba(15,118,110,0.12);">
               <i class="fas fa-robot" style="color:#0f766e; font-size:1.3rem;"></i>
             </div>
             <div>
-              <h5 class="fw-bold mb-0">Inteligencia Artificial Local</h5>
-              <small class="text-muted">Motor IA vía Ollama — datos 100% privados, sin cloud APIs</small>
+              <h5 class="fw-bold mb-0">Inteligencia Artificial — Multi-Proveedor</h5>
+              <small class="text-muted">Chat, análisis, mapeo de columnas y OCR de PDFs escaneados</small>
             </div>
           </div>
         </div>
 
+        {# ── Sección Chat / RAG ── #}
+        <div class="col-12">
+          <p class="fw-semibold text-muted mb-2" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;">
+            <i class="fas fa-comments me-1"></i>Proveedor Chat &amp; RAG
+          </p>
+        </div>
+
         <div class="col-md-4">
-          <label class="form-label">Proveedor de IA</label>
+          <label class="form-label fw-semibold">Proveedor de IA <span class="text-danger">*</span></label>
           <select name="ia_provider" class="form-select" id="iaProviderSel">
             {% for val, label in ia_choices %}
             <option value="{{ val }}" {% if config.ia_provider == val %}selected{% endif %}>
@@ -640,25 +733,54 @@
             </option>
             {% endfor %}
           </select>
+          <div class="form-text">Motor para chat RRHH, análisis de datos y mapeo de columnas.</div>
         </div>
 
-        <div class="col-md-4" id="iaEndpointGroup">
-          <label class="form-label">Endpoint Ollama</label>
+        {# API Key (cloud providers: GEMINI / DEEPSEEK / OPENAI) #}
+        <div class="col-md-8" id="iaApiKeyGroup">
+          <label class="form-label fw-semibold">API Key <span class="text-danger">*</span></label>
+          <input type="password" name="ia_api_key" class="form-control font-monospace"
+                 value="" autocomplete="off"
+                 placeholder="Dejar vacío para mantener la clave actual">
+          <div class="form-text" id="iaApiKeyHint">
+            Obten tu clave en:
+            <span id="hintGemini">
+              <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio (Gemini)</a>
+            </span>
+            <span id="hintDeepSeek" style="display:none;">
+              <a href="https://platform.deepseek.com/api_keys" target="_blank">DeepSeek Platform</a>
+            </span>
+            <span id="hintOpenAI" style="display:none;">
+              <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+            </span>
+          </div>
+        </div>
+
+        {# Endpoint (OLLAMA o DeepSeek custom) #}
+        <div class="col-md-6" id="iaEndpointGroup">
+          <label class="form-label fw-semibold">Endpoint</label>
           <input type="url" name="ia_endpoint" class="form-control font-monospace"
                  value="{{ config.ia_endpoint }}"
                  placeholder="http://localhost:11434">
-          <div class="form-text">URL del servidor Ollama. Default: http://localhost:11434</div>
+          <div class="form-text" id="iaEndpointHint">URL del servidor local Ollama.</div>
         </div>
 
-        <div class="col-md-4" id="iaModeloGroup">
-          <label class="form-label">Modelo</label>
+        {# Modelo (todos excepto NINGUNO) #}
+        <div class="col-md-6" id="iaModeloGroup">
+          <label class="form-label fw-semibold">Modelo</label>
           <input type="text" name="ia_modelo" class="form-control"
-                 value="{{ config.ia_modelo }}"
-                 placeholder="llama3.2">
-          <div class="form-text">Modelos recomendados: llama3.2, mistral, qwen2.5</div>
+                 value="{{ config.ia_modelo }}" id="iaModeloInput"
+                 placeholder="gemini-2.5-flash">
+          <div class="form-text" id="iaModeloHint">
+            <span id="mhGemini">gemini-2.5-flash &nbsp;|&nbsp; gemini-2.5-pro</span>
+            <span id="mhDeepSeek" style="display:none;">deepseek-chat &nbsp;|&nbsp; deepseek-reasoner</span>
+            <span id="mhOpenAI"  style="display:none;">gpt-4o-mini &nbsp;|&nbsp; gpt-4o</span>
+            <span id="mhOllama"  style="display:none;">llama3.2 &nbsp;|&nbsp; mistral &nbsp;|&nbsp; qwen2.5</span>
+          </div>
         </div>
 
-        <div class="col-md-4">
+        {# Mapeo IA columnas (siempre visible) #}
+        <div class="col-md-6">
           <div class="form-check form-switch mt-2">
             <input class="form-check-input" type="checkbox" name="ia_mapeo_activo"
                    id="chkIaMapeo" {% if config.ia_mapeo_activo %}checked{% endif %}>
@@ -667,24 +789,61 @@
             </label>
           </div>
           <div class="form-text">
-            Detecta automáticamente columnas en archivos de importación desconocidos.
+            Detecta automáticamente columnas en archivos de importación con cabeceras desconocidas.
           </div>
         </div>
 
+        {# ── Divider ── #}
+        <div class="col-12"><hr class="my-1"></div>
+
+        {# ── Sección OCR ── #}
         <div class="col-12">
-          <div class="alert alert-info d-flex align-items-start gap-3">
-            <i class="fas fa-info-circle fa-lg mt-1"></i>
-            <div>
-              <strong>Arquitectura de IA en Harmoni:</strong>
-              <ul class="mb-0 mt-1 small">
-                <li>Dentro del producto: <strong>Solo Ollama local</strong> — sin cloud APIs, sin API keys externas.</li>
-                <li>Claude Desktop es usado externamente para <em>construir</em> el sistema (no vive dentro del producto).</li>
-                <li>Los datos del HR nunca salen del servidor local.</li>
+          <p class="fw-semibold text-muted mb-2" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;">
+            <i class="fas fa-file-pdf me-1"></i>Proveedor OCR (PDFs escaneados)
+          </p>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Proveedor OCR</label>
+          <select name="ia_ocr_provider" class="form-select" id="iaOcrProviderSel">
+            {% for val, label in ia_ocr_choices %}
+            <option value="{{ val }}" {% if config.ia_ocr_provider == val %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Gemini Files API procesa PDFs escaneados directamente (1M contexto).</div>
+        </div>
+
+        {# Gemini OCR API Key (solo si OCR = GEMINI) #}
+        <div class="col-md-8" id="iaGeminiOcrKeyGroup">
+          <label class="form-label fw-semibold">API Key Gemini OCR</label>
+          <input type="password" name="ia_gemini_api_key" class="form-control font-monospace"
+                 value="" autocomplete="off"
+                 placeholder="Dejar vacío para mantener la clave actual">
+          <div class="form-text">
+            Clave Gemini exclusiva para OCR. Permite usar DeepSeek/OpenAI en chat y Gemini para PDFs simultáneamente.
+            Si está vacía y el proveedor principal es Gemini, se reutiliza esa clave.
+          </div>
+        </div>
+
+        {# ── Info alert ── #}
+        <div class="col-12">
+          <div class="alert alert-info d-flex align-items-start gap-3 mb-0">
+            <i class="fas fa-info-circle fa-lg mt-1 flex-shrink-0"></i>
+            <div class="small">
+              <strong>Arquitectura IA Multi-Proveedor de Harmoni:</strong>
+              <ul class="mb-0 mt-1">
+                <li><strong>Chat/RAG</strong>: Gemini (recomendado), DeepSeek (económico), OpenAI o Ollama local.</li>
+                <li><strong>OCR PDFs</strong>: Gemini 2.5 Flash via Files API — procesa PDFs escaneados en forma nativa.</li>
+                <li><strong>Costos estimados</strong>: Gemini Flash ~$0.075/M tokens · DeepSeek ~$0.014/M tokens · OpenAI ~$0.15/M tokens.</li>
+                <li>Las API keys se almacenan cifradas en la base de datos y nunca se muestran en pantalla.</li>
               </ul>
             </div>
           </div>
         </div>
-      </div>
+
+      </div>{# /row #}
 
       <div class="d-flex justify-content-end mt-4 pt-3 border-top">
         <button type="submit" class="btn btn-success px-4">
@@ -741,18 +900,67 @@ document.querySelectorAll('form[data-tab]').forEach(function(form) {
   });
 });
 
-// IA provider toggle
-const iaProvider = document.getElementById('iaProviderSel');
+// IA provider toggle (multi-provider)
+const iaProvider    = document.getElementById('iaProviderSel');
+const iaOcrProvider = document.getElementById('iaOcrProviderSel');
+
 function toggleIaFields() {
-  const activo = iaProvider && iaProvider.value === 'OLLAMA';
-  ['iaEndpointGroup', 'iaModeloGroup'].forEach(id => {
+  if (!iaProvider) return;
+  const v = iaProvider.value;  // GEMINI | DEEPSEEK | OPENAI | OLLAMA | NINGUNO
+
+  const isCloud   = ['GEMINI','DEEPSEEK','OPENAI'].includes(v);
+  const isOllama  = v === 'OLLAMA';
+  const isNinguno = v === 'NINGUNO';
+
+  // API Key group — cloud only
+  const apiKeyGrp = document.getElementById('iaApiKeyGroup');
+  if (apiKeyGrp) apiKeyGrp.style.display = isCloud ? '' : 'none';
+
+  // Endpoint group — Ollama only
+  const epGrp = document.getElementById('iaEndpointGroup');
+  if (epGrp) epGrp.style.display = isOllama ? '' : 'none';
+
+  // Model group — all except NINGUNO
+  const mGrp = document.getElementById('iaModeloGroup');
+  if (mGrp) mGrp.style.display = isNinguno ? 'none' : '';
+
+  // Modelo placeholder hint per provider
+  ['mhGemini','mhDeepSeek','mhOpenAI','mhOllama'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.opacity = activo ? '1' : '0.4';
+    if (el) el.style.display = 'none';
   });
+  const hintMap = {GEMINI:'mhGemini', DEEPSEEK:'mhDeepSeek', OPENAI:'mhOpenAI', OLLAMA:'mhOllama'};
+  if (hintMap[v]) {
+    const hint = document.getElementById(hintMap[v]);
+    if (hint) hint.style.display = '';
+  }
+
+  // API Key platform hints
+  ['hintGemini','hintDeepSeek','hintOpenAI'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const keyHintMap = {GEMINI:'hintGemini', DEEPSEEK:'hintDeepSeek', OPENAI:'hintOpenAI'};
+  if (keyHintMap[v]) {
+    const kh = document.getElementById(keyHintMap[v]);
+    if (kh) kh.style.display = '';
+  }
 }
+
+function toggleOcrFields() {
+  if (!iaOcrProvider) return;
+  const isGeminiOcr = iaOcrProvider.value === 'GEMINI';
+  const ocrKeyGrp = document.getElementById('iaGeminiOcrKeyGroup');
+  if (ocrKeyGrp) ocrKeyGrp.style.display = isGeminiOcr ? '' : 'none';
+}
+
 if (iaProvider) {
   iaProvider.addEventListener('change', toggleIaFields);
   toggleIaFields();
+}
+if (iaOcrProvider) {
+  iaOcrProvider.addEventListener('change', toggleOcrFields);
+  toggleOcrFields();
 }
 
 // Color hex sync

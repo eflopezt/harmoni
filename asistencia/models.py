@@ -1348,6 +1348,30 @@ class ConfiguracionSistema(models.Model):
         default='HORAS EXTRAS 100%',
         verbose_name="Nombre Concepto HE 100% en S10")
 
+    # ── Integraciones: Telegram Bot ──────────────────────────────────────────
+    telegram_bot_token = models.CharField(
+        max_length=200, blank=True, default='',
+        verbose_name="Token del Bot de Telegram",
+        help_text="Token del bot de Telegram (obtenido desde @BotFather).")
+    telegram_channel_id = models.CharField(
+        max_length=100, blank=True, default='',
+        verbose_name="ID / Username del Canal",
+        help_text="@username para canales públicos o -100XXXXXXX para privados.")
+
+    # ── Integraciones: WhatsApp Business Cloud API ───────────────────────────
+    whatsapp_phone_number_id = models.CharField(
+        max_length=100, blank=True, default='',
+        verbose_name="WhatsApp Phone Number ID",
+        help_text="ID del número en Meta Developer Console (no el número real).")
+    whatsapp_access_token = models.CharField(
+        max_length=500, blank=True, default='',
+        verbose_name="WhatsApp Access Token",
+        help_text="Token permanente de la Meta Business App para WhatsApp Cloud API.")
+    whatsapp_to_number = models.CharField(
+        max_length=500, blank=True, default='',
+        verbose_name="Número(s) Destino WhatsApp",
+        help_text="Formato 51XXXXXXXXX. Separar por coma para múltiples destinatarios.")
+
     actualizado_en = models.DateTimeField(auto_now=True)
     actualizado_por = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,

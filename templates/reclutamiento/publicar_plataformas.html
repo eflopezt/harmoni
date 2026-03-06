@@ -107,7 +107,7 @@
                     <p class="text-muted small mb-3">
                         Selecciona las plataformas donde deseas publicar esta vacante.
                         Para <strong>Computrabajo</strong> y <strong>Bumeran</strong> se generara un archivo exportable.
-                        Para <strong>LinkedIn</strong> se intentara publicar via API (requiere token configurado).
+                        Para <strong>LinkedIn</strong> y <strong>Telegram</strong> se publicara via API (requieren credenciales configuradas).
                         El <strong>Portal Propio</strong> activa la vacante en tu portal de empleo interno.
                     </p>
 
@@ -162,6 +162,85 @@
                                     <input type="text" name="linkedin_organization_id" class="form-control form-control-sm"
                                            placeholder="ej: 12345678">
                                     <div class="form-text">ID numerico de la empresa en LinkedIn.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Credenciales Telegram (opcionales) #}
+                    <div id="telegram-creds" class="card mb-3 d-none" style="border-color:#229ED9;">
+                        <div class="card-header py-2" style="background:rgba(34,158,217,.08); border-bottom:1px solid rgba(34,158,217,.25);">
+                            <h6 class="mb-0 small" style="color:#0088cc;">
+                                <i class="bi bi-telegram me-1"></i>Credenciales Telegram Bot
+                                <span class="text-muted fw-normal">(opcionales — usa config del sistema si se omiten)</span>
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row g-2">
+                                <div class="col-sm-7">
+                                    <label class="form-label small mb-1">Token del Bot</label>
+                                    <input type="password" name="telegram_bot_token" class="form-control form-control-sm"
+                                           placeholder="123456:ABC-DEFGhijk...">
+                                    <div class="form-text">
+                                        Obtenlo en <a href="https://t.me/BotFather" target="_blank">@BotFather</a> en Telegram.
+                                        Si esta vacio se usa el configurado en Configuracion &gt; Integraciones.
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <label class="form-label small mb-1">Canal / Grupo (Chat ID)</label>
+                                    <input type="text" name="telegram_chat_id" class="form-control form-control-sm"
+                                           placeholder="@empleos_empresa o -100XXXXXXX">
+                                    <div class="form-text">
+                                        <code>@username</code> para canales publicos,
+                                        <code>-100XXXXXXX</code> para canales privados.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info py-2 px-3 mt-2 mb-0 small">
+                                <i class="fas fa-info-circle me-1"></i>
+                                El bot debe ser <strong>administrador</strong> del canal y tener permiso de publicar mensajes.
+                                Sin token, se generara un preview del mensaje formateado.
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Credenciales WhatsApp Business (opcionales) #}
+                    <div id="whatsapp-creds" class="card mb-3 d-none" style="border-color:#25D366;">
+                        <div class="card-header py-2" style="background:rgba(37,211,102,.08); border-bottom:1px solid rgba(37,211,102,.25);">
+                            <h6 class="mb-0 small" style="color:#128C7E;">
+                                <i class="bi bi-whatsapp me-1"></i>Credenciales WhatsApp Business
+                                <span class="text-muted fw-normal">(opcionales — usa config del sistema si se omiten)</span>
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row g-2">
+                                <div class="col-sm-5">
+                                    <label class="form-label small mb-1">Phone Number ID</label>
+                                    <input type="text" name="whatsapp_phone_number_id" class="form-control form-control-sm"
+                                           placeholder="123456789012345">
+                                    <div class="form-text">
+                                        ID del número en
+                                        <a href="https://developers.facebook.com/apps/" target="_blank">Meta Developer Console</a>
+                                        (no el número real).
+                                    </div>
+                                </div>
+                                <div class="col-sm-7">
+                                    <label class="form-label small mb-1">Access Token</label>
+                                    <input type="password" name="whatsapp_access_token" class="form-control form-control-sm"
+                                           placeholder="EAAxxxxx... (token permanente)">
+                                    <div class="form-text">
+                                        Token permanente de la app en Meta Business. Usar token de sistema para producción.
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small mb-1">Número(s) Destino</label>
+                                    <input type="text" name="whatsapp_to_number" class="form-control form-control-sm"
+                                           placeholder="51987654321, 51912345678">
+                                    <div class="form-text">
+                                        Formato internacional sin +: <code>51XXXXXXXXX</code>.
+                                        Separar por coma para múltiples destinatarios.
+                                        El número destino debe haber iniciado conversación con el bot primero.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -238,6 +317,71 @@
                         </button>
                         <div class="collapse mt-2" id="payload_{{ forloop.counter }}">
                             <pre id="payload_content_{{ forloop.counter }}" class="bg-dark text-info p-2 rounded small" style="max-height:300px;overflow:auto;font-size:0.7rem">{{ res.payload|safe }}</pre>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# Mostrar mensaje formateado para WhatsApp #}
+                    {% if res.texto_enviado and res.plataforma == 'WHATSAPP' %}
+                    <div class="mt-2">
+                        {% if res.es_preview %}
+                        <span class="badge" style="background:#25D366;font-size:0.65rem;">
+                            <i class="bi bi-whatsapp me-1"></i>PREVIEW — sin credenciales configuradas
+                        </span>
+                        {% else %}
+                        <span class="badge bg-success" style="font-size:0.65rem;">
+                            <i class="bi bi-whatsapp me-1"></i>ENVIADO por WhatsApp
+                        </span>
+                        {% if res.enviados %}
+                        <span class="text-muted ms-1" style="font-size:0.72rem;">
+                            ({{ res.enviados|length }} número{{ res.enviados|length|pluralize:"s" }})
+                        </span>
+                        {% endif %}
+                        {% endif %}
+                        <button class="btn btn-sm py-0 ms-1" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#wa_msg_{{ forloop.counter }}"
+                                style="font-size:0.72rem;color:#25D366;border-color:#25D366;">
+                            <i class="fas fa-eye me-1"></i>Ver Mensaje
+                        </button>
+                        <button class="btn btn-outline-success btn-sm py-0 ms-1" type="button"
+                                onclick="copiarTexto('wa_content_{{ forloop.counter }}')"
+                                style="font-size:0.72rem">
+                            <i class="fas fa-copy me-1"></i>Copiar
+                        </button>
+                        <div class="collapse mt-2" id="wa_msg_{{ forloop.counter }}">
+                            <div class="p-3 rounded" style="background:#1a2a1a;border-left:3px solid #25D366;">
+                                <pre id="wa_content_{{ forloop.counter }}" class="mb-0 text-light" style="font-size:0.75rem;white-space:pre-wrap;word-break:break-word;">{{ res.texto_enviado }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# Mostrar mensaje formateado para Telegram #}
+                    {% if res.texto_enviado and res.plataforma == 'TELEGRAM' %}
+                    <div class="mt-2">
+                        {% if res.es_preview %}
+                        <span class="badge" style="background:#229ED9;font-size:0.65rem;">
+                            <i class="bi bi-telegram me-1"></i>PREVIEW — sin token configurado
+                        </span>
+                        {% else %}
+                        <span class="badge bg-success" style="font-size:0.65rem;">
+                            <i class="bi bi-telegram me-1"></i>ENVIADO a Telegram
+                        </span>
+                        {% endif %}
+                        <button class="btn btn-sm py-0 ms-1" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#tg_msg_{{ forloop.counter }}"
+                                style="font-size:0.72rem;color:#229ED9;border-color:#229ED9;">
+                            <i class="fas fa-eye me-1"></i>Ver Mensaje
+                        </button>
+                        <button class="btn btn-outline-success btn-sm py-0 ms-1" type="button"
+                                onclick="copiarTexto('tg_content_{{ forloop.counter }}')"
+                                style="font-size:0.72rem">
+                            <i class="fas fa-copy me-1"></i>Copiar
+                        </button>
+                        <div class="collapse mt-2" id="tg_msg_{{ forloop.counter }}">
+                            <div class="p-3 rounded" style="background:#1e2936;border-left:3px solid #229ED9;">
+                                <pre id="tg_content_{{ forloop.counter }}" class="mb-0 text-light" style="font-size:0.75rem;white-space:pre-wrap;word-break:break-word;">{{ res.texto_enviado }}</pre>
+                            </div>
                         </div>
                     </div>
                     {% endif %}
@@ -320,6 +464,22 @@
                         Sin token, se genera un preview del payload para publicar manualmente.
                     </li>
                     <li class="mb-1">
+                        <strong>Telegram Bot:</strong> Crea un bot en
+                        <a href="https://t.me/BotFather" target="_blank" class="text-info">@BotFather</a>,
+                        aggrega el bot como administrador de tu canal y configura el token en
+                        <em>Configuracion &gt; Integraciones &gt; Telegram</em>.
+                        El <code>chat_id</code> puede ser <code>@nombre_canal</code> (publico) o el ID numerico del canal privado.
+                        Sin credenciales, se genera un preview del mensaje para copiar y publicar manualmente.
+                    </li>
+                    <li class="mb-1">
+                        <strong>WhatsApp Business:</strong> Requiere una cuenta de
+                        <a href="https://developers.facebook.com/docs/whatsapp/cloud-api" target="_blank" class="text-info">Meta Business</a>
+                        con WhatsApp Cloud API habilitada. Configura el <em>Phone Number ID</em> y el
+                        <em>Access Token</em> en <em>Configuracion &gt; Integraciones &gt; WhatsApp</em>.
+                        El numero destino debe haber iniciado conversacion con el bot primero (ventana de 24h de Meta).
+                        Sin credenciales, genera preview del mensaje.
+                    </li>
+                    <li class="mb-1">
                         <strong>Portal Propio:</strong> Activa la vacante en el portal publico de empleo
                         de tu empresa. La vacante pasa a estado <em>PUBLICADA</em> si estaba en borrador.
                     </li>
@@ -353,6 +513,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnPub   = document.getElementById('btnPublicar');
     const liCreds  = document.getElementById('linkedin-creds');
     const liCheck  = document.getElementById('plat_linkedin');
+    const tgCreds  = document.getElementById('telegram-creds');
+    const tgCheck  = document.getElementById('plat_telegram');
+    const waCreds  = document.getElementById('whatsapp-creds');
+    const waCheck  = document.getElementById('plat_whatsapp');
 
     function actualizarBtn() {
         const alguno = Array.from(checks).some(c => c.checked);
@@ -365,10 +529,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function actualizarTelegram() {
+        if (tgCheck && tgCreds) {
+            tgCreds.classList.toggle('d-none', !tgCheck.checked);
+        }
+    }
+
+    function actualizarWhatsApp() {
+        if (waCheck && waCreds) {
+            waCreds.classList.toggle('d-none', !waCheck.checked);
+        }
+    }
+
     checks.forEach(c => {
         c.addEventListener('change', function () {
             actualizarBtn();
             actualizarLinkedIn();
+            actualizarTelegram();
+            actualizarWhatsApp();
         });
     });
 

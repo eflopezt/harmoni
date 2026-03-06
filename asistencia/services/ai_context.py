@@ -581,7 +581,10 @@ def build_system_prompt(user, modules: list[str] | None = None) -> str:
         '7. Formato: texto fluido, **negrita** para cifras clave. '
         'Listas con guion (-) solo si hay 3+ items.\n'
         '8. Legislacion peruana: cita el articulo o decreto exacto (DL 728, DL 713, etc).\n'
-        '9. Tono ejecutivo: directo, sin relleno. Cada oracion debe agregar valor.'
+        '9. Tono ejecutivo: directo, sin relleno. Cada oracion debe agregar valor.\n'
+        '10. Normativa inyectada: aplica el conocimiento legal/politico como expertise propio. '
+        'No digas "segun la normativa que tengo", "segun mi base de conocimiento" ni similares. '
+        'Si la ley aplica, dila directamente: "El DL 713 establece..." o "Por ley...".'
     )
 
     # PLANTILLA
@@ -1439,8 +1442,22 @@ def _detect_chart_types(msg: str) -> list[str]:
     ]):
         found.append('areas')
 
-    if any(kw in msg for kw in ['staff', 'rco', 'tipo personal', 'grupo tareo']):
+    # Combinados primero (más específicos que tipo_personal/headcount solos)
+    if any(kw in msg for kw in [
+        'staff y rco', 'staff vs rco', 'staff rco tend', 'tipo personal mes',
+        'comparacion staff', 'staff rco por mes', 'evolucion staff',
+        'staff rco histor', 'staff rco año',
+    ]):
+        found.append('staff_vs_rco')
+    elif any(kw in msg for kw in ['staff', 'rco', 'tipo personal', 'grupo tareo']):
         found.append('tipo_personal')
+
+    if any(kw in msg for kw in [
+        'altas y bajas', 'altas vs bajas', 'entradas y salidas', 'entradas salidas',
+        'ingresos y egresos', 'ingresos egresos', 'movimiento personal',
+        'bajas y altas', 'rotacion altas', 'flujo personal',
+    ]):
+        found.append('altas_vs_bajas')
 
     if any(kw in msg for kw in [
         'pension', 'pensión', 'afp', 'onp', 'regimen pension',
@@ -1483,11 +1500,26 @@ def detect_chart_request(message: str) -> dict | None:
     return {'type': 'areas'}
 
 
-def detect_multiple_chart_requests(message: str) -> list[dict] | None:
+# Palabras que indican que el usuario hace referencia a gráficos anteriores
+_REFERENCE_KW = [
+    'ambos', 'los dos', 'las dos', 'juntos', 'juntas',
+    'un solo', 'mismo grafico', 'misma grafica', 'combina', 'combinar',
+    'combinado', 'combinada', 'junto', 'junto con', 'también',
+    'el anterior', 'lo anterior', 'los anteriores',
+]
+
+
+def detect_multiple_chart_requests(
+    message: str,
+    history: list[dict] | None = None,
+) -> list[dict] | None:
     """
     Detecta si el usuario pide uno o más gráficos en un mensaje.
     Retorna lista de especificaciones {'type': str} o None si no hay gráficos.
-    Úsalo en el chat stream para soportar "gráfico por género y edad".
+
+    Soporta referencias al historial: si el mensaje contiene palabras como
+    "ambos", "los dos", "juntos" y no tiene keywords de tipo, busca los tipos
+    de gráfico en los últimos mensajes del usuario en el historial.
     """
     msg = message.lower()
 
@@ -1497,10 +1529,31 @@ def detect_multiple_chart_requests(message: str) -> list[dict] | None:
         'dibuja', 'genera un',
     ]
     is_chart = any(kw in msg for kw in chart_kw)
+
+    # Detectar si hay palabras de referencia a gráficos anteriores
+    is_reference = any(kw in msg for kw in _REFERENCE_KW)
+
+    # Si hay referencia explícita pero el keyword de gráfico no aparece,
+    # tratar igual como solicitud de gráfico (ej: "muéstrame ambos")
+    if is_reference and not is_chart:
+        is_chart = True
+
     if not is_chart:
         return None
 
     types = _detect_chart_types(msg)
+
+    # Si el mensaje tiene referencia ("ambos", "los dos"…) y no detectamos
+    # tipos concretos, buscar en el historial cuáles fueron los últimos tipos pedidos
+    if not types and is_reference and history:
+        for entry in reversed(history[-8:]):
+            if entry.get('role') == 'user':
+                prev_msg = entry.get('content', '').lower()
+                prev_types = _detect_chart_types(prev_msg)
+                if prev_types:
+                    types = prev_types
+                    break  # Tomamos los tipos del mensaje de usuario más reciente
+
     if not types:
         return [{'type': 'areas'}]
 
@@ -1870,7 +1923,89 @@ def generate_chart_data(chart_type: str, user, message: str = '') -> dict | None
         except Exception:
             return None
 
+    elif chart_type == 'staff_vs_rco':
+        # Gráfico combinado: STAFF vs RCO por mes (desde snapshots)
+        try:
+            from analytics.models import KPISnapshot
+            snaps = KPISnapshot.objects.order_by('-periodo')[:12][::-1]
+            if snaps:
+                labels = [s.periodo.strftime('%b %Y') for s in snaps]
+                staff_vals = [s.empleados_staff for s in snaps]
+                rco_vals = [s.empleados_rco for s in snaps]
+            else:
+                # Fallback: datos en tiempo real (1 punto)
+                staff_live = personal.filter(grupo_tareo='STAFF').count()
+                rco_live = personal.filter(grupo_tareo='RCO').count()
+                labels = ['Actual']
+                staff_vals = [staff_live]
+                rco_vals = [rco_live]
+            return {
+                'chart': 'bar',
+                'title': 'Evolución STAFF vs RCO',
+                'labels': labels,
+                'values': staff_vals,
+                'values2': rco_vals,
+                'colors': ['rgba(15,118,110,.7)', 'rgba(217,119,6,.7)'],
+                'series_labels': ['STAFF', 'RCO'],
+                'summary': f'Últimos {len(labels)} periodos',
+                'multi_series': True,
+                'stacked': False,
+            }
+        except Exception:
+            return None
+
+    elif chart_type == 'altas_vs_bajas':
+        # Gráfico combinado: altas vs bajas por mes
+        try:
+            from analytics.models import KPISnapshot
+            snaps = KPISnapshot.objects.order_by('-periodo')[:12][::-1]
+            if not snaps:
+                return None
+            labels = [s.periodo.strftime('%b %Y') for s in snaps]
+            altas_vals = [s.altas_mes for s in snaps]
+            bajas_vals = [s.bajas_mes for s in snaps]
+            return {
+                'chart': 'bar',
+                'title': 'Altas vs Bajas Mensuales',
+                'labels': labels,
+                'values': altas_vals,
+                'values2': bajas_vals,
+                'colors': ['rgba(16,185,129,.7)', 'rgba(239,68,68,.7)'],
+                'series_labels': ['Altas', 'Bajas'],
+                'summary': f'Total altas: {sum(altas_vals)} · Total bajas: {sum(bajas_vals)}',
+                'multi_series': True,
+                'stacked': False,
+            }
+        except Exception:
+            return None
+
     return None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Detección de "fijar gráfico en dashboard"
+# ═══════════════════════════════════════════════════════════════════════════
+
+_PIN_KW = [
+    'pon en el dashboard', 'pon en mi dashboard', 'agregar al dashboard',
+    'agrega al dashboard', 'añade al dashboard', 'añadir al dashboard',
+    'guardar en el dashboard', 'guardar en el inicio', 'quiero ver esto siempre',
+    'fija este grafico', 'fija este gráfico', 'fijar en el dashboard',
+    'fijar en el inicio', 'ponlo en el dashboard', 'ponlo en mi dashboard',
+    'poner en mi dashboard', 'añadir a mi inicio', 'agrega a mi dashboard',
+    'pin', 'pinea', 'pin to dashboard', 'añade a inicio', 'guarda este grafico',
+    'quiero este grafico en el inicio', 'quiero este gráfico en el inicio',
+    'dashboard personalizado', 'mi dashboard', 'personalizar dashboard',
+]
+
+
+def detect_pin_to_dashboard(message: str) -> bool:
+    """
+    Detecta si el usuario quiere fijar un gráfico en su dashboard personal.
+    Retorna True si detecta intención de pin.
+    """
+    msg = message.lower()
+    return any(kw in msg for kw in _PIN_KW)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

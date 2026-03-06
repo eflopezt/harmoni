@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_liquidacion
 
 urlpatterns = [
     # Panel y portal
@@ -31,6 +32,12 @@ urlpatterns = [
     path('gratificaciones/', views.gratificacion_panel, name='nominas_gratificaciones'),
     path('periodos/especial/crear/', views.crear_periodo_especial, name='nominas_crear_especial'),
 
+    # Liquidación al Cese
+    path('liquidaciones/', views_liquidacion.liquidaciones_panel, name='nominas_liquidaciones'),
+    path('liquidaciones/<int:pk>/', views_liquidacion.liquidacion_detalle, name='nominas_liquidacion_detalle'),
+    path('liquidaciones/<int:pk>/generar/', views_liquidacion.liquidacion_generar, name='nominas_liquidacion_generar'),
+    path('liquidaciones/<int:pk>/pdf/', views_liquidacion.liquidacion_pdf, name='nominas_liquidacion_pdf'),
+
     # IR 5ta Categoría
     path('ir5ta/', views.ir5ta_panel, name='nominas_ir5ta'),
     path('registros/<int:pk>/ir5ta/', views.registro_ir5ta_ajax, name='nominas_registro_ir5ta'),
@@ -43,8 +50,11 @@ urlpatterns = [
     # Planes de Plantilla
     path('planes/', views.planes_panel, name='nominas_planes'),
     path('planes/crear/', views.plan_crear, name='nominas_plan_crear'),
+    path('planes/plantilla-excel/', views.plan_plantilla_excel, name='nominas_plan_plantilla_excel'),
     path('planes/<int:pk>/', views.plan_detalle, name='nominas_plan_detalle'),
     path('planes/<int:pk>/estado/', views.plan_actualizar_estado, name='nominas_plan_estado'),
+    path('planes/<int:pk>/exportar-excel/', views.plan_export_excel, name='nominas_plan_export_excel'),
+    path('planes/<int:pk>/importar-excel/', views.plan_import_excel, name='nominas_plan_import_excel'),
     path('planes/<int:plan_pk>/lineas/', views.plan_linea_upsert, name='nominas_plan_linea_upsert'),
     path('planes/<int:plan_pk>/lineas/<int:linea_pk>/eliminar/', views.plan_linea_eliminar, name='nominas_plan_linea_eliminar'),
 ]

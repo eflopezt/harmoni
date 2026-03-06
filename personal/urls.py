@@ -77,6 +77,8 @@ urlpatterns = [
     path('usuarios/crear-vincular/', views.usuario_crear_y_vincular, name='usuario_crear_y_vincular'),
     path('usuarios/desvincular/<int:user_id>/', views.usuario_desvincular, name='usuario_desvincular'),
     path('usuarios/sincronizar/', views.usuario_sincronizar, name='usuario_sincronizar'),
+    path('personal/<int:personal_pk>/portal/crear/', views.portal_crear_acceso, name='portal_crear_acceso'),
+    path('personal/<int:personal_pk>/portal/reset/', views.portal_reset_credenciales, name='portal_reset_credenciales'),
 
     # Gestión de Accesos (RBAC)
     path('accesos/', views.accesos_gestion, name='accesos_gestion'),

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from core.models import AuditLog, PerfilAcceso, PermisoModulo
+from core.models import AuditLog, KnowledgeArticle, PerfilAcceso, PermisoModulo
 
 
 @admin.register(AuditLog)
@@ -94,3 +94,38 @@ class PermisoModuloAdmin(admin.ModelAdmin):
     search_fields = ('usuario__username', 'usuario__first_name', 'usuario__last_name')
     list_editable = ('puede_ver', 'puede_crear', 'puede_editar', 'puede_aprobar', 'puede_exportar')
     raw_id_fields = ('usuario',)
+
+
+# ── KnowledgeArticle — Base de Conocimiento IA ────────────────────────────────
+
+@admin.register(KnowledgeArticle)
+class KnowledgeArticleAdmin(admin.ModelAdmin):
+    list_display  = ('titulo', 'categoria', 'prioridad', '_snippet', 'activo', 'actualizado_en')
+    list_filter   = ('categoria', 'activo', 'prioridad')
+    search_fields = ('titulo', 'contenido', 'tags')
+    list_editable = ('activo', 'prioridad')
+    ordering      = ('prioridad', 'categoria', 'titulo')
+    readonly_fields = ('creado_en', 'actualizado_en')
+
+    fieldsets = (
+        ('Identificación', {
+            'fields': ('titulo', 'categoria', 'prioridad', 'activo'),
+        }),
+        ('Contenido', {
+            'description': (
+                'Escribe en Markdown. La IA usa este texto textualmente como contexto. '
+                'Sé específico: incluye números exactos, artículos de ley, porcentajes. '
+                'Máximo ~800 chars efectivos (el resto se trunca).'
+            ),
+            'fields': ('contenido', 'tags'),
+        }),
+        ('Auditoría', {
+            'fields': ('creado_en', 'actualizado_en'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def _snippet(self, obj):
+        s = obj.snippet(100)
+        return format_html('<span style="color:#64748b;font-size:.85em">{}</span>', s)
+    _snippet.short_description = 'Vista previa'
