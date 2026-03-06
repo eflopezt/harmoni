@@ -32,11 +32,17 @@ def hdr(m):  print(f"\n{'='*60}\n  {m}\n{'='*60}")
 def step(m): print(f"\n  -> {m}")
 
 # ── Ruta Excel ───────────────────────────────────────────────────────────────
-EXCEL_PATH = (
+# 1° Busca en core/fixtures/ (incluido en el repo → funciona en Render)
+# 2° Fallback a ruta local Windows (desarrollo)
+_CMD_DIR   = Path(__file__).resolve().parent          # commands/
+_CORE_DIR  = _CMD_DIR.parent.parent                   # core/
+EXCEL_PATH_PROJECT = _CORE_DIR / 'fixtures' / 'matriz_contratos.xlsx'
+EXCEL_PATH_LOCAL   = (
     r'C:\Users\EDWIN LOPEZ\RIPCON\Proyectos Perú - Recursos humanos'
     r'\02 Administración de Personal\Control de Contratos'
     r'\MATRIZ CONTRATOS FINAL CSRT.xlsx'
 )
+EXCEL_PATH = str(EXCEL_PATH_PROJECT)   # alias por compatibilidad
 EMPRESA_ID = 4   # Andes Mining
 
 # ── AFP disponibles en Perú ─────────────────────────────────────────────────
@@ -154,12 +160,16 @@ class Command(BaseCommand):
             err('pandas no instalado. Ejecuta: pip install pandas openpyxl')
             return
 
-        xl_path = Path(EXCEL_PATH)
+        # Busca primero en core/fixtures/ (repo), luego en ruta local Windows
+        xl_path = EXCEL_PATH_PROJECT
         if not xl_path.exists():
-            warn(f'Excel no encontrado: {EXCEL_PATH}')
+            xl_path = Path(EXCEL_PATH_LOCAL)
+        if not xl_path.exists():
+            warn('Excel no encontrado ni en fixtures/ ni en ruta local.')
             warn('Generando empleados demo sintéticos...')
             self._seed_personal_sintetico()
             return
+        ok(f'Excel encontrado: {xl_path}')
 
         from personal.models import Area, SubArea, Personal
 
