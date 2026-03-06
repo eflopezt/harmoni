@@ -17,7 +17,10 @@ python manage.py createcachetable 2>/dev/null || true
 echo "=== Running initial setup ==="
 python manage.py setup_harmoni --no-input || true
 
-echo "=== Loading demo data ==="
-python manage.py seed_demo_data || true
+echo "=== Loading employees fixture (280 real employees) ==="
+python manage.py loaddata core/fixtures/empleados.json || true
+
+echo "=== Loading additional demo data (modules) ==="
+python manage.py seed_demo_data --solo-modulos || true
 
 echo "=== Build complete ==="
