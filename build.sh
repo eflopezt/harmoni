@@ -23,4 +23,7 @@ python manage.py loaddata core/fixtures/empleados.json || true
 echo "=== Loading modules fixture (vacaciones, caps, prestamos, etc) ==="
 python manage.py loaddata core/fixtures/modulos_demo.json || true
 
+echo "=== Creating demo users ==="
+python manage.py create_demo_users || true
+
 echo "=== Build complete ==="
