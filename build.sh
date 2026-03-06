@@ -15,9 +15,9 @@ echo "=== Creating cache table ==="
 python manage.py createcachetable 2>/dev/null || true
 
 echo "=== Running initial setup ==="
-python manage.py setup_harmoni --no-input 2>/dev/null || true
+python manage.py setup_harmoni --no-input || true
 
 echo "=== Loading demo data ==="
-python manage.py seed_demo_data 2>/dev/null || true
+python manage.py seed_demo_data || true
 
 echo "=== Build complete ==="

@@ -959,8 +959,45 @@ class Command(BaseCommand):
     # HELPERS
     # ═══════════════════════════════════════════════════════════════════════
     def _get_empresa(self):
+        """
+        Obtiene (o crea) la empresa demo.
+        Busca por ID, luego por RUC, luego primera disponible, luego crea.
+        Funciona tanto en local (ID=4 existe) como en Render (DB vacía).
+        """
         from empresas.models import Empresa
-        return Empresa.objects.get(id=EMPRESA_ID)
+
+        # 1. Intentar por ID original (local)
+        try:
+            return Empresa.objects.get(id=EMPRESA_ID)
+        except Empresa.DoesNotExist:
+            pass
+
+        # 2. Buscar por RUC de la empresa demo
+        empresa = Empresa.objects.filter(ruc='20600000001').first()
+        if empresa:
+            return empresa
+
+        # 3. Usar la primera disponible
+        empresa = Empresa.objects.first()
+        if empresa:
+            ok(f'Usando empresa: {empresa.razon_social} (id={empresa.id})')
+            return empresa
+
+        # 4. Crear empresa demo (Render: DB vacía)
+        ok('Creando empresa demo "Andes Mining Services S.A.C."...')
+        empresa, _ = Empresa.objects.get_or_create(
+            ruc='20600000001',
+            defaults=dict(
+                razon_social     = 'ANDES MINING SERVICES S.A.C.',
+                nombre_comercial = 'Andes Mining',
+                sector           = 'PRIVADO',
+                regimen          = 'GENERAL',
+                departamento     = 'Lima',
+                provincia        = 'Lima',
+                distrito         = 'Lima',
+            )
+        )
+        return empresa
 
     def _get_admin_user(self):
         u = User.objects.filter(is_superuser=True).first()
