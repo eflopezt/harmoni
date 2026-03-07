@@ -817,6 +817,75 @@
         </div>
     </div>
 
+    <!-- ── Base de Conocimiento RAG ── -->
+    <div class="dash-card mb-3" id="panelKnowledgeBase">
+        <div class="dash-card-body">
+            <div class="cfg-section-title">
+                <i class="fas fa-database me-2 text-primary"></i>
+                Base de Conocimiento IA (RAG)
+            </div>
+            <p class="help-text mb-3">
+                El asistente IA busca en esta base de conocimiento para responder preguntas sobre ley laboral peruana,
+                procesos de Harmoni y políticas internas.
+                <strong>Fase A</strong> (activa siempre): búsqueda por palabras clave.
+                <strong>Fase B</strong> (semántica): requiere calcular embeddings con OpenAI.
+            </p>
+
+            <!-- Stats -->
+            <div class="row g-2 mb-3" id="ragStatsRow">
+                <div class="col-sm-3">
+                    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;font-size:.82rem;">
+                        <div style="font-size:1.4rem;font-weight:700;color:#16a34a;" id="ragStatTotal">{{ knowledge_stats.total }}</div>
+                        <div class="text-muted">Art&iacute;culos activos</div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:.82rem;">
+                        <div style="font-size:1.4rem;font-weight:700;color:#2563eb;" id="ragStatWithEmb">{{ knowledge_stats.with_embedding }}</div>
+                        <div class="text-muted">Con embedding</div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:.82rem;">
+                        <div style="font-size:1.4rem;font-weight:700;color:#d97706;" id="ragStatNoEmb">{{ knowledge_stats.without_embedding }}</div>
+                        <div class="text-muted">Sin embedding</div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div id="ragPhaseBCard" style="border-radius:8px;padding:10px 14px;font-size:.82rem;
+                        {% if knowledge_stats.phase_b_ready %}background:#f0fdf4;border:1px solid #86efac;{% else %}background:#f8fafc;border:1px solid #e2e8f0;{% endif %}">
+                        <div style="font-size:.85rem;font-weight:700;
+                            {% if knowledge_stats.phase_b_ready %}color:#16a34a;{% else %}color:#94a3b8;{% endif %}">
+                            <i class="fas {% if knowledge_stats.phase_b_ready %}fa-check-circle text-success{% else %}fa-circle text-secondary{% endif %} me-1"></i>
+                            Fase B {% if knowledge_stats.phase_b_ready %}Activa{% else %}Inactiva{% endif %}
+                        </div>
+                        <div class="text-muted" style="margin-top:2px;">Búsqueda semántica</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                {% if request.user.is_superuser %}
+                <button type="button" class="btn btn-sm btn-primary" id="btnIndexEmbeddings" onclick="indexarEmbeddings(false)">
+                    <i class="fas fa-brain me-1"></i>Calcular Embeddings
+                    <span class="badge bg-white text-primary ms-1" style="font-size:.65rem;">~$0.0001</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="indexarEmbeddings(true)">
+                    <i class="fas fa-sync me-1"></i>Recalcular todos
+                </button>
+                {% endif %}
+                <a href="{% url 'admin:core_knowledgearticle_changelist' %}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="fas fa-edit me-1"></i>Gestionar artículos
+                </a>
+                <span class="help-text ms-2">Modelo: <code>text-embedding-3-small</code> (OpenAI)</span>
+            </div>
+
+            <!-- Resultado indexación -->
+            <div id="ragIndexResult" style="display:none; margin-top:12px;"></div>
+        </div>
+    </div>
+
     <!-- ── Guía de precios ── -->
     <div class="dash-card" id="panelGuiaProviders">
         <div class="dash-card-body">
@@ -1401,5 +1470,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ── RAG — Indexar Embeddings ───────────────────────────────────────────────
+function indexarEmbeddings(force) {
+    const btn = document.getElementById('btnIndexEmbeddings');
+    const resultArea = document.getElementById('ragIndexResult');
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Calculando...';
+    }
+    resultArea.style.display = 'none';
+
+    fetch('{% url "ia_index_embeddings" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({ force: force }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-brain me-1"></i>Calcular Embeddings <span class="badge bg-white text-primary ms-1" style="font-size:.65rem;">~$0.0001</span>';
+        }
+
+        if (data.ok !== false) {
+            // Actualizar contadores en pantalla
+            if (data.stats) {
+                const el = id => document.getElementById(id);
+                if (el('ragStatTotal'))   el('ragStatTotal').textContent   = data.stats.total;
+                if (el('ragStatWithEmb')) el('ragStatWithEmb').textContent = data.stats.with_embedding;
+                if (el('ragStatNoEmb'))   el('ragStatNoEmb').textContent   = data.stats.without_embedding;
+                if (el('ragPhaseBCard')) {
+                    const ready = data.stats.phase_b_ready;
+                    el('ragPhaseBCard').style.background = ready ? '#f0fdf4' : '#f8fafc';
+                    el('ragPhaseBCard').style.border     = ready ? '1px solid #86efac' : '1px solid #e2e8f0';
+                    el('ragPhaseBCard').innerHTML = `
+                        <div style="font-size:.85rem;font-weight:700;color:${ready ? '#16a34a' : '#94a3b8'}">
+                            <i class="fas ${ready ? 'fa-check-circle text-success' : 'fa-circle text-secondary'} me-1"></i>
+                            Fase B ${ready ? 'Activa' : 'Inactiva'}
+                        </div>
+                        <div class="text-muted" style="margin-top:2px;">Busqueda semantica</div>`;
+                }
+            }
+
+            const msg = data.already_done
+                ? 'Todos los articulos ya tienen embeddings.'
+                : `${data.indexed} embedding(s) calculados correctamente.${data.errors > 0 ? ` (${data.errors} errores)` : ''}`;
+
+            resultArea.style.display = 'block';
+            resultArea.innerHTML = `
+                <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#166534;">
+                    <i class="fas fa-check-circle me-1"></i>${msg}
+                    ${data.stats && data.stats.phase_b_ready ? ' <strong>Busqueda semantica Phase B activa.</strong>' : ''}
+                </div>`;
+        } else {
+            resultArea.style.display = 'block';
+            resultArea.innerHTML = `
+                <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#dc2626;">
+                    <i class="fas fa-exclamation-circle me-1"></i>${data.error || 'Error desconocido'}
+                </div>`;
+        }
+    })
+    .catch(err => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-brain me-1"></i>Calcular Embeddings';
+        }
+        resultArea.style.display = 'block';
+        resultArea.innerHTML = `
+            <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#dc2626;">
+                <i class="fas fa-exclamation-circle me-1"></i>Error de red: ${err}
+            </div>`;
+    });
+}
 </script>
 {% endblock %}

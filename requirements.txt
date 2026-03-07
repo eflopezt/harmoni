@@ -37,12 +37,13 @@ Pillow>=10.3.0          # ImageField, thumbnails
 xhtml2pdf>=0.2.16       # Generación constancias/documentos PDF
 pdfminer.six>=20221105  # Extracción texto PDF (bajas SUNAT, BLIQ liquidación S10)
 pdfplumber>=0.11.0      # Extracción tablas PDF (complemento PyMuPDF, Fase 4.4)
+PyMuPDF>=1.24.0         # Extracción texto PDF para upload IA (fitz)
 
 # ==========================================
 # AI PROVIDERS (Fase 4.4 — Multi-Provider)
 # ==========================================
 google-generativeai>=0.8.0   # Gemini 2.0/2.5 Flash — OCR PDF nativo + chat
-openai>=1.50.0               # DeepSeek (OpenAI-compatible) + OpenAI GPT
+openai>=1.50.0               # DeepSeek (OpenAI-compatible) + OpenAI GPT + embeddings RAG
 
 # ==========================================
 # DATABASE

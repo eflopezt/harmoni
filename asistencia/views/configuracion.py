@@ -169,6 +169,16 @@ def configuracion_view(request):
     inicio_he, fin_he = config.get_ciclo_he(hoy.year, hoy.month)
     inicio_asist, fin_asist = config.get_ciclo_asistencia(hoy.year, hoy.month)
 
+    # Estadísticas de embeddings para panel RAG
+    try:
+        from core.knowledge_service import get_embedding_stats
+        knowledge_stats = get_embedding_stats()
+    except Exception:
+        knowledge_stats = {
+            'total': 0, 'with_embedding': 0, 'without_embedding': 0,
+            'phase_b_ready': False, 'embedding_model': 'text-embedding-3-small',
+        }
+
     context = {
         'titulo': 'Configuración del Sistema',
         'config': config,
@@ -178,6 +188,7 @@ def configuracion_view(request):
             (0, 'Lunes'), (1, 'Martes'), (2, 'Miércoles'), (3, 'Jueves'),
             (4, 'Viernes'), (5, 'Sábado'), (6, 'Domingo'),
         ],
+        'knowledge_stats': knowledge_stats,
     }
     return render(request, 'asistencia/configuracion.html', context)
 

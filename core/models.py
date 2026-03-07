@@ -381,9 +381,16 @@ class KnowledgeArticle(models.Model):
     creado_en  = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
-    # ── Fase B: embedding vector (descomenta cuando tengas pgvector) ──
-    # embedding = models.BinaryField(null=True, blank=True)  # placeholder
-    # Para activar pgvector real: pip install pgvector y usar VectorField(dimensions=1536)
+    # ── Fase B: embedding vectorial (text-embedding-3-small, 1536 dims) ──
+    # Almacenado como JSON string para compatibilidad SQLite/PostgreSQL.
+    # Para producción con pgvector: migrar a VectorField(dimensions=1536).
+    embedding_json = models.TextField(
+        blank=True, null=True,
+        help_text=(
+            'Vector de embedding en JSON (float[1536]). '
+            'Auto-generado por: python manage.py index_knowledge_embeddings'
+        ),
+    )
 
     class Meta:
         app_label = 'core'

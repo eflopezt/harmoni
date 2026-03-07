@@ -1008,3 +1008,82 @@ def ai_upload_file(request):
     except Exception as e:
         logger.warning(f'ai_upload_file error: {e}')
         return JsonResponse({'ok': False, 'error': f'Error procesando archivo: {str(e)[:120]}'}, status=500)
+
+
+# ─────────────────────────────────────────────────
+# RAG — INDEXAR EMBEDDINGS
+# ─────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def ai_index_embeddings(request):
+    """
+    Calcula embeddings para todos los artículos de KnowledgeArticle sin embedding.
+    Requiere superusuario o permiso de configuración.
+
+    Body JSON: {"force": false}   (force=true recalcula todos)
+    Returns: {"ok": true, "indexed": N, "errors": M, "stats": {...}}
+    """
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Acceso denegado'}, status=403)
+
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except (json.JSONDecodeError, ValueError):
+        body = {}
+
+    force = bool(body.get('force', False))
+
+    from core.knowledge_service import embed_text, get_embedding_stats, _get_openai_api_key
+    from core.models import KnowledgeArticle
+    from django.db.models import Q
+
+    api_key = _get_openai_api_key()
+    if not api_key:
+        return JsonResponse({
+            'ok': False,
+            'error': (
+                'No hay API key de OpenAI configurada. '
+                'Configura ia_provider=OPENAI con su API key, o usa un provider con embeddings.'
+            ),
+        }, status=400)
+
+    # Seleccionar artículos
+    if force:
+        qs = KnowledgeArticle.objects.filter(activo=True)
+    else:
+        qs = KnowledgeArticle.objects.filter(activo=True).filter(
+            Q(embedding_json__isnull=True) | Q(embedding_json='')
+        )
+
+    articles = list(qs.order_by('prioridad', 'id'))
+
+    if not articles:
+        stats = get_embedding_stats()
+        return JsonResponse({'ok': True, 'indexed': 0, 'errors': 0, 'already_done': True, 'stats': stats})
+
+    ok_count = 0
+    error_count = 0
+
+    for art in articles:
+        text = f'{art.titulo}\n\n{art.contenido}'
+        try:
+            vec = embed_text(text, api_key=api_key)
+            if vec:
+                import json as _json
+                art.embedding_json = _json.dumps(vec)
+                art.save(update_fields=['embedding_json'])
+                ok_count += 1
+            else:
+                error_count += 1
+        except Exception as exc:
+            logger.warning('ai_index_embeddings: error en artículo pk=%s: %s', art.pk, exc)
+            error_count += 1
+
+    stats = get_embedding_stats()
+    return JsonResponse({
+        'ok': error_count == 0,
+        'indexed': ok_count,
+        'errors': error_count,
+        'stats': stats,
+    })
