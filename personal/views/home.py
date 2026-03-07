@@ -199,10 +199,8 @@ def home(request):
     """
     # ── Redirección automática a portal para trabajadores sin rol RRHH ──
     if not request.user.is_staff and not request.user.is_superuser:
-        from personal.mixins import filtrar_areas as _fa
-        if not _fa(request.user).exists():
-            from django.urls import reverse
-            return redirect(reverse('portal_home'))
+        if not filtrar_areas(request.user).exists():
+            return redirect('portal_home')
 
     hoy = date.today()
 
