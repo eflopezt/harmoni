@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harmoni ERP — Manual de Usuario</title>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10.5pt; color: #1e293b; background: #f8fafc; max-width: 900px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+h1 { font-size: 2em; color: #0d2b27; margin-bottom: 0.5em; }
+h2 { font-size: 1.4em; color: #134e4a; margin: 1.2em 0 0.5em; border-bottom: 2px solid #5eead4; padding-bottom: 4px; }
+h3 { font-size: 1.1em; color: #0f766e; margin: 1em 0 0.4em; }
+h4 { font-size: 1em; color: #1e293b; margin: 0.8em 0 0.3em; font-weight: 600; }
+p { margin-bottom: 0.7em; }
+ul, ol { margin: 0.5em 0 0.7em 1.5em; }
+li { margin-bottom: 0.3em; }
+a { color: #0f766e; text-decoration: none; }
+a:hover { text-decoration: underline; }
+strong { color: #0d2b27; }
+code { background: #e2e8f0; padding: 1px 5px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 0.88em; color: #0f766e; }
+
+/* ===== PRINT HINT ===== */
+.print-hint { background: #0d2b27; color: #5eead4; padding: 10px 18px; border-radius: 6px; font-size: 0.88em; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+.print-hint strong { color: #fff; }
+
+/* ===== COVER ===== */
+.cover { background: linear-gradient(160deg, #0d2b27 0%, #134e4a 60%, #0f766e 100%); color: white; min-height: 92vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 60px 40px; border-radius: 8px; margin-bottom: 40px; page-break-after: always; }
+.cover-logo { margin-bottom: 32px; }
+.cover-logo svg { width: 80px; height: 80px; }
+.cover-title { font-size: 3em; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; color: #fff; }
+.cover-subtitle { font-size: 1.25em; color: #5eead4; margin-bottom: 6px; font-weight: 300; }
+.cover-tagline { font-size: 0.95em; color: rgba(255,255,255,0.55); font-style: italic; margin-bottom: 40px; }
+.cover-meta { border-top: 1px solid rgba(255,255,255,0.15); padding-top: 24px; color: rgba(255,255,255,0.7); font-size: 0.85em; line-height: 2; }
+.cover-meta strong { color: #5eead4; }
+.cover-badge { display: inline-block; background: rgba(94,234,212,0.15); border: 1px solid rgba(94,234,212,0.35); color: #5eead4; border-radius: 20px; padding: 4px 16px; font-size: 0.8em; margin-top: 16px; }
+
+/* ===== TABLE OF CONTENTS ===== */
+.toc { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 32px 40px; margin-bottom: 40px; page-break-after: always; }
+.toc-title { font-size: 1.5em; color: #0d2b27; border-bottom: 3px solid #5eead4; padding-bottom: 8px; margin-bottom: 20px; font-weight: 700; }
+.toc-section { font-weight: 700; color: #0f766e; margin-top: 16px; margin-bottom: 6px; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.05em; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc ol li { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px dotted #e2e8f0; padding: 5px 0; font-size: 0.95em; }
+.toc ol li a { color: #1e293b; }
+.toc ol li a:hover { color: #0f766e; }
+.toc-num { color: #64748b; font-size: 0.8em; font-weight: 600; min-width: 28px; }
+.toc-sub { margin-left: 20px; font-size: 0.88em; color: #64748b; }
+.toc-sub li { border-bottom: none; padding: 2px 0; }
+
+/* ===== CHAPTER ===== */
+.chapter { background: #fff; border-radius: 8px; padding: 36px 40px; margin-bottom: 32px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.05); page-break-inside: avoid; }
+.chapter-header { background: linear-gradient(90deg, #0f766e 0%, #134e4a 100%); color: white; padding: 14px 20px; border-radius: 6px; margin: -36px -40px 24px; display: flex; align-items: center; gap: 14px; }
+.chapter-icon { font-size: 1.5em; }
+.chapter-num { font-size: 0.75em; opacity: 0.7; font-weight: 400; }
+.chapter-title { font-size: 1.3em; font-weight: 700; }
+.chapter-desc { color: rgba(255,255,255,0.85); font-size: 0.88em; margin-top: 2px; }
+
+/* ===== INFO BOXES ===== */
+.tip { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 10px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+.tip::before { content: "Consejo: "; font-weight: 700; color: #16a34a; }
+.warning { background: #fffbeb; border-left: 4px solid #d97706; padding: 10px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+.warning::before { content: "Importante: "; font-weight: 700; color: #d97706; }
+.info { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 10px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+.info::before { content: "Nota: "; font-weight: 700; color: #3b82f6; }
+.legal { background: #fdf4ff; border-left: 4px solid #9333ea; padding: 10px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+.legal::before { content: "Marco Legal: "; font-weight: 700; color: #9333ea; }
+
+/* ===== TABLES ===== */
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9em; }
+th { background: #134e4a; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
+td { border: 1px solid #e2e8f0; padding: 7px 12px; vertical-align: top; }
+tr:nth-child(even) { background: #f8fafc; }
+.table-title { font-weight: 700; color: #0d2b27; font-size: 0.88em; text-transform: uppercase; letter-spacing: 0.04em; margin: 16px 0 6px; }
+
+/* ===== STEPS ===== */
+.steps { margin: 12px 0; }
+.step { display: flex; gap: 12px; margin: 10px 0; align-items: flex-start; }
+.step-num { background: #0f766e; color: white; border-radius: 50%; min-width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.step-content { flex: 1; }
+.step-content strong { display: block; color: #0d2b27; }
+
+/* ===== ROLES BADGE ===== */
+.roles { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.role { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78em; font-weight: 600; }
+.role-super { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.role-rrhh { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.role-jefe { background: #f3e8ff; color: #6b21a8; border: 1px solid #c4b5fd; }
+.role-trabajador { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+
+/* ===== WORKFLOW PATH ===== */
+.workflow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 12px 0; font-size: 0.88em; background: #f8fafc; padding: 12px 16px; border-radius: 6px; border: 1px solid #e2e8f0; }
+.workflow-step { background: #0f766e; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+.workflow-arrow { color: #64748b; font-weight: 700; }
+
+/* ===== QUICK REF ===== */
+.shortcut-table td:first-child { font-family: 'Consolas', monospace; font-weight: 700; color: #0f766e; background: #f0fdf4; }
+.url-table td:first-child { font-family: 'Consolas', monospace; font-size: 0.85em; color: #0f766e; }
+
+/* ===== SECTION DIVIDER ===== */
+.section-divider { height: 1px; background: linear-gradient(90deg, #5eead4, transparent); margin: 20px 0; }
+
+/* ===== GRID ===== */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 12px 0; }
+.card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; }
+.card-title { font-weight: 700; color: #0f766e; margin-bottom: 6px; font-size: 0.92em; }
+
+/* ===== PRINT ===== */
+@media print {
+  body { background: white; max-width: 100%; padding: 0; font-size: 10pt; color: #000; }
+  .print-hint { display: none !important; }
+  .cover { min-height: 100vh; border-radius: 0; margin: 0; page-break-after: always; }
+  .toc { border-radius: 0; page-break-after: always; box-shadow: none; }
+  .chapter { border-radius: 0; page-break-inside: auto; box-shadow: none; margin-bottom: 0; }
+  h1 { page-break-before: always; }
+  h2 { page-break-after: avoid; }
+  h3 { page-break-after: avoid; }
+  .page-break { page-break-after: always; }
+  .step-num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .chapter-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .role { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a { color: #000; }
+  .grid-2, .grid-3 { display: block; }
+  .card { margin-bottom: 8px; }
+}
+@media (max-width: 640px) {
+  body { padding: 10px; }
+  .chapter { padding: 20px; }
+  .chapter-header { margin: -20px -20px 16px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- PRINT HINT -->
+<div class="print-hint no-print">
+  <span>&#128438;</span>
+  <span><strong>Para generar PDF:</strong> Ctrl+P &rarr; Guardar como PDF &rarr; Papel A4 &rarr; Sin m&aacute;rgenes (o m&aacute;rgenes m&iacute;nimos) &rarr; Habilitar gr&aacute;ficos de fondo</span>
+</div>
+
+<!-- ===== PORTADA ===== -->
+<div class="cover page-break" id="portada">
+  <div class="cover-logo">
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="20,3 34.28,11 34.28,29 20,37 5.72,29 5.72,11" stroke="rgba(255,255,255,0.35)" stroke-width="1.2" fill="none"/>
+      <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="11.5" cy="5.28" r="2.2" fill="#5eead4"/>
+      <circle cx="28.5" cy="5.28" r="2.2" fill="#5eead4"/>
+      <circle cx="11.5" cy="34.72" r="2.2" fill="#5eead4"/>
+      <circle cx="28.5" cy="34.72" r="2.2" fill="#5eead4"/>
+    </svg>
+  </div>
+  <div class="cover-title">Harmoni ERP</div>
+  <div class="cover-subtitle">Sistema de Gesti&oacute;n de Recursos Humanos</div>
+  <div class="cover-tagline">"Harmoni trabaja en armon&iacute;a con su entorno."</div>
+  <div class="cover-meta">
+    <div><strong>Versi&oacute;n:</strong> 1.0 &nbsp;&bull;&nbsp; <strong>A&ntilde;o:</strong> 2026</div>
+    <div><strong>Plataforma:</strong> Django 5.1 + Python 3.14</div>
+    <div><strong>Enfoque:</strong> Legislaci&oacute;n Laboral Peruana</div>
+    <div><strong>Empresa objetivo:</strong> 224 colaboradores (160 STAFF + 64 RCO)</div>
+  </div>
+  <div class="cover-badge">Manual de Usuario &mdash; Todos los M&oacute;dulos</div>
+</div>
+
+<!-- ===== TABLA DE CONTENIDOS ===== -->
+<div class="toc page-break" id="toc">
+  <div class="toc-title">Tabla de Contenidos</div>
+
+  <div class="toc-section">Introducci&oacute;n</div>
+  <ol>
+    <li><a href="#intro">Bienvenida &amp; Visi&oacute;n General</a><span class="toc-num">1</span></li>
+    <li><a href="#roles">Roles y Permisos</a><span class="toc-num">2</span></li>
+    <li><a href="#navegacion">Navegaci&oacute;n del Sistema</a><span class="toc-num">3</span></li>
+  </ol>
+
+  <div class="toc-section">M&oacute;dulos Principales</div>
+  <ol start="4">
+    <li><a href="#personal">Personal — Empleados, &Aacute;reas y Contratos</a><span class="toc-num">4</span></li>
+    <li><a href="#asistencia">Asistencia / Tareo</a><span class="toc-num">5</span></li>
+    <li><a href="#portal">Portal del Empleado</a><span class="toc-num">6</span></li>
+    <li><a href="#vacaciones">Vacaciones y Permisos</a><span class="toc-num">7</span></li>
+    <li><a href="#documentos">Documentos y Legajo Digital</a><span class="toc-num">8</span></li>
+    <li><a href="#prestamos">Pr&eacute;stamos y Adelantos</a><span class="toc-num">9</span></li>
+    <li><a href="#nominas">N&oacute;minas y Planilla</a><span class="toc-num">10</span></li>
+    <li><a href="#evaluaciones">Evaluaciones de Desempe&ntilde;o</a><span class="toc-num">11</span></li>
+    <li><a href="#capacitaciones">Capacitaciones / LMS</a><span class="toc-num">12</span></li>
+    <li><a href="#disciplinaria">Proceso Disciplinario</a><span class="toc-num">13</span></li>
+    <li><a href="#reclutamiento">Reclutamiento y Selecci&oacute;n</a><span class="toc-num">14</span></li>
+    <li><a href="#encuestas">Encuestas y Clima Laboral</a><span class="toc-num">15</span></li>
+    <li><a href="#viaticos">Vi&aacute;ticos (CDT)</a><span class="toc-num">16</span></li>
+    <li><a href="#onboarding">Onboarding &amp; Offboarding</a><span class="toc-num">17</span></li>
+    <li><a href="#salarios">Estructura Salarial</a><span class="toc-num">18</span></li>
+    <li><a href="#calendario">Calendario Laboral</a><span class="toc-num">19</span></li>
+    <li><a href="#analytics">Analytics e Inteligencia de Personas</a><span class="toc-num">20</span></li>
+    <li><a href="#asistente-ia">Asistente IA (Chat Widget)</a><span class="toc-num">21</span></li>
+    <li><a href="#configuracion">Configuraci&oacute;n del Sistema</a><span class="toc-num">22</span></li>
+  </ol>
+
+  <div class="toc-section">Referencia R&aacute;pida</div>
+  <ol start="23">
+    <li><a href="#quickref">Atajos, URLs y Matriz de Roles</a><span class="toc-num">23</span></li>
+    <li><a href="#glosario">Glosario</a><span class="toc-num">24</span></li>
+  </ol>
+</div>
+
+<!-- ===== CAP 1: INTRODUCCION ===== -->
+<div class="chapter" id="intro">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#127968;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 1</div>
+      <div class="chapter-title">Bienvenida &amp; Visi&oacute;n General</div>
+      <div class="chapter-desc">Introducci&oacute;n a Harmoni ERP y sus capacidades</div>
+    </div>
+  </div>
+
+  <p><strong>Harmoni</strong> es un sistema de gesti&oacute;n de recursos humanos (ERP-HR) modular dise&ntilde;ado espec&iacute;ficamente para la legislaci&oacute;n laboral peruana. Integra en una sola plataforma todos los procesos del ciclo de vida del colaborador: desde el reclutamiento hasta el offboarding, pasando por asistencia, planilla, evaluaciones, capacitaciones y mucho m&aacute;s.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">&#128101; Dise&ntilde;ado para Peru</div>
+      <ul>
+        <li>D.Leg. 713 (vacaciones y HE)</li>
+        <li>DS 003-97-TR (disciplinaria)</li>
+        <li>AFP, ONP, IR 5ta categor&iacute;a</li>
+        <li>Gratificaciones, CTS, SCTR</li>
+        <li>Ciclo planilla 21 &rarr; 20</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">&#9881; Arquitectura Modular</div>
+      <ul>
+        <li>19 m&oacute;dulos independientes</li>
+        <li>Configuraci&oacute;n centralizada</li>
+        <li>Portal de auto-servicio</li>
+        <li>API REST + JWT (171 endpoints)</li>
+        <li>Asistente IA integrado</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>1.1 Acceso al Sistema</h2>
+  <p>El sistema est&aacute; disponible desde cualquier navegador moderno. Se recomienda Google Chrome, Microsoft Edge o Firefox en sus versiones m&aacute;s recientes.</p>
+  <div class="workflow">
+    <span class="workflow-step">Abrir navegador</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Ingresar URL del sistema</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Usuario y contrase&ntilde;a</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Dashboard principal</span>
+  </div>
+  <div class="tip">La sesi&oacute;n expira autom&aacute;ticamente despu&eacute;s de per&iacute;odo de inactividad. Guarda tu trabajo antes de alejarte del equipo.</div>
+
+  <h2>1.2 Dashboard Principal</h2>
+  <p>Al iniciar sesi&oacute;n, el sistema muestra un dashboard contextual seg&uacute;n tu rol:</p>
+  <table>
+    <tr><th>Rol</th><th>Dashboard muestra</th></tr>
+    <tr><td><strong>Superusuario / RRHH</strong></td><td>KPIs globales, alertas, acciones pendientes, gr&aacute;ficos de tendencia</td></tr>
+    <tr><td><strong>Jefe de &Aacute;rea</strong></td><td>Asistencia de su equipo, solicitudes pendientes, evaluaciones</td></tr>
+    <tr><td><strong>Trabajador</strong></td><td>Mi asistencia del d&iacute;a, pr&oacute;ximas vacaciones, notificaciones personales</td></tr>
+  </table>
+</div>
+
+<!-- ===== CAP 2: ROLES ===== -->
+<div class="chapter" id="roles">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128272;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 2</div>
+      <div class="chapter-title">Roles y Permisos</div>
+      <div class="chapter-desc">Estructura de accesos y responsabilidades por perfil</div>
+    </div>
+  </div>
+
+  <p>Harmoni utiliza un sistema de roles jer&aacute;rquicos. Cada usuario tiene asignado uno o m&aacute;s roles que determinan a qu&eacute; m&oacute;dulos y funciones puede acceder.</p>
+
+  <table>
+    <tr><th>Rol</th><th>Descripci&oacute;n</th><th>Alcance</th></tr>
+    <tr>
+      <td><span class="role role-super">Superusuario</span></td>
+      <td>Administrador t&eacute;cnico del sistema</td>
+      <td>Acceso total, incluyendo configuraci&oacute;n avanzada y Django Admin</td>
+    </tr>
+    <tr>
+      <td><span class="role role-rrhh">RRHH / Admin</span></td>
+      <td>Gestor de recursos humanos</td>
+      <td>Todos los m&oacute;dulos HR: planilla, vacaciones, disciplinaria, evaluaciones, etc.</td>
+    </tr>
+    <tr>
+      <td><span class="role role-jefe">Jefe de &Aacute;rea</span></td>
+      <td>L&iacute;der de equipo o gerente</td>
+      <td>Ver y gestionar asistencia/solicitudes de su &aacute;rea. Aprobar o rechazar.</td>
+    </tr>
+    <tr>
+      <td><span class="role role-trabajador">Trabajador / Portal</span></td>
+      <td>Colaborador de la empresa</td>
+      <td>Portal de auto-servicio: ver su informaci&oacute;n, solicitar permisos, etc.</td>
+    </tr>
+  </table>
+
+  <div class="info">Los permisos son aditivos: un usuario puede tener rol RRHH y Jefe de &Aacute;rea simult&aacute;neamente. El Superusuario tiene siempre acceso completo.</div>
+
+  <h2>2.1 Personal de Confianza / Direcci&oacute;n</h2>
+  <p>Los empleados marcados como <strong>personal de confianza o direcci&oacute;n</strong> tienen un tratamiento especial:</p>
+  <ul>
+    <li><strong>NO</strong> aplica control de horas extra ni control de faltas.</li>
+    <li><strong>S&Iacute;</strong> aplica vacaciones, gratificaciones, CTS y AFP.</li>
+    <li>Solo se registra reporte de presencia (sin implicancias disciplinarias).</li>
+  </ul>
+
+  <h2>2.2 Diferencias STAFF vs. RCO</h2>
+  <table>
+    <tr><th>Concepto</th><th>STAFF (160)</th><th>RCO (64)</th></tr>
+    <tr><td>Horas Extra (HE)</td><td>Van a Banco de Horas (compensaci&oacute;n)</td><td>Se pagan en n&oacute;mina</td></tr>
+    <tr><td>Tipo de contrato</td><td>Planilla regular</td><td>Recibo por honorarios / CAS</td></tr>
+    <tr><td>Control asistencia</td><td>S&iacute;</td><td>S&iacute;</td></tr>
+    <tr><td>Gratificaciones</td><td>S&iacute;</td><td>Seg&uacute;n contrato</td></tr>
+  </table>
+</div>
+
+<!-- ===== CAP 3: NAVEGACION ===== -->
+<div class="chapter" id="navegacion">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128506;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 3</div>
+      <div class="chapter-title">Navegaci&oacute;n del Sistema</div>
+      <div class="chapter-desc">C&oacute;mo moverse eficientemente por Harmoni</div>
+    </div>
+  </div>
+
+  <h2>3.1 Barra Lateral (Sidebar)</h2>
+  <p>La barra lateral izquierda (color <code>#0d2b27</code>) agrupa los m&oacute;dulos por categor&iacute;a. Puedes expandir o colapsar el sidebar con el bot&oacute;n de men&uacute; en la parte superior.</p>
+
+  <h2>3.2 Breadcrumbs</h2>
+  <p>La ruta de navegaci&oacute;n aparece debajo del t&iacute;tulo de cada p&aacute;gina, por ejemplo: <code>Inicio &gt; Personal &gt; Empleados &gt; Editar</code>. Puedes hacer clic en cualquier nivel para regresar.</p>
+
+  <h2>3.3 B&uacute;squeda Global</h2>
+  <p>Usa la barra de b&uacute;squeda en la parte superior para encontrar empleados, documentos o acciones r&aacute;pidamente. Admite nombre, DNI, c&oacute;digo de empleado y &aacute;rea.</p>
+
+  <h2>3.4 Notificaciones</h2>
+  <p>El &#128276; en la barra superior muestra notificaciones pendientes: aprobaciones, alertas de vencimiento de contratos, documentos por firmar, etc. Las notificaciones se marcan como le&iacute;das al hacer clic en ellas.</p>
+
+  <div class="tip">Las solicitudes urgentes (p. ej. permisos de &uacute;ltima hora) aparecen resaltadas en rojo en el panel de notificaciones.</div>
+</div>
+
+<!-- ===== CAP 4: PERSONAL ===== -->
+<div class="chapter" id="personal">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128101;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 4</div>
+      <div class="chapter-title">Personal — Empleados, &Aacute;reas y Contratos</div>
+      <div class="chapter-desc">Gesti&oacute;n del cat&aacute;logo maestro de colaboradores</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe (solo lectura de su &aacute;rea)</span>
+  </div>
+
+  <p>El m&oacute;dulo <strong>Personal</strong> es el n&uacute;cleo de Harmoni. Contiene el registro maestro de todos los colaboradores, la estructura organizacional (empresas, &aacute;reas, cargos) y los contratos laborales.</p>
+
+  <h2>4.1 Ficha del Empleado</h2>
+  <p>Cada empleado tiene una ficha completa con las siguientes secciones:</p>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Datos Personales</div>
+      <ul>
+        <li>Nombres y apellidos</li>
+        <li>DNI / Carnet de extranjería</li>
+        <li>Fecha de nacimiento, sexo</li>
+        <li>Direcci&oacute;n, tel&eacute;fono, email</li>
+        <li>Contacto de emergencia</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Datos Laborales</div>
+      <ul>
+        <li>C&oacute;digo de empleado</li>
+        <li>Empresa, &aacute;rea, cargo</li>
+        <li>Tipo: STAFF / RCO</li>
+        <li>Fecha de ingreso</li>
+        <li>R&eacute;gimen laboral y AFP/ONP</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>4.2 Crear Nuevo Empleado</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Ir a Personal &rarr; Empleados &rarr; Nuevo Empleado</strong></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Ingresar datos personales:</strong> DNI (se validar&aacute; unicidad), nombres, apellidos, fecha de nacimiento.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Datos laborales:</strong> Seleccionar empresa, &aacute;rea, cargo. Definir tipo (STAFF/RCO) y si es personal de confianza.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Contrato:</strong> Completar fecha de ingreso, tipo de contrato, salario, r&eacute;gimen pensionario (AFP/ONP).</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>Guardar.</strong> El sistema genera autom&aacute;ticamente el c&oacute;digo de empleado y env&iacute;a notificaci&oacute;n de bienvenida.</div></div>
+  </div>
+  <div class="warning">Verifica el DNI con RENIEC antes de crear el empleado. Un DNI duplicado bloquear&aacute; el guardado.</div>
+
+  <h2>4.3 &Aacute;reas y Organigrama</h2>
+  <p>Las &aacute;reas son la estructura organizacional del sistema. Cada &aacute;rea tiene un jefe asignado y puede tener sub-&aacute;reas jer&aacute;rquicas.</p>
+  <div class="workflow">
+    <span class="workflow-step">Personal</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">&Aacute;reas</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Nueva &Aacute;rea</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Nombre + Jefe + &Aacute;rea Padre</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Guardar</span>
+  </div>
+
+  <h2>4.4 Contratos</h2>
+  <p>Harmoni soporta los principales tipos de contrato del r&eacute;gimen peruano:</p>
+  <table>
+    <tr><th>Tipo de Contrato</th><th>Duraci&oacute;n</th><th>Renovaci&oacute;n autom&aacute;tica</th></tr>
+    <tr><td>Plazo Indeterminado</td><td>Sin fecha fin</td><td>N/A</td></tr>
+    <tr><td>Plazo Fijo (sujeto a modalidad)</td><td>Hasta 5 a&ntilde;os acumulados</td><td>Con alerta 30 d&iacute;as antes</td></tr>
+    <tr><td>A tiempo parcial (&lt;4h)</td><td>Variable</td><td>Con alerta</td></tr>
+    <tr><td>Por obra o servicio</td><td>Duraci&oacute;n de la obra</td><td>No</td></tr>
+  </table>
+  <div class="info">El sistema genera alertas autom&aacute;ticas 30 y 15 d&iacute;as antes del vencimiento de contratos a plazo fijo.</div>
+
+  <h2>4.5 Roster de Personal For&aacute;neo</h2>
+  <p>El <strong>Roster</strong> aplica exclusivamente a personal for&aacute;neo (que viaja). Es un control proyectado para la compra de pasajes a&eacute;reos y puede o no cumplirse exactamente.</p>
+  <div class="warning">El Roster NO es control de asistencia. Es planificaci&oacute;n de presencia en obra para log&iacute;stica de vuelos.</div>
+</div>
+
+<!-- ===== CAP 5: ASISTENCIA ===== -->
+<div class="chapter" id="asistencia">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128336;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 5</div>
+      <div class="chapter-title">Asistencia / Tareo</div>
+      <div class="chapter-desc">Control de marcaje, horas extra y banco de horas</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea</span>
+  </div>
+
+  <p>El m&oacute;dulo de Asistencia (internamente llamado <em>Tareo</em>) gestiona el control diario de ingreso/salida, el c&aacute;lculo autom&aacute;tico de horas extra y el banco de horas para personal STAFF.</p>
+
+  <div class="legal">D.Leg. 713 — Las horas extra son voluntarias. El tope m&aacute;ximo es 2 horas diarias, salvo situaciones excepcionales. Se paga 25% adicional las primeras 2 horas y 35% a partir de la tercera.</div>
+
+  <h2>5.1 Ciclo de Planilla</h2>
+  <p>El ciclo de asistencia sigue el ciclo de planilla peruano:</p>
+  <div class="workflow">
+    <span class="workflow-step">D&iacute;a 21 mes anterior</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Inicio ciclo</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">D&iacute;a 20 mes actual</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Cierre ciclo</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Proceso de planilla</span>
+  </div>
+
+  <h2>5.2 Registro de Asistencia</h2>
+  <p>El sistema acepta m&uacute;ltiples fuentes de marcaje:</p>
+  <table>
+    <tr><th>Fuente</th><th>Descripci&oacute;n</th></tr>
+    <tr><td>Reloj biom&eacute;trico ZKTeco</td><td>Importaci&oacute;n autom&aacute;tica v&iacute;a archivo o API</td></tr>
+    <tr><td>Importaci&oacute;n Excel</td><td>Plantilla est&aacute;ndar con c&oacute;digo empleado, fecha, hora entrada/salida</td></tr>
+    <tr><td>Ingreso manual</td><td>Por RRHH o Jefe de &Aacute;rea, con justificaci&oacute;n requerida</td></tr>
+    <tr><td>Portal del empleado</td><td>Auto-reporte (sujeto a aprobaci&oacute;n)</td></tr>
+  </table>
+
+  <h2>5.3 Estados de Asistencia</h2>
+  <table>
+    <tr><th>C&oacute;digo</th><th>Estado</th><th>Descripci&oacute;n</th></tr>
+    <tr><td><code>P</code></td><td>Presente</td><td>Ingreso y salida registrados dentro del horario</td></tr>
+    <tr><td><code>T</code></td><td>Tardanza</td><td>Ingreso despu&eacute;s de la hora pactada</td></tr>
+    <tr><td><code>F</code></td><td>Falta</td><td>Sin registro de ingreso ni justificaci&oacute;n</td></tr>
+    <tr><td><code>SS</code></td><td>Sin Salida</td><td>Ingres&oacute; pero no marc&oacute; salida. D&iacute;a pagado, 0 HE</td></tr>
+    <tr><td><code>DS</code></td><td>D&iacute;a de Descanso</td><td>D&iacute;a libre seg&uacute;n r&eacute;gimen (domingos, DSO)</td></tr>
+    <tr><td><code>V</code></td><td>Vacaciones</td><td>En per&iacute;odo vacacional aprobado</td></tr>
+    <tr><td><code>L</code></td><td>Licencia</td><td>Licencia aprobada (m&eacute;dica, sindical, etc.)</td></tr>
+    <tr><td><code>S</code></td><td>Subsidio</td><td>En subsidio m&eacute;dico (EsSalud)</td></tr>
+  </table>
+
+  <div class="warning">SS (Sin Salida): el d&iacute;a se paga completo pero NO genera horas extra, independientemente de la hora de ingreso.</div>
+
+  <h2>5.4 Horas Extra (HE)</h2>
+  <p>El c&aacute;lculo de HE es autom&aacute;tico al cerrar el d&iacute;a:</p>
+  <table>
+    <tr><th>Tipo</th><th>Factor</th><th>Aplica a</th></tr>
+    <tr><td>HE d&iacute;a normal (1-2h)</td><td>125% del valor hora</td><td>STAFF y RCO</td></tr>
+    <tr><td>HE d&iacute;a normal (&gt;2h)</td><td>135% del valor hora</td><td>STAFF y RCO</td></tr>
+    <tr><td>HE feriado laboral</td><td>200% (HE 100%)</td><td>STAFF y RCO</td></tr>
+    <tr><td>HE domingo/DSO trabajado</td><td>200% (HE 100%)</td><td>STAFF y RCO</td></tr>
+  </table>
+
+  <div class="info">Para STAFF: las HE van al <strong>Banco de Horas</strong> (no se pagan, se compensan con descanso). Para RCO: las HE se pagan directamente en n&oacute;mina.</div>
+
+  <h2>5.5 Banco de Horas (STAFF)</h2>
+  <p>El banco de horas acumula las HE del personal STAFF para compensarlas con descanso posterior.</p>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Las HE se acreditan autom&aacute;ticamente</strong> al banco al finalizar el ciclo quincenal.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>El trabajador solicita compensaci&oacute;n</strong> desde Portal &rarr; Banco de Horas &rarr; Nueva Solicitud.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>El jefe aprueba o rechaza</strong> la solicitud seg&uacute;n disponibilidad operativa.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>RRHH registra el descanso</strong> en asistencia y descuenta del banco.</div></div>
+  </div>
+  <div class="tip">Las horas del banco de horas tienen una vigencia definida en Configuraci&oacute;n. Horas no compensadas al vencimiento pasan a pago en n&oacute;mina.</div>
+
+  <h2>5.6 Importar Asistencia desde Excel</h2>
+  <div class="workflow">
+    <span class="workflow-step">Asistencia</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Importar</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Descargar plantilla</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Completar datos</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Subir archivo</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Validar &amp; Confirmar</span>
+  </div>
+  <div class="warning">La plantilla requiere: c&oacute;digo empleado, fecha (DD/MM/YYYY), hora entrada (HH:MM), hora salida (HH:MM). Filas con errores se muestran en rojo para correcci&oacute;n.</div>
+</div>
+
+<!-- ===== CAP 6: PORTAL ===== -->
+<div class="chapter" id="portal">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128736;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 6</div>
+      <div class="chapter-title">Portal del Empleado</div>
+      <div class="chapter-desc">Auto-servicio para colaboradores — sin intermediarios</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-trabajador">Trabajador (auto-servicio)</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea</span>
+  </div>
+
+  <p>El Portal del Empleado permite a cada colaborador gestionar sus propios tr&aacute;mites de RRHH sin necesidad de acudir al &aacute;rea. Disponible desde cualquier dispositivo con conexi&oacute;n a internet.</p>
+
+  <h2>6.1 Funcionalidades del Portal</h2>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Consultas</div>
+      <ul>
+        <li>Mi asistencia del mes</li>
+        <li>Saldo de vacaciones</li>
+        <li>Banco de horas disponible</li>
+        <li>Mis boletas de pago</li>
+        <li>Mis pr&eacute;stamos y cuotas</li>
+        <li>Mis evaluaciones</li>
+        <li>Directorio de personal</li>
+        <li>Organigrama</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Solicitudes</div>
+      <ul>
+        <li>Solicitar vacaciones</li>
+        <li>Solicitar permiso / licencia</li>
+        <li>Solicitar compensaci&oacute;n de horas</li>
+        <li>Solicitar pr&eacute;stamo o adelanto</li>
+        <li>Actualizar datos de contacto</li>
+        <li>Firmar lectura de boleta</li>
+        <li>Ver constancias generadas</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>6.2 Flujo de Solicitud (Ejemplo: Permiso)</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Portal &rarr; Mis Permisos &rarr; Nueva Solicitud</strong></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Seleccionar tipo de permiso</strong> (12 tipos disponibles seg&uacute;n ley peruana).</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Indicar fecha, hora inicio y fin,</strong> motivo y adjuntar documentos de respaldo si aplica.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Enviar solicitud.</strong> El jefe de &aacute;rea recibe notificaci&oacute;n autom&aacute;tica.</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>El empleado recibe notificaci&oacute;n</strong> con el resultado (aprobado / rechazado).</div></div>
+  </div>
+
+  <h2>6.3 Organigrama y Directorio</h2>
+  <p>El portal incluye un organigrama interactivo (navegable) y un directorio de empleados con foto, cargo, &aacute;rea, tel&eacute;fono y correo. El directorio respeta los permisos de privacidad definidos por RRHH.</p>
+
+  <div class="tip">El directorio y organigrama se actualizan autom&aacute;ticamente al crear, modificar o dar de baja a un empleado desde el m&oacute;dulo Personal.</div>
+</div>
+
+<!-- ===== CAP 7: VACACIONES ===== -->
+<div class="chapter" id="vacaciones">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#127958;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 7</div>
+      <div class="chapter-title">Vacaciones y Permisos</div>
+      <div class="chapter-desc">Gesti&oacute;n de descansos, licencias y permisos seg&uacute;n ley peruana</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea (aprobaci&oacute;n)</span>
+    <span class="role role-trabajador">Trabajador (solicitud)</span>
+  </div>
+
+  <div class="legal">D.Leg. 713 — El trabajador tiene derecho a 30 d&iacute;as calendario de vacaciones por cada a&ntilde;o completo de servicios, siempre que haya cumplido el r&eacute;cord vacacional (no menos de 260 d&iacute;as efectivos de trabajo).</div>
+
+  <h2>7.1 Saldo Vacacional</h2>
+  <p>El sistema calcula autom&aacute;ticamente el saldo vacacional considerando:</p>
+  <ul>
+    <li>A&ntilde;os de servicio completados</li>
+    <li>Vacaciones tomadas (completas y fraccionadas)</li>
+    <li>Vacaciones vendidas (hasta 15 d&iacute;as por a&ntilde;o)</li>
+    <li>Vacaciones postergadas (m&aacute;ximo 2 per&iacute;odos acumulados)</li>
+  </ul>
+
+  <h2>7.2 Tipos de Permiso y Licencia (12 tipos)</h2>
+  <table>
+    <tr><th>#</th><th>Tipo</th><th>Duraci&oacute;n M&aacute;x.</th><th>Con/Sin goce</th></tr>
+    <tr><td>1</td><td>Permiso por horas</td><td>Horas definidas</td><td>Con goce</td></tr>
+    <tr><td>2</td><td>Licencia m&eacute;dica (EsSalud)</td><td>Seg&uacute;n certificado</td><td>Subsidio desde d&iacute;a 20</td></tr>
+    <tr><td>3</td><td>Licencia por paternidad</td><td>10 d&iacute;as (Ley 29409)</td><td>Con goce</td></tr>
+    <tr><td>4</td><td>Licencia por maternidad</td><td>98 d&iacute;as (49+49)</td><td>Subsidio EsSalud</td></tr>
+    <tr><td>5</td><td>Licencia por lactancia</td><td>1 hora diaria hasta 1 a&ntilde;o</td><td>Con goce</td></tr>
+    <tr><td>6</td><td>Licencia por fallecimiento familiar</td><td>5 d&iacute;as</td><td>Con goce</td></tr>
+    <tr><td>7</td><td>Licencia por matrimonio</td><td>5 d&iacute;as</td><td>Con goce</td></tr>
+    <tr><td>8</td><td>Licencia sindical</td><td>Seg&uacute;n convenio</td><td>Con goce</td></tr>
+    <tr><td>9</td><td>Licencia por capacitaci&oacute;n</td><td>Seg&uacute;n programa</td><td>Con goce</td></tr>
+    <tr><td>10</td><td>Permiso sin goce de haber</td><td>Acordado entre partes</td><td>Sin goce</td></tr>
+    <tr><td>11</td><td>Licencia por citaci&oacute;n judicial/fiscal</td><td>Seg&uacute;n citaci&oacute;n</td><td>Con goce</td></tr>
+    <tr><td>12</td><td>Licencia por donaci&oacute;n de sangre</td><td;>1 d&iacute;a</td><td>Con goce</td></tr>
+  </table>
+
+  <h2>7.3 Flujo: Solicitar Vacaciones</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Portal &rarr; Mis Vacaciones &rarr; Nueva Solicitud</strong></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Seleccionar fechas</strong> de inicio y fin. El sistema muestra el saldo disponible en tiempo real.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Ingresar motivo</strong> (opcional) y confirmar envio.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Jefe de &Aacute;rea recibe notificaci&oacute;n</strong> y aprueba o rechaza con comentario.</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>RRHH valida</strong> y registra en el sistema. El saldo se descuenta autom&aacute;ticamente.</div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-content"><strong>El empleado recibe confirmaci&oacute;n</strong> con el per&iacute;odo aprobado y nuevo saldo.</div></div>
+  </div>
+
+  <h2>7.4 Venta de Vacaciones</h2>
+  <p>El empleado puede vender hasta 15 d&iacute;as de sus 30 d&iacute;as anuales (art. 19 D.Leg. 713). El proceso requiere acuerdo escrito y se gestiona desde <strong>RRHH &rarr; Vacaciones &rarr; Venta de Vacaciones</strong>.</p>
+  <div class="warning">La venta de vacaciones requiere que el empleado haya cumplido el r&eacute;cord vacacional del per&iacute;odo correspondiente.</div>
+</div>
+
+<!-- ===== CAP 8: DOCUMENTOS ===== -->
+<div class="chapter" id="documentos">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128196;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 8</div>
+      <div class="chapter-title">Documentos y Legajo Digital</div>
+      <div class="chapter-desc">Archivo digital del empleado, boletas y constancias</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-trabajador">Trabajador (solo lectura propia)</span>
+  </div>
+
+  <p>El m&oacute;dulo de Documentos centraliza todo el archivo digital del empleado: contratos, t&iacute;tulos, boletas de pago, constancias y certificados.</p>
+
+  <h2>8.1 Legajo Digital</h2>
+  <p>El legajo organiza los documentos por categor&iacute;a:</p>
+  <div class="grid-3">
+    <div class="card"><div class="card-title">Documentos Personales</div>DNI, carnet extranjería, certificados de estudios, título profesional</div>
+    <div class="card"><div class="card-title">Documentos Laborales</div>Contrato, adendas, memorandos, carta de presentación</div>
+    <div class="card"><div class="card-title">Documentos de Seguridad Social</div>Ficha AFP/ONP, seguro complementario, EsSalud</div>
+  </div>
+
+  <h2>8.2 Boletas de Pago</h2>
+  <p>Las boletas de pago se generan desde el m&oacute;dulo N&oacute;minas y se distribuyen digitalmente:</p>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>RRHH sube la boleta en PDF</strong> desde N&oacute;minas &rarr; Boletas &rarr; Subir Boleta.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>El empleado recibe notificaci&oacute;n</strong> de nueva boleta disponible.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>El empleado confirma lectura</strong> desde Portal &rarr; Mis Boletas &rarr; Firmar Constancia.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Constancia de lectura firmada</strong> queda registrada con fecha, hora e IP.</div></div>
+  </div>
+  <div class="legal">Ley 29783 — La entrega digital de boletas tiene la misma validez que la f&iacute;sica, siempre que el empleado pueda imprimir el documento.</div>
+
+  <h2>8.3 Constancias y Certificados</h2>
+  <p>El sistema genera autom&aacute;ticamente los siguientes documentos en PDF:</p>
+  <table>
+    <tr><th>Documento</th><th>Generado por</th><th>Plazo entrega</th></tr>
+    <tr><td>Constancia de trabajo</td><td>Sistema (RRHH aprueba)</td><td>24 horas</td></tr>
+    <tr><td>Certificado de trabajo (cese)</td><td>Sistema (RRHH)</td><td>15 d&iacute;as h&aacute;biles</td></tr>
+    <tr><td>Constancia de haberes</td><td>Sistema autom&aacute;tico</td><td>Inmediato</td></tr>
+    <tr><td>Constancia de no adeudo</td><td>RRHH manual</td><td>Seg&uacute;n necesidad</td></tr>
+  </table>
+  <div class="workflow">
+    <span class="workflow-step">Portal</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Mis Documentos</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Solicitar Constancia</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Tipo de documento</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Descargar PDF</span>
+  </div>
+</div>
+
+<!-- ===== CAP 9: PRESTAMOS ===== -->
+<div class="chapter" id="prestamos">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128181;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 9</div>
+      <div class="chapter-title">Pr&eacute;stamos y Adelantos</div>
+      <div class="chapter-desc">Gesti&oacute;n de cr&eacute;ditos, cuotas y descuentos en planilla</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-trabajador">Trabajador (solicitud y consulta)</span>
+  </div>
+
+  <p>El m&oacute;dulo de Pr&eacute;stamos gestiona los cr&eacute;ditos que la empresa otorga a sus colaboradores, con descuento autom&aacute;tico en planilla por cuotas.</p>
+
+  <h2>9.1 Tipos de Cr&eacute;dito</h2>
+  <table>
+    <tr><th>Tipo</th><th>Descripci&oacute;n</th><th>M&aacute;ximo</th></tr>
+    <tr><td>Pr&eacute;stamo personal</td><td>Monto fijo, cuotas fijas mensuales</td><td>Configurable por RRHH</td></tr>
+    <tr><td>Adelanto de sueldo</td><td>Anticipo del sueldo del mes, descuento &uacute;nico</td><td>Hasta 1 sueldo mensual</td></tr>
+    <tr><td>Adelanto de gratificaci&oacute;n</td><td>Anticipo de gratificaci&oacute;n (julio/diciembre)</td><td>Hasta 50% de gratificaci&oacute;n</td></tr>
+  </table>
+
+  <h2>9.2 Flujo: Solicitar Pr&eacute;stamo</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Portal &rarr; Mis Pr&eacute;stamos &rarr; Nueva Solicitud</strong></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Seleccionar tipo, monto y n&uacute;mero de cuotas.</strong> El sistema muestra la cuota mensual estimada.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>RRHH eval&uacute;a</strong> la solicitud considerando capacidad de descuento (no debe superar 30% del sueldo neto).</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Aprobaci&oacute;n y desembolso.</strong> Se registra el cronograma de cuotas autom&aacute;ticamente.</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>Descuento autom&aacute;tico en planilla</strong> cada mes hasta cancelar.</div></div>
+  </div>
+
+  <div class="warning">El sistema bloquea nuevas solicitudes si el empleado ya tiene una deuda activa que supera el l&iacute;mite de descuento configurado.</div>
+
+  <h2>9.3 Seguimiento de Cuotas</h2>
+  <p>El trabajador puede ver desde el portal: saldo pendiente, cuotas pagadas, pr&oacute;xima cuota y fecha de cancelaci&oacute;n proyectada. RRHH puede realizar pagos extraordinarios (cancelaci&oacute;n anticipada) desde el panel administrativo.</p>
+</div>
+
+<!-- ===== CAP 10: NOMINAS ===== -->
+<div class="chapter" id="nominas">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128203;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 10</div>
+      <div class="chapter-title">N&oacute;minas y Planilla</div>
+      <div class="chapter-desc">C&aacute;lculo de haberes, AFP, ONP, IR 5ta, gratificaciones y CTS</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+  </div>
+
+  <p>El m&oacute;dulo de N&oacute;minas es el coraz&oacute;n financiero de Harmoni. Calcula autom&aacute;ticamente todos los conceptos remunerativos y no remunerativos del per&iacute;odo, integrando datos de asistencia, vacaciones, pr&eacute;stamos y vi&aacute;ticos.</p>
+
+  <div class="legal">Ley 26790 (EsSalud 9%), Ley 29903 (AFP), TUO D.Leg. 728, D.Leg. 713 (gratificaciones y CTS), TUO Ley IR (categor&iacute;a 5ta).</div>
+
+  <h2>10.1 Conceptos de Planilla</h2>
+  <table>
+    <tr><th>Concepto</th><th>Tipo</th><th>Base de C&aacute;lculo</th></tr>
+    <tr><td>Sueldo b&aacute;sico</td><td>Remunerativo</td><td>Contrato</td></tr>
+    <tr><td>Asignaci&oacute;n familiar</td><td>Remunerativo</td><td>S/ 102.50 (10% RMV)</td></tr>
+    <tr><td>Horas extra RCO</td><td>Remunerativo</td><td>Valor hora &times; factor HE</td></tr>
+    <tr><td>Gratificaci&oacute;n</td><td>Remunerativo</td><td>Julio y diciembre (1 sueldo c/u)</td></tr>
+    <tr><td>Vi&aacute;ticos CDT</td><td>No remunerativo</td><td>Seg&uacute;n CDT aprobado</td></tr>
+    <tr><td>Movilidad</td><td>No remunerativo</td><td>Seg&uacute;n pol&iacute;tica empresa</td></tr>
+    <tr><td>AFP (aporte trabajador)</td><td>Descuento</td><td>10% + comisi&oacute;n + seguro</td></tr>
+    <tr><td>ONP (aporte trabajador)</td><td>Descuento</td><td>13% de remuneraci&oacute;n asegurable</td></tr>
+    <tr><td>IR 5ta Categor&iacute;a</td><td>Descuento</td><td>Escala progresiva anualizada</td></tr>
+    <tr><td>EsSalud (empleador)</td><td>Aporte empleador</td><td>9% remuneraci&oacute;n</td></tr>
+    <tr><td>CTS</td><td>Beneficio social</td><td>Mayo y noviembre (1/12 c/mes)</td></tr>
+    <tr><td>Descuento pr&eacute;stamo</td><td>Descuento</td><td>Cuota mensual registrada</td></tr>
+  </table>
+
+  <h2>10.2 Escala IR 5ta Categor&iacute;a (2026)</h2>
+  <table>
+    <tr><th>Tramo anual (UIT)</th><th>Tasa</th></tr>
+    <tr><td>Hasta 5 UIT</td><td>8%</td></tr>
+    <tr><td>M&aacute;s de 5 hasta 20 UIT</td><td>14%</td></tr>
+    <tr><td>M&aacute;s de 20 hasta 35 UIT</td><td>17%</td></tr>
+    <tr><td>M&aacute;s de 35 hasta 45 UIT</td><td>20%</td></tr>
+    <tr><td>M&aacute;s de 45 UIT</td><td>30%</td></tr>
+  </table>
+  <div class="info">UIT 2026 = S/ 5,350. El IR se calcula anualmente proyectado y se divide en 12 cuotas mensuales. La retenci&oacute;n se ajusta mes a mes.</div>
+
+  <h2>10.3 Proceso de Cierre Mensual (7 Pasos)</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Verificar asistencia del ciclo:</strong> Revisar que no haya d&iacute;as sin clasificar (SS pendientes, faltas injustificadas).</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Aprobar novedades:</strong> Vacaciones, permisos, licencias y ausencias del per&iacute;odo.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Registrar incidencias:</strong> Ingresos, ceses, cambios de sueldo, cambios de cargo del mes.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Pre-calcular planilla:</strong> El sistema genera la vista previa con todos los conceptos.</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>Revisar y validar:</strong> Comparar con mes anterior, detectar variaciones inusuales.</div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-content"><strong>Cerrar planilla:</strong> Acci&oacute;n irreversible. El sistema bloquea modificaciones al per&iacute;odo.</div></div>
+    <div class="step"><div class="step-num">7</div><div class="step-content"><strong>Generar reportes:</strong> Boletas PDF, archivo PLAME, arch. AFP Net, asiento contable.</div></div>
+  </div>
+  <div class="warning">El cierre de planilla es irreversible. Ante errores, se deben generar planillas de rectificaci&oacute;n en el siguiente per&iacute;odo.</div>
+
+  <h2>10.4 Exportaciones e Integraciones</h2>
+  <table>
+    <tr><th>Exportaci&oacute;n</th><th>Formato</th><th>Destino</th></tr>
+    <tr><td>PLAME (T-Registro)</td><td>PDT / TXT SUNAT</td><td>SUNAT en l&iacute;nea</td></tr>
+    <tr><td>AFP Net</td><td>TXT espec&iacute;fico AFP</td><td>Portal AFP</td></tr>
+    <tr><td>Asiento contable</td><td>Excel / XML</td><td>CONCAR, SIGO, SAP, SIRE</td></tr>
+    <tr><td>Archivo banco (CTS)</td><td>TXT/Excel bancario</td><td>BCP, Interbank, BBVA</td></tr>
+    <tr><td>Boletas masivas PDF</td><td>ZIP de PDFs</td><td>Archivamiento y portal</td></tr>
+  </table>
+</div>
+
+<!-- ===== CAP 11: EVALUACIONES ===== -->
+<div class="chapter" id="evaluaciones">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#127919;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 11</div>
+      <div class="chapter-title">Evaluaciones de Desempe&ntilde;o</div>
+      <div class="chapter-desc">360&deg;, 9-Box Grid, competencias y Plan de Desarrollo Individual</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea (evaluar su equipo)</span>
+    <span class="role role-trabajador">Trabajador (auto-evaluaci&oacute;n)</span>
+  </div>
+
+  <p>El m&oacute;dulo de Evaluaciones ofrece metodolog&iacute;as completas de evaluaci&oacute;n de desempe&ntilde;o: desde simples evaluaciones anuales hasta sistemas 360&deg; y matrices 9-Box para gesti&oacute;n del talento.</p>
+
+  <h2>11.1 Tipos de Evaluaci&oacute;n</h2>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Evaluaci&oacute;n 360&deg;</div>
+      <p>El evaluado recibe feedback de m&uacute;ltiples fuentes: su jefe, pares, subordinados y auto-evaluaci&oacute;n. El sistema promedea las puntuaciones y genera un informe comparativo.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">9-Box Grid</div>
+      <p>Matriz de Potencial vs. Desempe&ntilde;o. Clasifica al personal en 9 cuadrantes para decisiones de talento: promoci&oacute;n, desarrollo, retenci&oacute;n o salida.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Evaluaci&oacute;n por Competencias</div>
+      <p>Define competencias por cargo y eval&uacute;a el nivel de desarrollo (1-5) de cada colaborador. Vinculado al PDI.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Plan de Desarrollo Individual (PDI)</div>
+      <p>Basado en brechas de competencias. Define objetivos, acciones, plazos y responsables para el desarrollo profesional.</p>
+    </div>
+  </div>
+
+  <h2>11.2 Crear un Proceso de Evaluaci&oacute;n</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Evaluaciones &rarr; Procesos &rarr; Nuevo Proceso.</strong> Definir nombre, tipo, fechas y participantes.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Configurar plantilla:</strong> Seleccionar competencias, escala de calificaci&oacute;n y pesos por secci&oacute;n.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Asignar evaluadores:</strong> Para 360&deg;, el sistema sugiere autom&aacute;ticamente pares y subordinados.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Lanzar proceso:</strong> Se env&iacute;an notificaciones a todos los evaluadores con enlace directo.</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>Monitorear avance:</strong> Dashboard de completitud por equipo y &aacute;rea.</div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-content"><strong>Cerrar y generar reportes:</strong> Inform&eacute;s individuales y consolidados en PDF.</div></div>
+  </div>
+
+  <div class="info">Las evaluaciones 360&deg; son an&oacute;nimas para los evaluadores pares. Solo el jefe directo y RRHH ven los resultados consolidados.</div>
+</div>
+
+<!-- ===== CAP 12: CAPACITACIONES ===== -->
+<div class="chapter" id="capacitaciones">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#127979;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 12</div>
+      <div class="chapter-title">Capacitaciones / LMS</div>
+      <div class="chapter-desc">Gesti&oacute;n de formaci&oacute;n, asistencia y certificaciones</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe (ver su equipo)</span>
+    <span class="role role-trabajador">Trabajador (ver sus cursos)</span>
+  </div>
+
+  <p>El LMS (Learning Management System) ligero de Harmoni gestiona el ciclo completo de formaci&oacute;n: desde la detecci&oacute;n de necesidades hasta la emisi&oacute;n de certificados.</p>
+
+  <h2>12.1 Funcionalidades</h2>
+  <ul>
+    <li><strong>Cat&aacute;logo de cursos</strong> con categor&iacute;as, descripci&oacute;n, instructor y duraci&oacute;n.</li>
+    <li><strong>Programaci&oacute;n de sesiones</strong> con fechas, horarios y cupos m&aacute;ximos.</li>
+    <li><strong>Registro de asistencia</strong> por sesi&oacute;n y evaluaci&oacute;n de calificaciones.</li>
+    <li><strong>Requerimientos de capacitaci&oacute;n</strong> por cargo (qu&eacute; cursos debe tener cada puesto).</li>
+    <li><strong>Brechas de formaci&oacute;n</strong>: empleados que a&uacute;n no han completado cursos requeridos.</li>
+    <li><strong>Certificados autom&aacute;ticos</strong> en PDF al aprobar el curso.</li>
+    <li><strong>Historial por empleado</strong>: todos los cursos tomados, calificaciones y certificados.</li>
+  </ul>
+
+  <h2>12.2 Registrar una Capacitaci&oacute;n</h2>
+  <div class="workflow">
+    <span class="workflow-step">Capacitaciones</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Nuevo Curso</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Datos + Categor&iacute;a</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Programar Sesi&oacute;n</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Inscribir Participantes</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Registrar Asistencia</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Emitir Certificados</span>
+  </div>
+
+  <div class="tip">Vincula los cursos requeridos a los cargos en Configuraci&oacute;n &rarr; Requerimientos de Capacitaci&oacute;n. El sistema detectar&aacute; autom&aacute;ticamente qu&eacute; empleados tienen brechas de formaci&oacute;n.</div>
+</div>
+
+<!-- ===== CAP 13: DISCIPLINARIA ===== -->
+<div class="chapter" id="disciplinaria">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#9878;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 13</div>
+      <div class="chapter-title">Proceso Disciplinario</div>
+      <div class="chapter-desc">Gesti&oacute;n legal seg&uacute;n DS 003-97-TR, descargos y sanciones</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea (iniciar proceso)</span>
+  </div>
+
+  <div class="legal">DS 003-97-TR (TUO D.Leg. 728) — Establece el procedimiento obligatorio antes de aplicar sanciones. El empleador debe otorgar al trabajador la posibilidad de ejercer su derecho de defensa mediante el descargo escrito.</div>
+
+  <h2>13.1 Tipos de Falta (15 tipos)</h2>
+  <table>
+    <tr><th>#</th><th>Tipo de Falta</th><th>Gravedad</th></tr>
+    <tr><td>1</td><td>Tardanza injustificada reiterada</td><td>Leve</td></tr>
+    <tr><td>2</td><td>Abandono de puesto</td><td>Grave</td></tr>
+    <tr><td>3</td><td>Falta injustificada reiterada</td><td>Grave</td></tr>
+    <tr><td>4</td><td>Incumplimiento de funciones</td><td>Moderada</td></tr>
+    <tr><td>5</td><td>Desobediencia a instrucciones</td><td>Moderada-Grave</td></tr>
+    <tr><td>6</td><td>Hostigamiento laboral</td><td>Muy grave</td></tr>
+    <tr><td>7</td><td>Violencia f&iacute;sica o verbal</td><td>Muy grave</td></tr>
+    <tr><td>8</td><td>Apropiaci&oacute;n de bienes</td><td>Muy grave</td></tr>
+    <tr><td>9</td><td>Falsificaci&oacute;n de documentos</td><td>Muy grave</td></tr>
+    <tr><td>10</td><td>Concurrencia al trabajo en estado etílico</td><td>Grave</td></tr>
+    <tr><td>11</td><td>Uso indebido de activos</td><td>Moderada</td></tr>
+    <tr><td>12</td><td>Revelaci&oacute;n de informaci&oacute;n confidencial</td><td>Muy grave</td></tr>
+    <tr><td>13</td><td>Competencia desleal</td><td>Muy grave</td></tr>
+    <tr><td>14</td><td>Negligencia en el cargo</td><td>Moderada</td></tr>
+    <tr><td>15</td><td>Otros actos de indisciplina</td><td>Seg&uacute;n evaluaci&oacute;n</td></tr>
+  </table>
+
+  <h2>13.2 Flujo del Proceso Disciplinario</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Registrar incidencia:</strong> Disciplinaria &rarr; Nuevo Proceso. Describir los hechos, fecha, testigos.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Emitir carta de preaviso:</strong> El sistema genera la carta notificando la falta imputada. Se entrega al trabajador f&iacute;sicamente o por correo.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Per&iacute;odo de descargo:</strong> El trabajador tiene 6 d&iacute;as h&aacute;biles para presentar su descargo escrito (plazo legal DS 003-97-TR).</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Registrar descargo:</strong> RRHH digitaliza y adjunta el descargo del trabajador al expediente.</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>Evaluar y resolver:</strong> RRHH y Gerencia deciden la sanci&oacute;n: llamada de atenci&oacute;n, suspensi&oacute;n o despido.</div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-content"><strong>Emitir carta de sanci&oacute;n:</strong> Sistema genera el documento oficial. Se registra en el legajo del empleado.</div></div>
+  </div>
+
+  <div class="warning">El incumplimiento del procedimiento (no dar plazo de descargo) puede invalidar el despido y generar responsabilidad por despido arbitrario. El sistema alerta cuando el plazo est&aacute; pr&oacute;ximo a vencer.</div>
+
+  <h2>13.3 Sanciones Disponibles</h2>
+  <ul>
+    <li><strong>Llamada de atenci&oacute;n verbal</strong> (con registro en sistema)</li>
+    <li><strong>Amonestaci&oacute;n escrita</strong> (carta formal al legajo)</li>
+    <li><strong>Suspensi&oacute;n sin goce de haber</strong> (1 a 30 d&iacute;as)</li>
+    <li><strong>Despido por causa justificada</strong> (falta grave DS 003-97-TR)</li>
+  </ul>
+</div>
+
+<!-- ===== CAP 14: RECLUTAMIENTO ===== -->
+<div class="chapter" id="reclutamiento">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128269;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 14</div>
+      <div class="chapter-title">Reclutamiento y Selecci&oacute;n</div>
+      <div class="chapter-desc">Pipeline Kanban, portal de empleo p&uacute;blico y entrevistas</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea (ver su proceso)</span>
+  </div>
+
+  <p>El m&oacute;dulo de Reclutamiento gestiona todo el proceso de selecci&oacute;n desde la publicaci&oacute;n de la vacante hasta la contrataci&oacute;n, con un pipeline visual tipo Kanban.</p>
+
+  <h2>14.1 Portal de Empleo P&uacute;blico</h2>
+  <p>Las vacantes marcadas como <em>p&uacute;blicas</em> aparecen en el portal de empleo (<code>/empleos/</code>), accesible sin login. Los postulantes pueden:</p>
+  <ul>
+    <li>Ver detalle de la vacante (cargo, requisitos, beneficios)</li>
+    <li>Postular con CV en l&iacute;nea (formulario + adjunto PDF)</li>
+    <li>Recibir confirmaci&oacute;n de postulaci&oacute;n por correo</li>
+  </ul>
+
+  <h2>14.2 Pipeline Kanban</h2>
+  <p>Cada vacante tiene un tablero Kanban con las etapas del proceso:</p>
+  <div class="workflow">
+    <span class="workflow-step">Postulaci&oacute;n</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Revisi&oacute;n CV</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Entrevista RR.HH.</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Entrevista T&eacute;cnica</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Evaluaci&oacute;n</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Oferta</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Contratado</span>
+  </div>
+  <p>Arrastra las tarjetas de candidatos entre columnas. Al mover a "Contratado", el sistema inicia autom&aacute;ticamente el proceso de onboarding.</p>
+
+  <h2>14.3 Registrar Entrevista</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Abrir la ficha del candidato</strong> desde el Kanban.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>+ Nueva Entrevista:</strong> Fecha, hora, tipo (presencial/virtual), entrevistador.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Post-entrevista:</strong> Registrar calificaci&oacute;n y comentarios en la ficha del candidato.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Avanzar o descartar</strong> al candidato en el pipeline.</div></div>
+  </div>
+</div>
+
+<!-- ===== CAP 15: ENCUESTAS ===== -->
+<div class="chapter" id="encuestas">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128200;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 15</div>
+      <div class="chapter-title">Encuestas y Clima Laboral</div>
+      <div class="chapter-desc">eNPS, pulsos de clima, anonimato real garantizado</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-trabajador">Trabajador (responder)</span>
+  </div>
+
+  <p>El m&oacute;dulo de Encuestas permite medir el clima laboral, el nivel de compromiso (eNPS) y obtener feedback continuo de los colaboradores, con anonimato real garantizado por dise&ntilde;o.</p>
+
+  <h2>15.1 Tipos de Encuesta</h2>
+  <table>
+    <tr><th>Tipo</th><th>Descripci&oacute;n</th><th>Frecuencia sugerida</th></tr>
+    <tr><td>eNPS (Employee Net Promoter Score)</td><td>"¿Recomendarías trabajar aquí?" Escala 0-10</td><td>Trimestral</td></tr>
+    <tr><td>Clima laboral</td><td>Evaluaci&oacute;n completa de dimensiones: liderazgo, comunicaci&oacute;n, compensaci&oacute;n, etc.</td><td>Semestral</td></tr>
+    <tr><td>Pulso</td><td>Encuesta r&aacute;pida (3-5 preguntas) sobre temas espec&iacute;ficos</td><td>Mensual</td></tr>
+    <tr><td>Onboarding</td><td>Experiencia del nuevo colaborador (30, 60, 90 d&iacute;as)</td><td>Al ingreso</td></tr>
+    <tr><td>Salida</td><td>Entrevista de salida estructurada</td><td>Al cese</td></tr>
+  </table>
+
+  <h2>15.2 Anonimato Real</h2>
+  <p>El sistema garantiza anonimato a trav&eacute;s de:</p>
+  <ul>
+    <li>Los tokens de respuesta no est&aacute;n vinculados al ID del empleado en la base de datos de respuestas.</li>
+    <li>Los resultados solo se muestran cuando hay un m&iacute;nimo de participantes (configurable, por defecto 5).</li>
+    <li>RRHH solo ve respuestas agregadas, nunca individuales.</li>
+    <li>Los reportes por &aacute;rea se suprimen si el &aacute;rea tiene menos del m&iacute;nimo de participantes.</li>
+  </ul>
+  <div class="info">Comunica activamente el mecanismo de anonimato a los colaboradores para aumentar la tasa de participaci&oacute;n. La transparencia del proceso aumenta la confianza.</div>
+
+  <h2>15.3 C&aacute;lculo eNPS</h2>
+  <p><strong>eNPS = % Promotores (9-10) &minus; % Detractores (0-6)</strong></p>
+  <table>
+    <tr><th>Rango eNPS</th><th>Interpretaci&oacute;n</th></tr>
+    <tr><td>50 a 100</td><td>Excelente — clima muy positivo</td></tr>
+    <tr><td>20 a 49</td><td>Bueno — hay oportunidades de mejora</td></tr>
+    <tr><td>0 a 19</td><td>Moderado — atenci&oacute;n requerida</td></tr>
+    <tr><td>Negativo</td><td>Cr&iacute;tico — acci&oacute;n inmediata necesaria</td></tr>
+  </table>
+</div>
+
+<!-- ===== CAP 16: VIATICOS ===== -->
+<div class="chapter" id="viaticos">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#9992;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 16</div>
+      <div class="chapter-title">Vi&aacute;ticos (CDT)</div>
+      <div class="chapter-desc">Adelantos CDT, conciliaci&oacute;n y rendici&oacute;n de gastos</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-trabajador">Trabajador (solicitar y rendir)</span>
+  </div>
+
+  <p>Los vi&aacute;ticos en Harmoni se gestionan como CDT (Cuenta de Trabajo). Son adelantos mensuales no afectos a renta de quinta categor&iacute;a, sujetos a conciliaci&oacute;n con el sueldo al cierre del mes.</p>
+
+  <div class="legal">Los vi&aacute;ticos no son remuneraci&oacute;n (no afectos a CTS, gratificaciones, ni aportes) siempre que cumplan los requisitos de SUNAT: montos razonables, sustentados con comprobantes y vinculados al trabajo.</div>
+
+  <h2>16.1 Flujo del CDT</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Solicitar CDT:</strong> Portal &rarr; Mis Vi&aacute;ticos &rarr; Nuevo CDT. Indicar proyecto, destino, fecha y monto estimado.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Aprobaci&oacute;n:</strong> Jefe de &Aacute;rea y/o RRHH aprueban el monto.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Desembolso:</strong> Se registra el adelanto y descuenta del disponible del empleado.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>Rendici&oacute;n de cuentas:</strong> El empleado adjunta comprobantes y detalla gastos realizados.</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>Conciliaci&oacute;n al cierre del mes:</strong> Saldo a favor (reintegro) o saldo en contra (descuento en planilla).</div></div>
+  </div>
+
+  <h2>16.2 Conciliaci&oacute;n Vi&aacute;ticos vs. Sueldo</h2>
+  <p>Al cierre del mes, el sistema concilia autom&aacute;ticamente:</p>
+  <ul>
+    <li><strong>CDT adelantado &gt; Gastos rendidos:</strong> El exceso se descuenta del sueldo del siguiente mes.</li>
+    <li><strong>CDT adelantado &lt; Gastos rendidos:</strong> El saldo se reintegra con el sueldo.</li>
+  </ul>
+  <div class="warning">Los gastos sin comprobante v&aacute;lido (boleta o factura) no son deducibles y pueden generar reparos tributarios. El sistema permite registrar comprobantes electr&oacute;nicos directamente.</div>
+</div>
+
+<!-- ===== CAP 17: ONBOARDING ===== -->
+<div class="chapter" id="onboarding">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#127891;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 17</div>
+      <div class="chapter-title">Onboarding &amp; Offboarding</div>
+      <div class="chapter-desc">Integraci&oacute;n y salida planificada de colaboradores</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea</span>
+  </div>
+
+  <p>El m&oacute;dulo garantiza una experiencia de integraci&oacute;n y salida estructurada, con checklist por rol y seguimiento de completitud.</p>
+
+  <h2>17.1 Plantillas Configurables</h2>
+  <p>RRHH puede crear plantillas de onboarding diferenciadas por tipo de cargo o &aacute;rea. Cada plantilla define pasos con responsable asignado (RRHH, Jefe, TI, Finanzas, etc.) y plazo m&aacute;ximo de ejecuci&oacute;n.</p>
+
+  <h2>17.2 Proceso de Onboarding</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>Trigger autom&aacute;tico:</strong> Al contratar desde Reclutamiento o crear nuevo empleado, el sistema propone una plantilla.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>Asignar plantilla</strong> y ajustar pasos si es necesario para el perfil espec&iacute;fico.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>Notificaciones autom&aacute;ticas</strong> a cada responsable cuando llega su paso.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>El nuevo empleado accede al portal</strong> y ve su checklist de ingreso: documentos a entregar, cursos a tomar, sistemas a conocer.</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-content"><strong>Seguimiento en tiempo real</strong> desde RRHH: porcentaje de completitud y pasos vencidos.</div></div>
+  </div>
+
+  <h2>17.3 Proceso de Offboarding</h2>
+  <p>Similar al onboarding pero en sentido inverso: devoluci&oacute;n de equipos, liquidaci&oacute;n de haberes, carta de recomendaci&oacute;n y encuesta de salida. El sistema bloquea el cese definitivo hasta que todos los pasos cr&iacute;ticos est&eacute;n completados.</p>
+
+  <div class="tip">Los pasos de offboarding incluyen: entrega de equipos TI, liquidaci&oacute;n de vi&aacute;ticos pendientes, devoluci&oacute;n de EPPs, cancelaci&oacute;n de accesos y encuesta de salida. Personaliza seg&uacute;n tu empresa.</div>
+</div>
+
+<!-- ===== CAP 18: SALARIOS ===== -->
+<div class="chapter" id="salarios">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128179;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 18</div>
+      <div class="chapter-title">Estructura Salarial</div>
+      <div class="chapter-desc">Bandas salariales, compa-ratio y simulaciones de incremento</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+  </div>
+
+  <p>El m&oacute;dulo de Estructura Salarial permite dise&ntilde;ar y gestionar las bandas salariales de la empresa, asegurar equidad interna y simular impactos de incrementos de sueldo.</p>
+
+  <h2>18.1 Bandas Salariales</h2>
+  <p>Cada cargo tiene asignada una banda salarial con m&iacute;nimo, punto medio y m&aacute;ximo. El sistema calcula autom&aacute;ticamente el <strong>compa-ratio</strong> de cada empleado:</p>
+  <p style="background:#f0fdf4; padding:8px 14px; border-radius:4px; font-family:monospace;">Compa-ratio = (Sueldo actual / Punto medio de la banda) &times; 100</p>
+  <table>
+    <tr><th>Compa-ratio</th><th>Interpretaci&oacute;n</th></tr>
+    <tr><td>&lt; 85%</td><td>Por debajo del mercado — riesgo de rotaci&oacute;n</td></tr>
+    <tr><td>85% &ndash; 115%</td><td>En rango competitivo</td></tr>
+    <tr><td>&gt; 115%</td><td>Por encima del mercado</td></tr>
+  </table>
+
+  <h2>18.2 Simulador de Incrementos</h2>
+  <p>Desde <strong>Salarios &rarr; Simulaciones</strong>, puedes modelar el impacto de incrementos salariales:</p>
+  <ul>
+    <li>Incremento porcentual general (ej. 5% a toda la empresa)</li>
+    <li>Incremento por &aacute;rea o grupo de cargos</li>
+    <li>Incremento individualizado por empleado</li>
+    <li>El simulador muestra: costo mensual adicional, costo anual (incluyendo gratificaciones y CTS) y nuevo compa-ratio resultante.</li>
+  </ul>
+
+  <h2>18.3 Historial Salarial</h2>
+  <p>Cada cambio de sueldo queda registrado con fecha, monto anterior, monto nuevo, motivo y qui&eacute;n lo autoriz&oacute;. El historial es accesible desde la ficha del empleado y sirve como insumo para evaluaciones y negociaciones.</p>
+</div>
+
+<!-- ===== CAP 19: CALENDARIO ===== -->
+<div class="chapter" id="calendario">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128197;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 19</div>
+      <div class="chapter-title">Calendario Laboral</div>
+      <div class="chapter-desc">Vista unificada de eventos, feriados y ausencias del equipo</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea (su equipo)</span>
+    <span class="role role-trabajador">Trabajador (solo lectura)</span>
+  </div>
+
+  <p>El Calendario Laboral muestra en una vista visual unificada todos los eventos que impactan la asistencia y planificaci&oacute;n del equipo.</p>
+
+  <h2>19.1 Fuentes de Datos (6 fuentes)</h2>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">1. Feriados nacionales</div>Calendario oficial peruano, configurable anualmente por RRHH.</div>
+    <div class="card"><div class="card-title">2. Vacaciones aprobadas</div>Visualizaci&oacute;n de qui&eacute;n est&aacute; de vacaciones en cada d&iacute;a.</div>
+    <div class="card"><div class="card-title">3. Permisos y licencias</div>Ausencias aprobadas del equipo.</div>
+    <div class="card"><div class="card-title">4. Capacitaciones</div>Sesiones programadas que implican ausencia del puesto.</div>
+    <div class="card"><div class="card-title">5. Roster (personal for&aacute;neo)</div>Proyecci&oacute;n de presencia en obra.</div>
+    <div class="card"><div class="card-title">6. Eventos de empresa</div>Reuniones masivas, aniversarios, actividades.</div>
+  </div>
+
+  <h2>19.2 Exportar a iCal</h2>
+  <p>El calendario puede exportarse en formato <strong>.ics</strong> (iCal) para sincronizaci&oacute;n con Outlook, Google Calendar o cualquier cliente de calendario compatible.</p>
+  <div class="workflow">
+    <span class="workflow-step">Calendario</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Seleccionar rango de fechas</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Filtrar fuentes</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Exportar .ics</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Importar en Outlook / Google</span>
+  </div>
+
+  <div class="tip">El jefe de &aacute;rea puede ver en el calendario cu&aacute;ntos miembros de su equipo estar&aacute;n ausentes en cada d&iacute;a, facilitando la planificaci&oacute;n operativa.</div>
+</div>
+
+<!-- ===== CAP 20: ANALYTICS ===== -->
+<div class="chapter" id="analytics">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128202;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 20</div>
+      <div class="chapter-title">Analytics e Inteligencia de Personas</div>
+      <div class="chapter-desc">Dashboards ejecutivos, KPIs, alertas y tendencias</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe (su &aacute;rea)</span>
+  </div>
+
+  <p>El m&oacute;dulo Analytics proporciona inteligencia de datos para la toma de decisiones estrat&eacute;gicas de RRHH, con dashboards interactivos y alertas proactivas.</p>
+
+  <h2>20.1 KPIs Principales</h2>
+  <div class="grid-3">
+    <div class="card"><div class="card-title">Headcount</div>Total empleados activos, por tipo (STAFF/RCO), por &aacute;rea, variaci&oacute;n mensual.</div>
+    <div class="card"><div class="card-title">Rotaci&oacute;n</div>Tasa de rotaci&oacute;n mensual y anualizada, voluntaria vs. involuntaria, por &aacute;rea.</div>
+    <div class="card"><div class="card-title">Ausentismo</div>% d&iacute;as perdidos, por tipo de ausencia, por &aacute;rea y comparativo mensual.</div>
+    <div class="card"><div class="card-title">Costo de planilla</div>Total mensual, por &aacute;rea, relaci&oacute;n sueldo/beneficios, tendencia anual.</div>
+    <div class="card"><div class="card-title">Clima laboral</div>&Uacute;ltimo eNPS, tendencia, resultado por dimensi&oacute;n y por &aacute;rea.</div>
+    <div class="card"><div class="card-title">Desempe&ntilde;o</div>Distribuci&oacute;n 9-Box, % evaluaciones completadas, brechas de competencias.</div>
+  </div>
+
+  <h2>20.2 Alertas Proactivas de RRHH</h2>
+  <p>El sistema genera alertas autom&aacute;ticas cuando detecta situaciones que requieren atenci&oacute;n:</p>
+  <table>
+    <tr><th>Alerta</th><th>Condici&oacute;n</th></tr>
+    <tr><td>Vencimiento de contrato</td><td>30 y 15 d&iacute;as antes del vencimiento</td></tr>
+    <tr><td>Vacaciones vencidas</td><td>Empleados con m&aacute;s de 1 per&iacute;odo vacacional acumulado</td></tr>
+    <tr><td>Cumple a&ntilde;os laborales</td><td>Aniversarios de ingreso (5, 10, 15, 20 a&ntilde;os)</td></tr>
+    <tr><td>Proceso disciplinario venciendo</td><td>Plazo de descargo pr&oacute;ximo a vencer</td></tr>
+    <tr><td>Indicadores de rotaci&oacute;n elevada</td><td>Tasa &gt; umbral configurado en el &uacute;ltimo trimestre</td></tr>
+    <tr><td>Brechas de formaci&oacute;n cr&iacute;ticas</td><td>Cargos sin capacitaci&oacute;n obligatoria completada</td></tr>
+  </table>
+
+  <h2>20.3 Exportar Reportes</h2>
+  <p>Todos los gr&aacute;ficos y tablas del m&oacute;dulo Analytics pueden exportarse:</p>
+  <ul>
+    <li><strong>Excel (.xlsx)</strong> — datos crudos para an&aacute;lisis adicional</li>
+    <li><strong>PDF</strong> — reporte formateado para presentaciones</li>
+    <li><strong>Pin al Dashboard</strong> — anclar gr&aacute;ficos al dashboard principal personalizado</li>
+  </ul>
+</div>
+
+<!-- ===== CAP 21: ASISTENTE IA ===== -->
+<div class="chapter" id="asistente-ia">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#129302;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 21</div>
+      <div class="chapter-title">Asistente IA (Chat Widget)</div>
+      <div class="chapter-desc">Consultas en lenguaje natural, an&aacute;lisis de datos y generaci&oacute;n de reportes</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin</span>
+    <span class="role role-jefe">Jefe de &Aacute;rea</span>
+  </div>
+
+  <p>El Asistente IA de Harmoni es un chat embebido en el sistema que permite hacer consultas en lenguaje natural sobre los datos de la empresa, generar reportes y analizar tendencias sin necesidad de ser experto en el sistema.</p>
+
+  <h2>21.1 C&oacute;mo Abrir el Asistente</h2>
+  <p>El icono del chat aparece en la esquina inferior derecha de todas las p&aacute;ginas del sistema. Haz clic para expandirlo. Puedes maximizarlo a pantalla completa con el bot&oacute;n &#x2922; para un modo de trabajo m&aacute;s c&oacute;modo.</p>
+
+  <h2>21.2 Comandos y Ejemplos de Consulta</h2>
+  <table>
+    <tr><th>Tipo de consulta</th><th>Ejemplo</th></tr>
+    <tr><td>Reportes de asistencia</td><td>"¿Cu&aacute;ntas faltas tuvo el &aacute;rea de operaciones en febrero?"</td></tr>
+    <tr><td>Consultas de planilla</td><td>"Mu&eacute;strame el costo total de planilla del &uacute;ltimo trimestre"</td></tr>
+    <tr><td>Indicadores de talento</td><td>"¿Cu&aacute;l es la tasa de rotaci&oacute;n de este a&ntilde;o vs. el anterior?"</td></tr>
+    <tr><td>Alertas y vencimientos</td><td>"¿Qu&eacute; contratos vencen en los pr&oacute;ximos 30 d&iacute;as?"</td></tr>
+    <tr><td>An&aacute;lisis salarial</td><td>"¿Qu&eacute; empleados tienen compa-ratio menor a 85%?"</td></tr>
+    <tr><td>Clima y encuestas</td><td>"¿Cu&aacute;l fue el eNPS del &uacute;ltimo mes y en qu&eacute; &aacute;reas fue m&aacute;s bajo?"</td></tr>
+  </table>
+
+  <h2>21.3 Adjuntar Archivos al Chat</h2>
+  <p>Puedes adjuntar archivos directamente al chat para an&aacute;lisis:</p>
+  <ul>
+    <li><strong>PDF:</strong> Boletas, contratos, reportes externos</li>
+    <li><strong>Excel (.xlsx):</strong> Datos de marcaciones, exportaciones externas</li>
+    <li><strong>Im&aacute;genes:</strong> Capturas de pantalla, documentos escaneados</li>
+  </ul>
+  <div class="tip">Ejemplo: Adjunta el reporte del reloj biom&eacute;trico y pregunta: "Extrae las marcaciones del mes y c&oacute;mparas con las registradas en el sistema". El asistente identificar&aacute; discrepancias autom&aacute;ticamente.</div>
+
+  <h2>21.4 Gr&aacute;ficos Multi-Dataset y Pin al Dashboard</h2>
+  <p>Cuando el asistente genera gr&aacute;ficos en respuesta a tus consultas:</p>
+  <ul>
+    <li>Puedes anclarlos al dashboard principal con el bot&oacute;n <strong>&#128204; Anclar</strong></li>
+    <li>Los gr&aacute;ficos anclados persisten entre sesiones y se actualizan autom&aacute;ticamente</li>
+    <li>El dashboard IA es personalizable por usuario</li>
+  </ul>
+
+  <h2>21.5 Exportar Respuestas</h2>
+  <p>Las tablas y gr&aacute;ficos generados por el asistente pueden exportarse a Excel (.xlsx) con el bot&oacute;n de descarga que aparece debajo de cada respuesta con datos.</p>
+
+  <div class="info">El asistente utiliza IA de nube (OpenAI, Gemini o DeepSeek seg&uacute;n configuraci&oacute;n). Si el proveedor IA no est&aacute; configurado, el sistema opera en modo degradado sin chat pero con todas las dem&aacute;s funciones activas.</div>
+</div>
+
+<!-- ===== CAP 22: CONFIGURACION ===== -->
+<div class="chapter" id="configuracion">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#9881;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 22</div>
+      <div class="chapter-title">Configuraci&oacute;n del Sistema</div>
+      <div class="chapter-desc">Par&aacute;metros globales, feriados, reglas HE y comportamiento del sistema</div>
+    </div>
+  </div>
+
+  <div class="roles">
+    <span class="role role-super">Superusuario</span>
+    <span class="role role-rrhh">RRHH / Admin (algunos par&aacute;metros)</span>
+  </div>
+
+  <p>El m&oacute;dulo de Configuraci&oacute;n es la columna vertebral de Harmoni. Define el comportamiento global del sistema y debe configurarse correctamente antes de iniciar operaciones.</p>
+
+  <div class="warning">Cambios en la configuraci&oacute;n pueden afectar c&aacute;lculos retroactivos. Consulta con RRHH y el administrador del sistema antes de modificar par&aacute;metros cr&iacute;ticos.</div>
+
+  <h2>22.1 Par&aacute;metros Generales</h2>
+  <table>
+    <tr><th>Par&aacute;metro</th><th>Descripci&oacute;n</th></tr>
+    <tr><td>Nombre de la empresa</td><td>Aparece en todos los documentos generados</td></tr>
+    <tr><td>RUC</td><td>Usado en reportes SUNAT</td></tr>
+    <tr><td>R&eacute;gimen laboral</td><td>General (D.Leg. 728) o MYPE</td></tr>
+    <tr><td>UIT vigente</td><td>Valor de la UIT del a&ntilde;o fiscal actual</td></tr>
+    <tr><td>RMV vigente</td><td>Remuneraci&oacute;n M&iacute;nima Vital actual</td></tr>
+    <tr><td>Ciclo de planilla</td><td>D&iacute;a de inicio y cierre (por defecto: 21 al 20)</td></tr>
+    <tr><td>Moneda</td><td>Formato de moneda (por defecto: S/)</td></tr>
+    <tr><td>Zona horaria</td><td>America/Lima (UTC-5)</td></tr>
+  </table>
+
+  <h2>22.2 Feriados</h2>
+  <p>Gestiona el calendario de feriados nacionales y locales:</p>
+  <div class="workflow">
+    <span class="workflow-step">Configuraci&oacute;n</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Feriados</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Nuevo Feriado</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Fecha + Nombre + Tipo</span>
+    <span class="workflow-arrow">&rarr;</span>
+    <span class="workflow-step">Guardar</span>
+  </div>
+  <div class="tip">Al inicio de cada a&ntilde;o, actualiza los feriados. Los feriados laborados generan HE 100% autom&aacute;ticamente si el empleado trabaja ese d&iacute;a.</div>
+
+  <h2>22.3 Reglas de Horas Extra</h2>
+  <table>
+    <tr><th>Configuraci&oacute;n</th><th>Valores por defecto</th></tr>
+    <tr><td>Tolerancia de ingreso (tardanza)</td><td>5 minutos</td></tr>
+    <tr><td>Tolerancia de salida (HE m&iacute;nimas)</td><td>15 minutos</td></tr>
+    <tr><td>Factor HE d&iacute;a normal (primeras 2h)</td><td>1.25</td></tr>
+    <tr><td>Factor HE d&iacute;a normal (&gt;2h)</td><td>1.35</td></tr>
+    <tr><td>Factor HE feriado/domingo</td><td>2.00</td></tr>
+    <tr><td>Vigencia banco de horas (meses)</td><td>6 meses</td></tr>
+  </table>
+
+  <h2>22.4 Configuraci&oacute;n IA</h2>
+  <table>
+    <tr><th>Par&aacute;metro</th><th>Opciones</th></tr>
+    <tr><td>Proveedor IA (chat)</td><td>GEMINI | DEEPSEEK | OPENAI | OLLAMA | NINGUNO</td></tr>
+    <tr><td>Proveedor IA (OCR)</td><td>GEMINI | NINGUNO</td></tr>
+    <tr><td>Modelo</td><td>Nombre del modelo del proveedor seleccionado</td></tr>
+    <tr><td>API Key</td><td>Clave cifrada del proveedor</td></tr>
+    <tr><td>Endpoint personalizado</td><td>Para Ollama o proveedores custom</td></tr>
+  </table>
+
+  <h2>22.5 Homologaciones</h2>
+  <p>Define c&oacute;mo mapear c&oacute;digos externos (del reloj biom&eacute;trico, T-Registro, etc.) con los c&oacute;digos internos del sistema. Cr&iacute;tico para la integraci&oacute;n correcta de marcaciones.</p>
+</div>
+
+<!-- ===== CAP 23: QUICK REFERENCE ===== -->
+<div class="chapter" id="quickref">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#9889;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 23</div>
+      <div class="chapter-title">Referencia R&aacute;pida</div>
+      <div class="chapter-desc">Atajos de teclado, URLs principales y matriz de roles</div>
+    </div>
+  </div>
+
+  <h2>23.1 Atajos de Teclado</h2>
+  <table class="shortcut-table">
+    <tr><th>Atajo</th><th>Acci&oacute;n</th></tr>
+    <tr><td>Alt + H</td><td>Ir al inicio (Home / Dashboard)</td></tr>
+    <tr><td>Alt + P</td><td>M&oacute;dulo Personal &rarr; Lista de empleados</td></tr>
+    <tr><td>Alt + A</td><td>M&oacute;dulo Asistencia / Tareo</td></tr>
+    <tr><td>Alt + N</td><td>M&oacute;dulo N&oacute;minas</td></tr>
+    <tr><td>Alt + V</td><td>M&oacute;dulo Vacaciones</td></tr>
+    <tr><td>Alt + C</td><td>Asistente IA (abrir/cerrar chat)</td></tr>
+    <tr><td>Ctrl + K</td><td>B&uacute;squeda global</td></tr>
+    <tr><td>Ctrl + S</td><td>Guardar formulario actual</td></tr>
+    <tr><td>Esc</td><td>Cerrar modal / Cancelar acci&oacute;n</td></tr>
+    <tr><td>Ctrl + P</td><td>Imprimir / Guardar como PDF</td></tr>
+    <tr><td>F5</td><td>Actualizar datos de la p&aacute;gina</td></tr>
+    <tr><td>Alt + ←</td><td>P&aacute;gina anterior (historial)</td></tr>
+  </table>
+
+  <h2>23.2 URLs Principales del Sistema</h2>
+  <table class="url-table">
+    <tr><th>URL</th><th>Descripci&oacute;n</th></tr>
+    <tr><td>/</td><td>Dashboard principal</td></tr>
+    <tr><td>/personal/empleados/</td><td>Lista de empleados</td></tr>
+    <tr><td>/tareo/asistencia/</td><td>Registro de asistencia</td></tr>
+    <tr><td>/tareo/horas-extra/</td><td>Horas extra del per&iacute;odo</td></tr>
+    <tr><td>/tareo/banco-horas/</td><td>Banco de horas STAFF</td></tr>
+    <tr><td>/portal/</td><td>Portal del empleado</td></tr>
+    <tr><td>/vacaciones/</td><td>Vacaciones y permisos</td></tr>
+    <tr><td>/documentos/legajo/</td><td>Legajo digital</td></tr>
+    <tr><td>/prestamos/</td><td>Pr&eacute;stamos y adelantos</td></tr>
+    <tr><td>/nominas/</td><td>N&oacute;minas y planilla</td></tr>
+    <tr><td>/evaluaciones/</td><td>Evaluaciones de desempe&ntilde;o</td></tr>
+    <tr><td>/capacitaciones/</td><td>LMS de capacitaciones</td></tr>
+    <tr><td>/disciplinaria/</td><td>Procesos disciplinarios</td></tr>
+    <tr><td>/reclutamiento/</td><td>Reclutamiento y selecci&oacute;n</td></tr>
+    <tr><td>/empleos/</td><td>Portal de empleo p&uacute;blico</td></tr>
+    <tr><td>/encuestas/</td><td>Encuestas de clima</td></tr>
+    <tr><td>/viaticos/</td><td>Vi&aacute;ticos CDT</td></tr>
+    <tr><td>/onboarding/</td><td>Onboarding &amp; offboarding</td></tr>
+    <tr><td>/salarios/</td><td>Estructura salarial</td></tr>
+    <tr><td>/calendario/</td><td>Calendario laboral</td></tr>
+    <tr><td>/analytics/</td><td>Analytics e inteligencia</td></tr>
+    <tr><td>/configuracion/</td><td>Configuraci&oacute;n del sistema</td></tr>
+    <tr><td>/api/docs/</td><td>Documentaci&oacute;n API (Swagger)</td></tr>
+  </table>
+
+  <h2>23.3 Matriz de Accesos por Rol</h2>
+  <table>
+    <tr>
+      <th>M&oacute;dulo</th>
+      <th style="text-align:center">Super</th>
+      <th style="text-align:center">RRHH</th>
+      <th style="text-align:center">Jefe</th>
+      <th style="text-align:center">Trabajador</th>
+    </tr>
+    <tr><td>Personal</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Solo lectura</td><td style="text-align:center">&mdash;</td></tr>
+    <tr><td>Asistencia</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Su &aacute;rea</td><td style="text-align:center">&mdash;</td></tr>
+    <tr><td>Portal</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td></tr>
+    <tr><td>Vacaciones</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Aprobar</td><td style="text-align:center">Solicitar</td></tr>
+    <tr><td>Documentos</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&mdash;</td><td style="text-align:center">Solo propio</td></tr>
+    <tr><td>Pr&eacute;stamos</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&mdash;</td><td style="text-align:center">Solicitar</td></tr>
+    <tr><td>N&oacute;minas</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&mdash;</td><td style="text-align:center">&mdash;</td></tr>
+    <tr><td>Evaluaciones</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Su equipo</td><td style="text-align:center">Auto-eval.</td></tr>
+    <tr><td>Capacitaciones</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Ver su &aacute;rea</td><td style="text-align:center">Ver propios</td></tr>
+    <tr><td>Disciplinaria</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Iniciar</td><td style="text-align:center">&mdash;</td></tr>
+    <tr><td>Reclutamiento</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Ver proceso</td><td style="text-align:center">&mdash;</td></tr>
+    <tr><td>Encuestas</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&mdash;</td><td style="text-align:center">Responder</td></tr>
+    <tr><td>Vi&aacute;ticos</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Aprobar</td><td style="text-align:center">Solicitar</td></tr>
+    <tr><td>Onboarding</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Ver progreso</td><td style="text-align:center">Ver tareas</td></tr>
+    <tr><td>Salarios</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&mdash;</td><td style="text-align:center">&mdash;</td></tr>
+    <tr><td>Calendario</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Su &aacute;rea</td><td style="text-align:center">Solo lectura</td></tr>
+    <tr><td>Analytics</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Su &aacute;rea</td><td style="text-align:center">&mdash;</td></tr>
+    <tr><td>Asistente IA</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&#10003;</td><td style="text-align:center">&mdash;</td></tr>
+    <tr><td>Configuraci&oacute;n</td><td style="text-align:center">&#10003;</td><td style="text-align:center">Limitado</td><td style="text-align:center">&mdash;</td><td style="text-align:center">&mdash;</td></tr>
+  </table>
+</div>
+
+<!-- ===== CAP 24: GLOSARIO ===== -->
+<div class="chapter" id="glosario">
+  <div class="chapter-header">
+    <span class="chapter-icon">&#128218;</span>
+    <div>
+      <div class="chapter-num">CAP&Iacute;TULO 24</div>
+      <div class="chapter-title">Glosario</div>
+      <div class="chapter-desc">T&eacute;rminos clave del sistema y de la legislaci&oacute;n laboral peruana</div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>T&eacute;rmino</th><th>Definici&oacute;n</th></tr>
+    <tr><td><strong>AFP</strong></td><td>Administradora de Fondos de Pensiones. Sistema privado de pensiones. Aporte: ~13% del sueldo (10% + comisi&oacute;n + seguro).</td></tr>
+    <tr><td><strong>Banco de Horas</strong></td><td>Acumulaci&oacute;n de horas extra del personal STAFF para compensar con descanso posterior.</td></tr>
+    <tr><td><strong>CTS</strong></td><td>Compensaci&oacute;n por Tiempo de Servicios. Beneficio social depositado dos veces al a&ntilde;o (mayo y noviembre).</td></tr>
+    <tr><td><strong>CDT</strong></td><td>Cuenta de Trabajo (Vi&aacute;ticos). Adelanto para gastos de campo/viajes, no remunerativo.</td></tr>
+    <tr><td><strong>Compa-ratio</strong></td><td>Cociente entre el sueldo actual del empleado y el punto medio de su banda salarial. Indica posici&oacute;n relativa en el mercado.</td></tr>
+    <tr><td><strong>D.Leg.</strong></td><td>Decreto Legislativo. Norma con rango de ley emitida por el Ejecutivo.</td></tr>
+    <tr><td><strong>D.Leg. 713</strong></td><td>Decreto Legislativo que regula el descanso semanal, feriados no laborables y vacaciones.</td></tr>
+    <tr><td><strong>DS</strong></td><td>Decreto Supremo. Norma reglamentaria del Ejecutivo.</td></tr>
+    <tr><td><strong>DS 003-97-TR</strong></td><td>TUO del D.Leg. 728 — Ley de Productividad y Competitividad Laboral. Regula el contrato de trabajo, causas de despido y proceso disciplinario.</td></tr>
+    <tr><td><strong>DSO</strong></td><td>D&iacute;a Sustituto de Descanso. D&iacute;a de descanso cuando el trabajador labor&oacute; en su d&iacute;a libre regular.</td></tr>
+    <tr><td><strong>eNPS</strong></td><td>Employee Net Promoter Score. M&eacute;trica de lealtad y compromiso del empleado. Rango: -100 a +100.</td></tr>
+    <tr><td><strong>EsSalud</strong></td><td>Seguro Social de Salud del Per&uacute;. Aporte del empleador: 9% del sueldo mensual.</td></tr>
+    <tr><td><strong>Gratificaci&oacute;n</strong></td><td>Pago extraordinario en julio (Fiestas Patrias) y diciembre (Navidad), equivalente a 1 sueldo b&aacute;sico cada uno.</td></tr>
+    <tr><td><strong>HE</strong></td><td>Horas Extra. Horas trabajadas m&aacute;s all&aacute; de la jornada ordinaria. Voluntarias y compensadas con recargo.</td></tr>
+    <tr><td><strong>HE 100%</strong></td><td>Horas extra en feriados y domingos/DSO trabajados. Factor de pago: 200% del valor hora ordinaria.</td></tr>
+    <tr><td><strong>Headcount</strong></td><td>N&uacute;mero total de empleados activos en un momento dado.</td></tr>
+    <tr><td><strong>IR 5ta</strong></td><td>Impuesto a la Renta de Quinta Categor&iacute;a. Retenci&oacute;n mensual sobre remuneraciones en planilla, con escala progresiva.</td></tr>
+    <tr><td><strong>LMS</strong></td><td>Learning Management System. Sistema de gesti&oacute;n de aprendizaje y capacitaciones.</td></tr>
+    <tr><td><strong>ONP</strong></td><td>Oficina de Normalizaci&oacute;n Previsional. Sistema p&uacute;blico de pensiones. Aporte: 13% del sueldo.</td></tr>
+    <tr><td><strong>PDI</strong></td><td>Plan de Desarrollo Individual. Plan personal de crecimiento y capacitaci&oacute;n basado en evaluaci&oacute;n de competencias.</td></tr>
+    <tr><td><strong>PLAME</strong></td><td>Planilla Mensual de Pagos. Declaraci&oacute;n mensual a SUNAT con todos los conceptos remunerativos y aportes.</td></tr>
+    <tr><td><strong>RCO</strong></td><td>Recibo por Honorarios (o Contrato de Obra). Personal no en planilla regular. Sus HE se pagan directamente.</td></tr>
+    <tr><td><strong>RMV</strong></td><td>Remuneraci&oacute;n M&iacute;nima Vital. Sueldo m&iacute;nimo legal en Per&uacute;.</td></tr>
+    <tr><td><strong>Roster</strong></td><td>Control proyectado de presencia de personal for&aacute;neo para planificaci&oacute;n de pasajes a&eacute;reos.</td></tr>
+    <tr><td><strong>STAFF</strong></td><td>Personal en planilla regular a tiempo completo. Sus HE van al Banco de Horas.</td></tr>
+    <tr><td><strong>SS (Sin Salida)</strong></td><td>Marcaci&oacute;n de asistencia donde hay ingreso pero no salida registrada. D&iacute;a pagado, 0 horas extra.</td></tr>
+    <tr><td><strong>T-Registro</strong></td><td>Registro de Trabajadores y Pensionistas de SUNAT. Requiere alta/baja de empleados dentro del d&iacute;a siguiente al inicio/cese.</td></tr>
+    <tr><td><strong>TUO</strong></td><td>Texto &Uacute;nico Ordenado. Versi&oacute;n consolidada y actualizada de una norma legal.</td></tr>
+    <tr><td><strong>UIT</strong></td><td>Unidad Impositiva Tributaria. Valor de referencia tributaria fijado anualmente por el MEF.</td></tr>
+    <tr><td><strong>9-Box Grid</strong></td><td>Matriz 3x3 de gesti&oacute;n del talento que combina desempe&ntilde;o actual (eje X) y potencial de crecimiento (eje Y).</td></tr>
+  </table>
+
+  <div class="section-divider"></div>
+
+  <h2>Referencias Legales Clave</h2>
+  <table>
+    <tr><th>Norma</th><th>Materia</th></tr>
+    <tr><td>D.Leg. 713</td><td>Descanso semanal, feriados y vacaciones</td></tr>
+    <tr><td>DS 003-97-TR</td><td>TUO Ley Productividad y Competitividad Laboral</td></tr>
+    <tr><td>D.Leg. 650</td><td>Compensaci&oacute;n por Tiempo de Servicios (CTS)</td></tr>
+    <tr><td>Ley 27735</td><td>Gratificaciones por Fiestas Patrias y Navidad</td></tr>
+    <tr><td>Ley 26790</td><td>Modernizaci&oacute;n de la Seguridad Social en Salud (EsSalud)</td></tr>
+    <tr><td>TUO Ley IR (D.S. 179-2004-EF)</td><td>Impuesto a la Renta (incluyendo 5ta categor&iacute;a)</td></tr>
+    <tr><td>Ley 29409</td><td>Licencia por paternidad (10 d&iacute;as)</td></tr>
+    <tr><td>Ley 29783</td><td>Seguridad y Salud en el Trabajo</td></tr>
+    <tr><td>Ley 30709</td><td>Prohibici&oacute;n de discriminaci&oacute;n remunerativa entre varones y mujeres</td></tr>
+    <tr><td>Ley 29903</td><td>Reforma del Sistema Privado de Pensiones (AFP)</td></tr>
+  </table>
+</div>
+
+<!-- FOOTER -->
+<div style="text-align:center; padding:40px 20px; color:#64748b; font-size:0.82em; border-top:1px solid #e2e8f0; margin-top:32px;">
+  <div style="margin-bottom:8px;">
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:28px;height:28px;vertical-align:middle;margin-right:8px;">
+      <polygon points="20,3 34.28,11 34.28,29 20,37 5.72,29 5.72,11" stroke="#0f766e" stroke-width="1.2" fill="none"/>
+      <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="11.5" cy="5.28" r="2.2" fill="#5eead4"/>
+      <circle cx="28.5" cy="5.28" r="2.2" fill="#5eead4"/>
+      <circle cx="11.5" cy="34.72" r="2.2" fill="#5eead4"/>
+      <circle cx="28.5" cy="34.72" r="2.2" fill="#5eead4"/>
+    </svg>
+    <strong style="color:#0f766e;font-size:1.1em;">Harmoni ERP</strong>
+  </div>
+  <div>Manual de Usuario &mdash; Versi&oacute;n 1.0 &mdash; 2026</div>
+  <div style="margin-top:4px;font-style:italic;">"Harmoni trabaja en armon&iacute;a con su entorno. La letra faltante — porque siempre hay algo m&aacute;s que podemos hacer."</div>
+</div>
+
+</body>
+</html>
