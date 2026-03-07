@@ -46050,12 +46050,12 @@
       "estado": "EN_PROCESO",
       "prioridad": "MEDIA",
       "fecha_publicacion": "2026-01-20",
-      "fecha_limite": "2026-04-11",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": 1,
-      "publica": false,
+      "publica": true,
       "creado_en": "2026-03-06T17:56:04.710Z",
-      "actualizado_en": "2026-03-06T17:56:04.710Z"
+      "actualizado_en": "2026-03-07T14:18:12.984Z"
     }
   },
   {
@@ -46075,12 +46075,12 @@
       "estado": "EN_PROCESO",
       "prioridad": "ALTA",
       "fecha_publicacion": "2026-02-10",
-      "fecha_limite": "2026-04-22",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": 1,
-      "publica": false,
+      "publica": true,
       "creado_en": "2026-03-06T17:56:04.699Z",
-      "actualizado_en": "2026-03-06T17:56:04.699Z"
+      "actualizado_en": "2026-03-07T14:18:12.992Z"
     }
   },
   {
@@ -46100,12 +46100,12 @@
       "estado": "PUBLICADA",
       "prioridad": "NORMAL",
       "fecha_publicacion": "2026-02-07",
-      "fecha_limite": "2026-04-10",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": 1,
-      "publica": false,
+      "publica": true,
       "creado_en": "2026-03-06T17:56:04.688Z",
-      "actualizado_en": "2026-03-06T17:56:04.688Z"
+      "actualizado_en": "2026-03-07T14:18:13.000Z"
     }
   },
   {
@@ -46125,12 +46125,12 @@
       "estado": "PUBLICADA",
       "prioridad": "ALTA",
       "fecha_publicacion": "2026-02-19",
-      "fecha_limite": "2026-05-04",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": 1,
-      "publica": false,
+      "publica": true,
       "creado_en": "2026-03-06T17:56:04.678Z",
-      "actualizado_en": "2026-03-06T17:56:04.678Z"
+      "actualizado_en": "2026-03-07T14:18:13.008Z"
     }
   },
   {
@@ -46150,12 +46150,12 @@
       "estado": "PUBLICADA",
       "prioridad": "MEDIA",
       "fecha_publicacion": "2026-02-21",
-      "fecha_limite": "2026-03-26",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": 1,
-      "publica": false,
+      "publica": true,
       "creado_en": "2026-03-06T17:56:04.666Z",
-      "actualizado_en": "2026-03-06T17:56:04.666Z"
+      "actualizado_en": "2026-03-07T14:18:13.016Z"
     }
   },
   {
@@ -46175,12 +46175,12 @@
       "estado": "PUBLICADA",
       "prioridad": "ALTA",
       "fecha_publicacion": "2026-03-01",
-      "fecha_limite": "2026-04-09",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": 1,
-      "publica": false,
+      "publica": true,
       "creado_en": "2026-03-06T17:56:04.655Z",
-      "actualizado_en": "2026-03-06T17:56:04.655Z"
+      "actualizado_en": "2026-03-07T14:18:13.024Z"
     }
   },
   {
@@ -46199,13 +46199,13 @@
       "moneda": "PEN",
       "estado": "PUBLICADA",
       "prioridad": "MEDIA",
-      "fecha_publicacion": null,
-      "fecha_limite": null,
+      "fecha_publicacion": "2025-11-01",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": null,
       "publica": true,
       "creado_en": "2026-03-04T09:07:38.034Z",
-      "actualizado_en": "2026-03-04T09:07:38.034Z"
+      "actualizado_en": "2026-03-07T14:18:13.031Z"
     }
   },
   {
@@ -46224,13 +46224,13 @@
       "moneda": "PEN",
       "estado": "EN_PROCESO",
       "prioridad": "MEDIA",
-      "fecha_publicacion": null,
-      "fecha_limite": null,
+      "fecha_publicacion": "2025-11-01",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": null,
       "publica": true,
       "creado_en": "2026-03-04T09:07:38.023Z",
-      "actualizado_en": "2026-03-04T09:07:38.023Z"
+      "actualizado_en": "2026-03-07T14:18:13.040Z"
     }
   },
   {
@@ -46249,13 +46249,13 @@
       "moneda": "PEN",
       "estado": "PUBLICADA",
       "prioridad": "ALTA",
-      "fecha_publicacion": null,
-      "fecha_limite": null,
+      "fecha_publicacion": "2025-11-01",
+      "fecha_limite": "2026-05-31",
       "responsable": null,
       "creado_por": null,
       "publica": true,
       "creado_en": "2026-03-04T09:07:38.011Z",
-      "actualizado_en": "2026-03-04T09:07:38.012Z"
+      "actualizado_en": "2026-03-07T14:18:13.047Z"
     }
   },
   {
