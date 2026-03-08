@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harmoni ERP — Brochure Corporativo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --teal-dark: #0d2b27;
+    --teal-mid: #134e4a;
+    --teal-primary: #0f766e;
+    --teal-accent: #14b8a6;
+    --teal-light: #5eead4;
+    --teal-pale: #ccfbf1;
+    --white: #ffffff;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --gray-800: #1e293b;
+    --gold: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #8b5cf6;
+    --orange: #f97316;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #fff;
+    color: var(--gray-800);
+    line-height: 1.6;
+  }
+
+  /* ── PAGE BREAKS ───────────────────────────────── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto 20px;
+    position: relative;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 4px 24px rgba(0,0,0,.12);
+  }
+
+  @media print {
+    body { margin: 0; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; }
+    .no-print { display: none; }
+  }
+
+  /* ══════════════════════════════════════════════════
+     PAGE 1 — COVER
+  ══════════════════════════════════════════════════ */
+  .cover {
+    background: linear-gradient(145deg, var(--teal-dark) 0%, var(--teal-mid) 50%, #1a5c56 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 50px;
+    min-height: 297mm;
+  }
+
+  .cover-logo {
+    margin-bottom: 40px;
+  }
+
+  .hex-logo {
+    width: 90px; height: 90px;
+    position: relative;
+  }
+
+  .hex-logo svg { width: 90px; height: 90px; }
+
+  .cover h1 {
+    font-size: 64px;
+    font-weight: 900;
+    color: white;
+    letter-spacing: -2px;
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+
+  .cover-tagline {
+    font-size: 18px;
+    color: var(--teal-light);
+    text-align: center;
+    font-weight: 400;
+    margin-bottom: 60px;
+    letter-spacing: 0.5px;
+  }
+
+  .cover-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+    max-width: 560px;
+    margin-bottom: 60px;
+  }
+
+  .cover-stat {
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 24px 16px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+  }
+
+  .cover-stat-num {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--teal-light);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .cover-stat-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cover-modules {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 580px;
+    margin-bottom: 60px;
+  }
+
+  .cover-chip {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(94,234,212,0.4);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: var(--teal-light);
+    font-weight: 500;
+  }
+
+  .cover-cta {
+    background: var(--teal-light);
+    color: var(--teal-dark);
+    padding: 16px 40px;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    margin-bottom: 30px;
+    display: inline-block;
+  }
+
+  .cover-url {
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .cover-url strong { color: var(--teal-light); }
+
+  /* ── DECORATIVE HEXAGON BG ───────────────────── */
+  .cover-bg-hex {
+    position: absolute;
+    right: -80px; top: -80px;
+    width: 400px; height: 400px;
+    opacity: 0.06;
+  }
+
+  /* ══════════════════════════════════════════════════
+     PAGE HEADER (inner pages)
+  ══════════════════════════════════════════════════ */
+  .page-header {
+    background: var(--teal-dark);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .page-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .page-header-logo {
+    width: 32px; height: 32px;
+  }
+
+  .page-header-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.5px;
+  }
+
+  .page-header-title {
+    font-size: 13px;
+    color: var(--teal-light);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ══════════════════════════════════════════════════
+     PAGE 2 — PROBLEMA + SOLUCIÓN
+  ══════════════════════════════════════════════════ */
+  .content-section {
+    padding: 40px 40px;
+  }
+
+  .section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--teal-pale);
+    color: var(--teal-primary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--teal-dark);
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .section-sub {
+    font-size: 15px;
+    color: var(--gray-600);
+    margin-bottom: 30px;
+    max-width: 520px;
+  }
+
+  /* Problems grid */
+  .problems-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 30px;
+  }
+
+  .problem-card {
+    background: #fff5f5;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .problem-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .problem-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #991b1b;
+    margin-bottom: 3px;
+  }
+
+  .problem-desc {
+    font-size: 12px;
+    color: #b91c1c;
+    line-height: 1.4;
+  }
+
+  .solution-banner {
+    background: linear-gradient(135deg, var(--teal-dark), var(--teal-mid));
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: white;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+  }
+
+  .solution-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .solution-item-icon { font-size: 22px; }
+  .solution-item-title { font-size: 14px; font-weight: 700; color: var(--teal-light); }
+  .solution-item-desc { font-size: 12px; color: rgba(255,255,255,0.75); line-height: 1.4; }
+
+  /* ══════════════════════════════════════════════════
+     UI MOCKUP STYLES
+  ══════════════════════════════════════════════════ */
+  .mockup-container {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,.15);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 20px;
+  }
+
+  .mockup-topbar {
+    background: var(--teal-dark);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mockup-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mockup-topbar-logo {
+    width: 24px; height: 24px;
+    background: var(--teal-primary);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    color: white;
+  }
+
+  .mockup-topbar-name { font-size: 14px; font-weight: 700; color: white; }
+  .mockup-topbar-sub { font-size: 10px; color: rgba(255,255,255,.5); }
+
+  .mockup-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mockup-search {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: rgba(255,255,255,.5);
+    width: 160px;
+  }
+
+  .mockup-avatar {
+    width: 28px; height: 28px;
+    background: var(--teal-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .mockup-layout {
+    display: flex;
+    background: var(--gray-50);
+  }
+
+  .mockup-sidebar {
+    width: 140px;
+    background: var(--teal-dark);
+    padding: 12px 0;
+    flex-shrink: 0;
+  }
+
+  .mockup-nav-section {
+    padding: 4px 12px;
+    font-size: 9px;
+    color: rgba(255,255,255,.35);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-top: 8px;
+    margin-bottom: 2px;
+  }
+
+  .mockup-nav-item {
+    padding: 7px 12px;
+    font-size: 11px;
+    color: rgba(255,255,255,.65);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: default;
+  }
+
+  .mockup-nav-item.active {
+    background: var(--teal-primary);
+    color: white;
+    font-weight: 600;
+  }
+
+  .mockup-nav-dot {
+    width: 6px; height: 6px;
+    background: var(--teal-accent);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .mockup-content {
+    flex: 1;
+    padding: 16px;
+  }
+
+  .mockup-page-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--teal-dark);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* KPI Cards */
+  .mockup-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .mockup-kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .mockup-kpi-grid-5 { grid-template-columns: repeat(5, 1fr); }
+
+  .mockup-kpi {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 10px 12px;
+    border-top: 3px solid var(--teal-primary);
+  }
+
+  .mockup-kpi-label { font-size: 9px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 4px; }
+  .mockup-kpi-value { font-size: 20px; font-weight: 800; color: var(--teal-dark); line-height: 1; }
+  .mockup-kpi-sub { font-size: 9px; color: var(--gray-400); margin-top: 2px; }
+
+  .mockup-kpi.yellow { border-top-color: var(--gold); }
+  .mockup-kpi.red { border-top-color: var(--red); }
+  .mockup-kpi.blue { border-top-color: var(--blue); }
+  .mockup-kpi.purple { border-top-color: var(--purple); }
+  .mockup-kpi.orange { border-top-color: var(--orange); }
+
+  /* Table mockup */
+  .mockup-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+  }
+
+  .mockup-table th {
+    background: var(--gray-100);
+    padding: 6px 10px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--gray-600);
+    letter-spacing: 0.3px;
+    text-align: left;
+  }
+
+  .mockup-table td {
+    padding: 7px 10px;
+    font-size: 11px;
+    color: var(--gray-800);
+    border-top: 1px solid var(--gray-100);
+  }
+
+  .mockup-table tr:hover td { background: var(--gray-50); }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-teal { background: var(--teal-pale); color: var(--teal-primary); }
+
+  /* Chart placeholder */
+  .chart-bar-container {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .chart-title { font-size: 10px; font-weight: 700; color: var(--gray-800); margin-bottom: 8px; }
+
+  .chart-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .chart-bar-label { font-size: 9px; color: var(--gray-600); width: 80px; text-align: right; flex-shrink: 0; }
+  .chart-bar-track { flex: 1; background: var(--gray-100); border-radius: 4px; height: 8px; overflow: hidden; }
+  .chart-bar-fill { height: 100%; border-radius: 4px; background: var(--teal-primary); }
+  .chart-bar-value { font-size: 9px; font-weight: 700; color: var(--gray-800); width: 24px; flex-shrink: 0; }
+
+  /* Mini donut */
+  .donut-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .donut-legend { list-style: none; }
+  .donut-legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    color: var(--gray-600);
+    margin-bottom: 3px;
+  }
+  .donut-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ══════════════════════════════════════════════════
+     PAGE 3 — DASHBOARD MOCKUP
+  ══════════════════════════════════════════════════ */
+  .full-mockup {
+    margin: 0 30px 0;
+  }
+
+  /* ══════════════════════════════════════════════════
+     FEATURE CARDS
+  ══════════════════════════════════════════════════ */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .feature-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--teal-primary);
+  }
+
+  .feature-card.blue::before { background: var(--blue); }
+  .feature-card.purple::before { background: var(--purple); }
+  .feature-card.gold::before { background: var(--gold); }
+  .feature-card.orange::before { background: var(--orange); }
+  .feature-card.red::before { background: var(--red); }
+
+  .feature-icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+
+  .feature-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--teal-dark);
+    margin-bottom: 6px;
+  }
+
+  .feature-desc {
+    font-size: 11px;
+    color: var(--gray-600);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .feature-bullets {
+    list-style: none;
+  }
+
+  .feature-bullets li {
+    font-size: 11px;
+    color: var(--gray-600);
+    padding: 2px 0;
+    display: flex;
+    gap: 6px;
+  }
+
+  .feature-bullets li::before {
+    content: '✓';
+    color: var(--teal-primary);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* ══════════════════════════════════════════════════
+     AI SECTION
+  ══════════════════════════════════════════════════ */
+  .ai-section {
+    background: linear-gradient(135deg, var(--teal-dark) 0%, #0f3b36 100%);
+    border-radius: 16px;
+    padding: 28px;
+    color: white;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 20px;
+  }
+
+  .ai-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+
+  .ai-title span { color: var(--teal-light); }
+
+  .ai-desc {
+    font-size: 13px;
+    color: rgba(255,255,255,.75);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .ai-features-list {
+    list-style: none;
+  }
+
+  .ai-features-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,.85);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .ai-features-list li::before {
+    content: '◆';
+    color: var(--teal-light);
+    font-size: 8px;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+
+  /* Chat mockup */
+  .chat-mockup {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    background: rgba(0,0,0,.2);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chat-header-icon {
+    width: 28px; height: 28px;
+    background: var(--teal-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .chat-header-name { font-size: 13px; font-weight: 700; color: white; }
+  .chat-header-status { font-size: 10px; color: var(--teal-light); }
+
+  .chat-messages {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chat-msg-user {
+    background: var(--teal-primary);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 12px 12px 4px 12px;
+    font-size: 11px;
+    align-self: flex-end;
+    max-width: 80%;
+  }
+
+  .chat-msg-ai {
+    background: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.9);
+    padding: 8px 12px;
+    border-radius: 4px 12px 12px 12px;
+    font-size: 11px;
+    align-self: flex-start;
+    max-width: 90%;
+    line-height: 1.4;
+  }
+
+  .chat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 12px 10px;
+  }
+
+  .chat-chip {
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 9px;
+    color: var(--teal-light);
+    cursor: default;
+  }
+
+  /* ══════════════════════════════════════════════════
+     PORTAL SECTION
+  ══════════════════════════════════════════════════ */
+  .portal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .portal-mockup {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  }
+
+  .portal-header {
+    background: var(--teal-dark);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .portal-avatar {
+    width: 36px; height: 36px;
+    background: var(--teal-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .portal-name { font-size: 13px; font-weight: 700; color: white; }
+  .portal-role { font-size: 10px; color: rgba(255,255,255,.6); }
+
+  .portal-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--gray-200);
+  }
+
+  .portal-kpi {
+    background: white;
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .portal-kpi-val { font-size: 18px; font-weight: 800; color: var(--teal-primary); }
+  .portal-kpi-lbl { font-size: 8px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.3px; }
+
+  .portal-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--gray-100);
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .portal-action {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+  }
+
+  .portal-action-icon { font-size: 16px; margin-bottom: 4px; }
+  .portal-action-label { font-size: 9px; color: var(--gray-600); font-weight: 500; }
+
+  /* ══════════════════════════════════════════════════
+     PAGE FOOTER
+  ══════════════════════════════════════════════════ */
+  .page-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 14px 40px;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .page-footer-brand {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--teal-primary);
+  }
+
+  .page-footer-text {
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+
+  .page-footer-page {
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+
+  /* ══════════════════════════════════════════════════
+     MÓDULOS GRID
+  ══════════════════════════════════════════════════ */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .module-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+
+  .module-icon { font-size: 22px; margin-bottom: 6px; }
+  .module-name { font-size: 11px; font-weight: 700; color: var(--teal-dark); margin-bottom: 3px; }
+  .module-desc { font-size: 9px; color: var(--gray-400); line-height: 1.3; }
+
+  /* ══════════════════════════════════════════════════
+     CREDENTIALS BOX
+  ══════════════════════════════════════════════════ */
+  .credentials-box {
+    background: linear-gradient(135deg, #0d2b27, #1a4a45);
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: white;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .cred-section { }
+  .cred-label { font-size: 10px; color: var(--teal-light); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 8px; }
+
+  .cred-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 10px;
+  }
+
+  .cred-key { font-size: 10px; color: rgba(255,255,255,.5); }
+  .cred-val { font-size: 14px; font-weight: 700; color: white; font-family: 'Courier New', monospace; }
+
+  .cred-url {
+    font-size: 13px;
+    color: var(--teal-light);
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .cred-url-label { font-size: 10px; color: rgba(255,255,255,.5); text-align: center; margin-top: 4px; }
+
+  /* ══════════════════════════════════════════════════
+     KANBAN MOCKUP
+  ══════════════════════════════════════════════════ */
+  .kanban-container {
+    display: flex;
+    gap: 8px;
+    background: var(--gray-100);
+    border-radius: 8px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .kanban-col {
+    flex: 1;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+  }
+
+  .kanban-col-header {
+    padding: 7px 10px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .kanban-count {
+    background: var(--gray-100);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+  }
+
+  .kanban-cards { padding: 6px; display: flex; flex-direction: column; gap: 5px; }
+
+  .kanban-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 9px;
+    color: var(--gray-800);
+  }
+
+  .kanban-card-sub { font-size: 8px; color: var(--gray-400); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     PRINT BUTTON (no-print)
+══════════════════════════════════════ -->
+<div class="no-print" style="text-align:center;padding:20px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;">
+  <button onclick="window.print()" style="background:#0f766e;color:white;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
+    🖨️ Imprimir / Guardar como PDF
+  </button>
+  <span style="margin-left:16px;font-size:13px;color:#64748b;">Ctrl+P → Guardar como PDF → Sin márgenes</span>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 1 — COVER
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="cover">
+    <!-- Decorative hex -->
+    <svg class="cover-bg-hex" viewBox="0 0 200 200" fill="none">
+      <polygon points="100,10 190,55 190,145 100,190 10,145 10,55" stroke="white" stroke-width="2" fill="none"/>
+      <polygon points="100,30 172,67.5 172,132.5 100,170 28,132.5 28,67.5" stroke="white" stroke-width="1.5" fill="none"/>
+    </svg>
+
+    <!-- Logo -->
+    <div class="cover-logo">
+      <svg width="90" height="90" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5"
+          fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2.5" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2.5" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2.5" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2.5" fill="#5eead4"/>
+      </svg>
+    </div>
+
+    <h1>Harmoni</h1>
+    <p class="cover-tagline">Sistema de Gestión de Recursos Humanos · Perú</p>
+
+    <div class="cover-stats">
+      <div class="cover-stat">
+        <div class="cover-stat-num">19+</div>
+        <div class="cover-stat-label">Módulos HR</div>
+      </div>
+      <div class="cover-stat">
+        <div class="cover-stat-num">242</div>
+        <div class="cover-stat-label">Empleados Demo</div>
+      </div>
+      <div class="cover-stat">
+        <div class="cover-stat-num">IA</div>
+        <div class="cover-stat-label">Integrada</div>
+      </div>
+    </div>
+
+    <div class="cover-modules">
+      <span class="cover-chip">Personal & Contratos</span>
+      <span class="cover-chip">Asistencia & Tareo</span>
+      <span class="cover-chip">Nóminas & Planilla</span>
+      <span class="cover-chip">Vacaciones & Permisos</span>
+      <span class="cover-chip">Evaluaciones 360°</span>
+      <span class="cover-chip">Reclutamiento Kanban</span>
+      <span class="cover-chip">Capacitaciones / LMS</span>
+      <span class="cover-chip">Disciplinaria</span>
+      <span class="cover-chip">Analytics & KPIs</span>
+      <span class="cover-chip">Portal del Empleado</span>
+      <span class="cover-chip">Encuestas & Clima</span>
+      <span class="cover-chip">Onboarding</span>
+      <span class="cover-chip">Préstamos & Adelantos</span>
+      <span class="cover-chip">Harmoni AI 🤖</span>
+    </div>
+
+    <a class="cover-cta" href="https://harmoni-v19e.onrender.com" target="_blank">
+      Ver Demo en Vivo →
+    </a>
+
+    <p class="cover-url">
+      <strong>harmoni-v19e.onrender.com</strong><br>
+      admin / Harmoni2026! &nbsp;·&nbsp; trabajador / Demo2026!
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 2 — PROBLEMA + SOLUCIÓN
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-brand">
+      <svg class="page-header-logo" width="32" height="32" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="page-header-name">Harmoni</span>
+    </div>
+    <span class="page-header-title">El Problema</span>
+  </div>
+
+  <div class="content-section" style="padding-bottom:80px;">
+    <div class="section-badge">🔍 Diagnóstico</div>
+    <h2 class="section-title">¿Por qué las empresas peruanas<br>pierden con su software de RRHH?</h2>
+    <p class="section-sub">La gestión de personas en Perú enfrenta retos únicos: legislación laboral compleja, bilingüismo normativo y procesos manuales que consumen tiempo crítico.</p>
+
+    <div class="problems-grid">
+      <div class="problem-card">
+        <span class="problem-icon">📊</span>
+        <div>
+          <div class="problem-title">Excel como sistema de planilla</div>
+          <div class="problem-desc">Archivos compartidos, fórmulas rotas, errores de cálculo en AFP, IR 5ta y gratificaciones. Imposible auditar.</div>
+        </div>
+      </div>
+      <div class="problem-card">
+        <span class="problem-icon">⏱️</span>
+        <div>
+          <div class="problem-title">Tareo manual = fraude y pérdida</div>
+          <div class="problem-desc">Sin control de asistencia integrado con planilla, las HE no aprobadas se pagan igual. El tiempo vale dinero.</div>
+        </div>
+      </div>
+      <div class="problem-card">
+        <span class="problem-icon">📁</span>
+        <div>
+          <div class="problem-title">Legajos en papel o carpetas</div>
+          <div class="problem-desc">Contratos vencidos sin alerta, documentos perdidos, fiscalización de SUNAFIL sin respaldo digital.</div>
+        </div>
+      </div>
+      <div class="problem-card">
+        <span class="problem-icon">📱</span>
+        <div>
+          <div class="problem-title">Empleado sin autoservicio</div>
+          <div class="problem-desc">Cada consulta de vacaciones, boleta o permiso requiere ir a RRHH. Decenas de interrupciones al día.</div>
+        </div>
+      </div>
+      <div class="problem-card">
+        <span class="problem-icon">🗓️</span>
+        <div>
+          <div class="problem-title">Cierre de planilla = 3 días de pánico</div>
+          <div class="problem-desc">Consolidar asistencia, HE, descuentos, gratificaciones y CTS en múltiples archivos es un proceso traumático.</div>
+        </div>
+      </div>
+      <div class="problem-card">
+        <span class="problem-icon">🧩</span>
+        <div>
+          <div class="problem-title">Software que no se habla entre sí</div>
+          <div class="problem-desc">Un sistema para asistencia, otro para nóminas, otro para evaluaciones. Datos duplicados, informes contradictorios.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="solution-banner">
+      <div class="solution-item">
+        <div class="solution-item-icon">🔗</div>
+        <div class="solution-item-title">Todo en uno</div>
+        <div class="solution-item-desc">19 módulos integrados sobre una sola base de datos. Un empleado, toda su historia.</div>
+      </div>
+      <div class="solution-item">
+        <div class="solution-item-icon">🇵🇪</div>
+        <div class="solution-item-title">100% Perú</div>
+        <div class="solution-item-desc">DS 003-97-TR, D.Leg. 713, SUNAT, T-Registro, AFP Net, PLAME, CONCAR, planilla ciclo 21-20.</div>
+      </div>
+      <div class="solution-item">
+        <div class="solution-item-icon">🤖</div>
+        <div class="solution-item-title">IA Integrada</div>
+        <div class="solution-item-desc">Harmoni AI responde consultas laborales, genera gráficos y exporta reportes en segundos.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">Sistema de Gestión de RRHH · harmoni-v19e.onrender.com</span>
+    <span class="page-footer-page">2 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 3 — DASHBOARD MOCKUP
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-brand">
+      <svg class="page-header-logo" width="32" height="32" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="page-header-name">Harmoni</span>
+    </div>
+    <span class="page-header-title">Dashboard & Analytics</span>
+  </div>
+
+  <div class="content-section" style="padding-bottom:80px;">
+    <div class="section-badge">📊 Analytics & People Intelligence</div>
+    <h2 class="section-title">Todo tu equipo, de un vistazo</h2>
+    <p class="section-sub">Dashboard ejecutivo en tiempo real con KPIs de headcount, asistencia, rotación y alertas RRHH. Datos vivos del periodo actual.</p>
+
+    <!-- Dashboard mockup -->
+    <div class="mockup-container" style="margin-bottom:16px;">
+      <div class="mockup-topbar">
+        <div class="mockup-topbar-brand">
+          <div class="mockup-topbar-logo">H</div>
+          <div>
+            <div class="mockup-topbar-name">Harmoni</div>
+            <div class="mockup-topbar-sub">Andes Mining</div>
+          </div>
+        </div>
+        <div class="mockup-topbar-right">
+          <div class="mockup-search">🔍 Buscar empleado...</div>
+          <div class="mockup-avatar">A</div>
+        </div>
+      </div>
+      <div class="mockup-layout">
+        <div class="mockup-sidebar">
+          <div class="mockup-nav-section">Navigation</div>
+          <div class="mockup-nav-item"><div class="mockup-nav-dot"></div> Dashboard</div>
+          <div class="mockup-nav-section">Analytics</div>
+          <div class="mockup-nav-item active"><div class="mockup-nav-dot"></div> Dashboard</div>
+          <div class="mockup-nav-item"><div class="mockup-nav-dot"></div> Headcount</div>
+          <div class="mockup-nav-item"><div class="mockup-nav-dot"></div> Snapshots KPI</div>
+          <div class="mockup-nav-item"><div class="mockup-nav-dot"></div> Alertas RRHH</div>
+          <div class="mockup-nav-item"><div class="mockup-nav-dot"></div> Riesgo de Fuga</div>
+          <div class="mockup-nav-item"><div class="mockup-nav-dot"></div> Dashboard IA ✨</div>
+        </div>
+        <div class="mockup-content">
+          <div class="mockup-page-title">📈 Analytics & People Intelligence</div>
+          <div class="mockup-kpi-grid mockup-kpi-grid-5">
+            <div class="mockup-kpi">
+              <div class="mockup-kpi-label">Headcount Total</div>
+              <div class="mockup-kpi-value">242</div>
+              <div class="mockup-kpi-sub">0 altas · 0 bajas mes</div>
+            </div>
+            <div class="mockup-kpi blue">
+              <div class="mockup-kpi-label">Staff</div>
+              <div class="mockup-kpi-value">201</div>
+              <div class="mockup-kpi-sub">83% del total</div>
+            </div>
+            <div class="mockup-kpi orange">
+              <div class="mockup-kpi-label">RCO</div>
+              <div class="mockup-kpi-value">41</div>
+              <div class="mockup-kpi-sub">17% del total</div>
+            </div>
+            <div class="mockup-kpi purple">
+              <div class="mockup-kpi-label">Áreas Activas</div>
+              <div class="mockup-kpi-value">43</div>
+              <div class="mockup-kpi-sub">10 en producción</div>
+            </div>
+            <div class="mockup-kpi yellow">
+              <div class="mockup-kpi-label">Asistencia Mes</div>
+              <div class="mockup-kpi-value" style="font-size:16px;">0,00%</div>
+              <div class="mockup-kpi-sub">último snapshot</div>
+            </div>
+          </div>
+          <!-- Signals -->
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;">
+            <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:14px;font-weight:800;color:#0f766e;">0</div>
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;">Vac. Pend.</div>
+            </div>
+            <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:14px;font-weight:800;color:#0f766e;">9</div>
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;">Préstamos</div>
+            </div>
+            <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:14px;font-weight:800;color:#f59e0b;">2</div>
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;">Capacitac.</div>
+            </div>
+            <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:14px;font-weight:800;color:#ef4444;">4</div>
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;">Vacantes</div>
+            </div>
+            <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:14px;font-weight:800;color:#0f766e;">154</div>
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;">Riesgo Alto</div>
+            </div>
+            <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-size:14px;font-weight:800;color:#f97316;">154</div>
+              <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;">Ctto. Vence</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      <div style="background:var(--teal-pale);border-radius:10px;padding:14px;">
+        <div style="font-size:16px;margin-bottom:6px;">📸</div>
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:4px;">Snapshots KPI</div>
+        <div style="font-size:11px;color:var(--gray-600);">Historial mensual de headcount, rotación, asistencia y HE. Tendencias visuales con Chart.js.</div>
+      </div>
+      <div style="background:#eff6ff;border-radius:10px;padding:14px;">
+        <div style="font-size:16px;margin-bottom:6px;">🚨</div>
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:4px;">Alertas RRHH</div>
+        <div style="font-size:11px;color:var(--gray-600);">Contratos venciendo, ausentismo crítico, alta rotación. Alertas configurables con severidad.</div>
+      </div>
+      <div style="background:#fdf4ff;border-radius:10px;padding:14px;">
+        <div style="font-size:16px;margin-bottom:6px;">🔮</div>
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:4px;">Predictive Insights</div>
+        <div style="font-size:11px;color:var(--gray-600);">Riesgo de fuga, análisis salarial comparativo, 9-Box Grid de talento. Datos que predicen.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">harmoni-v19e.onrender.com · admin / Harmoni2026!</span>
+    <span class="page-footer-page">3 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 4 — CORE HR MODULES
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-brand">
+      <svg class="page-header-logo" width="32" height="32" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="page-header-name">Harmoni</span>
+    </div>
+    <span class="page-header-title">RRHH Core</span>
+  </div>
+
+  <div class="content-section" style="padding-bottom:80px;">
+    <div class="section-badge">👥 Personal & Operaciones</div>
+    <h2 class="section-title">Módulos Operacionales de RRHH</h2>
+    <p class="section-sub">De la ficha del empleado al cierre de planilla, todo integrado y automatizado según la legislación laboral peruana.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">👤</div>
+        <div class="feature-title">Personal & Contratos</div>
+        <div class="feature-desc">Ficha completa del colaborador con historial, documentos digitales y contratos automáticos.</div>
+        <ul class="feature-bullets">
+          <li>242 empleados activos (demo)</li>
+          <li>STAFF y RCO diferenciados</li>
+          <li>Legajo digital con alertas</li>
+          <li>Contratos con vencimiento</li>
+          <li>Organigrama interactivo</li>
+        </ul>
+      </div>
+      <div class="feature-card blue">
+        <div class="feature-icon">⏰</div>
+        <div class="feature-title">Asistencia & Tareo</div>
+        <div class="feature-desc">Control de asistencia diaria, HE, banco de horas y justificaciones con workflow de aprobación.</div>
+        <ul class="feature-bullets">
+          <li>Vista Unificada por mes</li>
+          <li>HE 100% feriados/domingos</li>
+          <li>Banco horas STAFF</li>
+          <li>ZKTeco biométrico directo</li>
+          <li>Importación masiva Excel</li>
+        </ul>
+      </div>
+      <div class="feature-card gold">
+        <div class="feature-icon">💰</div>
+        <div class="feature-title">Nóminas & Planilla</div>
+        <div class="feature-desc">Engine de cálculo completo: AFP, ONP, IR 5ta, gratificaciones, CTS y descuentos automáticos.</div>
+        <ul class="feature-bullets">
+          <li>Ciclo 21-20 planilla Perú</li>
+          <li>60+ conceptos dinámicos</li>
+          <li>CONCAR / SIGO / SAP</li>
+          <li>T-Registro / PLAME</li>
+          <li>Boleta de pago digital PDF</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Asistencia mockup -->
+    <div class="mockup-container" style="margin-bottom:14px;">
+      <div class="mockup-topbar" style="padding:8px 12px;">
+        <div style="color:white;font-size:12px;font-weight:700;">⏰ Módulo Tareo — Marzo 2026</div>
+        <div style="display:flex;gap:6px;">
+          <span style="background:rgba(255,255,255,.1);padding:3px 8px;border-radius:4px;font-size:10px;color:rgba(255,255,255,.7);">Vista Unificada</span>
+          <span style="background:var(--teal-primary);padding:3px 8px;border-radius:4px;font-size:10px;color:white;">+ Nueva Papeleta</span>
+        </div>
+      </div>
+      <div style="padding:10px;background:white;">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;">
+          <div style="background:var(--teal-pale);border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:15px;font-weight:800;color:var(--teal-primary);">0</div>
+            <div style="font-size:8px;color:var(--gray-400);">HE PEND. APROB.</div>
+          </div>
+          <div style="background:#fffbeb;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:15px;font-weight:800;color:var(--gold);">0,0 h</div>
+            <div style="font-size:8px;color:var(--gray-400);">HE APROBADAS</div>
+          </div>
+          <div style="background:#f0fdf4;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:15px;font-weight:800;color:#16a34a;">0</div>
+            <div style="font-size:8px;color:var(--gray-400);">FALTAS MES</div>
+          </div>
+          <div style="background:#fdf4ff;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:15px;font-weight:800;color:var(--purple);">5</div>
+            <div style="font-size:8px;color:var(--gray-400);">CON PERMISO</div>
+          </div>
+          <div style="background:#eff6ff;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:15px;font-weight:800;color:var(--blue);">235</div>
+            <div style="font-size:8px;color:var(--gray-400);">ACTIVOS</div>
+          </div>
+        </div>
+        <table class="mockup-table">
+          <thead>
+            <tr>
+              <th>Empleado</th><th>Área</th><th>Tipo</th>
+              <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>HE</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;">CASTILLO PISCOYA G.</td>
+              <td>PRODUCCIÓN</td><td><span class="badge badge-teal">STAFF</span></td>
+              <td style="color:var(--teal-primary);font-weight:700;">✓</td>
+              <td style="color:var(--teal-primary);font-weight:700;">✓</td>
+              <td style="color:var(--teal-primary);font-weight:700;">✓</td>
+              <td style="color:var(--gray-400);">—</td>
+              <td style="color:var(--gray-400);">—</td>
+              <td>0,0 h</td>
+              <td><span class="badge badge-green">OK</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">QUISPE CATALAN W.</td>
+              <td>BIM</td><td><span class="badge badge-blue">RCO</span></td>
+              <td style="color:var(--teal-primary);font-weight:700;">✓</td>
+              <td style="color:var(--teal-primary);font-weight:700;">✓</td>
+              <td style="color:var(--red);">F</td>
+              <td style="color:var(--gray-400);">—</td>
+              <td style="color:var(--gray-400);">—</td>
+              <td>2,5 h</td>
+              <td><span class="badge badge-yellow">HE pend.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px;border:1px solid var(--gray-200);">
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">🏦 Banco de Horas (STAFF)</div>
+        <div style="font-size:11px;color:var(--gray-600);line-height:1.6;">Las HE de personal STAFF van a banco de horas (compensación en días). RCO recibe pago en planilla. Saldo disponible visible en el portal del empleado.</div>
+      </div>
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px;border:1px solid var(--gray-200);">
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">🔗 Integración T-Registro / PLAME</div>
+        <div style="font-size:11px;color:var(--gray-600);line-height:1.6;">Exportación directa a SUNAT T-Registro, PLAME, AFP Net (Prima, Integra, Profuturo, Hábitat) y contabilidad (CONCAR, SIGO, SAP, SIRE).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">harmoni-v19e.onrender.com · admin / Harmoni2026!</span>
+    <span class="page-footer-page">4 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 5 — TALENT MODULES
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-brand">
+      <svg class="page-header-logo" width="32" height="32" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="page-header-name">Harmoni</span>
+    </div>
+    <span class="page-header-title">Gestión del Talento</span>
+  </div>
+
+  <div class="content-section" style="padding-bottom:80px;">
+    <div class="section-badge">⭐ Talento & Desarrollo</div>
+    <h2 class="section-title">Atrae, desarrolla y retiene talento</h2>
+    <p class="section-sub">Desde el pipeline de candidatos hasta las evaluaciones 360°, Harmoni cubre todo el ciclo de vida del talento en tu organización.</p>
+
+    <div class="features-grid">
+      <div class="feature-card purple">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Evaluaciones 360°</div>
+        <div class="feature-desc">Ciclos 180° (Jefe+Auto) y 360° completos con competencias, PDI y 9-Box Grid ejecutivo.</div>
+        <ul class="feature-bullets">
+          <li>Plantillas configurables</li>
+          <li>9-Box Grid automático</li>
+          <li>Plan de Desarrollo Individual</li>
+          <li>Análisis comparativo áreas</li>
+        </ul>
+      </div>
+      <div class="feature-card orange">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-title">Reclutamiento Kanban</div>
+        <div class="feature-desc">Pipeline visual de candidatos con etapas configurables y portal de empleo público.</div>
+        <ul class="feature-bullets">
+          <li>6 vacantes activas (demo)</li>
+          <li>Pipeline drag & drop</li>
+          <li>Portal empleo público</li>
+          <li>Métricas: tasa conversión</li>
+        </ul>
+      </div>
+      <div class="feature-card blue">
+        <div class="feature-icon">🎓</div>
+        <div class="feature-title">Capacitaciones / LMS</div>
+        <div class="feature-desc">Sistema ligero de gestión de aprendizaje con certificaciones y requerimientos por puesto.</div>
+        <ul class="feature-bullets">
+          <li>Cursos y asistencia</li>
+          <li>Certificaciones digitales</li>
+          <li>Requerimientos por cargo</li>
+          <li>Historial por empleado</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Kanban mockup -->
+    <div class="mockup-container" style="margin-bottom:14px;">
+      <div class="mockup-topbar" style="padding:8px 12px;">
+        <div style="color:white;font-size:12px;font-weight:700;">🗂️ Pipeline de Selección — Arrastra para cambiar etapa</div>
+        <span style="background:var(--teal-primary);padding:3px 8px;border-radius:4px;font-size:10px;color:white;">+ Nueva Vacante</span>
+      </div>
+      <div style="padding:10px;background:var(--gray-50);">
+        <div class="kanban-container" style="background:transparent;padding:0;gap:6px;">
+          <div class="kanban-col">
+            <div class="kanban-col-header" style="background:#e0e7ff;color:#3730a3;">
+              Recibido <span class="kanban-count">3</span>
+            </div>
+            <div class="kanban-cards">
+              <div class="kanban-card">LÓPEZ M.<div class="kanban-card-sub">Analista BIM · 08 Mar</div></div>
+              <div class="kanban-card">TORRES K.<div class="kanban-card-sub">Ing. Estructuras · 07 Mar</div></div>
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-header" style="background:#fef3c7;color:#92400e;">
+              Filtrado <span class="kanban-count">2</span>
+            </div>
+            <div class="kanban-cards">
+              <div class="kanban-card">QUISPE R.<div class="kanban-card-sub">SSOMA · 05 Mar</div></div>
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-header" style="background:#fce7f3;color:#9d174d;">
+              Entrevista RRHH <span class="kanban-count">1</span>
+            </div>
+            <div class="kanban-cards">
+              <div class="kankan-card" style="padding:6px 8px;font-size:9px;color:var(--gray-400);text-align:center;">Sin candidatos</div>
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-header" style="background:#fce7f3;color:#7c2d12;">
+              Entrev. Técnica <span class="kanban-count">0</span>
+            </div>
+            <div class="kanban-cards">
+              <div style="padding:6px 8px;font-size:9px;color:var(--gray-400);text-align:center;">Sin candidatos</div>
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-header" style="background:#fef3c7;color:#78350f;">
+              Evaluación <span class="kanban-count">0</span>
+            </div>
+            <div class="kanban-cards">
+              <div style="padding:6px 8px;font-size:9px;color:var(--gray-400);text-align:center;">Sin candidatos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px;border:1px solid var(--gray-200);">
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:6px;">⚖️ Proceso Disciplinario</div>
+        <div style="font-size:11px;color:var(--gray-600);line-height:1.5;">15 tipos de falta según DS 003-97-TR. Workflow legal completo: carta imputación → descargo → sanción.</div>
+      </div>
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px;border:1px solid var(--gray-200);">
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:6px;">🚀 Onboarding & Offboarding</div>
+        <div style="font-size:11px;color:var(--gray-600);line-height:1.5;">Plantillas con pasos configurables. Checklist de ingreso/salida. Seguimiento por responsable y plazo.</div>
+      </div>
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px;border:1px solid var(--gray-200);">
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:6px;">📊 Encuestas de Clima</div>
+        <div style="font-size:11px;color:var(--gray-600);line-height:1.5;">eNPS, pulsos anónimos y encuestas de clima laboral. Anonimato real protegido por diseño.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">harmoni-v19e.onrender.com · admin / Harmoni2026!</span>
+    <span class="page-footer-page">5 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 6 — HARMONI AI
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-brand">
+      <svg class="page-header-logo" width="32" height="32" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="page-header-name">Harmoni</span>
+    </div>
+    <span class="page-header-title">Harmoni AI</span>
+  </div>
+
+  <div class="content-section" style="padding-bottom:80px;">
+    <div class="ai-section">
+      <div>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(94,234,212,.15);border:1px solid rgba(94,234,212,.3);padding:4px 12px;border-radius:20px;font-size:11px;color:var(--teal-light);font-weight:700;margin-bottom:16px;">🤖 Inteligencia Artificial Integrada</div>
+        <div class="ai-title">Tu asistente de RRHH<br><span>siempre disponible</span></div>
+        <p class="ai-desc">Harmoni AI está integrado en cada página del sistema. Responde preguntas sobre empleados, genera gráficos interactivos, exporta reportes Excel y aplica normativa laboral peruana en tiempo real.</p>
+        <ul class="ai-features-list">
+          <li>Consultas en lenguaje natural: "¿Cuántos empleados hay en BIM?"</li>
+          <li>Gráficos automáticos: distribución por área, género, headcount</li>
+          <li>Exportación de reportes ejecutivos (.xlsx) con un clic</li>
+          <li>Dashboard gerencial maximizable con 4 gráficos simultáneos</li>
+          <li>Base de conocimiento normativo (DS 003-97-TR, D.Leg. 713)</li>
+          <li>Modo RAG semántico con embeddings OpenAI</li>
+          <li>Compatible con Gemini, DeepSeek, OpenAI y Ollama</li>
+        </ul>
+      </div>
+      <div class="chat-mockup">
+        <div class="chat-header">
+          <div class="chat-header-icon">🤖</div>
+          <div>
+            <div class="chat-header-name">Harmoni AI</div>
+            <div class="chat-header-status">● En línea</div>
+          </div>
+        </div>
+        <div class="chat-messages">
+          <div class="chat-msg-user">Muéstrame el headcount por área</div>
+          <div class="chat-msg-ai">
+            📊 <strong>Distribución por Área</strong> — 10 áreas activas, 155 empleados asignados. Mayor: PRODUCCIÓN con 34 (21%).<br><br>
+            <div style="background:rgba(255,255,255,.05);border-radius:6px;padding:8px;font-size:9px;line-height:1.6;">
+              PRODUCCIÓN: 34 &nbsp;·&nbsp; ADMIN: 26 &nbsp;·&nbsp; BIM: 22<br>
+              OPERACIONES: 16 &nbsp;·&nbsp; SSOMA: 11 &nbsp;·&nbsp; OF. TÉC.: 11
+            </div>
+          </div>
+          <div class="chat-msg-user">Exportar reporte ejecutivo</div>
+          <div class="chat-msg-ai">📥 He preparado tu <strong>Reporte Ejecutivo</strong> con 4 hojas: Resumen KPI, Headcount por Área, Tendencias y Alertas. Haz clic para descargar.</div>
+        </div>
+        <div class="chat-chips">
+          <span class="chat-chip">📋 Resumen</span>
+          <span class="chat-chip">👥 Empleados</span>
+          <span class="chat-chip">📊 Por Área</span>
+          <span class="chat-chip">📁 Reporte Excel</span>
+          <span class="chat-chip">🎯 Dashboard</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Providers grid -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--teal-dark);margin-bottom:10px;">Proveedores de IA compatibles</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:16px;margin-bottom:4px;">🟢</div>
+          <div style="font-size:12px;font-weight:700;color:var(--gray-800);">Gemini</div>
+          <div style="font-size:10px;color:var(--gray-400);">Google 2.5 Flash<br>OCR + PDFs nativos</div>
+        </div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:16px;margin-bottom:4px;">🔵</div>
+          <div style="font-size:12px;font-weight:700;color:var(--gray-800);">DeepSeek</div>
+          <div style="font-size:10px;color:var(--gray-400);">V3 · Más económico<br>$0.014/M tokens</div>
+        </div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:16px;margin-bottom:4px;">⚫</div>
+          <div style="font-size:12px;font-weight:700;color:var(--gray-800);">OpenAI</div>
+          <div style="font-size:10px;color:var(--gray-400);">GPT-4o + Embeddings<br>RAG Phase B</div>
+        </div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:16px;margin-bottom:4px;">🏠</div>
+          <div style="font-size:12px;font-weight:700;color:var(--gray-800);">Ollama</div>
+          <div style="font-size:10px;color:var(--gray-400);">Local · Sin costo<br>Privacidad total</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--teal-pale);border-radius:10px;padding:14px;display:flex;align-items:center;gap:16px;">
+      <div style="font-size:28px;">💡</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--teal-dark);margin-bottom:3px;">Funciona sin IA configurada</div>
+        <div style="font-size:12px;color:var(--gray-600);">Sin API key, Harmoni AI opera en "Modo Datos": responde preguntas sobre empleados, genera gráficos y exporta reportes usando únicamente la base de datos interna. Sin costo, sin dependencias externas.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">harmoni-v19e.onrender.com · admin / Harmoni2026!</span>
+    <span class="page-footer-page">6 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 7 — PORTAL DEL EMPLEADO
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-brand">
+      <svg class="page-header-logo" width="32" height="32" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="page-header-name">Harmoni</span>
+    </div>
+    <span class="page-header-title">Portal del Empleado</span>
+  </div>
+
+  <div class="content-section" style="padding-bottom:80px;">
+    <div class="section-badge">🖥️ Self-Service</div>
+    <h2 class="section-title">El empleado, autónomo</h2>
+    <p class="section-sub">Cada colaborador tiene su propio portal donde puede consultar su información, solicitar vacaciones, ver su asistencia y acceder a sus documentos sin depender de RRHH.</p>
+
+    <!-- Portal mockup - Trabajador view -->
+    <div class="portal-grid" style="margin-bottom:16px;">
+      <div class="portal-mockup">
+        <div class="portal-header">
+          <div class="portal-avatar">C</div>
+          <div>
+            <div class="portal-name">CRUZADO LOLOY ANCELMO</div>
+            <div class="portal-role">Capataz Albañil · PRODUCCIÓN · RCO</div>
+          </div>
+        </div>
+        <div class="portal-kpis">
+          <div class="portal-kpi">
+            <div class="portal-kpi-val">0</div>
+            <div class="portal-kpi-lbl">Días trab.</div>
+          </div>
+          <div class="portal-kpi">
+            <div class="portal-kpi-val">23d</div>
+            <div class="portal-kpi-lbl">Vacaciones</div>
+          </div>
+          <div class="portal-kpi">
+            <div class="portal-kpi-val">0,0h</div>
+            <div class="portal-kpi-lbl">HE Mes</div>
+          </div>
+          <div class="portal-kpi" style="background:var(--teal-pale);">
+            <div class="portal-kpi-val" style="color:var(--teal-primary);">1a 3m</div>
+            <div class="portal-kpi-lbl">Antigüedad</div>
+          </div>
+        </div>
+        <div class="portal-actions">
+          <div class="portal-action">
+            <div class="portal-action-icon">📋</div>
+            <div class="portal-action-label">Papeletas</div>
+          </div>
+          <div class="portal-action">
+            <div class="portal-action-icon">⏱️</div>
+            <div class="portal-action-label">Solicitar HE</div>
+          </div>
+          <div class="portal-action">
+            <div class="portal-action-icon">✅</div>
+            <div class="portal-action-label">Justificar</div>
+          </div>
+          <div class="portal-action">
+            <div class="portal-action-icon">🌴</div>
+            <div class="portal-action-label">Vacaciones</div>
+          </div>
+          <div class="portal-action">
+            <div class="portal-action-icon">📄</div>
+            <div class="portal-action-label">Constancias</div>
+          </div>
+          <div class="portal-action">
+            <div class="portal-action-icon">💰</div>
+            <div class="portal-action-label">Mis Boletas</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="background:var(--teal-pale);border-radius:10px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">Lo que el empleado puede hacer:</div>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Ver sus asistencias y marcaciones del mes</li>
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Solicitar vacaciones y ver su saldo (23 días)</li>
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Descargar boletas de pago PDF</li>
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Gestionar permisos y licencias (12 tipos)</li>
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Ver constancias de trabajo (generadas en PDF)</li>
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Ver historial de evaluaciones y PDI</li>
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Responder encuestas de clima anónimas</li>
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Ver banco de horas disponible</li>
+            <li style="font-size:11px;color:var(--gray-600);display:flex;gap:8px;"><span style="color:var(--teal-primary);font-weight:700;">✓</span> Acceder a mis préstamos y cuotas</li>
+          </ul>
+        </div>
+
+        <div style="background:linear-gradient(135deg,#0d2b27,#1a4a45);border-radius:10px;padding:14px;color:white;">
+          <div style="font-size:12px;font-weight:700;color:var(--teal-light);margin-bottom:6px;">📱 Responsive & Mobile</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.75);line-height:1.5;">El portal del empleado está optimizado para móviles. Cualquier colaborador puede acceder desde su celular sin necesidad de instalar nada.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Module grid full -->
+    <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:10px;">Todos los módulos del sistema (19+)</div>
+    <div class="modules-grid">
+      <div class="module-card"><div class="module-icon">👤</div><div class="module-name">Personal</div><div class="module-desc">Empleados, contratos, legajo</div></div>
+      <div class="module-card"><div class="module-icon">⏰</div><div class="module-name">Asistencia</div><div class="module-desc">Tareo, HE, banco horas</div></div>
+      <div class="module-card"><div class="module-icon">💰</div><div class="module-name">Nóminas</div><div class="module-desc">Planilla, AFP, boletas</div></div>
+      <div class="module-card"><div class="module-icon">🌴</div><div class="module-name">Vacaciones</div><div class="module-desc">Saldos, solicitudes, venta</div></div>
+      <div class="module-card"><div class="module-icon">⭐</div><div class="module-name">Evaluaciones</div><div class="module-desc">360°, 9-Box, PDI</div></div>
+      <div class="module-card"><div class="module-icon">🔍</div><div class="module-name">Reclutamiento</div><div class="module-desc">Kanban, portal público</div></div>
+      <div class="module-card"><div class="module-icon">🎓</div><div class="module-name">Capacitaciones</div><div class="module-desc">LMS, certificaciones</div></div>
+      <div class="module-card"><div class="module-icon">⚖️</div><div class="module-name">Disciplinaria</div><div class="module-desc">DS 003-97-TR, workflow</div></div>
+      <div class="module-card"><div class="module-icon">📊</div><div class="module-name">Analytics</div><div class="module-desc">KPIs, alertas, predictivo</div></div>
+      <div class="module-card"><div class="module-icon">🚀</div><div class="module-name">Onboarding</div><div class="module-desc">Ingreso, offboarding</div></div>
+      <div class="module-card"><div class="module-icon">💬</div><div class="module-name">Comunicaciones</div><div class="module-desc">Notificaciones, SMTP</div></div>
+      <div class="module-card"><div class="module-icon">📋</div><div class="module-name">Encuestas</div><div class="module-desc">eNPS, clima, anónimo</div></div>
+      <div class="module-card"><div class="module-icon">💳</div><div class="module-name">Préstamos</div><div class="module-desc">Cuotas, adelantos</div></div>
+      <div class="module-card"><div class="module-icon">🗓️</div><div class="module-name">Calendario</div><div class="module-desc">Laboral, iCal, feriados</div></div>
+      <div class="module-card"><div class="module-icon">🤖</div><div class="module-name">Harmoni AI</div><div class="module-desc">Chat, gráficos, RAG</div></div>
+      <div class="module-card"><div class="module-icon">🏦</div><div class="module-name">Salarios</div><div class="module-desc">Bandas, compa-ratio</div></div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">harmoni-v19e.onrender.com · trabajador / Demo2026!</span>
+    <span class="page-footer-page">7 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 8 — DEMO & CONTACTO
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-brand">
+      <svg class="page-header-logo" width="32" height="32" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="page-header-name">Harmoni</span>
+    </div>
+    <span class="page-header-title">Demo & Acceso</span>
+  </div>
+
+  <div class="content-section" style="padding-bottom:80px;">
+    <div class="section-badge">🚀 Pruébalo ahora</div>
+    <h2 class="section-title">Demo en vivo con datos reales</h2>
+    <p class="section-sub">Accede al sistema completo con 242 empleados, todas las funcionalidades activas y datos representativos de una empresa minera peruana.</p>
+
+    <div class="credentials-box" style="margin-bottom:20px;">
+      <div class="cred-section">
+        <div class="cred-label">👑 Administrador RRHH</div>
+        <div class="cred-item"><div class="cred-key">Usuario</div><div class="cred-val">admin</div></div>
+        <div class="cred-item"><div class="cred-key">Contraseña</div><div class="cred-val">Harmoni2026!</div></div>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;">Acceso completo a todos los módulos, configuración, nóminas y analytics.</div>
+      </div>
+      <div style="border-left:1px solid rgba(255,255,255,.1);padding-left:20px;" class="cred-section">
+        <div class="cred-label">👤 Empleado / Trabajador</div>
+        <div class="cred-item"><div class="cred-key">Usuario</div><div class="cred-val">trabajador</div></div>
+        <div class="cred-item"><div class="cred-key">Contraseña</div><div class="cred-val">Demo2026!</div></div>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;">Vista del portal del empleado: asistencia, vacaciones, boletas, permisos.</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px;">URL del Sistema</div>
+        <div class="cred-url">harmoni-v19e<br>.onrender.com</div>
+        <div style="margin-top:12px;background:var(--teal-accent);color:var(--teal-dark);padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;display:inline-block;">Acceder →</div>
+      </div>
+    </div>
+
+    <!-- What makes harmoni different -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:700;color:var(--teal-dark);margin-bottom:10px;">¿Por qué Harmoni vs. SAP / Odoo / Excel?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:8px;padding:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--teal-dark);margin-bottom:6px;">vs SAP / Oracle</div>
+          <ul style="list-style:none;font-size:10px;color:var(--gray-600);line-height:1.6;">
+            <li>✓ Sin licencias millonarias</li>
+            <li>✓ Implementación en días, no meses</li>
+            <li>✓ 100% adaptado a legislación peruana</li>
+            <li>✓ Sin consultores costosos</li>
+          </ul>
+        </div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:8px;padding:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--teal-dark);margin-bottom:6px;">vs Odoo / BUK</div>
+          <ul style="list-style:none;font-size:10px;color:var(--gray-600);line-height:1.6;">
+            <li>✓ IA integrada sin extra cost</li>
+            <li>✓ Biométrico ZKTeco nativo</li>
+            <li>✓ Ciclo planilla 21-20 Perú</li>
+            <li>✓ CONCAR / SIGO / AFP Net</li>
+          </ul>
+        </div>
+        <div style="background:white;border:1px solid var(--gray-200);border-radius:8px;padding:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--teal-dark);margin-bottom:6px;">vs Excel / manual</div>
+          <ul style="list-style:none;font-size:10px;color:var(--gray-600);line-height:1.6;">
+            <li>✓ Cero errores en cálculo</li>
+            <li>✓ Workflow automático aprobación</li>
+            <li>✓ Auditoría completa de cambios</li>
+            <li>✓ Portal empleado 24/7</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tech stack -->
+    <div style="background:var(--gray-50);border-radius:12px;padding:16px;border:1px solid var(--gray-200);">
+      <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:10px;">Stack Tecnológico</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">Django 5.1</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">Python 3.14</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">PostgreSQL</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">REST API</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">OpenAI Embeddings</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">Chart.js</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">SSE Streaming</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">Celery</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">Redis</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">Gunicorn</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">JWT Auth</span>
+        <span style="background:white;border:1px solid var(--gray-200);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--gray-600);">Render (Cloud)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer" style="background:var(--teal-dark);border-top:none;">
+    <span class="page-footer-brand" style="color:var(--teal-light);">Harmoni ERP v1.0</span>
+    <span class="page-footer-text" style="color:rgba(255,255,255,.5);">© 2026 · Sistema de Gestión de RRHH para empresas peruanas</span>
+    <span class="page-footer-page" style="color:rgba(255,255,255,.5);">8 / 8</span>
+  </div>
+</div>
+
+</body>
+</html>

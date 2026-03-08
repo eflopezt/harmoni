@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harmoni ERP — Guía de Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --teal-dark: #0d2b27;
+    --teal-mid: #134e4a;
+    --teal-primary: #0f766e;
+    --teal-accent: #14b8a6;
+    --teal-light: #5eead4;
+    --teal-pale: #ccfbf1;
+    --white: #ffffff;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --gray-800: #1e293b;
+    --gold: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #8b5cf6;
+    --orange: #f97316;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #fff;
+    color: var(--gray-800);
+    line-height: 1.6;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto 20px;
+    position: relative;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 4px 24px rgba(0,0,0,.12);
+  }
+
+  @media print {
+    body { margin: 0; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; }
+    .no-print { display: none; }
+  }
+
+  /* ── COVER ─────────────────────────────────────── */
+  .cover {
+    background: linear-gradient(145deg, var(--teal-dark) 0%, #0f3b36 60%, #1a5c56 100%);
+    min-height: 297mm;
+    display: flex;
+    flex-direction: column;
+    padding: 60px 50px 40px;
+  }
+
+  .cover-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 60px;
+  }
+
+  .cover-badge {
+    background: rgba(94,234,212,.15);
+    border: 1px solid rgba(94,234,212,.3);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--teal-light);
+    font-weight: 600;
+  }
+
+  .cover-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .cover-eyebrow {
+    font-size: 13px;
+    color: var(--teal-light);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .cover-h1 {
+    font-size: 52px;
+    font-weight: 900;
+    color: white;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+    margin-bottom: 20px;
+  }
+
+  .cover-h1 span { color: var(--teal-light); }
+
+  .cover-subtitle {
+    font-size: 16px;
+    color: rgba(255,255,255,.65);
+    max-width: 480px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+  }
+
+  /* TOC */
+  .toc-title {
+    font-size: 12px;
+    color: rgba(255,255,255,.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+
+  .toc-num {
+    background: var(--teal-primary);
+    color: white;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .toc-text { font-size: 11px; color: rgba(255,255,255,.8); font-weight: 500; }
+
+  .cover-bottom {
+    padding-top: 30px;
+    border-top: 1px solid rgba(255,255,255,.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cover-cred-box {
+    display: flex;
+    gap: 20px;
+  }
+
+  .cred-mini {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+
+  .cred-mini-role { font-size: 9px; color: var(--teal-light); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+  .cred-mini-user { font-size: 12px; font-weight: 700; color: white; font-family: 'Courier New', monospace; }
+  .cred-mini-pass { font-size: 11px; color: rgba(255,255,255,.6); font-family: 'Courier New', monospace; }
+
+  /* ── PAGE HEADER ────────────────────────────────── */
+  .page-header {
+    background: var(--teal-dark);
+    padding: 14px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-logo { width: 28px; height: 28px; }
+  .header-name { font-size: 17px; font-weight: 800; color: white; }
+  .header-section { font-size: 12px; color: var(--teal-light); font-weight: 600; }
+
+  /* ── CONTENT ────────────────────────────────────── */
+  .content {
+    padding: 28px 36px;
+    padding-bottom: 70px;
+  }
+
+  /* Step block */
+  .step-block {
+    margin-bottom: 22px;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .step-num {
+    background: var(--teal-primary);
+    color: white;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--teal-dark);
+  }
+
+  .step-sub {
+    font-size: 12px;
+    color: var(--gray-400);
+    font-weight: 500;
+  }
+
+  /* URL bar mockup */
+  .url-bar {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--gray-600);
+    font-family: 'Courier New', monospace;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .url-lock { color: #16a34a; font-size: 12px; }
+  .url-text { color: var(--teal-primary); font-weight: 600; }
+
+  /* Screen mockup */
+  .screen {
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08);
+    margin-bottom: 14px;
+  }
+
+  .screen-bar {
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .screen-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .screen-url {
+    flex: 1;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 10px;
+    color: var(--gray-600);
+    font-family: 'Courier New', monospace;
+    margin: 0 8px;
+  }
+
+  /* Login screen */
+  .login-screen {
+    background: linear-gradient(135deg, #e0fdf4, #ccfbf1);
+    padding: 30px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .login-card {
+    background: white;
+    border-radius: 12px;
+    padding: 28px 24px;
+    width: 260px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.1);
+  }
+
+  .login-logo {
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .login-title { font-size: 18px; font-weight: 800; color: var(--gray-800); text-align: center; margin-bottom: 4px; }
+  .login-sub { font-size: 11px; color: var(--gray-400); text-align: center; margin-bottom: 18px; }
+
+  .form-group { margin-bottom: 12px; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--gray-600); margin-bottom: 4px; display: block; }
+  .form-input {
+    width: 100%;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    color: var(--gray-800);
+  }
+  .form-input.filled { border-color: var(--teal-primary); background: var(--teal-pale); }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--teal-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* Instructions list */
+  .instructions {
+    list-style: none;
+    margin-bottom: 14px;
+  }
+
+  .instructions li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: var(--gray-600);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--gray-100);
+    line-height: 1.4;
+  }
+
+  .instructions li:last-child { border-bottom: none; }
+
+  .inst-num {
+    background: var(--teal-primary);
+    color: white;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    font-size: 9px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Callout boxes */
+  .callout {
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .callout-icon { font-size: 16px; flex-shrink: 0; }
+  .callout-title { font-size: 12px; font-weight: 700; margin-bottom: 3px; }
+  .callout-text { font-size: 11px; line-height: 1.5; }
+
+  .callout.info { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .callout.info .callout-title { color: #1e40af; }
+  .callout.info .callout-text { color: #1e40af; }
+
+  .callout.tip { background: var(--teal-pale); border: 1px solid #a7f3d0; }
+  .callout.tip .callout-title { color: var(--teal-primary); }
+  .callout.tip .callout-text { color: #0d7560; }
+
+  .callout.warning { background: #fffbeb; border: 1px solid #fde68a; }
+  .callout.warning .callout-title { color: #92400e; }
+  .callout.warning .callout-text { color: #78350f; }
+
+  /* Table of what to show */
+  .demo-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-bottom: 14px;
+  }
+
+  .demo-table th {
+    background: var(--teal-dark);
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .demo-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: top;
+  }
+
+  .demo-table tr:nth-child(even) td { background: var(--gray-50); }
+
+  .demo-step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--teal-pale);
+    color: var(--teal-primary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  /* Module showcase row */
+  .module-row {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .module-row:last-child { border-bottom: none; }
+
+  .module-row-icon {
+    width: 44px; height: 44px;
+    background: var(--teal-pale);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .module-row-title { font-size: 13px; font-weight: 700; color: var(--teal-dark); margin-bottom: 3px; }
+  .module-row-desc { font-size: 11px; color: var(--gray-600); line-height: 1.4; }
+  .module-row-url { font-size: 10px; color: var(--teal-primary); font-family: 'Courier New', monospace; white-space: nowrap; }
+
+  /* Keyboard shortcut */
+  .kbd {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: var(--gray-800);
+    box-shadow: 0 1px 0 var(--gray-300);
+  }
+
+  /* Dashboard mockup compact */
+  .db-header {
+    background: var(--teal-dark);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .db-nav {
+    display: flex;
+    gap: 14px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,.04);
+    overflow: hidden;
+  }
+
+  .db-nav-item {
+    font-size: 10px;
+    color: rgba(255,255,255,.5);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .db-nav-item.active {
+    background: rgba(255,255,255,.08);
+    color: white;
+  }
+
+  .db-nav-icon { font-size: 14px; }
+  .db-nav-label { font-size: 8px; }
+
+  /* KPI strip */
+  .kpi-strip {
+    display: grid;
+    gap: 0;
+    background: var(--gray-200);
+  }
+
+  .kpi-strip-item {
+    background: white;
+    padding: 10px 14px;
+  }
+
+  .kpi-val { font-size: 22px; font-weight: 800; color: var(--teal-dark); line-height: 1; }
+  .kpi-label { font-size: 9px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; margin-top: 2px; }
+  .kpi-sub { font-size: 9px; color: var(--gray-400); margin-top: 1px; }
+
+  /* ── PAGE FOOTER ────────────────────────────────── */
+  .page-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 12px 36px;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+  }
+
+  .page-footer-brand { font-weight: 700; color: var(--teal-primary); }
+  .page-footer-text { color: var(--gray-400); }
+  .page-footer-page { color: var(--gray-400); }
+
+  /* Two-col layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* Section divider */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0;
+  }
+
+  .section-divider-line { flex: 1; height: 1px; background: var(--gray-200); }
+  .section-divider-text { font-size: 11px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<!-- PRINT BUTTON -->
+<div class="no-print" style="text-align:center;padding:16px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;">
+  <button onclick="window.print()" style="background:#0f766e;color:white;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
+    🖨️ Imprimir / Guardar como PDF
+  </button>
+  <span style="margin-left:16px;font-size:13px;color:#64748b;">Ctrl+P → Guardar como PDF → Sin márgenes</span>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 1 — COVER
+════════════════════════════════════ -->
+<div class="page">
+  <div class="cover">
+    <div class="cover-top">
+      <svg width="40" height="40" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2.5" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2.5" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2.5" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2.5" fill="#5eead4"/>
+      </svg>
+      <span style="font-size:22px;font-weight:800;color:white;">Harmoni</span>
+      <span class="cover-badge">Guía de Demo</span>
+    </div>
+
+    <div class="cover-main">
+      <div class="cover-eyebrow">Guía paso a paso para demostraciones</div>
+      <h1 class="cover-h1">Conoce Harmoni<br><span>en 30 minutos</span></h1>
+      <p class="cover-subtitle">
+        Esta guía te lleva por los módulos clave del sistema usando datos reales de la empresa demo <strong style="color:white;">Andes Mining</strong> — 242 empleados, planilla completa, y todas las funciones activas.
+      </p>
+
+      <div class="toc-title">Contenido de esta guía</div>
+      <div class="toc-grid">
+        <div class="toc-item"><div class="toc-num">1</div><div class="toc-text">Login y primeros pasos</div></div>
+        <div class="toc-item"><div class="toc-num">2</div><div class="toc-text">Dashboard principal (Admin)</div></div>
+        <div class="toc-item"><div class="toc-num">3</div><div class="toc-text">Módulo Personal & Contratos</div></div>
+        <div class="toc-item"><div class="toc-num">4</div><div class="toc-text">Asistencia & Tareo</div></div>
+        <div class="toc-item"><div class="toc-num">5</div><div class="toc-text">Nóminas & Planilla</div></div>
+        <div class="toc-item"><div class="toc-num">6</div><div class="toc-text">Analytics & People Intelligence</div></div>
+        <div class="toc-item"><div class="toc-num">7</div><div class="toc-text">Harmoni AI — Asistente</div></div>
+        <div class="toc-item"><div class="toc-num">8</div><div class="toc-text">Vacaciones & Permisos</div></div>
+        <div class="toc-item"><div class="toc-num">9</div><div class="toc-text">Evaluaciones 360°</div></div>
+        <div class="toc-item"><div class="toc-num">10</div><div class="toc-text">Reclutamiento Kanban</div></div>
+        <div class="toc-item"><div class="toc-num">11</div><div class="toc-text">Portal del Empleado</div></div>
+        <div class="toc-item"><div class="toc-num">12</div><div class="toc-text">Otros módulos</div></div>
+      </div>
+    </div>
+
+    <div class="cover-bottom">
+      <div class="cover-cred-box">
+        <div class="cred-mini">
+          <div class="cred-mini-role">👑 Administrador</div>
+          <div class="cred-mini-user">admin</div>
+          <div class="cred-mini-pass">Harmoni2026!</div>
+        </div>
+        <div class="cred-mini">
+          <div class="cred-mini-role">👤 Trabajador</div>
+          <div class="cred-mini-user">trabajador</div>
+          <div class="cred-mini-pass">Demo2026!</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:700;color:var(--teal-light);">harmoni-v19e.onrender.com</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);">Sistema en vivo · Andes Mining Demo</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 2 — LOGIN + DASHBOARD
+════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-brand">
+      <svg class="header-logo" width="28" height="28" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="header-name">Harmoni</span>
+    </div>
+    <span class="header-section">Paso 1 & 2 — Login · Dashboard</span>
+  </div>
+
+  <div class="content">
+    <!-- STEP 1: LOGIN -->
+    <div class="step-block">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title">Ingresar al Sistema</div>
+          <div class="step-sub">Accede en cualquier navegador moderno</div>
+        </div>
+      </div>
+
+      <div class="url-bar">
+        <span class="url-lock">🔒</span>
+        <span class="url-text">harmoni-v19e.onrender.com</span>
+        <span style="color:var(--gray-400);font-size:10px;">→ redirige a /login/</span>
+      </div>
+
+      <div class="two-col" style="margin-bottom:12px;">
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dot" style="background:#ff5f57;"></div>
+            <div class="screen-dot" style="background:#ffbd2e;"></div>
+            <div class="screen-dot" style="background:#28ca42;"></div>
+            <div class="screen-url">harmoni-v19e.onrender.com/login/</div>
+          </div>
+          <div class="login-screen">
+            <div class="login-card">
+              <div class="login-logo">
+                <svg width="44" height="44" viewBox="0 0 40 40">
+                  <rect width="40" height="40" rx="10" fill="#0f766e"/>
+                  <polygon points="20,3 36,11.5 36,28.5 20,37 4,28.5 4,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+                  <line x1="13" y1="7" x2="13" y2="33" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="27" y1="7" x2="27" y2="33" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="13" y1="20" x2="27" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                  <circle cx="13" cy="7" r="2" fill="#5eead4"/>
+                  <circle cx="27" cy="7" r="2" fill="#5eead4"/>
+                  <circle cx="13" cy="33" r="2" fill="#5eead4"/>
+                  <circle cx="27" cy="33" r="2" fill="#5eead4"/>
+                </svg>
+              </div>
+              <div class="login-title">Harmoni</div>
+              <div class="login-sub">Sistema de Gestión de Recursos Humanos</div>
+              <div class="form-group">
+                <label class="form-label">👤 Usuario</label>
+                <div class="form-input filled">admin</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">🔒 Contraseña</label>
+                <div class="form-input filled">••••••••••••</div>
+              </div>
+              <div class="btn-primary">→ Ingresar al Sistema</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <ul class="instructions">
+            <li><div class="inst-num">1</div>Abre <strong>harmoni-v19e.onrender.com</strong> en Chrome, Firefox o Edge.</li>
+            <li><div class="inst-num">2</div>Ingresa <strong>admin</strong> en el campo Usuario.</li>
+            <li><div class="inst-num">3</div>Ingresa <strong>Harmoni2026!</strong> en Contraseña.</li>
+            <li><div class="inst-num">4</div>Click en <strong>"Ingresar al Sistema"</strong>.</li>
+            <li><div class="inst-num">5</div>Serás redirigido al Dashboard principal según tu rol.</li>
+          </ul>
+          <div class="callout tip">
+            <span class="callout-icon">💡</span>
+            <div>
+              <div class="callout-title">Dos roles de demo</div>
+              <div class="callout-text">Con <strong>admin/Harmoni2026!</strong> accedes a todos los módulos de gestión. Con <strong>trabajador/Demo2026!</strong> ves la vista del empleado (portal de autoservicio).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: DASHBOARD -->
+    <div class="step-block">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title">Dashboard Principal</div>
+          <div class="step-sub">/home/ · Resumen ejecutivo por rol</div>
+        </div>
+      </div>
+
+      <div class="screen" style="margin-bottom:12px;">
+        <div class="db-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:26px;height:26px;background:var(--teal-primary);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;">H</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:white;">Harmoni</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.4);">Andes Mining</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,.08);border-radius:6px;padding:4px 12px;font-size:10px;color:rgba(255,255,255,.5);">🔍 Buscar empleado... Ctrl+K</div>
+          <div style="width:26px;height:26px;background:var(--teal-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;">A</div>
+        </div>
+        <div class="db-nav">
+          <div class="db-nav-item active"><div class="db-nav-icon">🖥️</div><div class="db-nav-label">PORTAL</div></div>
+          <div class="db-nav-item"><div class="db-nav-icon">👤</div><div class="db-nav-label">PERSONAL</div></div>
+          <div class="db-nav-item"><div class="db-nav-icon">⭐</div><div class="db-nav-label">TALENTO</div></div>
+          <div class="db-nav-item"><div class="db-nav-icon">💰</div><div class="db-nav-label">NÓMINAS</div></div>
+          <div class="db-nav-item"><div class="db-nav-icon">📊</div><div class="db-nav-label">GESTIÓN</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--gray-200);">
+          <div class="kpi-strip-item"><div class="kpi-val">242</div><div class="kpi-label">Colaboradores</div></div>
+          <div class="kpi-strip-item"><div class="kpi-val">201</div><div class="kpi-label">STAFF</div><div class="kpi-sub">83% del total</div></div>
+          <div class="kpi-strip-item"><div class="kpi-val">41</div><div class="kpi-label">RCO</div><div class="kpi-sub">17% del total</div></div>
+          <div class="kpi-strip-item"><div class="kpi-val">43</div><div class="kpi-label">Áreas activas</div></div>
+        </div>
+        <div style="padding:10px 12px;background:white;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;">
+          <div style="background:var(--teal-pale);border-radius:6px;padding:8px;text-align:center;cursor:default;">
+            <div style="font-size:18px;">👤</div><div style="font-size:9px;font-weight:700;color:var(--teal-dark);">Personal</div>
+          </div>
+          <div style="background:#eff6ff;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:18px;">⏰</div><div style="font-size:9px;font-weight:700;color:var(--teal-dark);">Asistencia</div>
+          </div>
+          <div style="background:#fdf4ff;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:18px;">🌴</div><div style="font-size:9px;font-weight:700;color:var(--teal-dark);">Vacaciones</div>
+          </div>
+          <div style="background:#fffbeb;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:18px;">💰</div><div style="font-size:9px;font-weight:700;color:var(--teal-dark);">Nóminas</div>
+          </div>
+          <div style="background:#fef2f2;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:18px;">📊</div><div style="font-size:9px;font-weight:700;color:var(--teal-dark);">Analytics</div>
+          </div>
+          <div style="background:#f0fdf4;border-radius:6px;padding:8px;text-align:center;">
+            <div style="font-size:18px;">🤖</div><div style="font-size:9px;font-weight:700;color:var(--teal-dark);">IA Chat</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">🧭</span>
+        <div>
+          <div class="callout-title">Navegación rápida</div>
+          <div class="callout-text">La barra superior tiene 5 secciones: PORTAL (inicio), PERSONAL, TALENTO, NÓMINAS, GESTIÓN. Presiona <span class="kbd">Ctrl+K</span> para buscar cualquier empleado o documento desde cualquier pantalla.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">Guía de Demo · harmoni-v19e.onrender.com</span>
+    <span class="page-footer-page">2 / 8</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 3 — PERSONAL + ASISTENCIA
+════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-brand">
+      <svg class="header-logo" width="28" height="28" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="header-name">Harmoni</span>
+    </div>
+    <span class="header-section">Paso 3 & 4 — Personal · Asistencia</span>
+  </div>
+
+  <div class="content">
+    <!-- STEP 3: PERSONAL -->
+    <div class="step-block">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title">Módulo Personal</div>
+          <div class="step-sub">/personal/empleados/ · 242 empleados activos</div>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-bottom:12px;">
+        <div>
+          <ul class="instructions">
+            <li><div class="inst-num">1</div>Haz click en <strong>PERSONAL</strong> en la barra superior → <strong>Empleados</strong>.</li>
+            <li><div class="inst-num">2</div>Observa la lista con 242 empleados: nombre, DNI, cargo, área, sueldo.</li>
+            <li><div class="inst-num">3</div>Filtra por área (ej: PRODUCCIÓN → 34 empleados).</li>
+            <li><div class="inst-num">4</div>Click en un empleado para ver su ficha completa: datos, contrato, legajo.</li>
+            <li><div class="inst-num">5</div>Muestra la tab <strong>Documentos</strong> del empleado — legajo digital.</li>
+          </ul>
+
+          <div class="callout tip">
+            <span class="callout-icon">💡</span>
+            <div>
+              <div class="callout-title">Punto de venta clave</div>
+              <div class="callout-text">Los contratos tienen fecha de vencimiento. Harmoni alerta automáticamente cuando un contrato vence en los próximos 60 días — el dashboard muestra 154 contratos próximos a vencer en la demo.</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <!-- Personal mockup table -->
+          <div class="screen">
+            <div style="background:var(--teal-dark);padding:7px 10px;font-size:11px;color:white;font-weight:700;">👤 Empleados — Andes Mining</div>
+            <div style="padding:8px;background:white;">
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <div style="flex:1;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:4px;padding:4px 8px;font-size:9px;color:var(--gray-400);">Buscar por nombre o DNI...</div>
+                <div style="background:var(--teal-primary);color:white;padding:4px 10px;border-radius:4px;font-size:9px;font-weight:700;">+ Nuevo</div>
+              </div>
+              <table style="width:100%;border-collapse:collapse;font-size:9px;">
+                <thead><tr style="background:var(--gray-100);">
+                  <th style="padding:4px 6px;text-align:left;font-weight:700;color:var(--gray-600);">Nombre</th>
+                  <th style="padding:4px 6px;text-align:left;font-weight:700;color:var(--gray-600);">DNI</th>
+                  <th style="padding:4px 6px;text-align:left;font-weight:700;color:var(--gray-600);">Área</th>
+                  <th style="padding:4px 6px;text-align:left;font-weight:700;color:var(--gray-600);">Tipo</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td style="padding:4px 6px;font-weight:600;">CASTILLO PISCOYA G.</td><td style="padding:4px 6px;">45123789</td><td style="padding:4px 6px;">PRODUCCIÓN</td><td style="padding:4px 6px;"><span style="background:var(--teal-pale);color:var(--teal-primary);padding:1px 5px;border-radius:8px;font-size:8px;font-weight:700;">STAFF</span></td></tr>
+                  <tr style="background:var(--gray-50);"><td style="padding:4px 6px;font-weight:600;">QUISPE CATALAN W.</td><td style="padding:4px 6px;">47110375</td><td style="padding:4px 6px;">BIM</td><td style="padding:4px 6px;"><span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:8px;font-size:8px;font-weight:700;">RCO</span></td></tr>
+                  <tr><td style="padding:4px 6px;font-weight:600;">MARQUEZ LLAMOCCA J.</td><td style="padding:4px 6px;">48901234</td><td style="padding:4px 6px;">ADMINISTRACIÓN</td><td style="padding:4px 6px;"><span style="background:var(--teal-pale);color:var(--teal-primary);padding:1px 5px;border-radius:8px;font-size:8px;font-weight:700;">STAFF</span></td></tr>
+                  <tr style="background:var(--gray-50);"><td style="padding:4px 6px;color:var(--gray-400);" colspan="4">... y 239 más</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">Siguiente módulo</div><div class="section-divider-line"></div></div>
+
+    <!-- STEP 4: ASISTENCIA -->
+    <div class="step-block">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title">Módulo Asistencia & Tareo</div>
+          <div class="step-sub">/asistencia/ · Vista Unificada por mes</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="instructions">
+            <li><div class="inst-num">1</div>Ve a <strong>PERSONAL → Asistencia → Vista Unificada</strong>.</li>
+            <li><div class="inst-num">2</div>Observa la grilla mensual con columnas = días, filas = empleados.</li>
+            <li><div class="inst-num">3</div>Colores: <span style="color:var(--teal-primary);font-weight:700;">Verde</span>=Presente, <span style="color:var(--red);font-weight:700;">Rojo</span>=Falta, <span style="color:var(--gold);font-weight:700;">Naranja</span>=HE pendiente.</li>
+            <li><div class="inst-num">4</div>Muestra el panel de <strong>Horas Extra (HE)</strong>: solicitud → aprobación jefe → cálculo.</li>
+            <li><div class="inst-num">5</div>Explica diferencia STAFF (banco horas) vs RCO (pago planilla).</li>
+          </ul>
+
+          <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div>
+              <div class="callout-title">HE 100% = feriados y domingos</div>
+              <div class="callout-text">Según D.Leg. 713, las HE en días feriados y domingos se pagan al 100% (no al 25% ni 35%). Harmoni calcula esto automáticamente al generar planilla.</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">🔑 Características clave a demostrar:</div>
+            <ul style="list-style:none;font-size:10px;color:var(--gray-600);line-height:1.8;">
+              <li>✓ Importación masiva desde Excel / ZKTeco</li>
+              <li>✓ Papeletas de permisos con workflow</li>
+              <li>✓ Banco de horas STAFF visible en portal</li>
+              <li>✓ SS (Sin Salida) = día pagado sin HE</li>
+              <li>✓ Justificaciones con documento adjunto</li>
+              <li>✓ Cierre mensual (día 20) con consolidación</li>
+              <li>✓ Reportes por área / periodo en Excel</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">Guía de Demo · harmoni-v19e.onrender.com · admin / Harmoni2026!</span>
+    <span class="page-footer-page">3 / 8</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 4 — NÓMINAS + ANALYTICS
+════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-brand">
+      <svg class="header-logo" width="28" height="28" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="header-name">Harmoni</span>
+    </div>
+    <span class="header-section">Paso 5 & 6 — Nóminas · Analytics</span>
+  </div>
+
+  <div class="content">
+    <!-- STEP 5: NÓMINAS -->
+    <div class="step-block">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div>
+          <div class="step-title">Módulo Nóminas & Planilla</div>
+          <div class="step-sub">/nominas/ · Ciclo 21–20, cálculo automático</div>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-bottom:12px;">
+        <div>
+          <ul class="instructions">
+            <li><div class="inst-num">1</div>Ve a <strong>NÓMINAS</strong> en la barra superior.</li>
+            <li><div class="inst-num">2</div>Selecciona el periodo (ej: Marzo 2026).</li>
+            <li><div class="inst-num">3</div>Muestra la Vista Nómina: 60+ columnas dinámicas — sueldo, AFP, ONP, IR 5ta, HE, gratificación proporcional.</li>
+            <li><div class="inst-num">4</div>Haz click en <strong>"Calcular"</strong> para ver el proceso automático.</li>
+            <li><div class="inst-num">5</div>Exporta a <strong>CONCAR / SIGO</strong> (contabilidad) con un click.</li>
+            <li><div class="inst-num">6</div>Muestra la <strong>boleta de pago digital PDF</strong> de un empleado.</li>
+          </ul>
+        </div>
+        <div>
+          <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">💰 Lo que calcula automáticamente:</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:var(--gray-600);">
+              <div style="padding:3px 0;">✓ AFP (Prima, Integra, Profuturo, Hábitat)</div>
+              <div style="padding:3px 0;">✓ ONP 13%</div>
+              <div style="padding:3px 0;">✓ IR 5ta categoría (escala 8%-30%)</div>
+              <div style="padding:3px 0;">✓ Gratificación (jul/dic)</div>
+              <div style="padding:3px 0;">✓ CTS (may/nov)</div>
+              <div style="padding:3px 0;">✓ Vacaciones truncas</div>
+              <div style="padding:3px 0;">✓ HE (25%, 35%, 100%)</div>
+              <div style="padding:3px 0;">✓ Préstamos y adelantos</div>
+            </div>
+          </div>
+
+          <div class="callout tip" style="margin-top:8px;">
+            <span class="callout-icon">🔗</span>
+            <div>
+              <div class="callout-title">Integraciones disponibles</div>
+              <div class="callout-text">T-Registro SUNAT · PLAME · AFP Net · CONCAR · SIGO · SAP · SIRE · Bancos (nómina masiva)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">Siguiente módulo</div><div class="section-divider-line"></div></div>
+
+    <!-- STEP 6: ANALYTICS -->
+    <div class="step-block">
+      <div class="step-header">
+        <div class="step-num">6</div>
+        <div>
+          <div class="step-title">Analytics & People Intelligence</div>
+          <div class="step-sub">/analytics/ · KPIs en tiempo real</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="instructions">
+            <li><div class="inst-num">1</div>Ve a <strong>GESTIÓN → Analytics → Dashboard</strong>.</li>
+            <li><div class="inst-num">2</div>KPIs visibles: 242 headcount, 201 STAFF, 41 RCO, 43 áreas.</li>
+            <li><div class="inst-num">3</div>Baja para ver <strong>People Risk</strong>: 154 contratos próximos a vencer.</li>
+            <li><div class="inst-num">4</div>Muestra la sección <strong>Señales por Módulo</strong>: vacaciones, préstamos, vacantes.</li>
+            <li><div class="inst-num">5</div>Ve a <strong>Snapshots KPI</strong> para ver tendencias históricas.</li>
+            <li><div class="inst-num">6</div>Muestra <strong>Riesgo de Fuga</strong> y <strong>Predictive Insights</strong>.</li>
+          </ul>
+        </div>
+        <div>
+          <div style="background:linear-gradient(135deg,#0d2b27,#1a4a45);border-radius:8px;padding:14px;color:white;">
+            <div style="font-size:11px;font-weight:700;color:var(--teal-light);margin-bottom:8px;">📊 Módulos en Analytics:</div>
+            <ul style="list-style:none;font-size:10px;color:rgba(255,255,255,.8);line-height:1.8;">
+              <li>📈 Dashboard ejecutivo (KPIs tiempo real)</li>
+              <li>👥 Headcount — composición del equipo</li>
+              <li>📸 Snapshots KPI — tendencias históricas</li>
+              <li>🚨 Alertas RRHH — configurables por severidad</li>
+              <li>🔮 Riesgo de Fuga — score predictivo</li>
+              <li>💵 Análisis Salarial — bandas y compa-ratio</li>
+              <li>🧠 Predictive Insights — 9-Box visión</li>
+              <li>🤖 Dashboard IA — panel personalizable</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">Guía de Demo · harmoni-v19e.onrender.com · admin / Harmoni2026!</span>
+    <span class="page-footer-page">4 / 8</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 5 — HARMONI AI
+════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-brand">
+      <svg class="header-logo" width="28" height="28" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="header-name">Harmoni</span>
+    </div>
+    <span class="header-section">Paso 7 — Harmoni AI</span>
+  </div>
+
+  <div class="content">
+    <div class="step-header" style="margin-bottom:16px;">
+      <div class="step-num">7</div>
+      <div>
+        <div class="step-title">Harmoni AI — Asistente Inteligente</div>
+        <div class="step-sub">Disponible en toda la aplicación · Ícono 🤖 abajo a la derecha</div>
+      </div>
+    </div>
+
+    <div class="callout info" style="margin-bottom:14px;">
+      <span class="callout-icon">ℹ️</span>
+      <div>
+        <div class="callout-title">En la demo funciona en "Modo Datos"</div>
+        <div class="callout-text">Sin API key configurada, Harmoni AI opera con lógica interna: responde sobre empleados, genera gráficos con Chart.js y exporta Excel. Para lenguaje natural avanzado, se configura Gemini/DeepSeek/OpenAI en Asistencia → Configuración → Pestaña IA.</div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:16px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--teal-dark);margin-bottom:10px;">Preguntas a demostrar:</div>
+        <table class="demo-table">
+          <thead><tr><th>Pregunta</th><th>Resultado esperado</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:'Courier New',monospace;font-size:10px;">¿Cuántos empleados hay?</td>
+              <td>Responde: 242 activos, 201 STAFF, 41 RCO</td>
+            </tr>
+            <tr>
+              <td style="font-family:'Courier New',monospace;font-size:10px;">Gráfico por área</td>
+              <td>Genera donut chart: PRODUCCIÓN 34, ADMIN 26, BIM 22...</td>
+            </tr>
+            <tr>
+              <td style="font-family:'Courier New',monospace;font-size:10px;">¿Hay aprobaciones pendientes?</td>
+              <td>Muestra pendientes de vacaciones, HE, permisos</td>
+            </tr>
+            <tr>
+              <td style="font-family:'Courier New',monospace;font-size:10px;">Exportar reporte ejecutivo</td>
+              <td>Genera .xlsx con 4 hojas: KPI, Headcount, Tendencias, Alertas</td>
+            </tr>
+            <tr>
+              <td style="font-family:'Courier New',monospace;font-size:10px;">Distribución por género</td>
+              <td>Gráfico de barras M/F por área</td>
+            </tr>
+            <tr>
+              <td style="font-family:'Courier New',monospace;font-size:10px;">Dashboard gerencial</td>
+              <td>Auto-maximiza y muestra 4 gráficos simultáneos</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <!-- Chat mockup -->
+        <div style="background:var(--teal-dark);border-radius:10px;overflow:hidden;">
+          <div style="background:rgba(0,0,0,.2);padding:10px 12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;background:var(--teal-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;">🤖</div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:white;">Harmoni AI</div>
+              <div style="font-size:9px;color:var(--teal-light);">● Modo datos (sin IA)</div>
+            </div>
+          </div>
+          <div style="padding:10px;display:flex;flex-direction:column;gap:7px;">
+            <div style="background:var(--teal-primary);color:white;padding:7px 10px;border-radius:10px 10px 3px 10px;font-size:10px;align-self:flex-end;max-width:85%;">
+              Muéstrame un gráfico del personal por área
+            </div>
+            <div style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);padding:8px 10px;border-radius:3px 10px 10px 10px;font-size:10px;align-self:flex-start;max-width:95%;line-height:1.5;">
+              📊 <strong>Distribución por Área</strong> — 10 áreas, 155 asignados.<br>
+              <span style="font-size:9px;opacity:.7;">PRODUCCIÓN: 34 · ADMIN: 26 · BIM: 22 · OP.: 16 · SSOMA: 11 · OF.TÉC.: 11 · COMM.: 10 · CALIDAD: 9 · PROCURA: 9 · SERV.GEN.: 7</span>
+            </div>
+            <div style="background:var(--teal-primary);color:white;padding:7px 10px;border-radius:10px 10px 3px 10px;font-size:10px;align-self:flex-end;">
+              Exportar reporte ejecutivo
+            </div>
+            <div style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);padding:8px 10px;border-radius:3px 10px 10px 10px;font-size:10px;align-self:flex-start;line-height:1.5;">
+              📥 Reporte listo: <strong>4 hojas</strong> — Resumen KPI, Headcount, Tendencias, Alertas. <span style="color:var(--teal-light);">[Descargar .xlsx →]</span>
+            </div>
+          </div>
+          <div style="padding:0 10px 10px;display:flex;flex-wrap:wrap;gap:4px;">
+            <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:3px 8px;border-radius:10px;font-size:9px;color:var(--teal-light);">📋 Resumen</span>
+            <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:3px 8px;border-radius:10px;font-size:9px;color:var(--teal-light);">📊 Por Área</span>
+            <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:3px 8px;border-radius:10px;font-size:9px;color:var(--teal-light);">📁 Excel</span>
+            <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:3px 8px;border-radius:10px;font-size:9px;color:var(--teal-light);">🎯 Dashboard</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--teal-dark);margin-bottom:10px;">Cómo abrir el chat IA:</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">🤖</div>
+        <div style="font-size:11px;font-weight:700;color:var(--gray-800);margin-bottom:3px;">Click en ícono</div>
+        <div style="font-size:10px;color:var(--gray-400);">Botón flotante abajo a la derecha en toda la app</div>
+      </div>
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">⬛</div>
+        <div style="font-size:11px;font-weight:700;color:var(--gray-800);margin-bottom:3px;">Quick chips</div>
+        <div style="font-size:10px;color:var(--gray-400);">Botones de acceso rápido pre-definidos para consultas comunes</div>
+      </div>
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">🔲</div>
+        <div style="font-size:11px;font-weight:700;color:var(--gray-800);margin-bottom:3px;">Maximizar</div>
+        <div style="font-size:10px;color:var(--gray-400);">Click en ícono expandir → panel 900px para gráficos grandes</div>
+      </div>
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">📌</div>
+        <div style="font-size:11px;font-weight:700;color:var(--gray-800);margin-bottom:3px;">Pin al dashboard</div>
+        <div style="font-size:10px;color:var(--gray-400);">Fija gráficos en el dashboard IA personalizable</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">Guía de Demo · harmoni-v19e.onrender.com · admin / Harmoni2026!</span>
+    <span class="page-footer-page">5 / 8</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 6 — VACACIONES + EVALUACIONES + RECLUTAMIENTO
+════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-brand">
+      <svg class="header-logo" width="28" height="28" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="header-name">Harmoni</span>
+    </div>
+    <span class="header-section">Pasos 8, 9 & 10 — Vacaciones · Evaluaciones · Reclutamiento</span>
+  </div>
+
+  <div class="content">
+    <!-- STEP 8: VACACIONES -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
+      <div>
+        <div class="step-header" style="margin-bottom:10px;">
+          <div class="step-num" style="width:26px;height:26px;font-size:12px;">8</div>
+          <div><div class="step-title" style="font-size:14px;">Vacaciones & Permisos</div><div class="step-sub">/vacaciones/</div></div>
+        </div>
+        <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;">
+          <div style="font-size:10px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">📊 Datos de la demo:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;">
+            <div style="background:white;border:1px solid var(--gray-200);border-radius:4px;padding:6px;text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--teal-primary);">235</div>
+              <div style="font-size:8px;color:var(--gray-400);">Con saldo disponible</div>
+            </div>
+            <div style="background:white;border:1px solid var(--gray-200);border-radius:4px;padding:6px;text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--teal-primary);">4,651</div>
+              <div style="font-size:8px;color:var(--gray-400);">Días acumulados</div>
+            </div>
+          </div>
+          <ul style="list-style:none;font-size:10px;color:var(--gray-600);line-height:1.7;">
+            <li>✓ Saldos automáticos por empleado</li>
+            <li>✓ Solicitud → Aprobación jefe</li>
+            <li>✓ Venta de vacaciones</li>
+            <li>✓ 12 tipos de permisos/licencias</li>
+            <li>✓ Calendario visual de ausencias</li>
+          </ul>
+        </div>
+      </div>
+
+      <div>
+        <div class="step-header" style="margin-bottom:10px;">
+          <div class="step-num" style="width:26px;height:26px;font-size:12px;">9</div>
+          <div><div class="step-title" style="font-size:14px;">Evaluaciones 360°</div><div class="step-sub">/evaluaciones/</div></div>
+        </div>
+        <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;">
+          <div style="font-size:10px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">🎯 Ciclo activo en demo:</div>
+          <div style="background:white;border:1px solid var(--gray-200);border-radius:4px;padding:8px;margin-bottom:8px;font-size:10px;">
+            <div style="font-weight:700;color:var(--teal-dark);">Evaluación Semestral S1-2026</div>
+            <div style="color:var(--gray-400);font-size:9px;margin-top:2px;">Tipo: 180° (Jefe + Auto) · 01/01/2026 — 30/06/2026</div>
+          </div>
+          <ul style="list-style:none;font-size:10px;color:var(--gray-600);line-height:1.7;">
+            <li>✓ Ciclos 180° y 360° configurables</li>
+            <li>✓ 9-Box Grid automático</li>
+            <li>✓ Competencias y PDI</li>
+            <li>✓ Análisis comparativo áreas</li>
+          </ul>
+        </div>
+      </div>
+
+      <div>
+        <div class="step-header" style="margin-bottom:10px;">
+          <div class="step-num" style="width:26px;height:26px;font-size:12px;">10</div>
+          <div><div class="step-title" style="font-size:14px;">Reclutamiento</div><div class="step-sub">/reclutamiento/</div></div>
+        </div>
+        <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;">
+          <div style="font-size:10px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">🔍 Estado actual:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;">
+            <div style="background:white;border:1px solid var(--gray-200);border-radius:4px;padding:5px;text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--gold);">6</div>
+              <div style="font-size:8px;color:var(--gray-400);">Vacantes abiertas</div>
+            </div>
+            <div style="background:white;border:1px solid var(--gray-200);border-radius:4px;padding:5px;text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--teal-primary);">4</div>
+              <div style="font-size:8px;color:var(--gray-400);">Publicadas</div>
+            </div>
+          </div>
+          <ul style="list-style:none;font-size:10px;color:var(--gray-600);line-height:1.7;">
+            <li>✓ Kanban drag & drop pipeline</li>
+            <li>✓ Portal empleo público</li>
+            <li>✓ Tasa conversión y métricas</li>
+            <li>✓ Etapas configurables</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">Más módulos disponibles</div><div class="section-divider-line"></div></div>
+
+    <!-- Other modules quick table -->
+    <div style="font-size:13px;font-weight:700;color:var(--teal-dark);margin-bottom:10px;">Otros módulos a explorar:</div>
+    <table class="demo-table">
+      <thead><tr><th>Módulo</th><th>URL</th><th>Destacado para mostrar</th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:600;">🎓 Capacitaciones</td>
+          <td style="font-family:'Courier New',monospace;font-size:10px;">/capacitaciones/</td>
+          <td>Cursos activos, asistencia, certificaciones por cargo</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;">⚖️ Disciplinaria</td>
+          <td style="font-family:'Courier New',monospace;font-size:10px;">/disciplinaria/</td>
+          <td>Workflow legal DS 003-97-TR: imputación → descargo → sanción</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;">🚀 Onboarding</td>
+          <td style="font-family:'Courier New',monospace;font-size:10px;">/onboarding/</td>
+          <td>Checklist de ingreso/salida, plantillas por cargo, seguimiento</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;">📋 Encuestas</td>
+          <td style="font-family:'Courier New',monospace;font-size:10px;">/encuestas/</td>
+          <td>eNPS, clima laboral anónimo, pulsos rápidos</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;">💳 Préstamos</td>
+          <td style="font-family:'Courier New',monospace;font-size:10px;">/prestamos/</td>
+          <td>9 préstamos activos, cuotas de descuento planilla</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600;">🗓️ Calendario</td>
+          <td style="font-family:'Courier New',monospace;font-size:10px;">/calendario/</td>
+          <td>Vista mensual CSS Grid, merge 6 fuentes, exportar iCal</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">Guía de Demo · harmoni-v19e.onrender.com · admin / Harmoni2026!</span>
+    <span class="page-footer-page">6 / 8</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 7 — PORTAL DEL EMPLEADO (trabajador)
+════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-brand">
+      <svg class="header-logo" width="28" height="28" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="header-name">Harmoni</span>
+    </div>
+    <span class="header-section">Paso 11 — Portal del Empleado (trabajador)</span>
+  </div>
+
+  <div class="content">
+    <div class="step-header" style="margin-bottom:14px;">
+      <div class="step-num">11</div>
+      <div>
+        <div class="step-title">Portal del Empleado — Vista Trabajador</div>
+        <div class="step-sub">Cierra sesión como admin → Inicia como trabajador / Demo2026!</div>
+      </div>
+    </div>
+
+    <div class="callout tip" style="margin-bottom:16px;">
+      <span class="callout-icon">🔄</span>
+      <div>
+        <div class="callout-title">Cambio de rol para la demo</div>
+        <div class="callout-text">Click en <strong>"admin"</strong> (esquina superior derecha) → <strong>Cerrar Sesión</strong>. Luego ingresa con <strong>trabajador / Demo2026!</strong>. Verás el portal del empleado: solo lo que le pertenece, sin acceso a datos de otros.</div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:16px;">
+      <div>
+        <!-- Portal mockup -->
+        <div class="screen">
+          <div style="background:var(--teal-dark);padding:9px 12px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:24px;height:24px;background:var(--teal-primary);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;">H</div>
+              <span style="font-size:13px;font-weight:700;color:white;">Harmoni</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="width:24px;height:24px;background:var(--teal-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--teal-dark);">T</div>
+              <span style="font-size:11px;color:white;">Trabajador</span>
+            </div>
+          </div>
+          <div style="background:white;padding:12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+              <div style="width:40px;height:40px;background:var(--teal-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;">C</div>
+              <div>
+                <div style="font-size:12px;font-weight:800;color:var(--teal-dark);">CRUZADO LOLOY ANCELMO</div>
+                <div style="font-size:10px;color:var(--gray-400);">Capataz Albañil · PRODUCCIÓN · RCO · 1a 3m antigüedad</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--gray-200);border-radius:6px;overflow:hidden;margin-bottom:10px;">
+              <div style="background:white;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--teal-primary);">0</div><div style="font-size:8px;color:var(--gray-400);">Días trab.</div></div>
+              <div style="background:white;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--teal-primary);">23d</div><div style="font-size:8px;color:var(--gray-400);">Vacaciones</div></div>
+              <div style="background:white;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--teal-primary);">0h</div><div style="font-size:8px;color:var(--gray-400);">HE mes</div></div>
+              <div style="background:var(--teal-pale);padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--teal-primary);">RCO</div><div style="font-size:8px;color:var(--gray-400);">Grupo</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
+              <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:16px;">📋</div><div style="font-size:9px;font-weight:700;color:var(--gray-800);">Papeletas</div></div>
+              <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:16px;">🌴</div><div style="font-size:9px;font-weight:700;color:var(--gray-800);">Vacaciones</div></div>
+              <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:16px;">💰</div><div style="font-size:9px;font-weight:700;color:var(--gray-800);">Mis Boletas</div></div>
+              <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:16px;">📄</div><div style="font-size:9px;font-weight:700;color:var(--gray-800);">Constancias</div></div>
+              <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:16px;">⭐</div><div style="font-size:9px;font-weight:700;color:var(--gray-800);">Evaluaciones</div></div>
+              <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:16px;">🤖</div><div style="font-size:9px;font-weight:700;color:var(--gray-800);">Harmoni AI</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <ul class="instructions" style="margin-bottom:12px;">
+          <li><div class="inst-num">1</div>Cierra sesión de admin y entra como <strong>trabajador / Demo2026!</strong></li>
+          <li><div class="inst-num">2</div>Observa que el menú lateral ahora solo tiene <strong>Dashboard</strong> — vista simplificada.</li>
+          <li><div class="inst-num">3</div>El empleado ve sus datos personales: 23 días de vacaciones disponibles, 1 año 3 meses antigüedad.</li>
+          <li><div class="inst-num">4</div>Haz click en <strong>"Vacaciones"</strong> → Nueva Solicitud → selecciona fechas → envía.</li>
+          <li><div class="inst-num">5</div>Haz click en <strong>"Mis Boletas"</strong> → descarga PDF boleta.</li>
+          <li><div class="inst-num">6</div>Haz click en <strong>"Constancias"</strong> → genera constancia de trabajo en PDF.</li>
+          <li><div class="inst-num">7</div>Muestra que el empleado también tiene el <strong>Harmoni AI</strong> disponible — puede preguntar sobre sus propios datos.</li>
+        </ul>
+
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <div>
+            <div class="callout-title">El impacto del portal</div>
+            <div class="callout-text">Antes: el empleado llama a RRHH para saber su saldo de vacaciones, pedir una constancia, revisar si le pagaron el bono. Ahora: lo ve en su celular en 30 segundos. RRHH recupera 2-3 horas diarias de interrupciones.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employee portal full actions -->
+    <div style="background:var(--gray-50);border-radius:10px;padding:14px;border:1px solid var(--gray-200);">
+      <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:10px;">Todo lo que el empleado ve en su portal:</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>📋</span> Papeletas</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>⏱️</span> Solicitudes HE</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>✅</span> Justificaciones</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>🌴</span> Vacaciones</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>📄</span> Constancias PDF</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>💰</span> Mis Boletas</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>📃</span> Mis Recibos</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>⭐</span> Evaluaciones</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>🎓</span> Capacitaciones</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>📊</span> Encuestas</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>💳</span> Mis Préstamos</div>
+        <div style="font-size:10px;color:var(--gray-600);padding:4px 0;display:flex;gap:5px;align-items:center;"><span>📅</span> Mis Permisos</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-brand">Harmoni ERP</span>
+    <span class="page-footer-text">Guía de Demo · harmoni-v19e.onrender.com · trabajador / Demo2026!</span>
+    <span class="page-footer-page">7 / 8</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 8 — RESUMEN + PRÓXIMOS PASOS
+════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-brand">
+      <svg class="header-logo" width="28" height="28" viewBox="0 0 40 40">
+        <polygon points="20,2 37,11.5 37,28.5 20,38 3,28.5 3,11.5" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+        <line x1="11.5" y1="5.28" x2="11.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="28.5" y1="5.28" x2="28.5" y2="34.72" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="11.5" y1="20" x2="28.5" y2="20" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="5.28" r="2" fill="#5eead4"/>
+        <circle cx="11.5" cy="34.72" r="2" fill="#5eead4"/>
+        <circle cx="28.5" cy="34.72" r="2" fill="#5eead4"/>
+      </svg>
+      <span class="header-name">Harmoni</span>
+    </div>
+    <span class="header-section">Resumen & Próximos Pasos</span>
+  </div>
+
+  <div class="content">
+    <div style="background:linear-gradient(135deg,#0d2b27,#0f3b36);border-radius:16px;padding:24px;color:white;margin-bottom:20px;">
+      <div style="font-size:11px;color:var(--teal-light);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Lo que vimos en la demo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:var(--teal-primary);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;color:white;flex-shrink:0;">1</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:white;margin-bottom:2px;">Login & Dashboard</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);">Vista rol-basada, 242 empleados, KPIs tiempo real</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:var(--teal-primary);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;color:white;flex-shrink:0;">2</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:white;margin-bottom:2px;">Personal & Contratos</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);">Legajo digital, alertas vencimiento, organigrama</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:var(--teal-primary);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;color:white;flex-shrink:0;">3</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:white;margin-bottom:2px;">Asistencia & Nóminas</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);">Tareo mes, HE automatizado, planilla AFP/ONP/IR</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:var(--teal-primary);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;color:white;flex-shrink:0;">4</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:white;margin-bottom:2px;">Analytics Intelligence</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);">KPIs, alertas, predictivo, riesgo de fuga</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:var(--teal-accent);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;color:var(--teal-dark);flex-shrink:0;">5</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--teal-light);margin-bottom:2px;">Harmoni AI 🤖</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);">Chat, gráficos dinámicos, exportar Excel, RAG</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <span style="background:var(--teal-primary);padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;color:white;flex-shrink:0;">6</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:white;margin-bottom:2px;">Portal del Empleado</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);">Self-service completo, mobile-ready, 12+ acciones</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Access credentials box -->
+    <div style="background:white;border:2px solid var(--teal-primary);border-radius:12px;padding:18px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:800;color:var(--teal-dark);margin-bottom:14px;text-align:center;">🔑 Credenciales de Acceso Demo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:center;">
+        <div>
+          <div style="font-size:10px;color:var(--teal-primary);font-weight:700;text-transform:uppercase;margin-bottom:8px;">👑 Administrador RRHH</div>
+          <div style="background:var(--gray-50);border-radius:6px;padding:10px;font-family:'Courier New',monospace;">
+            <div style="font-size:12px;color:var(--gray-400);">Usuario:</div>
+            <div style="font-size:15px;font-weight:700;color:var(--gray-800);">admin</div>
+            <div style="font-size:12px;color:var(--gray-400);margin-top:4px;">Contraseña:</div>
+            <div style="font-size:15px;font-weight:700;color:var(--gray-800);">Harmoni2026!</div>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:14px;color:var(--gray-400);margin-bottom:8px;">URL del sistema</div>
+          <div style="background:var(--teal-dark);color:var(--teal-light);padding:12px 8px;border-radius:8px;font-size:13px;font-weight:700;font-family:'Courier New',monospace;word-break:break-all;">harmoni-v19e<br>.onrender.com</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--teal-primary);font-weight:700;text-transform:uppercase;margin-bottom:8px;">👤 Portal Empleado</div>
+          <div style="background:var(--gray-50);border-radius:6px;padding:10px;font-family:'Courier New',monospace;">
+            <div style="font-size:12px;color:var(--gray-400);">Usuario:</div>
+            <div style="font-size:15px;font-weight:700;color:var(--gray-800);">trabajador</div>
+            <div style="font-size:12px;color:var(--gray-400);margin-top:4px;">Contraseña:</div>
+            <div style="font-size:15px;font-weight:700;color:var(--gray-800);">Demo2026!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next steps -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:var(--teal-pale);border-radius:10px;padding:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">🚀 Para empezar con tu empresa:</div>
+        <ul style="list-style:none;font-size:11px;color:var(--gray-600);line-height:1.8;">
+          <li>1. Importar empleados desde Excel / T-Registro</li>
+          <li>2. Configurar áreas, cargos y sueldos</li>
+          <li>3. Conectar reloj biométrico ZKTeco</li>
+          <li>4. Configurar proveedor IA (Gemini / DeepSeek)</li>
+          <li>5. Activar portal empleados</li>
+          <li>6. Primer cierre de planilla con datos reales</li>
+        </ul>
+      </div>
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--teal-dark);margin-bottom:8px;">📝 Preguntas frecuentes:</div>
+        <div style="font-size:10px;color:var(--gray-600);line-height:1.8;">
+          <strong>¿Cuánto tarda la implementación?</strong><br>
+          Desde 1 semana para empresas hasta 100 personas.<br><br>
+          <strong>¿Funciona en la nube?</strong><br>
+          Sí, desplegado en Render (cloud). También on-premise.<br><br>
+          <strong>¿Hay app móvil?</strong><br>
+          El portal es responsive. App nativa en roadmap 2026.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer" style="background:var(--teal-dark);border-top:none;">
+    <span class="page-footer-brand" style="color:var(--teal-light);">Harmoni ERP v1.0</span>
+    <span class="page-footer-text" style="color:rgba(255,255,255,.5);">Guía de Demo · harmoni-v19e.onrender.com · © 2026</span>
+    <span class="page-footer-page" style="color:rgba(255,255,255,.5);">8 / 8</span>
+  </div>
+</div>
+
+</body>
+</html>
