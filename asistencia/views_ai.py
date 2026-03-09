@@ -327,9 +327,21 @@ def ai_chat_stream(request):
         fc_content = file_context.get('content', '')
 
         if fc_type == 'image':
-            # Para imágenes no inyectamos el base64 en texto — se pasa directo al modelo
-            # Nota: GeminiService soporta imágenes inline. OpenAI/DeepSeek text-only, ignoramos imagen.
-            pass
+            # Imágenes: mensaje multimodal [texto + imagen] para Gemini vision
+            # OpenAI/DeepSeek (text-only) ignoran la parte de imagen y solo ven el texto
+            mime = file_context.get('mime', 'image/jpeg')
+            # fc_content es "data:mime;base64,XXXX" — extraer solo el base64
+            b64_data = fc_content.split(',', 1)[1] if fc_content and ',' in fc_content else (fc_content or '')
+            default_prompt = (
+                f'Analiza la imagen "{fc_name}". Si es un documento (DNI, pasaporte, contrato, '
+                f'boleta, certificado, licencia), extrae TODOS los datos en formato estructurado. '
+                f'Si es otra imagen, describe qué contiene y qué información relevante puedes identificar. '
+                f'Pregunta del usuario: {message}'
+            )
+            ai_message = [
+                {'type': 'text',  'text': default_prompt},
+                {'type': 'image', 'mime_type': mime, 'data': b64_data},
+            ]
         elif fc_content:
             trunc_note = ' [contenido truncado a 12000 chars]' if file_context.get('truncated') else ''
             ai_message = (

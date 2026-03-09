@@ -224,11 +224,29 @@ class GeminiService(IAService):
         return self._client
 
     def _build_contents(self, messages: list) -> list:
-        """Convierte formato OpenAI messages a formato Gemini contents."""
+        """Convierte formato OpenAI messages a formato Gemini contents.
+        Soporta mensajes de texto (str) y multimodales (list of parts).
+        """
         contents = []
         for m in messages:
             role = 'user' if m['role'] == 'user' else 'model'
-            contents.append({'role': role, 'parts': [{'text': m['content']}]})
+            content = m.get('content', '')
+            if isinstance(content, list):
+                # Mensaje multimodal: lista de partes {type, text/mime_type/data}
+                parts = []
+                for part in content:
+                    if part.get('type') == 'text':
+                        parts.append({'text': part.get('text', '')})
+                    elif part.get('type') == 'image':
+                        parts.append({
+                            'inline_data': {
+                                'mime_type': part.get('mime_type', 'image/jpeg'),
+                                'data': part.get('data', ''),
+                            }
+                        })
+                contents.append({'role': role, 'parts': parts})
+            else:
+                contents.append({'role': role, 'parts': [{'text': str(content)}]})
         return contents
 
     def test_connection(self) -> dict:
