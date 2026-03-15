@@ -5,14 +5,38 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.cache import cache_page
+from django.views.decorators.http import require_GET
 
 def health_check(request):
-    """Simple health check endpoint for Render"""
-    return JsonResponse({'status': 'ok'})
+    """Health check endpoint"""
+    checks = {'status': 'ok'}
+    try:
+        from django.db import connection
+        connection.ensure_connection()
+        checks['database'] = 'ok'
+    except Exception:
+        checks['database'] = 'error'
+        checks['status'] = 'degraded'
+    return JsonResponse(checks)
+
+@require_GET
+@cache_page(86400)
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Disallow: /admin/",
+        "Disallow: /api/",
+        "Disallow: /login/",
+        "Disallow: /asistencia/ia/",
+        "Crawl-delay: 10",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
 
 urlpatterns = [
     path('health/', health_check, name='health_check'),
+    path('robots.txt', robots_txt, name='robots_txt'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/v1/', include('core.api_urls')),

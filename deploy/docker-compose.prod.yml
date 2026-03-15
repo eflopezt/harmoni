@@ -1,0 +1,113 @@
+version: '3.9'
+
+# =============================================================================
+# Harmoni ERP — Production Docker Compose (optimizado para VPS 4-8GB)
+# PostgreSQL y Redis corren nativos en el host
+# =============================================================================
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: harmoni-web
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+    volumes:
+      - /opt/harmoni/staticfiles:/app/staticfiles
+      - /opt/harmoni/media:/app/media
+      - /opt/harmoni/logs:/app/logs
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: >
+      gunicorn config.wsgi:application
+        --bind 0.0.0.0:8000
+        --workers 2
+        --threads 2
+        --worker-class gthread
+        --max-requests 1000
+        --max-requests-jitter 50
+        --timeout 300
+        --graceful-timeout 30
+        --keepalive 5
+        --preload
+        --access-logfile -
+        --error-logfile -
+        --log-level warning
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: harmoni-celery
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+    volumes:
+      - /opt/harmoni/media:/app/media
+      - /opt/harmoni/logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 384M
+        reservations:
+          memory: 128M
+    command: >
+      celery -A config worker
+        --loglevel=info
+        --concurrency=2
+        --autoscale=4,1
+        --max-tasks-per-child=100
+        --max-memory-per-child=150000
+        -Ofair
+        --prefetch-multiplier=1
+        --without-heartbeat
+    depends_on:
+      web:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: harmoni-beat
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+    volumes:
+      - /opt/harmoni/logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: 128M
+        reservations:
+          memory: 64M
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      web:
+        condition: service_healthy

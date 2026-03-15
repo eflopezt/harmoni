@@ -7,9 +7,12 @@ resumen estadístico AJAX, descarga masiva boletas ZIP.
 import csv
 import io
 import json
+import logging
 import zipfile
 from datetime import date
 from decimal import Decimal
+
+logger = logging.getLogger('nominas.views')
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -766,6 +769,7 @@ def periodo_boletas_zip(request, pk):
                 )
                 zf.writestr(nombre_archivo, pdf_bytes)
             except Exception as e:
+                logger.warning('Error adding boleta reg %s to ZIP: %s', reg.pk, e)
                 errores.append(f'{reg.personal}: {e}')
 
     if errores:

@@ -4,8 +4,11 @@ Analytics & People Intelligence — Vistas.
 Dashboard ejecutivo con KPIs en tiempo real y tendencias históricas.
 """
 import json
+import logging
 from datetime import date, timedelta
 from decimal import Decimal
+
+logger = logging.getLogger('analytics.views')
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Avg, Count, Max, Min, Q, Sum
@@ -104,7 +107,7 @@ def dashboard(request):
     penultimo_snapshot = snapshots_recientes[1] if len(snapshots_recientes) > 1 else None
 
     # ── Tasa asistencia actual (mes en curso) ──
-    tasa_asistencia_actual = None
+    tasa_asistencia_actual = 0
     try:
         from asistencia.models import RegistroTareo
         registros_mes = RegistroTareo.objects.filter(
@@ -114,8 +117,9 @@ def dashboard(request):
             codigo_dia__in=['F', 'FALTA', 'SIN_MARCACION', 'FERIADO']).count()
         if total_reg > 0:
             tasa_asistencia_actual = round(asistidos / total_reg * 100, 1)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning('Error getting tasa_asistencia_actual: %s', exc)
+        tasa_asistencia_actual = 0
 
     # ── People Risk summary ──
     hoy_60 = hoy + timedelta(days=60)

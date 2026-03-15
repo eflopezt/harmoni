@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "Harmoni Dev Server",
-      "runtimeExecutable": "D:\\Harmoni\\.venv\\Scripts\\python.exe",
-      "runtimeArgs": ["manage.py", "runserver", "8001"],
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "D:\\Harmoni\\.venv\\Scripts\\python.exe", "D:\\Harmoni\\manage.py", "runserver", "8001", "--noreload"],
       "cwd": "D:\\Harmoni",
       "port": 8001,
       "autoPort": false

@@ -5,7 +5,10 @@ Usa ReportLab (dep de xhtml2pdf). Migrado desde xhtml2pdf para evitar
 el bug TypeError NoneType>NoneType (negative availWidth en tablas anidadas).
 """
 import io
+import logging
 from decimal import Decimal
+
+logger = logging.getLogger('nominas.pdf')
 
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable,
@@ -181,7 +184,8 @@ def generar_boleta_pdf(registro):
             empresa_nombre = cfg.empresa_nombre or "Empresa"
             empresa_ruc    = cfg.empresa_ruc    or ""
             empresa_dir    = getattr(cfg, "empresa_direccion", "") or ""
-    except Exception: pass
+    except Exception as exc:
+        logger.warning('Error loading empresa config for boleta PDF: %s', exc)
 
     he_parts = []
     if registro.horas_extra_25:  he_parts.append(f"25%: {registro.horas_extra_25}h")

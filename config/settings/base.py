@@ -100,10 +100,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Password validation - Configuración permisiva para facilitar acceso
+# Password validation - Mínimo 6 caracteres (permite DNI como contraseña)
 AUTH_PASSWORD_VALIDATORS = [
-    # Removidos todos los validadores para permitir contraseñas simples
-    # Los usuarios pueden usar contraseñas como: 123, admin, abc, etc.
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 6},
+    },
 ]
 
 
@@ -150,6 +152,14 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+    },
 }
 
 # DRF Spectacular (OpenAPI / Swagger)
