@@ -1,41 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="200" height="48">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 52" width="220" height="52">
   <defs>
-    <linearGradient id="markBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f766e"/>
-      <stop offset="100%" stop-color="#0d2b27"/>
+    <radialGradient id="markBg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%"   stop-color="#1b4a43"/>
+      <stop offset="100%" stop-color="#081a17"/>
+    </radialGradient>
+    <linearGradient id="arcG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#0d9488"/>
+      <stop offset="50%"  stop-color="#5eead4"/>
+      <stop offset="100%" stop-color="#0d9488"/>
     </linearGradient>
+    <filter id="glow" x="-80%" y="-200%" width="260%" height="500%">
+      <feGaussianBlur stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
 
-  <!-- Icon: 44x44 rounded square with gradient background -->
-  <rect x="2" y="2" width="44" height="44" rx="10" ry="10" fill="url(#markBg)"/>
+  <!-- Ícono cuadrado 44x44 -->
+  <rect x="0" y="4" width="44" height="44" fill="url(#markBg)" rx="10"/>
+  <!-- Arco -->
+  <path d="M 6,26 Q 22,36 38,26"
+        stroke="url(#arcG)" stroke-width="2.8" fill="none"
+        stroke-linecap="round" filter="url(#glow)"/>
+  <!-- Pilar izquierdo -->
+  <rect x="8"  y="8" width="7" height="32" rx="3.5" fill="white"/>
+  <!-- Pilar derecho -->
+  <rect x="29" y="8" width="7" height="32" rx="3.5" fill="white"/>
 
-  <!-- H mark: left stem -->
-  <rect x="10" y="10" width="7" height="28" rx="2.5" fill="#ffffff"/>
-  <!-- H mark: right stem -->
-  <rect x="31" y="10" width="7" height="28" rx="2.5" fill="#ffffff"/>
-  <!-- H mark: cyan accent arc (smile) -->
-  <path d="M 10 24 Q 24 50 38 24" stroke="#5eead4" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Wordmark "Harmoni" -->
+  <text x="54" y="32"
+        font-family="'Inter','Segoe UI',Arial,sans-serif"
+        font-size="26" font-weight="900"
+        fill="white" letter-spacing="-0.5">Harmoni</text>
 
-  <!-- "Harmoni" wordmark -->
-  <text
-    x="58"
-    y="28"
-    font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
-    font-weight="700"
-    font-size="22"
-    fill="#0d2b27"
-    dominant-baseline="auto"
-    letter-spacing="-0.3"
-  >Harmoni</text>
-
-  <!-- Subtitle -->
-  <text
-    x="59"
-    y="42"
-    font-family="Inter, 'Helvetica Neue', Arial, sans-serif"
-    font-weight="400"
-    font-size="11"
-    fill="#64748b"
-    letter-spacing="0.4"
-  >RRHH &amp; Planillas</text>
+  <!-- Subtítulo -->
+  <text x="55" y="44"
+        font-family="'Inter','Segoe UI',Arial,sans-serif"
+        font-size="9" font-weight="500"
+        fill="#5eead4" letter-spacing="1.4">RRHH &amp; PLANILLAS</text>
 </svg>

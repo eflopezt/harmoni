@@ -1,16 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f766e"/>
-      <stop offset="100%" stop-color="#0d2b27"/>
+    <radialGradient id="bg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%"   stop-color="#1b4a43"/>
+      <stop offset="100%" stop-color="#081a17"/>
+    </radialGradient>
+    <linearGradient id="arc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#0d9488"/>
+      <stop offset="50%"  stop-color="#5eead4"/>
+      <stop offset="100%" stop-color="#0d9488"/>
     </linearGradient>
+    <filter id="glow" x="-80%" y="-200%" width="260%" height="500%">
+      <feGaussianBlur stdDeviation="0.8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <!-- Background rounded rectangle -->
-  <rect x="1" y="1" width="30" height="30" rx="7" ry="7" fill="url(#bg)"/>
-  <!-- H left stem -->
-  <rect x="7" y="8" width="4" height="16" rx="1.5" fill="#ffffff"/>
-  <!-- H right stem -->
-  <rect x="21" y="8" width="4" height="16" rx="1.5" fill="#ffffff"/>
-  <!-- Cyan accent arc (smile) -->
-  <path d="M 7 16 Q 16 42 25 16" stroke="#5eead4" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <rect width="32" height="32" fill="url(#bg)" rx="6"/>
+  <!-- Arco (detrás de pilares) -->
+  <path d="M 6,14 Q 16,21 26,14"
+        stroke="url(#arc)" stroke-width="2.2" fill="none"
+        stroke-linecap="round" filter="url(#glow)"/>
+  <!-- Pilar izquierdo -->
+  <rect x="8"  y="3" width="5" height="23" rx="2.5" fill="white"/>
+  <!-- Pilar derecho -->
+  <rect x="19" y="3" width="5" height="23" rx="2.5" fill="white"/>
 </svg>

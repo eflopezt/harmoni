@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <!-- Fondo radial oscuro tipo vignette -->
+    <radialGradient id="bgGrad" cx="50%" cy="45%" r="65%">
+      <stop offset="0%"   stop-color="#1b4a43"/>
+      <stop offset="60%"  stop-color="#0f3530"/>
+      <stop offset="100%" stop-color="#081a17"/>
+    </radialGradient>
+
+    <!-- Pilares: blanco puro con suave glow interno -->
+    <linearGradient id="pillarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#d6f5f0"/>
+      <stop offset="40%"  stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e8faf7"/>
+    </linearGradient>
+
+    <!-- Arco: teal oscuro en extremos → cyan brillante en centro -->
+    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#0d9488"/>
+      <stop offset="30%"  stop-color="#2dd4bf"/>
+      <stop offset="50%"  stop-color="#5eead4"/>
+      <stop offset="70%"  stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+
+    <!-- Glow del arco -->
+    <filter id="arcGlow" x="-60%" y="-150%" width="220%" height="400%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Glow suave pilares -->
+    <filter id="pillarGlow" x="-30%" y="-5%" width="160%" height="110%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Bloom central debajo del arco -->
+    <radialGradient id="bloomGrad" cx="50%" cy="30%" r="60%">
+      <stop offset="0%"   stop-color="#5eead4" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#5eead4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="200" height="200" fill="url(#bgGrad)" rx="0"/>
+
+  <!-- Bloom glow debajo del arco -->
+  <ellipse cx="100" cy="106" rx="52" ry="18" fill="url(#bloomGrad)"/>
+
+  <!-- Arco borroso (capa glow) -->
+  <path d="M 42,88 Q 100,130 158,88"
+        stroke="#5eead4" stroke-width="7" fill="none"
+        stroke-linecap="round" opacity="0.45"
+        filter="url(#arcGlow)"/>
+
+  <!-- Arco principal (detrás de los pilares) -->
+  <path d="M 42,88 Q 100,130 158,88"
+        stroke="url(#arcGrad)" stroke-width="5.5" fill="none"
+        stroke-linecap="round"/>
+
+  <!-- Pilar izquierdo (encima del arco) -->
+  <rect x="55" y="16" width="27" height="142" rx="13.5"
+        fill="url(#pillarGrad)" filter="url(#pillarGlow)"/>
+
+  <!-- Pilar derecho -->
+  <rect x="118" y="16" width="27" height="142" rx="13.5"
+        fill="url(#pillarGrad)" filter="url(#pillarGlow)"/>
+</svg>

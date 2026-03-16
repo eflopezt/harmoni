@@ -42,12 +42,30 @@
         <a href="{% url 'home' %}" class="sidebar-brand-link d-flex align-items-center text-decoration-none">
             <div class="sidebar-logo">
                 <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- H left stem -->
-                    <rect x="7" y="6" width="6" height="28" rx="2.5" fill="#ffffff"/>
-                    <!-- H right stem -->
-                    <rect x="27" y="6" width="6" height="28" rx="2.5" fill="#ffffff"/>
-                    <!-- Cyan accent arc (smile) -->
-                    <path d="M 7 20 Q 20 46 33 20" stroke="#5eead4" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+                  <defs>
+                    <radialGradient id="sb-bg" cx="50%" cy="45%" r="65%">
+                      <stop offset="0%" stop-color="#1b4a43"/>
+                      <stop offset="100%" stop-color="#081a17"/>
+                    </radialGradient>
+                    <linearGradient id="sb-arc" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%"  stop-color="#0d9488"/>
+                      <stop offset="50%" stop-color="#5eead4"/>
+                      <stop offset="100%" stop-color="#0d9488"/>
+                    </linearGradient>
+                    <filter id="sb-glow" x="-80%" y="-200%" width="260%" height="500%">
+                      <feGaussianBlur stdDeviation="1" result="b"/>
+                      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                  </defs>
+                  <rect width="40" height="40" fill="url(#sb-bg)" rx="8"/>
+                  <!-- Arco sonrisa (detrás de pilares) -->
+                  <path d="M 5,20 Q 20,30 35,20"
+                        stroke="url(#sb-arc)" stroke-width="2.8" fill="none"
+                        stroke-linecap="round" filter="url(#sb-glow)"/>
+                  <!-- Pilar izquierdo -->
+                  <rect x="7"  y="5" width="7" height="28" rx="3.5" fill="white"/>
+                  <!-- Pilar derecho -->
+                  <rect x="26" y="5" width="7" height="28" rx="3.5" fill="white"/>
                 </svg>
             </div>
             <div class="ms-2">
