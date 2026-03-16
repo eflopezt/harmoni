@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 312" width="820" height="312">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="fbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#0d2b27"/>
+      <stop offset="60%"  stop-color="#134e4a"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+
+    <!-- Dot grid pattern -->
+    <pattern id="dotGrid" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="15" cy="15" r="1.5" fill="white" opacity="0.05"/>
+    </pattern>
+
+    <!-- Glow filter for H mark -->
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="820" height="312" fill="url(#fbGrad)"/>
+
+  <!-- Dot grid overlay -->
+  <rect width="820" height="312" fill="url(#dotGrid)"/>
+
+  <!-- Large decorative circle top-right -->
+  <circle cx="730" cy="60" r="100" fill="none" stroke="#5eead4" stroke-width="1.5" opacity="0.15"/>
+  <circle cx="730" cy="60" r="70" fill="none" stroke="#5eead4" stroke-width="1" opacity="0.08"/>
+
+  <!-- Small decorative circles -->
+  <circle cx="580" cy="270" r="40" fill="none" stroke="#5eead4" stroke-width="1" opacity="0.08"/>
+  <circle cx="400" cy="30"  r="25" fill="none" stroke="#5eead4" stroke-width="1" opacity="0.08"/>
+  <circle cx="780" cy="200" r="55" fill="none" stroke="#5eead4" stroke-width="1" opacity="0.06"/>
+  <circle cx="20"  cy="250" r="30" fill="none" stroke="#5eead4" stroke-width="1" opacity="0.06"/>
+
+  <!-- ============ H LOGO MARK (80×80, origin at x=60, y=116) ============ -->
+  <g transform="translate(60, 116)">
+    <!-- Left stem -->
+    <rect x="0"  y="10" width="12" height="60" rx="2" fill="white"/>
+    <!-- Right stem -->
+    <rect x="28" y="10" width="12" height="60" rx="2" fill="white"/>
+    <!-- Crossbar -->
+    <rect x="0"  y="28" width="40" height="12" rx="2" fill="white"/>
+    <!-- Cyan arc through crossbar -->
+    <path d="M 10,34 Q 20,44 30,34" stroke="#5eead4" stroke-width="5" fill="none" stroke-linecap="round" filter="url(#softGlow)"/>
+  </g>
+
+  <!-- "Harmoni" main text -->
+  <text x="170" y="140"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-weight="900"
+        font-size="64"
+        fill="white"
+        letter-spacing="-1">Harmoni</text>
+
+  <!-- Sub-tagline (cyan) -->
+  <text x="170" y="178"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-weight="600"
+        font-size="22"
+        fill="#5eead4">ERP de RRHH &amp; Planillas</text>
+
+  <!-- Italic tagline -->
+  <text x="170" y="220"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-style="italic"
+        font-size="18"
+        fill="rgba(255,255,255,0.75)">Gestión de personas, en armonía</text>
+
+  <!-- ============ FEATURE PILLS (bottom right) ============ -->
+  <!-- "IA Integrada" pill -->
+  <rect x="440" y="258" width="112" height="30" rx="15" fill="#0f766e"/>
+  <text x="496" y="278"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="14"
+        font-weight="600"
+        fill="white"
+        text-anchor="middle">IA Integrada</text>
+
+  <!-- "Nóminas" pill -->
+  <rect x="562" y="258" width="90" height="30" rx="15" fill="#0f766e"/>
+  <text x="607" y="278"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="14"
+        font-weight="600"
+        fill="white"
+        text-anchor="middle">Nóminas</text>
+
+  <!-- "Asistencia" pill -->
+  <rect x="662" y="258" width="104" height="30" rx="15" fill="#0f766e"/>
+  <text x="714" y="278"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="14"
+        font-weight="600"
+        fill="white"
+        text-anchor="middle">Asistencia</text>
+
+  <!-- Bottom cyan accent bar -->
+  <rect x="0" y="302" width="820" height="10" fill="#5eead4"/>
+</svg>

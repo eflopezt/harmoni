@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d2b27;stop-opacity:1" />
+      <stop offset="55%" style="stop-color:#1a5c56;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f766e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="ctaGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#134e4a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5eead4;stop-opacity:0.6" />
+    </linearGradient>
+    <pattern id="dotGrid" x="0" y="0" width="36" height="36" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.8" fill="white" opacity="0.025"/>
+    </pattern>
+    <!-- Glow filter for H logo -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bgGrad)"/>
+  <!-- Dot grid -->
+  <rect width="1080" height="1920" fill="url(#dotGrid)"/>
+
+  <!-- Decorative large circles background -->
+  <circle cx="1000" cy="200" r="400" stroke="#5eead4" stroke-width="2" opacity="0.05" fill="none"/>
+  <circle cx="80" cy="1750" r="350" stroke="#5eead4" stroke-width="2" opacity="0.05" fill="none"/>
+  <circle cx="540" cy="960" r="520" stroke="#5eead4" stroke-width="1" opacity="0.03" fill="none"/>
+
+  <!-- ===== TOP SECTION: LOGO ===== -->
+  <!-- H Logomark 180x180, centered at x=540, top at y=200 -->
+  <!-- Logo group centered: left stem at x=450, right stem at x=614 -->
+  <!-- Left stem: 26x130 at 450,210 -->
+  <rect x="450" y="210" width="26" height="130" fill="white" filter="url(#glow)"/>
+  <!-- Right stem: 26x130 at 604,210 -->
+  <rect x="604" y="210" width="26" height="130" fill="white" filter="url(#glow)"/>
+  <!-- Crossbar: 180x26 at 450,265 -->
+  <rect x="450" y="265" width="180" height="26" fill="white" filter="url(#glow)"/>
+  <!-- Cyan arc through crossbar (centered) -->
+  <path d="M 462,278 Q 540,320 618,278" stroke="#5eead4" stroke-width="14" fill="none" stroke-linecap="round" filter="url(#glow)"/>
+
+  <!-- "Harmoni" bold 100px centered -->
+  <text x="540" y="500" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="100" font-weight="900" fill="white" text-anchor="middle">Harmoni</text>
+
+  <!-- Subtitle cyan -->
+  <text x="540" y="568" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="30" font-weight="500" fill="#5eead4" text-anchor="middle" letter-spacing="2">ERP de RRHH &amp; Planillas</text>
+
+  <!-- Horizontal cyan line 300px centered at y=600 -->
+  <line x1="390" y1="600" x2="690" y2="600" stroke="#5eead4" stroke-width="2.5" opacity="0.7"/>
+
+  <!-- ===== MIDDLE SECTION: FEATURES ===== -->
+  <!-- "Módulos que tu empresa necesita:" heading -->
+  <text x="540" y="690" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="28" fill="white" text-anchor="middle" opacity="0.9">Módulos que tu empresa necesita:</text>
+
+  <!-- Feature items: y start=760, spacing=130 -->
+  <!-- Item 1: Nóminas & Planillas at y=780 -->
+  <circle cx="180" cy="760" r="22" fill="#5eead4" opacity="0.85"/>
+  <text x="180" cy="760" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="18" fill="#0d2b27" font-weight="700" text-anchor="middle" dominant-baseline="middle" y="760">✓</text>
+  <text x="220" y="750" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="26" font-weight="700" fill="white">💼 Nóminas &amp; Planillas</text>
+  <text x="220" y="782" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="19" fill="#5eead4" opacity="0.85">Cálculo automático con leyes peruanas</text>
+
+  <!-- Separator line -->
+  <line x1="160" y1="810" x2="920" y2="810" stroke="white" stroke-width="0.5" opacity="0.1"/>
+
+  <!-- Item 2: Asistencia con IA at y=890 -->
+  <circle cx="180" cy="890" r="22" fill="#5eead4" opacity="0.85"/>
+  <text x="180" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="18" fill="#0d2b27" font-weight="700" text-anchor="middle" dominant-baseline="middle" y="890">✓</text>
+  <text x="220" y="880" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="26" font-weight="700" fill="white">🤖 Asistencia con IA</text>
+  <text x="220" y="912" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="19" fill="#5eead4" opacity="0.85">Control biométrico + análisis en tiempo real</text>
+
+  <!-- Separator line -->
+  <line x1="160" y1="940" x2="920" y2="940" stroke="white" stroke-width="0.5" opacity="0.1"/>
+
+  <!-- Item 3: Portal Colaborador at y=1020 -->
+  <circle cx="180" cy="1020" r="22" fill="#5eead4" opacity="0.85"/>
+  <text x="180" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="18" fill="#0d2b27" font-weight="700" text-anchor="middle" dominant-baseline="middle" y="1020">✓</text>
+  <text x="220" y="1010" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="26" font-weight="700" fill="white">📱 Portal Colaborador</text>
+  <text x="220" y="1042" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="19" fill="#5eead4" opacity="0.85">Boletas, vacaciones y solicitudes online</text>
+
+  <!-- Separator line -->
+  <line x1="160" y1="1070" x2="920" y2="1070" stroke="white" stroke-width="0.5" opacity="0.1"/>
+
+  <!-- Item 4: Analytics at y=1150 -->
+  <circle cx="180" cy="1150" r="22" fill="#5eead4" opacity="0.85"/>
+  <text x="180" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="18" fill="#0d2b27" font-weight="700" text-anchor="middle" dominant-baseline="middle" y="1150">✓</text>
+  <text x="220" y="1140" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="26" font-weight="700" fill="white">📊 Analytics</text>
+  <text x="220" y="1172" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="19" fill="#5eead4" opacity="0.85">KPIs y alertas RRHH en tu dashboard</text>
+
+  <!-- Separator line -->
+  <line x1="160" y1="1200" x2="920" y2="1200" stroke="white" stroke-width="0.5" opacity="0.1"/>
+
+  <!-- Item 5: Gestión Documental at y=1280 -->
+  <circle cx="180" cy="1280" r="22" fill="#5eead4" opacity="0.85"/>
+  <text x="180" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="18" fill="#0d2b27" font-weight="700" text-anchor="middle" dominant-baseline="middle" y="1280">✓</text>
+  <text x="220" y="1270" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="26" font-weight="700" fill="white">📁 Gestión Documental</text>
+  <text x="220" y="1302" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="19" fill="#5eead4" opacity="0.85">Contratos, legajos y firma digital</text>
+
+  <!-- Horizontal divider before CTA -->
+  <line x1="140" y1="1370" x2="940" y2="1370" stroke="#5eead4" stroke-width="1" opacity="0.3"/>
+
+  <!-- ===== BOTTOM CTA ===== -->
+  <!-- Decorative accent circles around CTA -->
+  <circle cx="140" cy="1620" r="80" fill="#5eead4" opacity="0.04"/>
+  <circle cx="940" cy="1580" r="60" fill="#5eead4" opacity="0.04"/>
+
+  <!-- CTA rect 800x160 rx=20 centered: x=140 -->
+  <rect x="140" y="1600" width="800" height="160" rx="20" fill="url(#ctaGrad)" stroke="#5eead4" stroke-width="2" opacity="0.9"/>
+
+  <!-- Subtle inner highlight on CTA box -->
+  <rect x="140" y="1600" width="800" height="3" rx="2" fill="#5eead4" opacity="0.4"/>
+
+  <!-- "¡Empieza gratis hoy!" -->
+  <text x="540" y="1666" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="38" font-weight="700" fill="white" text-anchor="middle">¡Empieza gratis hoy!</text>
+  <!-- "harmoni.pe" -->
+  <text x="540" y="1722" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="28" font-weight="600" fill="white" text-anchor="middle">harmoni.pe</text>
+
+  <!-- "@harmoni_erp" -->
+  <text x="540" y="1850" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="20" fill="white" text-anchor="middle" opacity="0.7">@harmoni_erp</text>
+
+  <!-- Bottom thin cyan bar -->
+  <rect x="0" y="1893" width="1080" height="27" fill="rgba(0,0,0,0.25)"/>
+  <text x="540" y="1912" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" opacity="0.55">Sistema ERP  ·  Lima, Perú  ·  harmoni.pe</text>
+</svg>

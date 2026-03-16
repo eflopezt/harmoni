@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1584" height="396" viewBox="0 0 1584 396">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0d2b27;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#134e4a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f766e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="ctaGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#5eead4;stop-opacity:0.25" />
+      <stop offset="100%" style="stop-color:#5eead4;stop-opacity:0.1" />
+    </linearGradient>
+    <pattern id="dotGrid" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.5" fill="white" opacity="0.03"/>
+    </pattern>
+  </defs>
+
+  <!-- Background gradient -->
+  <rect width="1584" height="396" fill="url(#bgGrad)"/>
+  <!-- Dot grid overlay -->
+  <rect width="1584" height="396" fill="url(#dotGrid)"/>
+
+  <!-- Diagonal decorative polygon top-right -->
+  <polygon points="1584,0 1584,220 1300,0" fill="#5eead4" opacity="0.04"/>
+
+  <!-- Large decorative circles top-right -->
+  <circle cx="1400" cy="200" r="280" stroke="#5eead4" stroke-width="2" opacity="0.08" fill="none"/>
+  <circle cx="1400" cy="200" r="180" stroke="#5eead4" stroke-width="2" opacity="0.06" fill="none"/>
+  <!-- Bottom-left decorative circle -->
+  <circle cx="180" cy="380" r="160" stroke="#5eead4" stroke-width="2" opacity="0.06" fill="none"/>
+
+  <!-- ===== LEFT LOGO AREA ===== -->
+  <!-- H Logomark 88x88 at x=60 y=154 -->
+  <!-- Left stem: 12x66 at 60,164 -->
+  <rect x="60" y="164" width="12" height="66" fill="white"/>
+  <!-- Right stem: 12x66 at 96,164 -->
+  <rect x="136" y="164" width="12" height="66" fill="white"/>
+  <!-- Crossbar: 48x12 at 60,197 -->
+  <rect x="60" y="197" width="88" height="12" fill="white"/>
+  <!-- Cyan arc through crossbar -->
+  <path d="M 66,203 Q 104,228 142,203" stroke="#5eead4" stroke-width="7" fill="none" stroke-linecap="round"/>
+
+  <!-- "Harmoni" 64px bold -->
+  <text x="168" y="222" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="64" font-weight="900" fill="white">Harmoni</text>
+  <!-- Subtitle cyan -->
+  <text x="168" y="256" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="20" font-weight="500" fill="#5eead4" letter-spacing="1">ERP de RRHH &amp; Planillas</text>
+
+  <!-- ===== VERTICAL DIVIDER ===== -->
+  <line x1="420" y1="50" x2="420" y2="346" stroke="#5eead4" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- ===== CENTER CONTENT ===== -->
+  <!-- Tagline italic -->
+  <text x="450" y="172" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="28" font-style="italic" fill="rgba(255,255,255,0.9)">Gestión de personas, en armonía</text>
+
+  <!-- Feature tags stacked at y=220, spacing 48px -->
+  <text x="450" y="224" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="17" fill="white" opacity="0.92">✓ Nóminas automatizadas con compliance peruano</text>
+  <text x="450" y="272" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="17" fill="white" opacity="0.92">✓ IA Integrada para RRHH en tiempo real</text>
+  <text x="450" y="320" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="17" fill="white" opacity="0.92">✓ Portal del colaborador &amp; documentos digitales</text>
+
+  <!-- ===== RIGHT CTA AREA ===== -->
+  <!-- CTA rounded rect 300x80 rx=12 at x=1150 y=148 -->
+  <rect x="1150" y="148" width="320" height="90" rx="12" fill="rgba(94,234,212,0.15)" stroke="#5eead4" stroke-width="1.5"/>
+  <!-- "Para empresas peruanas" centered -->
+  <text x="1310" y="186" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="17" fill="white" text-anchor="middle" opacity="0.9">Para empresas peruanas</text>
+  <!-- "harmoni.pe" bold cyan + arrow -->
+  <text x="1300" y="220" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="26" font-weight="700" fill="#5eead4" text-anchor="middle">harmoni.pe</text>
+  <text x="1438" y="220" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="22" fill="#5eead4" opacity="0.85">→</text>
+
+  <!-- ===== BOTTOM BAR ===== -->
+  <rect y="370" width="1584" height="26" fill="rgba(0,0,0,0.2)"/>
+  <text x="792" y="387" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="13" fill="white" opacity="0.6" text-anchor="middle">Sistema ERP  ·  Lima, Perú  ·  harmoni.pe</text>
+</svg>

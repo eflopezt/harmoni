@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="150" viewBox="0 0 600 150">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0d2b27;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#134e4a;stop-opacity:1" />
+    </linearGradient>
+    <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="white" opacity="0.04"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="150" fill="url(#bgGrad)"/>
+  <!-- Dot pattern overlay -->
+  <rect width="600" height="150" fill="url(#dots)"/>
+
+  <!-- H Logomark at x=24 y=47 (56x56 total) -->
+  <!-- Left stem: 8x42 at 24,57 -->
+  <rect x="24" y="57" width="8" height="42" fill="white"/>
+  <!-- Right stem: 8x42 at 52,57 -->
+  <rect x="52" y="57" width="8" height="42" fill="white"/>
+  <!-- Crossbar: 36x8 at 24,76 -->
+  <rect x="24" y="76" width="36" height="8" fill="white"/>
+  <!-- Cyan arc through crossbar -->
+  <path d="M 28,80 Q 38,90 52,80" stroke="#5eead4" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- "Harmoni" text -->
+  <text x="88" y="85" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="28" font-weight="700" fill="white">Harmoni</text>
+  <!-- "ERP" subtext -->
+  <text x="88" y="104" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="13" font-weight="500" fill="#5eead4" letter-spacing="2">ERP</text>
+
+  <!-- Vertical separator -->
+  <line x1="210" y1="25" x2="210" y2="125" stroke="#5eead4" opacity="0.3" stroke-width="1"/>
+
+  <!-- RIGHT SECTION -->
+  <!-- Tagline -->
+  <text x="230" y="60" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="15" fill="white" opacity="0.9">RRHH &amp; Planillas · Para empresas peruanas</text>
+
+  <!-- Feature tag pills at y=80 (pill centers at y=85 approx) -->
+  <!-- "Nóminas" pill -->
+  <rect x="230" y="72" width="72" height="22" rx="11" fill="#0f766e"/>
+  <text x="266" y="87" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Nóminas</text>
+
+  <!-- "Asistencia" pill -->
+  <rect x="310" y="72" width="78" height="22" rx="11" fill="#0f766e"/>
+  <text x="349" y="87" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Asistencia</text>
+
+  <!-- "Portal IA" pill -->
+  <rect x="396" y="72" width="68" height="22" rx="11" fill="#0f766e"/>
+  <text x="430" y="87" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Portal IA</text>
+
+  <!-- Website link -->
+  <text x="230" y="120" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="14" fill="#5eead4" text-decoration="underline">www.harmoni.pe</text>
+
+  <!-- Right edge cyan bar -->
+  <rect x="596" y="0" width="4" height="150" fill="#5eead4"/>
+</svg>

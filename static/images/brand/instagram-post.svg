@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <defs>
+    <!-- Background radial gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#1a4a44"/>
+      <stop offset="100%" stop-color="#0d2b27"/>
+    </radialGradient>
+
+    <!-- Bottom bar gradient -->
+    <linearGradient id="bottomBarGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0a1f1c"/>
+      <stop offset="100%" stop-color="#0d2b27"/>
+    </linearGradient>
+
+    <!-- Card gradient -->
+    <linearGradient id="cardGrad1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a4a44"/>
+      <stop offset="100%" stop-color="#134e4a"/>
+    </linearGradient>
+
+    <!-- White dots pattern -->
+    <pattern id="dotPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="1.5" fill="white" opacity="0.04"/>
+    </pattern>
+
+    <!-- Logo clip -->
+    <clipPath id="logoClip">
+      <rect x="420" y="200" width="200" height="200"/>
+    </clipPath>
+
+    <!-- CTA button gradient -->
+    <linearGradient id="ctaGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#5eead4" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ========== BACKGROUND ========== -->
+  <rect width="1080" height="1080" fill="url(#bgGrad)"/>
+  <rect width="1080" height="1080" fill="url(#dotPattern)"/>
+
+  <!-- ========== DECORATIVE RINGS (top-right) ========== -->
+  <circle cx="950" cy="130" r="280" stroke="#5eead4" stroke-width="1.5" opacity="0.06" fill="none"/>
+  <circle cx="950" cy="130" r="200" stroke="#5eead4" stroke-width="2" opacity="0.12" fill="none"/>
+  <circle cx="950" cy="130" r="150" stroke="#5eead4" stroke-width="1" opacity="0.08" fill="none"/>
+  <circle cx="950" cy="130" r="90"  stroke="#5eead4" stroke-width="1" opacity="0.05" fill="none"/>
+
+  <!-- Subtle ring bottom-left -->
+  <circle cx="80" cy="950" r="160" stroke="#5eead4" stroke-width="1.5" opacity="0.07" fill="none"/>
+  <circle cx="80" cy="950" r="100" stroke="#5eead4" stroke-width="1"   opacity="0.04" fill="none"/>
+
+  <!-- ========== H LOGOMARK (centered x=540) ========== -->
+  <!-- Outer soft glow circle -->
+  <circle cx="540" cy="310" r="90" fill="#5eead4" opacity="0.06"/>
+  <circle cx="540" cy="310" r="72" fill="#0f766e" opacity="0.25"/>
+
+  <!-- Left vertical bar of H -->
+  <rect x="484" y="258" width="22" height="104" rx="4" fill="white"/>
+  <!-- Right vertical bar of H -->
+  <rect x="574" y="258" width="22" height="104" rx="4" fill="white"/>
+  <!-- Crossbar of H -->
+  <rect x="484" y="300" width="112" height="20" rx="4" fill="white"/>
+
+  <!-- Cyan arc through crossbar -->
+  <path d="M 476 310 Q 540 270 604 310" stroke="#5eead4" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.95"/>
+
+  <!-- ========== HARMONI TEXT ========== -->
+  <text x="540" y="430"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="88"
+        font-weight="900"
+        fill="white"
+        text-anchor="middle"
+        letter-spacing="-2">Harmoni</text>
+
+  <!-- Cyan decorative underline -->
+  <rect x="390" y="447" width="300" height="4" fill="#5eead4" rx="2"/>
+
+  <!-- ERP tagline -->
+  <text x="540" y="494"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="24"
+        font-weight="600"
+        fill="#5eead4"
+        text-anchor="middle"
+        letter-spacing="3">ERP · RRHH · Planillas</text>
+
+  <!-- Thin horizontal divider -->
+  <line x1="216" y1="532" x2="864" y2="532" stroke="white" stroke-width="1" opacity="0.15"/>
+
+  <!-- Tagline italic -->
+  <text x="540" y="578"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="26"
+        font-style="italic"
+        font-weight="400"
+        fill="rgba(255,255,255,0.85)"
+        text-anchor="middle">Gestión de personas, en armonía</text>
+
+  <!-- ========== FEATURE CARDS (y=620) ========== -->
+
+  <!-- Card 1: Nóminas -->
+  <rect x="55" y="625" width="300" height="130" rx="14" fill="#134e4a" opacity="0.9"/>
+  <rect x="55" y="625" width="300" height="130" rx="14" fill="none" stroke="#5eead4" stroke-width="1" opacity="0.2"/>
+  <!-- Icon circle -->
+  <circle cx="110" cy="672" r="26" fill="#0f766e" opacity="0.6"/>
+  <text x="110" y="679" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" fill="white">💰</text>
+  <!-- Card text -->
+  <text x="148" y="665"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="22" font-weight="700" fill="white">Nóminas</text>
+  <text x="148" y="690"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="16" font-weight="500" fill="#5eead4">Automatizadas</text>
+  <text x="148" y="712"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="13" fill="rgba(255,255,255,0.6)">AFP · ONP · Gratificaciones</text>
+
+  <!-- Card 2: Asistencia -->
+  <rect x="390" y="625" width="300" height="130" rx="14" fill="#134e4a" opacity="0.9"/>
+  <rect x="390" y="625" width="300" height="130" rx="14" fill="none" stroke="#5eead4" stroke-width="1" opacity="0.2"/>
+  <circle cx="445" cy="672" r="26" fill="#0f766e" opacity="0.6"/>
+  <text x="445" y="679" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" fill="white">🤖</text>
+  <text x="483" y="665"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="22" font-weight="700" fill="white">Asistencia</text>
+  <text x="483" y="690"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="16" font-weight="500" fill="#5eead4">con IA</text>
+  <text x="483" y="712"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="13" fill="rgba(255,255,255,0.6)">Biométrico · Tareos · Papeletas</text>
+
+  <!-- Card 3: Portal -->
+  <rect x="725" y="625" width="300" height="130" rx="14" fill="#134e4a" opacity="0.9"/>
+  <rect x="725" y="625" width="300" height="130" rx="14" fill="none" stroke="#5eead4" stroke-width="1" opacity="0.2"/>
+  <circle cx="780" cy="672" r="26" fill="#0f766e" opacity="0.6"/>
+  <text x="780" y="679" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" fill="white">🏠</text>
+  <text x="818" y="665"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="22" font-weight="700" fill="white">Portal</text>
+  <text x="818" y="690"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="16" font-weight="500" fill="#5eead4">Colaborador</text>
+  <text x="818" y="712"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="13" fill="rgba(255,255,255,0.6)">Intranet · Documentos · Permisos</text>
+
+  <!-- ========== STATS ROW (y=790) ========== -->
+  <text x="180" y="835"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="40" font-weight="900" fill="#5eead4" text-anchor="middle">22+</text>
+  <text x="180" y="862"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="15" fill="rgba(255,255,255,0.6)" text-anchor="middle">Módulos</text>
+
+  <line x1="290" y1="810" x2="290" y2="870" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+
+  <text x="540" y="835"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="40" font-weight="900" fill="#5eead4" text-anchor="middle">100%</text>
+  <text x="540" y="862"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="15" fill="rgba(255,255,255,0.6)" text-anchor="middle">Normativa Peruana</text>
+
+  <line x1="790" y1="810" x2="790" y2="870" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+
+  <text x="900" y="835"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="40" font-weight="900" fill="#5eead4" text-anchor="middle">IA</text>
+  <text x="900" y="862"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="15" fill="rgba(255,255,255,0.6)" text-anchor="middle">Multi-proveedor</text>
+
+  <!-- Separator line before bottom bar -->
+  <line x1="0" y1="910" x2="1080" y2="910" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+  <!-- ========== CTA BUTTON (y=920) ========== -->
+  <rect x="290" y="922" width="500" height="58" rx="29" fill="url(#ctaGrad)"/>
+  <rect x="290" y="922" width="500" height="58" rx="29" fill="none" stroke="#5eead4" stroke-width="1.5" opacity="0.6"/>
+  <text x="540" y="958"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="20" font-weight="700" fill="white" text-anchor="middle"
+        letter-spacing="1">Solicita tu Demo Gratis</text>
+
+  <!-- ========== BOTTOM BAR ========== -->
+  <rect x="0" y="1000" width="1080" height="80" fill="#0a1f1c"/>
+  <line x1="0" y1="1000" x2="1080" y2="1000" stroke="#5eead4" stroke-width="1.5" opacity="0.3"/>
+
+  <!-- harmoni.pe -->
+  <text x="340" y="1047"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="18" font-weight="600" fill="white" text-anchor="end">harmoni.pe</text>
+
+  <!-- Cyan dot separator -->
+  <circle cx="360" cy="1042" r="4" fill="#5eead4"/>
+
+  <!-- @harmoni_erp -->
+  <text x="380" y="1047"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="18" font-weight="500" fill="#5eead4">@harmoni_erp</text>
+
+  <!-- Right side: Made in Peru -->
+  <text x="1020" y="1047"
+        font-family="'Inter', 'Segoe UI', Arial, sans-serif"
+        font-size="14" fill="rgba(255,255,255,0.4)" text-anchor="end">Hecho en Perú 🇵🇪</text>
+</svg>
