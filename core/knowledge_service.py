@@ -8,14 +8,9 @@ FASE A (siempre disponible): búsqueda por keywords con re-ranking.
 
 FASE B (activa cuando hay API key + embeddings pre-calculados):
   - text-embedding-3-small de OpenAI (1536 dims, $0.02/M tokens).
-  - Cosine similarity con numpy para ranking semántico.
-  - Embeddings almacenados en KnowledgeArticle.embedding_json (JSON).
+  - PostgreSQL + pgvector: CosineDistance en SQL con índice HNSW → O(log n).
+  - SQLite fallback: cosine similarity con numpy en Python → O(n).
   - Activar: python manage.py index_knowledge_embeddings
-
-Upgrade futuro → pgvector:
-  - Reemplazar embedding_json por VectorField(dimensions=1536).
-  - Búsqueda: KnowledgeArticle.objects.order_by(CosineDistance('embedding', vec))[:k]
-  - Todo lo demás (get_knowledge_context, inyección en prompt) queda igual.
 
 Uso:
     from core.knowledge_service import get_knowledge_context
@@ -31,6 +26,13 @@ from functools import lru_cache
 from typing import Optional
 
 logger = logging.getLogger('harmoni.knowledge')
+
+# ─── pgvector availability ────────────────────────────────────────────────────
+try:
+    from pgvector.django import CosineDistance  # noqa: PLC0415
+    HAS_PGVECTOR = True
+except ImportError:
+    HAS_PGVECTOR = False
 
 # ─── Configuración ─────────────────────────────────────────────────────────────
 EMBEDDING_MODEL   = 'text-embedding-3-small'
@@ -132,6 +134,14 @@ def _is_phase_b_ready() -> bool:
         return False
     try:
         from core.models import KnowledgeArticle  # noqa: PLC0415
+        # Check pgvector VectorField first, then fall back to embedding_json
+        if HAS_PGVECTOR:
+            has_embeddings = KnowledgeArticle.objects.filter(
+                activo=True, embedding__isnull=False,
+            ).exists()
+            if has_embeddings:
+                return bool(_get_openai_api_key())
+        # Fallback: check embedding_json (SQLite dev or pre-migration)
         has_embeddings = KnowledgeArticle.objects.filter(
             activo=True,
         ).exclude(embedding_json__isnull=True).exclude(embedding_json='').exists()
@@ -142,12 +152,86 @@ def _is_phase_b_ready() -> bool:
         return False
 
 
+def _search_pgvector(query_vec: list[float], limit: int) -> list[dict]:
+    """
+    Búsqueda semántica via pgvector CosineDistance — single SQL query con HNSW index.
+    CosineDistance retorna distancia coseno en [0, 2]; similitud = 1 - distancia.
+    """
+    from core.models import KnowledgeArticle  # noqa: PLC0415
+
+    max_distance = 1.0 - SIMILARITY_CUTOFF
+    articles = (
+        KnowledgeArticle.objects
+        .filter(activo=True, embedding__isnull=False)
+        .annotate(cosine_dist=CosineDistance('embedding', query_vec))
+        .filter(cosine_dist__lte=max_distance)
+        .order_by('cosine_dist')
+        [:limit]
+    )
+
+    result = []
+    for art in articles:
+        sim = 1.0 - (art.cosine_dist or 0.0)
+        contenido = art.contenido.strip()
+        if len(contenido) > 800:
+            contenido = contenido[:800] + '…'
+        result.append({
+            'titulo':    art.titulo,
+            'categoria': art.get_categoria_display(),
+            'contenido': contenido,
+            '_sim':      round(sim, 3),
+        })
+    return result
+
+
+def _search_python_fallback(query_vec: list[float], limit: int) -> list[dict]:
+    """
+    Fallback semántico Python-level: carga todos los embeddings de embedding_json
+    y calcula cosine similarity en memoria. O(n) — para SQLite dev o pre-migration.
+    """
+    from core.models import KnowledgeArticle  # noqa: PLC0415
+
+    articles = list(
+        KnowledgeArticle.objects
+        .filter(activo=True)
+        .exclude(embedding_json__isnull=True)
+        .exclude(embedding_json='')
+    )
+    if not articles:
+        return []
+
+    scored: list[tuple[float, object]] = []
+    for art in articles:
+        try:
+            art_vec = json.loads(art.embedding_json)
+            sim = _cosine_similarity(query_vec, art_vec)
+            scored.append((sim, art))
+        except Exception:
+            continue
+
+    scored.sort(key=lambda x: -x[0])
+    result = []
+    for sim, art in scored[:limit]:
+        if sim < SIMILARITY_CUTOFF:
+            break
+        contenido = art.contenido.strip()
+        if len(contenido) > 800:
+            contenido = contenido[:800] + '…'
+        result.append({
+            'titulo':    art.titulo,
+            'categoria': art.get_categoria_display(),
+            'contenido': contenido,
+            '_sim':      round(sim, 3),
+        })
+    return result
+
+
 def search_knowledge_semantic(query: str, limit: int = 5) -> list[dict]:
     """
     FASE B: Búsqueda semántica por similitud de embeddings.
 
-    Genera embedding de la query y compara contra los embeddings pre-calculados
-    de los artículos activos. Retorna los top-N por cosine similarity.
+    - PostgreSQL + pgvector: CosineDistance en SQL con índice HNSW → O(log n).
+    - SQLite / sin pgvector: cosine similarity en Python → O(n) fallback.
 
     Returns:
         Lista de dicts: {titulo, categoria, contenido} ordenados por similitud.
@@ -161,47 +245,27 @@ def search_knowledge_semantic(query: str, limit: int = 5) -> list[dict]:
     if not query_vec:
         return []
 
-    try:
-        from core.models import KnowledgeArticle  # noqa: PLC0415
-        articles = list(
-            KnowledgeArticle.objects
-            .filter(activo=True)
-            .exclude(embedding_json__isnull=True)
-            .exclude(embedding_json='')
-        )
-    except Exception as exc:
-        logger.warning('knowledge_service.search_knowledge_semantic DB error: %s', exc)
-        return []
-
-    if not articles:
-        return []
-
-    scored: list[tuple[float, object]] = []
-    for art in articles:
+    # Try pgvector SQL path first (PostgreSQL production)
+    if HAS_PGVECTOR:
         try:
-            art_vec = json.loads(art.embedding_json)
-            sim = _cosine_similarity(query_vec, art_vec)
-            scored.append((sim, art))
-        except Exception:
-            continue
+            from core.models import KnowledgeArticle  # noqa: PLC0415
+            has_vec = KnowledgeArticle.objects.filter(
+                activo=True, embedding__isnull=False,
+            ).exists()
+            if has_vec:
+                results = _search_pgvector(query_vec, limit)
+                if results:
+                    logger.debug('knowledge_service: pgvector search returned %d results.', len(results))
+                    return results
+        except Exception as exc:
+            logger.warning('knowledge_service: pgvector search failed, falling back to Python. Error: %s', exc)
 
-    # Ordenar por similitud desc, filtrar por umbral
-    scored.sort(key=lambda x: -x[0])
-    result = []
-    for sim, art in scored[:limit]:
-        if sim < SIMILARITY_CUTOFF:
-            break
-        contenido = art.contenido.strip()
-        if len(contenido) > 800:
-            contenido = contenido[:800] + '…'
-        result.append({
-            'titulo':    art.titulo,
-            'categoria': art.get_categoria_display(),
-            'contenido': contenido,
-            '_sim':      round(sim, 3),   # debug info, no se incluye en el prompt
-        })
-
-    return result
+    # Fallback: Python-level cosine similarity (SQLite dev or no pgvector)
+    try:
+        return _search_python_fallback(query_vec, limit)
+    except Exception as exc:
+        logger.warning('knowledge_service.search_knowledge_semantic fallback error: %s', exc)
+        return []
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -276,6 +340,7 @@ def search_knowledge_keywords(query: str, limit: int = 5) -> list[dict]:
             'titulo':    art.titulo,
             'categoria': art.get_categoria_display(),
             'contenido': contenido,
+            '_kw_score': _relevance_score(art, tokens),  # debug: keyword relevance score
         })
 
     return result
@@ -309,12 +374,19 @@ def search_knowledge(query: str, limit: int = 5) -> list[dict]:
     return search_knowledge_keywords(query, limit=limit)
 
 
-def get_knowledge_context(query: str, limit: int = 4) -> str:
+def get_knowledge_context(query: str, limit: int = 4, min_kw_score: int = 2) -> str:
     """
     Retorna bloque de conocimiento relevante para inyectar en el system prompt.
 
     Framing intencional: el modelo integra esto como expertise propio,
     no como fuente externa a citar textualmente.
+
+    Args:
+        query: Pregunta del usuario.
+        limit: Máximo de artículos a retornar.
+        min_kw_score: Puntuación mínima de relevancia para artículos por keywords
+            (Phase A). Artículos con score menor se descartan para evitar inyectar
+            contenido irrelevante. No aplica a Phase B (tiene SIMILARITY_CUTOFF).
 
     Returns:
         String formateado listo para concatenar al system prompt.
@@ -324,15 +396,43 @@ def get_knowledge_context(query: str, limit: int = 4) -> str:
     if not articles:
         return ''
 
+    # Filtrar artículos de baja relevancia (Phase A keyword results)
+    filtered = []
+    for art in articles:
+        kw_score = art.get('_kw_score')
+        sim = art.get('_sim')
+        if sim is not None:
+            # Phase B result — already filtered by SIMILARITY_CUTOFF
+            logger.debug('RAG article "%s" sim=%.3f', art['titulo'], sim)
+            filtered.append(art)
+        elif kw_score is not None and kw_score < min_kw_score:
+            logger.debug(
+                'RAG article "%s" dropped (kw_score=%d < min=%d)',
+                art['titulo'], kw_score, min_kw_score,
+            )
+        else:
+            logger.debug(
+                'RAG article "%s" kw_score=%s',
+                art['titulo'], kw_score,
+            )
+            filtered.append(art)
+
+    if not filtered:
+        return ''
+
     lines = [
         'Normativa y políticas aplicables (aplícalas como expertise propio; '
         'cita solo el decreto o artículo cuando corresponda, no menciones '
         '"base de conocimiento" ni reproduzcas párrafos enteros):'
     ]
-    for art in articles:
+    for art in filtered:
         lines.append(f'\n• {art["titulo"]} ({art["categoria"]}):')
         lines.append(art['contenido'])
 
+    logger.info(
+        'RAG context: %d/%d articles injected for query "%.60s"',
+        len(filtered), len(articles), query,
+    )
     return '\n'.join(lines)
 
 
@@ -347,18 +447,30 @@ def get_embedding_stats() -> dict:
         with_emb = KnowledgeArticle.objects.filter(
             activo=True
         ).exclude(embedding_json__isnull=True).exclude(embedding_json='').count()
+        with_pgvec = 0
+        if HAS_PGVECTOR:
+            try:
+                with_pgvec = KnowledgeArticle.objects.filter(
+                    activo=True, embedding__isnull=False,
+                ).count()
+            except Exception:
+                pass
         return {
             'total': total,
             'with_embedding': with_emb,
+            'with_pgvector': with_pgvec,
             'without_embedding': total - with_emb,
             'phase_b_ready': _is_phase_b_ready(),
+            'pgvector_available': HAS_PGVECTOR,
             'embedding_model': EMBEDDING_MODEL,
         }
     except Exception:
         return {
             'total': 0,
             'with_embedding': 0,
+            'with_pgvector': 0,
             'without_embedding': 0,
             'phase_b_ready': False,
+            'pgvector_available': HAS_PGVECTOR,
             'embedding_model': EMBEDDING_MODEL,
         }

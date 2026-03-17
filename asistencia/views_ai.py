@@ -699,11 +699,24 @@ def ai_chat_stream(request):
     # ── RAG: inyectar conocimiento base relevante ──
     try:
         from core.knowledge_service import get_knowledge_context
-        knowledge_ctx = get_knowledge_context(message, limit=4)
+        # Consultas complejas (legales, cálculos) se benefician de más artículos
+        _complex_kw = ['ley', 'decreto', 'calcul', 'liquidac', 'beneficio', 'indemn',
+                       'despido', 'gratific', 'cts', 'vacacion', 'maternid', 'paternid',
+                       'seguro vida', 'asignacion familiar', 'teletrabajo', 'boleta pago']
+        _msg_lower = message.lower()
+        is_complex = any(kw in _msg_lower for kw in _complex_kw)
+        rag_limit = 6 if is_complex else 4
+        knowledge_ctx = get_knowledge_context(message, limit=rag_limit)
         if knowledge_ctx:
             system_prompt = system_prompt + '\n\n' + knowledge_ctx
-    except Exception:
-        pass  # knowledge_service es opcional, no bloquea el chat
+            logger.info(
+                'RAG injected (limit=%d, complex=%s) for query: %.80s',
+                rag_limit, is_complex, message,
+            )
+        else:
+            logger.debug('RAG: no articles matched for query: %.80s', message)
+    except Exception as _rag_exc:
+        logger.warning('RAG injection failed: %s', _rag_exc)
 
     # ── Construir historial para el LLM ──
     # Prioridad: sesión server-side (summaries limpios, sin JSON de gráficos ni archivos).

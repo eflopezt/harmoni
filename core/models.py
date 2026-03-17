@@ -383,7 +383,6 @@ class KnowledgeArticle(models.Model):
 
     # ── Fase B: embedding vectorial (text-embedding-3-small, 1536 dims) ──
     # Almacenado como JSON string para compatibilidad SQLite/PostgreSQL.
-    # Para producción con pgvector: migrar a VectorField(dimensions=1536).
     embedding_json = models.TextField(
         blank=True, null=True,
         help_text=(
@@ -392,11 +391,38 @@ class KnowledgeArticle(models.Model):
         ),
     )
 
+    # ── Fase C: pgvector nativo (PostgreSQL only) ──
+    # VectorField para búsqueda semántica O(log n) con índice HNSW.
+    # En SQLite dev este campo se ignora (null=True, fallback a embedding_json).
+    try:
+        from pgvector.django import VectorField as _VectorField
+        embedding = _VectorField(dimensions=1536, null=True, blank=True,
+                                 help_text='pgvector embedding (1536 dims). Auto-populated.')
+    except ImportError:
+        embedding = models.BinaryField(null=True, blank=True, editable=False,
+                                       help_text='Placeholder — install pgvector for vector search.')
+
     class Meta:
         app_label = 'core'
         verbose_name = 'Artículo de Conocimiento IA'
         verbose_name_plural = 'Base de Conocimiento IA'
         ordering = ['prioridad', 'categoria', 'titulo']
+        indexes = []  # pgvector index added conditionally below
+
+    # Dynamically add HNSW index when pgvector is available
+    try:
+        from pgvector.django import HnswIndex  # noqa: PLC0415
+        Meta.indexes.append(
+            HnswIndex(
+                name='ka_embedding_hnsw_idx',
+                fields=['embedding'],
+                m=16,
+                ef_construction=64,
+                opclasses=['vector_cosine_ops'],
+            )
+        )
+    except ImportError:
+        pass
 
     def __str__(self):
         return f'[{self.get_categoria_display()}] {self.titulo}'

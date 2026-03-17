@@ -56,8 +56,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.HTTP_INFO('-' * 50))
             self.stdout.write(f'  Modelo:              {stats["embedding_model"]}')
             self.stdout.write(f'  Artículos activos:   {stats["total"]}')
-            self.stdout.write(f'  Con embedding:       {stats["with_embedding"]}')
+            self.stdout.write(f'  Con embedding JSON:  {stats["with_embedding"]}')
+            self.stdout.write(f'  Con pgvector:        {stats.get("with_pgvector", 0)}')
             self.stdout.write(f'  Sin embedding:       {stats["without_embedding"]}')
+            pgv = self.style.SUCCESS('SI') if stats.get('pgvector_available') else self.style.WARNING('NO')
+            self.stdout.write(f'  pgvector disponible: {pgv}')
             ready = stats['phase_b_ready']
             status = self.style.SUCCESS('ACTIVA') if ready else self.style.WARNING('INACTIVA (sin API key o sin embeddings)')
             self.stdout.write(f'  Búsqueda semántica:  {status}')
@@ -138,7 +141,17 @@ class Command(BaseCommand):
                     continue
 
                 art.embedding_json = json.dumps(vec)
-                art.save(update_fields=['embedding_json'])
+                update_fields = ['embedding_json']
+
+                # Also save to pgvector VectorField if available
+                try:
+                    from pgvector.django import VectorField  # noqa: F401, PLC0415
+                    art.embedding = vec  # list[float] — pgvector accepts Python lists
+                    update_fields.append('embedding')
+                except ImportError:
+                    pass
+
+                art.save(update_fields=update_fields)
                 self.stdout.write(self.style.SUCCESS(f'  OK {label}'))
                 ok += 1
 

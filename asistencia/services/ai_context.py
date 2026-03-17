@@ -25,22 +25,40 @@ _CONTEXT_CACHE_TTL = 15       # segundos — datos frescos pero no excesivos
 
 MODULE_KEYWORDS: dict[str, list[str]] = {
     'personal':       ['empleado', 'personal', 'headcount', 'staff', 'rco', 'area', 'gerencia',
-                       'edad', 'rango de edad', 'antiguedad demog'],
+                       'edad', 'rango de edad', 'antiguedad demog', 'contrato', 'contratos',
+                       'renovacion', 'vencimiento contrato', 'tipo contrato', 'plazo fijo',
+                       'indeterminado', 'periodo prueba'],
     'asistencia':     ['asistencia', 'tareo', 'faltas', 'marcacion', 'horas extra', 'he ',
-                       'tardanza', 'tardanzas', 'ausentismo', 'inasistencia', 'puntualidad'],
-    'vacaciones':     ['vacacion', 'permiso', 'licencia', 'descanso', 'goce'],
-    'capacitaciones': ['capacitacion', 'training', 'certificacion', 'curso', 'ssoma'],
-    'evaluaciones':   ['evaluacion', 'desempeno', 'okr', 'competencia', 'pdi', '9-box', 'nine box'],
-    'encuestas':      ['encuesta', 'clima', 'enps', 'pulso', 'satisfaccion'],
-    'prestamos':      ['prestamo', 'adelanto', 'cuota', 'descuento'],
-    'onboarding':     ['onboarding', 'offboarding', 'incorporacion', 'ingreso nuevo'],
-    'disciplinaria':  ['disciplinaria', 'amonestacion', 'descargo', 'falta', 'suspension'],
-    'comunicaciones': ['comunicado', 'notificacion', 'memo', 'aviso'],
-    'reclutamiento':  ['vacante', 'reclutamiento', 'postulacion', 'candidato', 'entrevista'],
-    'salarios':       ['salario', 'sueldo', 'remuneracion', 'banda salarial', 'incremento', 'compa-ratio'],
-    'analytics':      ['kpi', 'rotacion', 'tendencia', 'dashboard', 'indicador', 'ausentismo',
-                       'tasa', 'historico', 'snapshot', 'metricas'],
-    'nominas':        ['nomina', 'nómina', 'planilla', 'boleta', 'neto', 'essalud', 'afp', 'gratificacion', 'cts', 'periodo nomina'],
+                       'tardanza', 'tardanzas', 'ausentismo', 'inasistencia', 'puntualidad',
+                       'asistecia', 'asistensia', 'tardansa', 'marcasion'],
+    'vacaciones':     ['vacacion', 'vacaciones', 'permiso', 'licencia', 'descanso', 'goce',
+                       'vacasion', 'vacasiones', 'licensia', 'maternidad', 'paternidad',
+                       'prenatal', 'postnatal'],
+    'capacitaciones': ['capacitacion', 'capacitaciones', 'training', 'certificacion', 'curso',
+                       'ssoma', 'capacitasion', 'certificasion'],
+    'evaluaciones':   ['evaluacion', 'evaluaciones', 'desempeno', 'desempeño', 'okr',
+                       'competencia', 'pdi', '9-box', 'nine box', 'evaluasion'],
+    'encuestas':      ['encuesta', 'clima', 'enps', 'pulso', 'satisfaccion', 'satisfacción'],
+    'prestamos':      ['prestamo', 'préstamo', 'adelanto', 'cuota', 'descuento'],
+    'onboarding':     ['onboarding', 'offboarding', 'incorporacion', 'ingreso nuevo',
+                       'induccion', 'inducción'],
+    'disciplinaria':  ['disciplinaria', 'amonestacion', 'amonestación', 'descargo', 'falta',
+                       'suspension', 'suspensión', 'carta preaviso', 'despido'],
+    'comunicaciones': ['comunicado', 'notificacion', 'notificación', 'memo', 'aviso'],
+    'reclutamiento':  ['vacante', 'reclutamiento', 'postulacion', 'postulación', 'candidato',
+                       'entrevista', 'seleccion', 'selección'],
+    'salarios':       ['salario', 'sueldo', 'remuneracion', 'remuneración', 'banda salarial',
+                       'incremento', 'compa-ratio', 'aumento'],
+    'analytics':      ['kpi', 'rotacion', 'rotación', 'tendencia', 'dashboard', 'indicador',
+                       'ausentismo', 'tasa', 'historico', 'histórico', 'snapshot', 'metricas',
+                       'métricas'],
+    'nominas':        ['nomina', 'nómina', 'planilla', 'boleta', 'neto', 'essalud', 'afp',
+                       'gratificacion', 'gratificación', 'cts', 'periodo nomina',
+                       'liquidacion', 'liquidación', 'liquidar', 'beneficios sociales',
+                       'calculo beneficios', 'cálculo beneficios', 'finiquito',
+                       'onp', 'renta quinta', 'ir 5ta', 'quinta categoria'],
+    'documentos':     ['constancia', 'constancias', 'certificado trabajo', 'documento',
+                       'documentos', 'carta', 'legajo', 'boleta de pago', 'recibo'],
 }
 
 
@@ -580,7 +598,9 @@ def build_system_prompt(user, modules: list[str] | None = None) -> str:
         'recomendacion accionable (que hacer).\n'
         '7. Formato: texto fluido, **negrita** para cifras clave. '
         'Listas con guion (-) solo si hay 3+ items.\n'
-        '8. Legislacion peruana: cita el articulo o decreto exacto (DL 728, DL 713, etc).\n'
+        '8. Legislacion peruana: SIEMPRE cita el articulo o decreto exacto con su numero '
+        'completo (ej: "Segun el Art. 12 del DL 713...", "La Ley 25129 establece...", '
+        '"De acuerdo al DS 003-97-TR, Art. 34..."). Nunca digas solo "por ley" o "segun la normativa".\n'
         '9. Tono ejecutivo: directo, sin relleno. Cada oracion debe agregar valor.\n'
         '10. Normativa inyectada: aplica el conocimiento legal/politico como expertise propio. '
         'No digas "segun la normativa que tengo", "segun mi base de conocimiento" ni similares. '
@@ -601,7 +621,15 @@ def build_system_prompt(user, modules: list[str] | None = None) -> str:
         'ofrece buscar ese empleado en la BD: '
         '"¿Quieres que busque a este empleado en el sistema para ver su expediente?"\n'
         '14. Respuestas adaptativas: preguntas simples → respuesta breve y directa. '
-        'Analisis complejos → respuesta estructurada con cifras y recomendacion.'
+        'Analisis complejos → respuesta estructurada con cifras y recomendacion.\n'
+        '15. Montos y cifras: SIEMPRE usa el formato S/ con separador de miles '
+        '(ej: S/ 1,130.00, S/ 5,500.00, S/ 23,450.50). Nunca escribas montos sin el prefijo S/.\n'
+        '16. Modulos Harmoni: cuando respondas, menciona el modulo relevante del sistema '
+        'donde el usuario puede gestionar el tema. Ej: "Puedes gestionar esto desde el modulo '
+        'de Vacaciones (/vacaciones/)" o "Revisa el detalle en Nominas (/nominas/)". '
+        'No lo hagas si la pregunta es puramente legal/teorica.\n'
+        '17. Fechas: usa formato peruano DD/MM/YYYY (ej: 17/03/2026). '
+        'Nunca uses formato americano MM/DD/YYYY ni ISO YYYY-MM-DD en las respuestas al usuario.'
     )
 
     # PLANTILLA
@@ -804,27 +832,41 @@ def build_system_prompt(user, modules: list[str] | None = None) -> str:
     # NAVEGACION HARMONI (donde encontrar cosas)
     sections.append(
         'NAVEGACION HARMONI:\n'
-        '- Personal: /personal/ (empleados, areas, roster)\n'
+        '- Personal: /personal/ (empleados, areas, roster, contratos)\n'
         '- Asistencia: /asistencia/ (tareo, HE, papeletas)\n'
-        '- Vacaciones: /vacaciones/ (saldos, solicitudes)\n'
+        '- Vacaciones: /vacaciones/ (saldos, solicitudes, permisos)\n'
+        '- Nominas: /nominas/ (planilla, boletas, liquidaciones)\n'
         '- Capacitaciones: /capacitaciones/ (cursos, certificaciones)\n'
         '- Evaluaciones: /evaluaciones/ (ciclos, 360, OKR)\n'
         '- Prestamos: /prestamos/ (adelantos, cuotas)\n'
         '- Reclutamiento: /reclutamiento/ (vacantes, kanban)\n'
+        '- Documentos: /documentos/ (constancias, legajo digital)\n'
+        '- Salarios: /salarios/ (bandas, incrementos, compa-ratio)\n'
         '- Configuracion: /asistencia/configuracion/'
     )
 
     # LEGISLACION PERU (referencia rápida)
     sections.append(
-        'LEYES PERU (referencia):\n'
-        '- DL 728: estabilidad laboral, contratos\n'
-        '- DS 003-97-TR: TUO ley productividad, despido\n'
-        '- DL 713: descansos remunerados, vacaciones, feriados\n'
-        '- Ley 30036: teletrabajo\n'
-        '- DS 005-2012-TR: reglamento SST\n'
-        '- HE: 25% primeras 2h, 35% siguientes, 100% feriados/domingos\n'
-        '- Vacaciones: 30 dias por ano, venta max 15 dias\n'
-        '- CTS: 1 sueldo/ano, depositos mayo y noviembre'
+        'LEYES PERU (referencia rapida — cita siempre el numero de ley/decreto):\n'
+        '- DL 728: estabilidad laboral, contratos de trabajo\n'
+        '- DS 003-97-TR: TUO ley de productividad y competitividad laboral, despido\n'
+        '- DL 713: descansos remunerados, vacaciones (30 dias/ano, venta max 15 dias), feriados\n'
+        '- DS 012-92-TR: reglamento del DL 713\n'
+        '- Ley 25129: asignacion familiar (10% de la RMV para trabajadores con hijos menores o en estudios)\n'
+        '- DL 688: seguro de vida ley (obligatorio desde 4 anos de servicios, desde el 1er dia en actividades de riesgo)\n'
+        '- Ley 26644: descanso pre y post natal (49 dias cada uno, total 98 dias), licencia por maternidad\n'
+        '- Ley 29409: licencia por paternidad (10 dias calendario, 20 en caso de parto multiple o cesarea, 30 en nacimiento con enfermedad)\n'
+        '- Ley 31572: ley de teletrabajo (reemplaza Ley 30036), compensacion de gastos, desconexion digital\n'
+        '- DS 001-98-TR: boleta de pago — obligacion del empleador de entregar boleta firmada al trabajador\n'
+        '- Ley 29783: ley de SST (seguridad y salud en el trabajo)\n'
+        '- DS 005-2012-TR: reglamento de la Ley 29783 de SST\n'
+        '- TUO DL 650 (DS 001-97-TR): CTS — 1 sueldo/ano, depositos mayo y noviembre\n'
+        '- Ley 27735: gratificaciones julio y diciembre (1 sueldo + bonificacion extraordinaria 9%)\n'
+        '- HE: 25% primeras 2h, 35% siguientes (Art. 10 TUO DL 854), 100% feriados/domingos\n'
+        '- IR 5ta cat: 8 UIT exoneradas, tasas 8%/14%/17%/20%/30% (Art. 53 LIR)\n'
+        '- AFP: 10% aporte obligatorio + comision + seguro | ONP: 13%\n'
+        '- EsSalud: 9% a cargo del empleador (Ley 26790)\n'
+        '- RMV vigente: S/ 1,130 (DS 006-2024-TR) | UIT 2026: S/ 5,500'
     )
 
     return '\n\n'.join(sections)
