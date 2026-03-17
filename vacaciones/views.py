@@ -344,8 +344,15 @@ def saldo_generar_masivo(request):
     for emp in personal_qs:
         # Calcular período actual basado en fecha de alta
         anios_servicio = (hoy - emp.fecha_alta).days // 365
-        periodo_inicio = emp.fecha_alta.replace(year=emp.fecha_alta.year + anios_servicio)
-        periodo_fin = periodo_inicio.replace(year=periodo_inicio.year + 1) - __import__('datetime').timedelta(days=1)
+        try:
+            periodo_inicio = emp.fecha_alta.replace(year=emp.fecha_alta.year + anios_servicio)
+        except ValueError:
+            # Feb 29 en año no bisiesto → usar Feb 28
+            periodo_inicio = emp.fecha_alta.replace(year=emp.fecha_alta.year + anios_servicio, day=28)
+        try:
+            periodo_fin = periodo_inicio.replace(year=periodo_inicio.year + 1) - __import__('datetime').timedelta(days=1)
+        except ValueError:
+            periodo_fin = periodo_inicio.replace(year=periodo_inicio.year + 1, day=28) - __import__('datetime').timedelta(days=1)
 
         _, created = SaldoVacacional.objects.get_or_create(
             personal=emp,

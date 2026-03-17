@@ -175,7 +175,8 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         onp = _redondear(rem_computable * ONP_TASA / Decimal('100'))
 
     # ── 7. IR 5ta categoría (proyección anual) ──
-    rem_anual = rem_computable * Decimal('12')
+    # Proyección: 12 sueldos + 2 gratificaciones = 14 remuneraciones
+    rem_anual = rem_computable * Decimal('14')
     ir_5ta = calcular_ir_5ta_mensual(rem_anual)
 
     # ── 8. Otros descuentos manuales ──
@@ -190,10 +191,11 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     essalud = _redondear(rem_computable * ESSALUD_TASA / Decimal('100'))
 
     # ── 11. Provisiones (informativas en planilla regular) ──
-    # Gratificación = 1/6 de sueldo mensual (acumula 2/año)
-    prov_gratif = _redondear(rem_computable / Decimal('6'))
-    # CTS = 1/12 de (sueldo + 1/6 gratif)
-    prov_cts    = _redondear((rem_computable + prov_gratif) / Decimal('12'))
+    # Gratificación = 1/6 de (sueldo + asig_fam) — HE no computan (Ley 27735)
+    base_gratif = sueldo_prop + asig_fam
+    prov_gratif = _redondear(base_gratif / Decimal('6'))
+    # CTS = 1/12 de (sueldo + asig_fam + 1/6 gratif) — DL 650
+    prov_cts    = _redondear((base_gratif + prov_gratif) / Decimal('12'))
 
     # ── 12. Costo total empresa ──
     costo_empresa = _redondear(total_ingresos_bruto + essalud + prov_gratif + prov_cts)
@@ -276,9 +278,9 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     - Proporcional: base × (meses_trabajados / 6)
       → usa registro.dias_trabajados como 'meses trabajados en el semestre' (1-6)
     - Bonificación extraordinaria 9% (empleador → no descuenta al trabajador)
-    - Descuentos AFP/ONP aplican sobre la gratificación
-    - EsSalud 9% (aporte empleador sobre gratificación)
-    - IR 5ta: NO se retiene sobre gratificaciones (inafecta, Art. 18° LIR)
+    - AFP/ONP: INAFECTOS (Ley 29351) — trabajador recibe 100%
+    - EsSalud 9%: aporte empleador (pero se paga como bonif extraordinaria)
+    - IR 5ta: INAFECTA (Art. 18° TUO LIR)
 
     Para generar un período tipo GRATIFICACION, establece:
         registro.dias_trabajados = meses trabajados en el semestre (1-6)
@@ -308,22 +310,15 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
 
     total_ingreso = gratif  # Lo que recibe el trabajador (gratif neta)
 
-    # ── 4. Descuentos pensionarios sobre la gratificación ────────────────
+    # ── 4. Descuentos pensionarios ─────────────────────────────────────
+    #    Ley 29351: Gratificaciones INAFECTAS a aportes pensionarios
+    #    (AFP/ONP). El trabajador recibe el 100% de la gratificación.
     afp_aporte   = Decimal('0')
     afp_comision = Decimal('0')
     afp_seguro   = Decimal('0')
     onp          = Decimal('0')
-
-    if pension == 'AFP':
-        tasas        = AFP_TASAS.get(afp_nombre, AFP_TASAS['Prima'])
-        afp_aporte   = _redondear(gratif * AFP_APORTE / Decimal('100'))
-        afp_comision = _redondear(gratif * tasas['comision_flujo'] / Decimal('100'))
-        afp_seguro   = _redondear(gratif * tasas['seguro'] / Decimal('100'))
-    elif pension == 'ONP':
-        onp = _redondear(gratif * ONP_TASA / Decimal('100'))
-
-    total_desc = afp_aporte + afp_comision + afp_seguro + onp
-    neto       = _redondear(gratif - total_desc)
+    total_desc   = Decimal('0')
+    neto         = gratif
 
     # ── 5. Aportes empleador ─────────────────────────────────────────────
     essalud     = _redondear(gratif * ESSALUD_TASA / Decimal('100'))
@@ -494,7 +489,7 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
                     'regimen_pension':  emp.regimen_pension or 'AFP',
                     'afp':              emp.afp or '',
                     'grupo':            emp.grupo_tareo or '',
-                    'asignacion_familiar': False,
+                    'asignacion_familiar': getattr(emp, 'asignacion_familiar', False),
                     'dias_trabajados':  dias_default,
                 },
             )

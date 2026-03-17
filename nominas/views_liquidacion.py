@@ -125,9 +125,12 @@ def _calcular_liquidacion(personal: Personal) -> dict:
     if regimen == 'ONP':
         descto_pension = _rd(base_desctos * ONP_TASA)
     elif regimen == 'AFP':
+        from .engine import AFP_TASAS
+        afp_nombre = getattr(personal, 'afp', 'Prima') or 'Prima'
+        tasas = AFP_TASAS.get(afp_nombre, AFP_TASAS['Prima'])
         afp_aporte   = _rd(base_desctos * AFP_APORTE)
-        afp_comision = _rd(base_desctos * Decimal('0.0155'))   # comisión flujo promedio
-        afp_seguro   = _rd(base_desctos * Decimal('0.0174'))   # prima seguro promedio
+        afp_comision = _rd(base_desctos * tasas['comision_flujo'] / Decimal('100'))
+        afp_seguro   = _rd(base_desctos * tasas['seguro'] / Decimal('100'))
         descto_pension = afp_aporte + afp_comision + afp_seguro
 
     # EsSalud (empleador) sobre rem_trunca + gratif_trunca
