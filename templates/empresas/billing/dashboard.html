@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Facturación{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold">
+      <i class="fas fa-file-invoice-dollar me-2 text-teal"></i>Facturación
+    </h1>
+    {% if request.user.is_superuser %}
+    <a href="{% url 'admin_billing_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-shield-alt me-1"></i>Panel Admin
+    </a>
+    {% endif %}
+  </div>
+
+  {% if not suscripcion %}
+  <!-- No subscription -->
+  <div class="alert alert-warning d-flex align-items-center">
+    <i class="fas fa-exclamation-triangle me-3 fa-2x"></i>
+    <div>
+      <strong>Sin suscripción activa</strong><br>
+      Su empresa no tiene un plan asignado.
+      <a href="{% url 'billing_upgrade' %}" class="alert-link">Elegir un plan</a>
+      para comenzar.
+    </div>
+  </div>
+  {% else %}
+
+  <!-- Status banner -->
+  {% if suscripcion.es_trial %}
+  <div class="alert alert-info d-flex align-items-center mb-4">
+    <i class="fas fa-hourglass-half me-3 fa-lg"></i>
+    <div>
+      <strong>Periodo de prueba</strong> —
+      {{ suscripcion.dias_trial_restantes }} días restantes.
+      <a href="{% url 'billing_upgrade' %}" class="alert-link">Elegir plan</a> para continuar sin interrupciones.
+    </div>
+  </div>
+  {% elif suscripcion.esta_suspendida %}
+  <div class="alert alert-danger d-flex align-items-center mb-4">
+    <i class="fas fa-ban me-3 fa-lg"></i>
+    <div>
+      <strong>Suscripción suspendida</strong> — Acceso de solo lectura.
+      <a href="{% url 'billing_payment' %}" class="alert-link">Registrar pago</a> para restaurar el acceso.
+    </div>
+  </div>
+  {% elif suscripcion.esta_cancelada %}
+  <div class="alert alert-dark d-flex align-items-center mb-4">
+    <i class="fas fa-times-circle me-3 fa-lg"></i>
+    <div>
+      <strong>Suscripción cancelada</strong> — Contacte al administrador para reactivar.
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <!-- Plan actual -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header bg-transparent">
+          <h5 class="mb-0"><i class="fas fa-crown me-2 text-warning"></i>Plan actual</h5>
+        </div>
+        <div class="card-body">
+          <h3 class="fw-bold text-teal">{{ suscripcion.plan.nombre }}</h3>
+          <div class="display-6 fw-bold mb-1">
+            S/ {{ suscripcion.plan.precio_mensual|floatformat:0 }}
+            <small class="fs-6 text-muted fw-normal">/mes</small>
+          </div>
+          <div class="text-muted small mb-3">
+            Ciclo: {{ suscripcion.get_ciclo_display }}
+          </div>
+
+          <hr>
+
+          <div class="mb-2">
+            <small class="text-muted">Estado</small>
+            <div>
+              {% if suscripcion.estado == 'ACTIVA' %}
+                <span class="badge bg-success">Activa</span>
+              {% elif suscripcion.estado == 'TRIAL' %}
+                <span class="badge bg-info">Trial ({{ suscripcion.dias_trial_restantes }}d)</span>
+              {% elif suscripcion.estado == 'SUSPENDIDA' %}
+                <span class="badge bg-danger">Suspendida</span>
+              {% elif suscripcion.estado == 'CANCELADA' %}
+                <span class="badge bg-dark">Cancelada</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <small class="text-muted">Próximo pago</small>
+            <div class="fw-semibold">{{ suscripcion.proximo_pago|date:"d/m/Y" }}</div>
+          </div>
+
+          <div class="mb-2">
+            <small class="text-muted">Fecha inicio</small>
+            <div>{{ suscripcion.fecha_inicio|date:"d/m/Y" }}</div>
+          </div>
+
+          <div class="mt-3 d-grid gap-2">
+            <a href="{% url 'billing_upgrade' %}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-arrow-up me-1"></i>Cambiar plan
+            </a>
+            <a href="{% url 'billing_payment' %}" class="btn btn-primary btn-sm">
+              <i class="fas fa-money-bill me-1"></i>Registrar pago
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Uso de empleados -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header bg-transparent">
+          <h5 class="mb-0"><i class="fas fa-users me-2 text-primary"></i>Uso</h5>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-3">
+            <div class="display-4 fw-bold text-teal">{{ suscripcion.empleados_count }}</div>
+            <div class="text-muted">
+              {% if suscripcion.plan.es_ilimitado %}
+                empleados (ilimitado)
+              {% else %}
+                de {{ suscripcion.plan.max_empleados }} empleados
+              {% endif %}
+            </div>
+          </div>
+
+          {% if not suscripcion.plan.es_ilimitado %}
+          <div class="progress mb-2" style="height: 8px;">
+            <div class="progress-bar {% if suscripcion.uso_empleados_pct >= 90 %}bg-danger{% elif suscripcion.uso_empleados_pct >= 70 %}bg-warning{% else %}bg-success{% endif %}"
+                 style="width: {{ suscripcion.uso_empleados_pct }}%"></div>
+          </div>
+          <div class="text-muted small text-center">{{ suscripcion.uso_empleados_pct }}% utilizado</div>
+          {% endif %}
+
+          <hr>
+
+          <h6 class="text-muted mb-2">Módulos incluidos</h6>
+          <div class="d-flex flex-wrap gap-1">
+            {% for mod in suscripcion.plan.modulos_incluidos %}
+            <span class="badge bg-light text-dark border">{{ mod }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Último pago -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header bg-transparent">
+          <h5 class="mb-0"><i class="fas fa-receipt me-2 text-success"></i>Último pago</h5>
+        </div>
+        <div class="card-body">
+          {% if pagos %}
+          {% with ultimo=pagos.0 %}
+          <div class="display-6 fw-bold mb-1">S/ {{ ultimo.monto|floatformat:2 }}</div>
+          <div class="mb-2">
+            <span class="badge {% if ultimo.estado == 'PAGADO' %}bg-success{% elif ultimo.estado == 'PENDIENTE' %}bg-warning text-dark{% elif ultimo.estado == 'VENCIDO' %}bg-danger{% else %}bg-secondary{% endif %}">
+              {{ ultimo.get_estado_display }}
+            </span>
+          </div>
+          <div class="small text-muted mb-1">
+            <i class="fas fa-calendar me-1"></i>{{ ultimo.fecha_pago|date:"d/m/Y" }}
+          </div>
+          <div class="small text-muted mb-1">
+            <i class="fas fa-wallet me-1"></i>{{ ultimo.get_metodo_pago_display }}
+          </div>
+          {% if ultimo.referencia %}
+          <div class="small text-muted">
+            <i class="fas fa-hashtag me-1"></i>{{ ultimo.referencia }}
+          </div>
+          {% endif %}
+          {% endwith %}
+          {% else %}
+          <div class="text-muted text-center py-4">
+            <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+            Sin pagos registrados
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historial de pagos -->
+  {% if pagos %}
+  <div class="card mt-4">
+    <div class="card-header bg-transparent">
+      <h5 class="mb-0"><i class="fas fa-history me-2"></i>Historial de pagos</h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Fecha</th>
+            <th>Monto</th>
+            <th>Método</th>
+            <th>Referencia</th>
+            <th>Periodo</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pago in pagos %}
+          <tr>
+            <td>{{ pago.pk }}</td>
+            <td>{{ pago.fecha_pago|date:"d/m/Y" }}</td>
+            <td class="fw-semibold">S/ {{ pago.monto|floatformat:2 }}</td>
+            <td>{{ pago.get_metodo_pago_display }}</td>
+            <td>{{ pago.referencia|default:"-" }}</td>
+            <td class="small">
+              {% if pago.periodo_desde and pago.periodo_hasta %}
+              {{ pago.periodo_desde|date:"d/m" }} — {{ pago.periodo_hasta|date:"d/m/Y" }}
+              {% else %}-{% endif %}
+            </td>
+            <td>
+              <span class="badge {% if pago.estado == 'PAGADO' %}bg-success{% elif pago.estado == 'PENDIENTE' %}bg-warning text-dark{% elif pago.estado == 'VENCIDO' %}bg-danger{% else %}bg-secondary{% endif %}">
+                {{ pago.get_estado_display }}
+              </span>
+            </td>
+            <td>
+              <a href="{% url 'billing_invoice' pago.pk %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-file-alt"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% endif %}{# end if suscripcion #}
+
+  <!-- Available plans -->
+  {% if not suscripcion or suscripcion.es_trial %}
+  <h4 class="mt-5 mb-3"><i class="fas fa-tags me-2"></i>Planes disponibles</h4>
+  <div class="row g-4">
+    {% for plan in planes %}
+    <div class="col-md-4">
+      <div class="card h-100 {% if plan.destacado %}border-primary{% endif %}">
+        {% if plan.destacado %}
+        <div class="card-header bg-primary text-white text-center py-1">
+          <small class="fw-bold"><i class="fas fa-star me-1"></i>Recomendado</small>
+        </div>
+        {% endif %}
+        <div class="card-body text-center">
+          <h4 class="fw-bold">{{ plan.nombre }}</h4>
+          <div class="display-5 fw-bold text-teal my-3">
+            S/ {{ plan.precio_mensual|floatformat:0 }}
+            <small class="fs-6 text-muted fw-normal">/mes</small>
+          </div>
+          <p class="text-muted small">{{ plan.descripcion }}</p>
+          <hr>
+          <ul class="list-unstyled text-start small">
+            {% for feat in plan.features %}
+            <li class="mb-1"><i class="fas fa-check text-success me-2"></i>{{ feat }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card-footer bg-transparent text-center">
+          <a href="{% url 'billing_upgrade' %}?plan={{ plan.codigo }}"
+             class="btn {% if plan.destacado %}btn-primary{% else %}btn-outline-primary{% endif %} w-100">
+            Elegir {{ plan.nombre }}
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

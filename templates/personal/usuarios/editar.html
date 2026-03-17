@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar {{ usuario.username }} — Harmoni{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+
+      {# ── Header ─────────────────────────────────────────────────────── #}
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{% url 'gestion_usuario_detalle' usuario.pk %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="h3 mb-0 fw-bold text-dark">Editar Usuario: {{ usuario.username }}</h1>
+          <p class="text-muted mb-0 small">
+            {% if personal %}{{ personal.apellidos_nombres }} — {{ personal.cargo|default:"" }}{% endif %}
+          </p>
+        </div>
+      </div>
+
+      {% if messages %}
+      {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <div class="row g-4">
+        {# ── Columna izquierda: datos ─────────────────────────────────── #}
+        <div class="col-lg-5">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="account">
+
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-semibold"><i class="fas fa-user-circle me-2 text-muted"></i>Datos de Cuenta</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Username</label>
+                  <input type="text" class="form-control" name="username" value="{{ usuario.username }}" required
+                         pattern="[a-zA-Z0-9_@.+-]+">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Email</label>
+                  <input type="email" class="form-control" name="email" value="{{ usuario.email }}">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Nombre</label>
+                  <input type="text" class="form-control" name="first_name" value="{{ usuario.first_name }}">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Apellido</label>
+                  <input type="text" class="form-control" name="last_name" value="{{ usuario.last_name }}">
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                         {% if usuario.is_active %}checked{% endif %}>
+                  <label class="form-check-label" for="is_active">Cuenta activa</label>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-2">
+                  <i class="fas fa-save me-1"></i>Guardar Cambios
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {# ── Perfil y Empresa ─────────────────────────────────────── #}
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="profile">
+
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-semibold"><i class="fas fa-shield-alt me-2 text-muted"></i>Perfil y Empresa</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Perfil de Acceso</label>
+                  <select name="perfil_acceso" class="form-select">
+                    <option value="">-- Sin perfil --</option>
+                    {% for p in perfiles %}
+                    <option value="{{ p.pk }}"
+                            {% if personal and personal.perfil_acceso_id == p.pk %}selected{% endif %}>
+                      {{ p.nombre }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Empresa</label>
+                  <select name="empresa" class="form-select">
+                    <option value="">-- Todas --</option>
+                    {% for e in empresas %}
+                    <option value="{{ e.pk }}"
+                            {% if personal and personal.empresa_id == e.pk %}selected{% endif %}>
+                      {{ e.nombre_comercial|default:e.razon_social }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                {% if not personal %}
+                <div class="alert alert-warning small mb-3">
+                  <i class="fas fa-exclamation-triangle me-1"></i>
+                  Este usuario no tiene un empleado (Personal) vinculado.
+                  Vincule primero para asignar perfil y empresa.
+                </div>
+                {% endif %}
+                <button type="submit" class="btn btn-primary w-100" {% if not personal %}disabled{% endif %}>
+                  <i class="fas fa-save me-1"></i>Guardar Perfil
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {# ── Password ─────────────────────────────────────────────── #}
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="password">
+
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-semibold"><i class="fas fa-key me-2 text-muted"></i>Cambiar Password</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Nueva Password</label>
+                  <input type="password" class="form-control" name="new_password" minlength="6" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Confirmar Password</label>
+                  <input type="password" class="form-control" name="new_password2" minlength="6" required>
+                </div>
+                <button type="submit" class="btn btn-warning w-100">
+                  <i class="fas fa-key me-1"></i>Cambiar Password
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {# ── Columna derecha: Matriz de permisos ─────────────────────── #}
+        <div class="col-lg-7">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+              <h6 class="mb-0 fw-semibold">
+                <i class="fas fa-th me-2 text-muted"></i>Matriz de Permisos por Modulo
+              </h6>
+              {% if personal and personal.perfil_acceso %}
+              <span class="badge rounded-pill" style="background:#0f766e;color:#fff;font-size:.72rem">
+                Base: {{ personal.perfil_acceso.nombre }}
+              </span>
+              {% endif %}
+            </div>
+            <div class="card-body p-0">
+              {% if usuario.is_superuser %}
+              <div class="text-center py-5 text-muted">
+                <i class="fas fa-crown display-4 d-block mb-3 text-warning opacity-50"></i>
+                <p>Los superusuarios tienen acceso total a todos los modulos.</p>
+              </div>
+              {% elif not personal %}
+              <div class="text-center py-5 text-muted">
+                <i class="fas fa-unlink display-4 d-block mb-3 opacity-25"></i>
+                <p>Vincule un empleado para gestionar permisos.</p>
+              </div>
+              {% else %}
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size:.82rem" id="matrix-table">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="ps-3">Modulo</th>
+                      <th class="text-center" title="Ver"><i class="fas fa-eye"></i> Ver</th>
+                      <th class="text-center" title="Crear"><i class="fas fa-plus"></i> Crear</th>
+                      <th class="text-center" title="Editar"><i class="fas fa-edit"></i> Editar</th>
+                      <th class="text-center" title="Aprobar"><i class="fas fa-check-double"></i> Aprobar</th>
+                      <th class="text-center pe-3" title="Exportar"><i class="fas fa-download"></i> Exportar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for mod in modulos_permisos %}
+                    <tr>
+                      <td class="ps-3 fw-semibold">{{ mod.nombre }}</td>
+                      {% for perm in mod.permisos %}
+                      <td class="text-center">
+                        <input type="checkbox" class="form-check-input perm-checkbox"
+                               data-modulo="{{ mod.codigo }}"
+                               data-permiso="{{ perm.campo }}"
+                               {% if perm.valor %}checked{% endif %}
+                               title="{{ perm.campo }}">
+                      </td>
+                      {% endfor %}
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <div class="card-footer bg-light border-top">
+                <div class="d-flex align-items-center justify-content-between">
+                  <small class="text-muted">
+                    Los cambios se guardan automaticamente al marcar/desmarcar.
+                  </small>
+                  <div>
+                    <button class="btn btn-xs btn-outline-primary" onclick="prefillFromProfile()">
+                      <i class="fas fa-sync me-1"></i>Rellenar desde Perfil
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {# ── Leyenda ─────────────────────────────────────────────────── #}
+          {% if personal and not usuario.is_superuser %}
+          <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body">
+              <h6 class="fw-semibold small mb-2">Notas sobre permisos</h6>
+              <ul class="small text-muted mb-0">
+                <li><strong>Ver:</strong> Puede acceder al modulo y ver su contenido.</li>
+                <li><strong>Crear:</strong> Puede crear nuevos registros en el modulo.</li>
+                <li><strong>Editar:</strong> Puede modificar registros existentes.</li>
+                <li><strong>Aprobar:</strong> Puede aprobar/rechazar solicitudes (vacaciones, papeletas, roster).</li>
+                <li><strong>Exportar:</strong> Puede descargar datos en Excel/PDF.</li>
+                <li>Los permisos individuales <strong>sobreescriben</strong> al perfil base.</li>
+              </ul>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+const USER_ID = {{ usuario.pk }};
+
+// ── AJAX permission save ──────────────────────────────────────────────
+document.querySelectorAll('.perm-checkbox').forEach(cb => {
+  cb.addEventListener('change', async function() {
+    const modulo  = this.dataset.modulo;
+    const permiso = this.dataset.permiso;
+    const valor   = this.checked;
+
+    this.disabled = true;
+    try {
+      const fd = new FormData();
+      fd.append('user_id', USER_ID);
+      fd.append('modulo', modulo);
+      fd.append('permiso', permiso);
+      fd.append('valor', valor ? '1' : '0');
+      fd.append('csrfmiddlewaretoken', CSRF);
+
+      const resp = await fetch('{% url "gestion_usuario_permiso_ajax" %}', {
+        method: 'POST', body: fd
+      });
+      const data = await resp.json();
+
+      if (!data.success) {
+        this.checked = !valor;  // revert
+        alert('Error: ' + data.error);
+      }
+    } catch (e) {
+      this.checked = !valor;
+      alert('Error de conexion.');
+    } finally {
+      this.disabled = false;
+    }
+  });
+});
+
+// ── Pre-fill from profile template ────────────────────────────────────
+async function prefillFromProfile() {
+  if (!confirm('Esto reemplazara todos los permisos individuales con los del perfil base. Continuar?')) return;
+
+  try {
+    const fd = new FormData();
+    fd.append('user_id', USER_ID);
+    fd.append('csrfmiddlewaretoken', CSRF);
+
+    const resp = await fetch('{% url "gestion_usuario_prefill_perfil" %}', {
+      method: 'POST', body: fd
+    });
+    const data = await resp.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (e) {
+    alert('Error de conexion.');
+  }
+}
+</script>
+<style>
+.btn-xs { padding: .2rem .5rem; font-size: .72rem; }
+</style>
+{% endblock %}

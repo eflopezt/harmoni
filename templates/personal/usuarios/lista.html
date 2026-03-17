@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Usuarios del Sistema — Harmoni{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  {# ── Header ──────────────────────────────────────────────────────────── #}
+  <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+    <div class="d-flex align-items-center justify-content-center rounded-3"
+         style="width:48px;height:48px;background:linear-gradient(135deg,#0f766e,#134e4a)">
+      <i class="fas fa-users-cog text-white fs-5"></i>
+    </div>
+    <div>
+      <h1 class="h3 mb-0 fw-bold text-dark">Usuarios del Sistema</h1>
+      <p class="text-muted mb-0 small">
+        Gestiona cuentas de acceso, perfiles y permisos
+      </p>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+      <a href="{% url 'gestion_usuario_crear' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-user-plus me-1"></i>Nuevo Usuario
+      </a>
+      <a href="{% url 'accesos_gestion' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-shield-alt me-1"></i>Gestionar Accesos
+      </a>
+      <a href="{% url 'usuario_sincronizar' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-sync-alt me-1"></i>Sincronizar
+      </a>
+    </div>
+  </div>
+
+  {# ── Stats Cards ──────────────────────────────────────────────────────── #}
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center"
+               style="width:44px;height:44px;background:#e0f2fe">
+            <i class="fas fa-users text-info fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold fs-4">{{ stats.total }}</div>
+            <div class="text-muted small">Total usuarios</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center"
+               style="width:44px;height:44px;background:#dcfce7">
+            <i class="fas fa-check-circle text-success fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold fs-4">{{ stats.activos }}</div>
+            <div class="text-muted small">Activos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center"
+               style="width:44px;height:44px;background:#fef3c7">
+            <i class="fas fa-user-slash text-warning fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold fs-4">{{ stats.inactivos }}</div>
+            <div class="text-muted small">Inactivos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center"
+               style="width:44px;height:44px;background:#fce7f3">
+            <i class="fas fa-user-times text-danger fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold fs-4">{{ stats.sin_vincular }}</div>
+            <div class="text-muted small">Sin vincular</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Filtros ─────────────────────────────────────────────────────────── #}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end" id="filtros-form">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold text-muted">Buscar</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+            <input type="text" name="q" class="form-control" placeholder="Nombre, email, username..."
+                   value="{{ filtros.q }}">
+          </div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold text-muted">Estado</label>
+          <select name="estado" class="form-select">
+            <option value="">Todos</option>
+            <option value="activo" {% if filtros.estado == 'activo' %}selected{% endif %}>Activos</option>
+            <option value="inactivo" {% if filtros.estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold text-muted">Perfil</label>
+          <select name="perfil" class="form-select">
+            <option value="">Todos los perfiles</option>
+            <option value="sin_perfil" {% if filtros.perfil == 'sin_perfil' %}selected{% endif %}>Sin perfil</option>
+            {% for p in perfiles %}
+            <option value="{{ p.codigo }}" {% if filtros.perfil == p.codigo %}selected{% endif %}>
+              {{ p.nombre }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold text-muted">Empresa</label>
+          <select name="empresa" class="form-select">
+            <option value="">Todas</option>
+            {% for e in empresas %}
+            <option value="{{ e.pk }}" {% if filtros.empresa == e.pk|stringformat:"d" %}selected{% endif %}>
+              {{ e.nombre_comercial|default:e.razon_social }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary flex-fill">
+            <i class="fas fa-filter me-1"></i>Filtrar
+          </button>
+          <a href="{% url 'gestion_usuario_lista' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-times"></i>
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ── Acciones Masivas + Tabla ───────────────────────────────────────── #}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+      <h6 class="mb-0 fw-semibold">
+        <i class="fas fa-list me-2 text-muted"></i>
+        Usuarios
+        <span class="badge text-bg-secondary ms-1" style="font-size:.7rem">{{ usuarios|length }}</span>
+      </h6>
+      <div class="d-flex gap-2" id="bulk-actions" style="display:none!important">
+        <span class="text-muted small align-self-center" id="selected-count">0 seleccionados</span>
+        <button class="btn btn-sm btn-outline-success" onclick="bulkAction('activate')" title="Activar seleccionados">
+          <i class="fas fa-check me-1"></i>Activar
+        </button>
+        <button class="btn btn-sm btn-outline-warning" onclick="bulkAction('deactivate')" title="Desactivar seleccionados">
+          <i class="fas fa-ban me-1"></i>Desactivar
+        </button>
+        <button class="btn btn-sm btn-outline-info" onclick="bulkAction('reset_password')" title="Resetear password">
+          <i class="fas fa-key me-1"></i>Reset Password
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if usuarios %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="tabla-usuarios">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4" style="width:40px">
+                <input type="checkbox" class="form-check-input" id="select-all"
+                       onchange="toggleSelectAll(this)">
+              </th>
+              <th>Usuario</th>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Perfil de Acceso</th>
+              <th>Ultimo Login</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center pe-4">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in usuarios %}
+            <tr id="row-{{ u.pk }}" class="{% if not u.is_active %}table-secondary{% endif %}">
+              <td class="ps-4">
+                {% if not u.is_superuser %}
+                <input type="checkbox" class="form-check-input user-checkbox"
+                       value="{{ u.pk }}" onchange="updateBulkActions()">
+                {% endif %}
+              </td>
+              <td>
+                <a href="{% url 'gestion_usuario_detalle' u.pk %}" class="text-decoration-none fw-semibold">
+                  {{ u.username }}
+                </a>
+                {% if u.is_superuser %}
+                <span class="badge text-bg-danger ms-1" style="font-size:.6rem">superuser</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.personal_data %}
+                  <div class="fw-medium">{{ u.personal_data.apellidos_nombres }}</div>
+                  <div class="text-muted small">{{ u.personal_data.cargo|default:"" }}</div>
+                {% else %}
+                  <span class="text-muted">{{ u.get_full_name|default:"Sin vincular" }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="text-muted small">{{ u.email|default:"-" }}</span>
+              </td>
+              <td>
+                {% if u.is_superuser %}
+                  <span class="badge" style="background:#dc2626;color:#fff;font-size:.72rem">Superusuario</span>
+                {% elif u.personal_data and u.personal_data.perfil_acceso %}
+                  <span class="badge rounded-pill" style="background:#0f766e;color:#fff;font-size:.72rem">
+                    {{ u.personal_data.perfil_acceso.nombre }}
+                  </span>
+                {% else %}
+                  <span class="badge text-bg-warning" style="font-size:.72rem">Sin perfil</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.last_login %}
+                  <span class="small">{{ u.last_login|date:"d/m/Y H:i" }}</span>
+                {% else %}
+                  <span class="text-muted small">Nunca</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if u.is_active %}
+                  <span class="badge rounded-pill" style="background:#dcfce7;color:#16a34a;font-size:.72rem">
+                    Activo
+                  </span>
+                {% else %}
+                  <span class="badge rounded-pill" style="background:#fef3c7;color:#92400e;font-size:.72rem">
+                    Inactivo
+                  </span>
+                {% endif %}
+              </td>
+              <td class="text-center pe-4">
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'gestion_usuario_detalle' u.pk %}"
+                     class="btn btn-outline-secondary" title="Ver detalle">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  {% if not u.is_superuser or request.user.is_superuser %}
+                  <a href="{% url 'gestion_usuario_editar' u.pk %}"
+                     class="btn btn-outline-primary" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="fas fa-users display-4 d-block mb-3 opacity-25"></i>
+        <p>No se encontraron usuarios con los filtros aplicados.</p>
+        <a href="{% url 'gestion_usuario_lista' %}" class="btn btn-outline-secondary btn-sm">Limpiar filtros</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{# Toast de feedback #}
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="toast-usuarios" class="toast align-items-center border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toast-msg">Operacion completada.</div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+
+function toggleSelectAll(el) {
+  document.querySelectorAll('.user-checkbox').forEach(cb => {
+    cb.checked = el.checked;
+  });
+  updateBulkActions();
+}
+
+function updateBulkActions() {
+  const checked = document.querySelectorAll('.user-checkbox:checked');
+  const container = document.getElementById('bulk-actions');
+  if (checked.length > 0) {
+    container.style.display = 'flex';
+    container.style.setProperty('display', 'flex', 'important');
+    document.getElementById('selected-count').textContent = checked.length + ' seleccionados';
+  } else {
+    container.style.setProperty('display', 'none', 'important');
+  }
+}
+
+async function bulkAction(action) {
+  const ids = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+  if (ids.length === 0) return;
+
+  const labels = {
+    activate: 'activar',
+    deactivate: 'desactivar',
+    reset_password: 'resetear la password de'
+  };
+  if (!confirm('Confirma ' + labels[action] + ' ' + ids.length + ' usuario(s)?')) return;
+
+  try {
+    const fd = new FormData();
+    fd.append('action', action);
+    ids.forEach(id => fd.append('user_ids', id));
+    fd.append('csrfmiddlewaretoken', CSRF);
+
+    const resp = await fetch('{% url "gestion_usuario_bulk" %}', { method: 'POST', body: fd });
+    const data = await resp.json();
+
+    if (data.success) {
+      showToast(data.message, 'success');
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      showToast('Error: ' + data.error, 'danger');
+    }
+  } catch (e) {
+    showToast('Error de conexion.', 'danger');
+  }
+}
+
+function showToast(msg, type) {
+  const toast = document.getElementById('toast-usuarios');
+  toast.className = 'toast align-items-center border-0 text-bg-' + type;
+  document.getElementById('toast-msg').textContent = msg;
+  new bootstrap.Toast(toast, { delay: 4000 }).show();
+}
+</script>
+{% endblock %}

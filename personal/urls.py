@@ -52,6 +52,12 @@ urlpatterns = [
     path('personal/<int:pk>/editar/', views.personal_update, name='personal_update'),
     path('personal/exportar/', views.personal_export, name='personal_export'),
     path('personal/importar/', views.personal_import, name='personal_import'),
+
+    # Importación masiva (nuevo sistema con preview)
+    path('personal/importar/v2/', views.import_upload, name='personal_import_upload'),
+    path('personal/importar/confirmar/', views.import_confirm, name='personal_import_confirm'),
+    path('personal/importar/plantilla/', views.import_template_download, name='personal_import_template'),
+    path('personal/importar/validar/', views.import_validate_ajax, name='personal_import_validate'),
     
     # Roster
     # path('roster/', views.roster_list, name='roster_list'),  # Oculto
@@ -79,6 +85,19 @@ urlpatterns = [
     path('usuarios/sincronizar/', views.usuario_sincronizar, name='usuario_sincronizar'),
     path('personal/<int:personal_pk>/portal/crear/', views.portal_crear_acceso, name='portal_crear_acceso'),
     path('personal/<int:personal_pk>/portal/reset/', views.portal_reset_credenciales, name='portal_reset_credenciales'),
+
+    # Gestión Completa de Usuarios (interfaz ERP)
+    path('gestion-usuarios/', views.gestion_usuario_lista, name='gestion_usuario_lista'),
+    path('gestion-usuarios/crear/', views.gestion_usuario_crear, name='gestion_usuario_crear'),
+    path('gestion-usuarios/<int:pk>/', views.gestion_usuario_detalle, name='gestion_usuario_detalle'),
+    path('gestion-usuarios/<int:pk>/editar/', views.gestion_usuario_editar, name='gestion_usuario_editar'),
+    path('gestion-usuarios/<int:pk>/toggle-activo/', views.gestion_usuario_toggle_activo, name='gestion_usuario_toggle_activo'),
+    path('gestion-usuarios/<int:pk>/reset-password/', views.gestion_usuario_reset_password, name='gestion_usuario_reset_password'),
+    path('gestion-usuarios/<int:pk>/impersonar/', views.gestion_usuario_impersonar, name='gestion_usuario_impersonar'),
+    path('gestion-usuarios/dejar-impersonar/', views.gestion_usuario_dejar_impersonar, name='gestion_usuario_dejar_impersonar'),
+    path('gestion-usuarios/bulk/', views.gestion_usuario_bulk, name='gestion_usuario_bulk'),
+    path('gestion-usuarios/permiso-ajax/', views.gestion_usuario_permiso_ajax, name='gestion_usuario_permiso_ajax'),
+    path('gestion-usuarios/prefill-perfil/', views.gestion_usuario_prefill_perfil, name='gestion_usuario_prefill_perfil'),
 
     # Gestión de Accesos (RBAC)
     path('accesos/', views.accesos_gestion, name='accesos_gestion'),

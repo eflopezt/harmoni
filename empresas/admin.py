@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 from .models import Empresa
 
 
@@ -41,3 +43,10 @@ class EmpresaAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['onboarding_url'] = reverse('onboarding_step1')
+        return super().changelist_view(request, extra_context=extra_context)
+
+    change_list_template = 'admin/empresas/empresa/change_list.html'

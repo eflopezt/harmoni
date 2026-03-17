@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Billing Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold">
+      <i class="fas fa-shield-alt me-2 text-teal"></i>Billing — Super Admin
+    </h1>
+    <a href="{% url 'billing_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Mi facturación
+    </a>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3 col-xl">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small">Empresas</div>
+          <div class="fs-3 fw-bold text-teal">{{ stats.total_empresas }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small">Activas</div>
+          <div class="fs-3 fw-bold text-success">{{ stats.activas }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small">Trial</div>
+          <div class="fs-3 fw-bold text-info">{{ stats.trial }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small">Suspendidas</div>
+          <div class="fs-3 fw-bold text-danger">{{ stats.suspendidas }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small">MRR (mes)</div>
+          <div class="fs-3 fw-bold text-teal">S/ {{ stats.mrr|floatformat:0|intcomma }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagos pendientes de aprobación -->
+  {% if pagos_pendientes %}
+  <div class="card mb-4 border-warning">
+    <div class="card-header bg-warning-subtle">
+      <h5 class="mb-0">
+        <i class="fas fa-clock me-2"></i>Pagos pendientes de aprobación
+        <span class="badge bg-warning text-dark ms-2">{{ pagos_pendientes|length }}</span>
+      </h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Empresa</th>
+            <th>Plan</th>
+            <th>Monto</th>
+            <th>Método</th>
+            <th>Referencia</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pago in pagos_pendientes %}
+          <tr>
+            <td>{{ pago.pk }}</td>
+            <td>
+              <div class="fw-semibold">{{ pago.suscripcion.empresa.nombre_display }}</div>
+              <div class="small text-muted">{{ pago.suscripcion.empresa.ruc }}</div>
+            </td>
+            <td>{{ pago.suscripcion.plan.nombre }}</td>
+            <td class="fw-semibold">S/ {{ pago.monto|floatformat:2 }}</td>
+            <td>{{ pago.get_metodo_pago_display }}</td>
+            <td>{{ pago.referencia|default:"-" }}</td>
+            <td>{{ pago.fecha_pago|date:"d/m/Y" }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <form method="post" action="{% url 'admin_billing_action' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="approve_payment">
+                  <input type="hidden" name="pago_id" value="{{ pago.pk }}">
+                  <button type="submit" class="btn btn-success btn-sm"
+                          title="Aprobar" onclick="return confirm('Aprobar pago #{{ pago.pk }}?')">
+                    <i class="fas fa-check"></i>
+                  </button>
+                </form>
+                <form method="post" action="{% url 'admin_billing_action' %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="reject_payment">
+                  <input type="hidden" name="pago_id" value="{{ pago.pk }}">
+                  <button type="submit" class="btn btn-danger btn-sm"
+                          title="Rechazar" onclick="return confirm('Rechazar pago #{{ pago.pk }}?')">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </form>
+                {% if pago.comprobante %}
+                <a href="{{ pago.comprobante.url }}" target="_blank"
+                   class="btn btn-outline-secondary btn-sm" title="Ver comprobante">
+                  <i class="fas fa-paperclip"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Filter tabs -->
+  <div class="card">
+    <div class="card-header bg-transparent">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Suscripciones</h5>
+        <div class="btn-group btn-group-sm">
+          <a href="{% url 'admin_billing_dashboard' %}"
+             class="btn {% if not estado_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            Todas
+          </a>
+          <a href="?estado=ACTIVA"
+             class="btn {% if estado_filter == 'ACTIVA' %}btn-success{% else %}btn-outline-success{% endif %}">
+            Activas
+          </a>
+          <a href="?estado=TRIAL"
+             class="btn {% if estado_filter == 'TRIAL' %}btn-info{% else %}btn-outline-info{% endif %}">
+            Trial
+          </a>
+          <a href="?estado=SUSPENDIDA"
+             class="btn {% if estado_filter == 'SUSPENDIDA' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+            Suspendidas
+          </a>
+          <a href="?estado=CANCELADA"
+             class="btn {% if estado_filter == 'CANCELADA' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            Canceladas
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>Plan</th>
+            <th>Estado</th>
+            <th>Empleados</th>
+            <th>Ciclo</th>
+            <th>Próximo pago</th>
+            <th>Inicio</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in suscripciones %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ sub.empresa.nombre_display }}</div>
+              <div class="small text-muted">{{ sub.empresa.ruc }}</div>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ sub.plan.nombre }}</span>
+            </td>
+            <td>
+              {% if sub.estado == 'ACTIVA' %}
+                <span class="badge bg-success">Activa</span>
+              {% elif sub.estado == 'TRIAL' %}
+                <span class="badge bg-info">Trial ({{ sub.dias_trial_restantes }}d)</span>
+              {% elif sub.estado == 'SUSPENDIDA' %}
+                <span class="badge bg-danger">Suspendida</span>
+              {% elif sub.estado == 'CANCELADA' %}
+                <span class="badge bg-dark">Cancelada</span>
+              {% endif %}
+            </td>
+            <td>
+              {{ sub.empleados_count }}
+              {% if not sub.plan.es_ilimitado %}/ {{ sub.plan.max_empleados }}{% endif %}
+            </td>
+            <td>{{ sub.get_ciclo_display }}</td>
+            <td>{{ sub.proximo_pago|date:"d/m/Y" }}</td>
+            <td>{{ sub.fecha_inicio|date:"d/m/Y" }}</td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown">
+                  <i class="fas fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  {% if sub.estado == 'TRIAL' %}
+                  <li>
+                    <form method="post" action="{% url 'admin_billing_action' %}" class="px-3 py-1">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="extend_trial">
+                      <input type="hidden" name="suscripcion_id" value="{{ sub.pk }}">
+                      <div class="input-group input-group-sm">
+                        <input type="number" name="dias" value="7" min="1" max="90"
+                               class="form-control" style="width:60px">
+                        <button type="submit" class="btn btn-info btn-sm">+días trial</button>
+                      </div>
+                    </form>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  {% endif %}
+
+                  {% if sub.estado != 'ACTIVA' %}
+                  <li>
+                    <form method="post" action="{% url 'admin_billing_action' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="activate">
+                      <input type="hidden" name="suscripcion_id" value="{{ sub.pk }}">
+                      <button type="submit" class="dropdown-item text-success">
+                        <i class="fas fa-check me-2"></i>Activar
+                      </button>
+                    </form>
+                  </li>
+                  {% endif %}
+
+                  {% if sub.estado != 'SUSPENDIDA' %}
+                  <li>
+                    <form method="post" action="{% url 'admin_billing_action' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="suspend">
+                      <input type="hidden" name="suscripcion_id" value="{{ sub.pk }}">
+                      <button type="submit" class="dropdown-item text-warning"
+                              onclick="return confirm('Suspender suscripción de {{ sub.empresa.nombre_display }}?')">
+                        <i class="fas fa-pause me-2"></i>Suspender
+                      </button>
+                    </form>
+                  </li>
+                  {% endif %}
+
+                  {% if sub.estado != 'CANCELADA' %}
+                  <li>
+                    <form method="post" action="{% url 'admin_billing_action' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="cancel">
+                      <input type="hidden" name="suscripcion_id" value="{{ sub.pk }}">
+                      <button type="submit" class="dropdown-item text-danger"
+                              onclick="return confirm('CANCELAR suscripción de {{ sub.empresa.nombre_display }}? Esta acción no se puede deshacer fácilmente.')">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                      </button>
+                    </form>
+                  </li>
+                  {% endif %}
+
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <a href="{% url 'billing_invoice' sub.pk %}" class="dropdown-item"
+                       onclick="return false;" title="Ver pagos de esta empresa">
+                      <i class="fas fa-file-invoice me-2"></i>Ver pagos
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              No hay suscripciones {% if estado_filter %}con estado "{{ estado_filter }}"{% endif %}.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empresas sin suscripción -->
+  {% if empresas_sin_sub %}
+  <div class="card mt-4">
+    <div class="card-header bg-transparent">
+      <h5 class="mb-0">
+        <i class="fas fa-exclamation-circle me-2 text-warning"></i>
+        Empresas sin suscripción
+        <span class="badge bg-warning text-dark ms-2">{{ empresas_sin_sub|length }}</span>
+      </h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>RUC</th>
+            <th>Creada</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for emp in empresas_sin_sub %}
+          <tr>
+            <td class="fw-semibold">{{ emp.nombre_display }}</td>
+            <td>{{ emp.ruc }}</td>
+            <td>{{ emp.creado_en|date:"d/m/Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

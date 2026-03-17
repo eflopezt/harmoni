@@ -1,0 +1,167 @@
+{% extends "empresas/onboarding/base_wizard.html" %}
+
+{% block wizard_content %}
+<div class="wizard-card">
+  <h5 class="fw-bold mb-1"><i class="fas fa-envelope me-2 text-teal"></i>Configuracion de Email</h5>
+  <p class="text-muted small mb-4">Configuracion SMTP para envio de boletas, notificaciones y comunicaciones.</p>
+
+  <form method="post" id="step2Form">
+    {% csrf_token %}
+    <div class="row g-3">
+
+      <!-- Proveedor -->
+      <div class="col-12">
+        <label class="form-label">Proveedor de Correo</label>
+        <select name="email_proveedor" class="form-select" id="emailProveedor">
+          {% for val, label in proveedor_choices %}
+          <option value="{{ val }}" {% if data.email_proveedor == val %}selected{% endif %}
+            {% if val == 'GMAIL' %}data-host="smtp.gmail.com" data-port="587" data-tls="1" data-ssl="0"
+            {% elif val == 'OFFICE365' %}data-host="smtp.office365.com" data-port="587" data-tls="1" data-ssl="0"
+            {% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div id="smtpFields" style="{% if data.email_proveedor == 'NONE' or not data.email_proveedor %}display:none{% endif %}">
+        <div class="row g-3">
+          <!-- Host / Port -->
+          <div class="col-md-8">
+            <label class="form-label">Servidor SMTP</label>
+            <input type="text" name="email_host" value="{{ data.email_host|default:'' }}"
+              class="form-control" id="emailHost" placeholder="smtp.gmail.com">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Puerto</label>
+            <input type="number" name="email_port" value="{{ data.email_port|default:'587' }}"
+              class="form-control" id="emailPort">
+          </div>
+
+          <!-- TLS / SSL -->
+          <div class="col-md-6">
+            <div class="form-check mt-2">
+              <input type="checkbox" name="email_use_tls" value="1" class="form-check-input"
+                id="emailTls" {% if data.email_use_tls or not data %}checked{% endif %}>
+              <label class="form-check-label" for="emailTls">Usar TLS (recomendado)</label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check mt-2">
+              <input type="checkbox" name="email_use_ssl" value="1" class="form-check-input"
+                id="emailSsl" {% if data.email_use_ssl %}checked{% endif %}>
+              <label class="form-check-label" for="emailSsl">Usar SSL (puerto 465)</label>
+            </div>
+          </div>
+
+          <!-- Credentials -->
+          <div class="col-md-6">
+            <label class="form-label">Usuario SMTP</label>
+            <input type="text" name="email_host_user" value="{{ data.email_host_user|default:'' }}"
+              class="form-control" id="emailUser" placeholder="usuario@empresa.com">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Contrasena / App Password</label>
+            <input type="password" name="email_host_password" value="{{ data.email_host_password|default:'' }}"
+              class="form-control" id="emailPass" placeholder="App Password">
+          </div>
+
+          <!-- From / Reply-To -->
+          <div class="col-md-6">
+            <label class="form-label">Email remitente (De:)</label>
+            <input type="email" name="email_from" value="{{ data.email_from|default:'' }}"
+              class="form-control" placeholder="rrhh@empresa.com">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Reply-To (opcional)</label>
+            <input type="email" name="email_reply_to" value="{{ data.email_reply_to|default:'' }}"
+              class="form-control" placeholder="responder-a@empresa.com">
+          </div>
+
+          <!-- Test button -->
+          <div class="col-12">
+            <button type="button" class="btn btn-outline-info btn-sm" id="btnTestSmtp">
+              <i class="fas fa-plug me-1"></i>Probar Conexion
+            </button>
+            <span id="smtpTestResult" class="ms-2 small"></span>
+          </div>
+
+          <div class="col-12">
+            <div class="alert alert-info py-2 small mb-0" style="background:#132e2a;border-color:#1a4440;color:#5eead4;">
+              <i class="fas fa-info-circle me-1"></i>
+              <strong>Gmail:</strong> Requiere "App Password" (no la contrasena normal).
+              Activar verificacion en 2 pasos y generar en
+              <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-teal">myaccount.google.com/apppasswords</a>.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wizard-actions">
+      <a href="{% url 'onboarding_step1' %}" class="btn btn-wizard-back">
+        <i class="fas fa-arrow-left me-1"></i>Anterior
+      </a>
+      <button type="submit" class="btn btn-wizard-next">
+        Siguiente <i class="fas fa-arrow-right ms-1"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const proveedorSelect = document.getElementById('emailProveedor');
+  const smtpFields = document.getElementById('smtpFields');
+  const hostInput = document.getElementById('emailHost');
+  const portInput = document.getElementById('emailPort');
+  const tlsCheck = document.getElementById('emailTls');
+  const sslCheck = document.getElementById('emailSsl');
+
+  proveedorSelect.addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    if (this.value === 'NONE') {
+      smtpFields.style.display = 'none';
+    } else {
+      smtpFields.style.display = '';
+      if (opt.dataset.host) {
+        hostInput.value = opt.dataset.host;
+        portInput.value = opt.dataset.port;
+        tlsCheck.checked = opt.dataset.tls === '1';
+        sslCheck.checked = opt.dataset.ssl === '1';
+      }
+    }
+  });
+
+  // Test SMTP
+  const btnTest = document.getElementById('btnTestSmtp');
+  const testResult = document.getElementById('smtpTestResult');
+
+  btnTest.addEventListener('click', function() {
+    btnTest.disabled = true;
+    testResult.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Probando...</span>';
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('email_host', hostInput.value);
+    formData.append('email_port', portInput.value);
+    formData.append('email_host_user', document.getElementById('emailUser').value);
+    formData.append('email_host_password', document.getElementById('emailPass').value);
+    formData.append('email_use_tls', tlsCheck.checked ? '1' : '0');
+    formData.append('email_use_ssl', sslCheck.checked ? '1' : '0');
+
+    fetch('{% url "onboarding_test_smtp" %}', { method: 'POST', body: formData })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          testResult.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>' + data.message + '</span>';
+        } else {
+          testResult.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>' + data.message + '</span>';
+        }
+      })
+      .catch(() => {
+        testResult.innerHTML = '<span class="text-danger">Error de red.</span>';
+      })
+      .finally(() => { btnTest.disabled = false; });
+  });
+});
+</script>
+{% endblock %}

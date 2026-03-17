@@ -37,6 +37,12 @@ from .usuarios import (
     accesos_gestion, accesos_asignar_perfil,
     accesos_detalle_usuario, accesos_toggle_modulo,
     portal_crear_acceso, portal_reset_credenciales,
+    # Gestión completa de usuarios (interfaz ERP)
+    gestion_usuario_lista, gestion_usuario_crear, gestion_usuario_editar,
+    gestion_usuario_detalle, gestion_usuario_bulk,
+    gestion_usuario_permiso_ajax, gestion_usuario_prefill_perfil,
+    gestion_usuario_toggle_activo, gestion_usuario_reset_password,
+    gestion_usuario_impersonar, gestion_usuario_dejar_impersonar,
 )
 
 from .timeline import timeline_empleado
@@ -52,3 +58,7 @@ from .reportes import (
 )
 
 from .cese import personal_dar_baja, personal_reactivar
+
+from .import_views import (
+    import_upload, import_confirm, import_template_download, import_validate_ajax,
+)

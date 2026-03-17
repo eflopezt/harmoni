@@ -1,0 +1,134 @@
+{% extends "empresas/onboarding/base_wizard.html" %}
+
+{% block wizard_content %}
+<div class="wizard-card">
+  <h5 class="fw-bold mb-1"><i class="fas fa-clipboard-check me-2 text-teal"></i>Resumen y Confirmacion</h5>
+  <p class="text-muted small mb-4">Revise la configuracion antes de crear la empresa.</p>
+
+  <!-- Company summary -->
+  <div class="card mb-3" style="background:#162b27;border-color:#2a4440;">
+    <div class="card-header py-2" style="background:#1a332f;border-color:#2a4440;">
+      <strong><i class="fas fa-building me-1 text-teal"></i> Empresa</strong>
+    </div>
+    <div class="card-body py-2">
+      <table class="table table-sm table-borderless mb-0" style="color:#b0cec8;">
+        <tr><td class="text-muted" style="width:35%">RUC</td><td><strong>{{ data.company.ruc }}</strong></td></tr>
+        <tr><td class="text-muted">Razon Social</td><td>{{ data.company.razon_social }}</td></tr>
+        {% if data.company.nombre_comercial %}
+        <tr><td class="text-muted">Nombre Comercial</td><td>{{ data.company.nombre_comercial }}</td></tr>
+        {% endif %}
+        {% if data.company.direccion %}
+        <tr><td class="text-muted">Direccion</td><td>{{ data.company.direccion }}</td></tr>
+        {% endif %}
+        {% if data.company.telefono %}
+        <tr><td class="text-muted">Telefono</td><td>{{ data.company.telefono }}</td></tr>
+        {% endif %}
+        {% if data.company.email_rrhh %}
+        <tr><td class="text-muted">Email RRHH</td><td>{{ data.company.email_rrhh }}</td></tr>
+        {% endif %}
+        <tr><td class="text-muted">Regimen</td><td>{{ data.company.regimen_laboral }}</td></tr>
+        <tr><td class="text-muted">Sector</td><td>{{ data.company.sector }}</td></tr>
+        {% if data.company.subdominio %}
+        <tr><td class="text-muted">Subdominio</td><td><code>{{ data.company.subdominio }}.harmoni.pe</code></td></tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <!-- Email summary -->
+  <div class="card mb-3" style="background:#162b27;border-color:#2a4440;">
+    <div class="card-header py-2" style="background:#1a332f;border-color:#2a4440;">
+      <strong><i class="fas fa-envelope me-1 text-teal"></i> Email</strong>
+    </div>
+    <div class="card-body py-2">
+      {% if data.email.email_proveedor and data.email.email_proveedor != 'NONE' %}
+      <table class="table table-sm table-borderless mb-0" style="color:#b0cec8;">
+        <tr><td class="text-muted" style="width:35%">Proveedor</td><td>{{ data.email.email_proveedor }}</td></tr>
+        <tr><td class="text-muted">Servidor</td><td>{{ data.email.email_host }}:{{ data.email.email_port }}</td></tr>
+        <tr><td class="text-muted">Usuario</td><td>{{ data.email.email_host_user }}</td></tr>
+        {% if data.email.email_from %}
+        <tr><td class="text-muted">Remitente</td><td>{{ data.email.email_from }}</td></tr>
+        {% endif %}
+      </table>
+      {% else %}
+      <p class="mb-0 text-muted small">Sin correo configurado (se puede agregar despues).</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Admin summary -->
+  {% if data.admin %}
+  <div class="card mb-3" style="background:#162b27;border-color:#2a4440;">
+    <div class="card-header py-2" style="background:#1a332f;border-color:#2a4440;">
+      <strong><i class="fas fa-user-shield me-1 text-teal"></i> Administrador</strong>
+    </div>
+    <div class="card-body py-2">
+      <table class="table table-sm table-borderless mb-0" style="color:#b0cec8;">
+        <tr><td class="text-muted" style="width:35%">Usuario</td><td><strong>{{ data.admin.username }}</strong></td></tr>
+        <tr><td class="text-muted">Email</td><td>{{ data.admin.email }}</td></tr>
+        {% if data.admin.first_name or data.admin.last_name %}
+        <tr><td class="text-muted">Nombre</td><td>{{ data.admin.first_name }} {{ data.admin.last_name }}</td></tr>
+        {% endif %}
+        <tr><td class="text-muted">Rol</td><td><span class="badge bg-danger">Superadministrador</span></td></tr>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Initial data summary -->
+  <div class="card mb-3" style="background:#162b27;border-color:#2a4440;">
+    <div class="card-header py-2" style="background:#1a332f;border-color:#2a4440;">
+      <strong><i class="fas fa-database me-1 text-teal"></i> Datos Iniciales</strong>
+    </div>
+    <div class="card-body py-2">
+      <table class="table table-sm table-borderless mb-0" style="color:#b0cec8;">
+        <tr>
+          <td class="text-muted" style="width:35%">Datos base</td>
+          <td>
+            {% if data.initial.run_seeds %}
+            <span class="text-success"><i class="fas fa-check me-1"></i>Se cargaran</span>
+            {% else %}
+            <span class="text-warning"><i class="fas fa-minus me-1"></i>No se cargaran</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="text-muted">Import Excel</td>
+          <td>
+            {% if data.initial.has_excel %}
+            <span class="text-success"><i class="fas fa-file-excel me-1"></i>Archivo cargado</span>
+            {% else %}
+            <span class="text-muted">No</span>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Execute form -->
+  <form method="post" id="step5Form">
+    {% csrf_token %}
+    <div class="wizard-actions">
+      <a href="{% url 'onboarding_step4' %}" class="btn btn-wizard-back">
+        <i class="fas fa-arrow-left me-1"></i>Anterior
+      </a>
+      <button type="submit" class="btn btn-wizard-next" id="btnExecute">
+        <i class="fas fa-rocket me-1"></i>Crear Empresa
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('step5Form');
+  const btn = document.getElementById('btnExecute');
+
+  form.addEventListener('submit', function() {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';
+  });
+});
+</script>
+{% endblock %}

@@ -172,13 +172,39 @@ REST_FRAMEWORK = {
 # DRF Spectacular (OpenAPI / Swagger)
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Harmoni ERP API',
-    'DESCRIPTION': 'API REST para Harmoni — Sistema de Gestión de RRHH',
+    'DESCRIPTION': (
+        'API REST para Harmoni — Sistema integral de Gestión de RRHH y Planillas '
+        'para empresas peruanas.\n\n'
+        '## Autenticación\n\n'
+        'La API soporta dos métodos de autenticación:\n\n'
+        '- **JWT Bearer Token**: Obtén un token en `/api/v1/token/` enviando '
+        '`username` y `password`. Incluye el header `Authorization: Bearer <access_token>` '
+        'en cada petición. Refresca el token en `/api/v1/token/refresh/`.\n'
+        '- **Session Authentication**: Para uso desde el frontend web de Harmoni '
+        '(requiere cookie de sesión activa).\n\n'
+        '## Paginación\n\n'
+        'Todos los endpoints de listado usan paginación por número de página '
+        '(`page` query param, 50 items por defecto).\n\n'
+        '## Rate Limiting\n\n'
+        '- Usuarios anónimos: 100 requests/hora\n'
+        '- Usuarios autenticados: 1,000 requests/hora'
+    ),
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
+    'CONTACT': {
+        'name': 'Harmoni ERP',
+        'url': 'https://harmoni.pe',
+        'email': 'soporte@harmoni.pe',
+    },
+    'LICENSE': {
+        'name': 'Propietario',
+    },
     'TAGS': [
+        {'name': 'Auth', 'description': 'Autenticación JWT — obtener y refrescar tokens'},
         {'name': 'Personal', 'description': 'Empleados, áreas, subareas, roster'},
         {'name': 'Asistencia', 'description': 'Tareos, banco de horas, configuración'},
+        {'name': 'Nóminas', 'description': 'Periodos, registros, conceptos remunerativos'},
         {'name': 'Vacaciones', 'description': 'Saldos, solicitudes, permisos'},
         {'name': 'Préstamos', 'description': 'Tipos, préstamos, cuotas'},
         {'name': 'Documentos', 'description': 'Legajo digital, boletas de pago'},
@@ -188,7 +214,42 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Salarios', 'description': 'Bandas, historial, simulaciones'},
         {'name': 'Reclutamiento', 'description': 'Vacantes, pipeline, postulaciones'},
         {'name': 'Comunicaciones', 'description': 'Notificaciones, comunicados masivos'},
+        {'name': 'Analytics', 'description': 'KPIs, dashboards, alertas'},
+        {'name': 'Empresas', 'description': 'Gestión multi-empresa'},
     ],
+    'SECURITY': [
+        {'BearerAuth': []},
+    ],
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+                'description': (
+                    'Token JWT obtenido desde /api/v1/token/. '
+                    'Formato: Bearer <access_token>'
+                ),
+            },
+            'SessionAuth': {
+                'type': 'apiKey',
+                'in': 'cookie',
+                'name': 'sessionid',
+                'description': 'Cookie de sesión Django (para uso desde el frontend web)',
+            },
+        },
+    },
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': False,
+        'filter': True,
+        'docExpansion': 'none',
+    },
+    'REDOC_UI_SETTINGS': {
+        'hideDownloadButton': False,
+        'expandResponses': '200,201',
+    },
 }
 
 # SimpleJWT

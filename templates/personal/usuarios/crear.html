@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Usuario — Harmoni{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      {# ── Header ─────────────────────────────────────────────────────── #}
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{% url 'gestion_usuario_lista' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="h3 mb-0 fw-bold text-dark">Crear Nuevo Usuario</h1>
+          <p class="text-muted mb-0 small">
+            Crea una cuenta de acceso al sistema y vincula con un empleado
+          </p>
+        </div>
+      </div>
+
+      {% if messages %}
+      {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="post" id="form-crear-usuario">
+        {% csrf_token %}
+
+        {# ── Datos de cuenta ──────────────────────────────────────────── #}
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-user-circle me-2 text-muted"></i>Datos de Cuenta</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="username" class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="username" name="username"
+                       value="{{ form_data.username }}" required
+                       pattern="[a-zA-Z0-9_@.+-]+" title="Solo letras, numeros, @, ., +, -, _">
+                <small class="text-muted">Se sugiere usar el DNI del empleado</small>
+              </div>
+              <div class="col-md-6">
+                <label for="email" class="form-label fw-semibold">Email</label>
+                <input type="email" class="form-control" id="email" name="email"
+                       value="{{ form_data.email }}">
+              </div>
+              <div class="col-md-6">
+                <label for="password" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="password" name="password"
+                         required minlength="6">
+                  <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password')">
+                    <i class="fas fa-eye" id="password-icon"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="password2" class="form-label fw-semibold">Confirmar Password <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="password2" name="password2"
+                         required minlength="6">
+                  <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password2')">
+                    <i class="fas fa-eye" id="password2-icon"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="force_change" name="force_change" checked>
+                  <label class="form-check-label" for="force_change">
+                    Forzar cambio de password en el primer login
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ── Vincular con Personal ────────────────────────────────────── #}
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-link me-2 text-muted"></i>Vincular con Empleado</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label for="personal_id" class="form-label fw-semibold">Empleado (Personal)</label>
+                <select name="personal_id" id="personal_id" class="form-select">
+                  <option value="">-- Sin vincular (cuenta administrativa) --</option>
+                  {% for p in personal_sin_usuario %}
+                  <option value="{{ p.pk }}"
+                          data-dni="{{ p.nro_doc }}"
+                          data-email="{{ p.correo_corporativo|default:p.correo_personal }}"
+                          {% if form_data.personal_id == p.pk|stringformat:"d" %}selected{% endif %}>
+                    {{ p.nro_doc }} - {{ p.apellidos_nombres }} ({{ p.cargo }})
+                  </option>
+                  {% endfor %}
+                </select>
+                <small class="text-muted">
+                  Se muestran empleados activos sin cuenta de usuario asignada
+                </small>
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100" onclick="autoFillFromPersonal()">
+                  <i class="fas fa-magic me-1"></i>Auto-llenar desde empleado
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ── Perfil y Permisos ────────────────────────────────────────── #}
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-semibold"><i class="fas fa-shield-alt me-2 text-muted"></i>Perfil y Accesos</h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="perfil_acceso" class="form-label fw-semibold">Perfil de Acceso</label>
+                <select name="perfil_acceso" id="perfil_acceso" class="form-select">
+                  <option value="">-- Sin perfil (acceso completo a modulos habilitados) --</option>
+                  {% for p in perfiles %}
+                  <option value="{{ p.pk }}"
+                          {% if form_data.perfil_acceso == p.pk|stringformat:"d" %}selected{% endif %}>
+                    {{ p.nombre }} — {{ p.descripcion|truncatechars:60 }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <small class="text-muted">
+                  Define que modulos ve el usuario. Los permisos granulares se configuran despues de crear.
+                </small>
+              </div>
+              <div class="col-md-6">
+                <label for="empresa" class="form-label fw-semibold">Empresa</label>
+                <select name="empresa" id="empresa" class="form-select">
+                  <option value="">-- Todas las empresas --</option>
+                  {% for e in empresas %}
+                  <option value="{{ e.pk }}"
+                          {% if form_data.empresa == e.pk|stringformat:"d" %}selected{% endif %}>
+                    {{ e.nombre_comercial|default:e.razon_social }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check mt-2">
+                  <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                  <label class="form-check-label" for="is_active">
+                    <strong>Cuenta activa</strong> — El usuario puede iniciar sesion
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ── Botones ──────────────────────────────────────────────────── #}
+        <div class="d-flex gap-2 justify-content-end mb-5">
+          <a href="{% url 'gestion_usuario_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i>Crear Usuario
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword(fieldId) {
+  const field = document.getElementById(fieldId);
+  const icon = document.getElementById(fieldId + '-icon');
+  if (field.type === 'password') {
+    field.type = 'text';
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    field.type = 'password';
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+}
+
+function autoFillFromPersonal() {
+  const select = document.getElementById('personal_id');
+  const option = select.options[select.selectedIndex];
+  if (!option.value) return;
+
+  const dni = option.dataset.dni || '';
+  const email = option.dataset.email || '';
+
+  if (dni) document.getElementById('username').value = dni;
+  if (email) document.getElementById('email').value = email;
+  document.getElementById('password').value = dni;
+  document.getElementById('password2').value = dni;
+}
+
+// Validate passwords match on submit
+document.getElementById('form-crear-usuario').addEventListener('submit', function(e) {
+  const p1 = document.getElementById('password').value;
+  const p2 = document.getElementById('password2').value;
+  if (p1 !== p2) {
+    e.preventDefault();
+    alert('Las passwords no coinciden.');
+    document.getElementById('password2').focus();
+  }
+});
+</script>
+{% endblock %}

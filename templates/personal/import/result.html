@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Resultado de Importacion{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            {% if result.created > 0 or result.updated > 0 %}
+                <i class="fas fa-check-circle fa-4x text-success mb-3 d-block"></i>
+                <h3>Importacion completada</h3>
+            {% else %}
+                <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3 d-block"></i>
+                <h3>Importacion con errores</h3>
+            {% endif %}
+            <p class="text-muted">Archivo: <strong>{{ filename }}</strong></p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4 justify-content-center">
+            <div class="col-4 col-md-3">
+                <div class="card border-0 bg-success bg-opacity-10 text-center py-4">
+                    <div class="h2 mb-0 text-success">{{ result.created }}</div>
+                    <small class="text-muted">Creados</small>
+                </div>
+            </div>
+            <div class="col-4 col-md-3">
+                <div class="card border-0 bg-info bg-opacity-10 text-center py-4">
+                    <div class="h2 mb-0 text-info">{{ result.updated }}</div>
+                    <small class="text-muted">Actualizados</small>
+                </div>
+            </div>
+            <div class="col-4 col-md-3">
+                <div class="card border-0 {% if result.errors %}bg-danger bg-opacity-10{% else %}bg-light{% endif %} text-center py-4">
+                    <div class="h2 mb-0 {% if result.errors %}text-danger{% else %}text-muted{% endif %}">{{ result.errors|length }}</div>
+                    <small class="text-muted">Errores</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Errors -->
+        {% if result.errors %}
+        <div class="card shadow-sm border-danger border-opacity-25 mb-4">
+            <div class="card-header bg-danger bg-opacity-10">
+                <h5 class="mb-0 text-danger"><i class="fas fa-exclamation-triangle"></i> Errores ({{ result.errors|length }})</h5>
+            </div>
+            <div class="card-body p-0">
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            {% for error in result.errors %}
+                            <tr>
+                                <td class="small"><i class="fas fa-times text-danger"></i> {{ error }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Details -->
+        {% if result.details %}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Detalle de operaciones
+                    <button class="btn btn-sm btn-outline-secondary float-end" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#detailsCollapse">
+                        <i class="fas fa-chevron-down"></i> Ver/Ocultar
+                    </button>
+                </h5>
+            </div>
+            <div class="collapse" id="detailsCollapse">
+                <div class="card-body p-0">
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped mb-0">
+                            <tbody>
+                                {% for detail in result.details %}
+                                <tr>
+                                    <td class="small">
+                                        {% if 'CREADO' in detail %}
+                                            <i class="fas fa-plus-circle text-success"></i>
+                                        {% elif 'ACTUALIZADO' in detail %}
+                                            <i class="fas fa-sync text-info"></i>
+                                        {% elif 'creada' in detail %}
+                                            <i class="fas fa-folder-plus text-warning"></i>
+                                        {% else %}
+                                            <i class="fas fa-info-circle text-muted"></i>
+                                        {% endif %}
+                                        {{ detail }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-center gap-3 mb-5">
+            <a href="{% url 'personal_list' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-users"></i> Ver Lista de Personal
+            </a>
+            <a href="{% url 'personal_import_upload' %}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-file-import"></i> Importar otro archivo
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

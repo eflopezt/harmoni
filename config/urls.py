@@ -9,6 +9,11 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_GET
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 def health_check(request):
     """Health check endpoint"""
@@ -52,6 +57,9 @@ urlpatterns = [
     path('robots.txt', robots_txt, name='robots_txt'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('api/v1/', include('core.api_urls')),
     path('api/', include('personal.api_urls')),  # backward compat
     path('asistencia/', include('asistencia.urls')),

@@ -1,0 +1,68 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Bienvenido/a a {{ empresa_nombre|default:"la empresa" }}{% endblock %}
+
+{% block preheader %}{{ nombre }}, tu proceso de incorporaci&oacute;n ha comenzado.{% endblock %}
+
+{% block content %}
+<h1 style="margin:0 0 8px 0;font-size:24px;font-weight:700;color:#111827;">
+    &iexcl;Bienvenido/a, {{ nombre }}!
+</h1>
+<p style="margin:0 0 20px 0;font-size:15px;color:#6b7280;line-height:1.5;">
+    Nos alegra que te sumes al equipo de <strong>{{ empresa_nombre|default:"la empresa" }}</strong>.
+</p>
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f0fdfa;border-radius:8px;margin-bottom:20px;">
+    <tr>
+        <td style="padding:20px 24px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                {% if cargo %}
+                <tr>
+                    <td style="padding:4px 0;font-size:14px;color:#6b7280;width:140px;">Cargo:</td>
+                    <td style="padding:4px 0;font-size:14px;color:#111827;font-weight:600;">{{ cargo }}</td>
+                </tr>
+                {% endif %}
+                {% if area %}
+                <tr>
+                    <td style="padding:4px 0;font-size:14px;color:#6b7280;width:140px;">&Aacute;rea:</td>
+                    <td style="padding:4px 0;font-size:14px;color:#111827;font-weight:600;">{{ area }}</td>
+                </tr>
+                {% endif %}
+                {% if fecha_ingreso %}
+                <tr>
+                    <td style="padding:4px 0;font-size:14px;color:#6b7280;width:140px;">Fecha de ingreso:</td>
+                    <td style="padding:4px 0;font-size:14px;color:#111827;font-weight:600;">{{ fecha_ingreso }}</td>
+                </tr>
+                {% endif %}
+                {% if jefe_directo %}
+                <tr>
+                    <td style="padding:4px 0;font-size:14px;color:#6b7280;width:140px;">Jefe directo:</td>
+                    <td style="padding:4px 0;font-size:14px;color:#111827;font-weight:600;">{{ jefe_directo }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<p style="margin:0 0 8px 0;font-size:15px;color:#374151;line-height:1.6;">
+    Hemos preparado tu proceso de onboarding para que tu incorporaci&oacute;n sea lo m&aacute;s fluida posible.
+    Ingresa al portal del empleado para completar tus datos y revisar la documentaci&oacute;n pendiente.
+</p>
+{% endblock %}
+
+{% block cta_section %}
+<tr>
+    <td style="padding:0 32px 28px 32px;text-align:center;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">
+            <tr>
+                <td style="border-radius:8px;background-color:#0f766e;">
+                    <a href="{{ portal_url|default:'#' }}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">
+                        Ingresar al Portal
+                    </a>
+                </td>
+            </tr>
+        </table>
+    </td>
+</tr>
+{% endblock %}

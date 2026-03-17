@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Empresa Configurada{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:640px;">
+
+  <div class="text-center mb-4">
+    <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#0d9488,#14b8a6);display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+      <i class="fas fa-check fa-2x text-white"></i>
+    </div>
+    <h2 class="fw-bold">Empresa Lista</h2>
+    <p class="text-muted">
+      <strong>{{ empresa.nombre_display }}</strong> ha sido configurada exitosamente.
+    </p>
+  </div>
+
+  <div class="card" style="background:#0f1f1c;border:1px solid rgba(94,234,212,.12);border-radius:.75rem;">
+    <div class="card-body">
+      <table class="table table-sm table-borderless mb-0" style="color:#b0cec8;">
+        <tr><td class="text-muted" style="width:35%">RUC</td><td><strong>{{ empresa.ruc }}</strong></td></tr>
+        <tr><td class="text-muted">Razon Social</td><td>{{ empresa.razon_social }}</td></tr>
+        {% if empresa.nombre_comercial %}
+        <tr><td class="text-muted">Nombre Comercial</td><td>{{ empresa.nombre_comercial }}</td></tr>
+        {% endif %}
+        <tr><td class="text-muted">Regimen</td><td>{{ empresa.get_regimen_laboral_display }}</td></tr>
+        {% if empresa.subdominio %}
+        <tr>
+          <td class="text-muted">Acceso</td>
+          <td>
+            <code>https://{{ empresa.subdominio }}.harmoni.pe</code>
+          </td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td class="text-muted">Email</td>
+          <td>
+            {% if empresa.tiene_email_configurado %}
+            <span class="text-success"><i class="fas fa-check-circle me-1"></i>Configurado</span>
+            {% else %}
+            <span class="text-muted">No configurado</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="text-muted">Personal</td>
+          <td>{{ empresa.personal.count }} registro{{ empresa.personal.count|pluralize:"s" }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 justify-content-center mt-4">
+    <!-- Select this empresa as active -->
+    <form method="post" action="{% url 'empresa_seleccionar' %}" class="d-inline">
+      {% csrf_token %}
+      <input type="hidden" name="empresa_id" value="{{ empresa.pk }}">
+      <input type="hidden" name="next" value="{% url 'home' %}">
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-sign-in-alt me-1"></i>Ir al Dashboard
+      </button>
+    </form>
+
+    <a href="{% url 'empresas_panel' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-building me-1"></i>Panel de Empresas
+    </a>
+
+    <a href="{% url 'onboarding_step1' %}" class="btn btn-outline-info">
+      <i class="fas fa-plus me-1"></i>Configurar otra empresa
+    </a>
+  </div>
+
+  {% if empresa.subdominio %}
+  <div class="text-center mt-4">
+    <p class="small text-muted">
+      El administrador de la empresa puede acceder directamente en
+      <a href="https://{{ empresa.subdominio }}.harmoni.pe" class="text-teal" target="_blank">
+        {{ empresa.subdominio }}.harmoni.pe
+      </a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

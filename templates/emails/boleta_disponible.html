@@ -1,0 +1,60 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Tu boleta de pago est&aacute; disponible{% endblock %}
+
+{% block preheader %}{{ nombre }}, tu boleta del periodo {{ periodo }} ya est&aacute; lista para descargar.{% endblock %}
+
+{% block content %}
+<h1 style="margin:0 0 8px 0;font-size:24px;font-weight:700;color:#111827;">
+    Boleta de pago disponible
+</h1>
+<p style="margin:0 0 20px 0;font-size:15px;color:#6b7280;line-height:1.5;">
+    Hola <strong>{{ nombre }}</strong>, tu boleta de pago del periodo <strong>{{ periodo }}</strong> ya est&aacute; disponible.
+</p>
+
+<!-- Summary card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
+    <tr>
+        <td style="padding:20px 24px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#6b7280;width:150px;">Periodo:</td>
+                    <td style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ periodo }}</td>
+                </tr>
+                {% if neto_pagar %}
+                <tr>
+                    <td colspan="2" style="padding:12px 0 0 0;">
+                        <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;" />
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:10px 0 4px 0;font-size:16px;color:#111827;font-weight:700;">Neto a pagar:</td>
+                    <td style="padding:10px 0 4px 0;font-size:20px;color:#059669;font-weight:700;text-align:right;">S/ {{ neto_pagar }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<p style="margin:0;font-size:14px;color:#6b7280;line-height:1.5;">
+    Puedes descargar el PDF de tu boleta desde el portal del empleado. Si tienes alguna consulta,
+    comun&iacute;cate con el &aacute;rea de RRHH.
+</p>
+{% endblock %}
+
+{% block cta_section %}
+<tr>
+    <td style="padding:0 32px 28px 32px;text-align:center;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">
+            <tr>
+                <td style="border-radius:8px;background-color:#0f766e;">
+                    <a href="{{ boleta_url|default:'#' }}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">
+                        Descargar Boleta
+                    </a>
+                </td>
+            </tr>
+        </table>
+    </td>
+</tr>
+{% endblock %}

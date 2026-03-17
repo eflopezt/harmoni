@@ -79,7 +79,7 @@
   </div>
   <div>
     <h2>Reportes RRHH</h2>
-    <p>Descarga reportes Excel de plantilla, asistencia y horas extras.</p>
+    <p>Descarga reportes Excel y PDF de plantilla, asistencia y horas extras.</p>
   </div>
 </div>
 
@@ -343,6 +343,147 @@
   </div>
 
 </div>{# /row #}
+
+{# ── Reportes PDF Ejecutivos ──────────────────────────────────── #}
+<div class="page-title-bar d-flex align-items-center gap-3 mt-5">
+  <div style="font-size:2rem;">
+    <i class="fas fa-file-pdf"></i>
+  </div>
+  <div>
+    <h2>Reportes PDF Ejecutivos</h2>
+    <p>Reportes resumidos en formato PDF con KPIs y tablas profesionales.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  {# ── PDF: Reporte de Planilla ── #}
+  <div class="col-12 col-lg-3">
+    <div class="card reporte-card h-100">
+      <div class="card-header">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="reporte-icon reporte-icon-green">
+            <i class="fas fa-file-invoice-dollar"></i>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold" style="color:#065f46;">Planilla</h5>
+            <small class="text-muted">Resumen ejecutivo PDF</small>
+          </div>
+        </div>
+        <p class="text-muted mb-0" style="font-size:.875rem;">
+          KPIs de planilla, tabla de empleados con ingresos, descuentos y neto.
+        </p>
+      </div>
+      <div class="card-body d-flex flex-column">
+        <div class="card-footer px-0 pb-0 mt-auto" style="background:transparent;border:0;">
+          <a href="{% url 'reporte_planilla_pdf' %}" class="btn btn-download w-100">
+            <i class="fas fa-file-pdf"></i> Descargar PDF
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── PDF: Reporte de Personal ── #}
+  <div class="col-12 col-lg-3">
+    <div class="card reporte-card h-100">
+      <div class="card-header">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="reporte-icon reporte-icon-blue">
+            <i class="fas fa-users-cog"></i>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold" style="color:#1e40af;">Personal</h5>
+            <small class="text-muted">Resumen ejecutivo PDF</small>
+          </div>
+        </div>
+        <p class="text-muted mb-0" style="font-size:.875rem;">
+          Headcount por area, contratos, genero y bandas salariales.
+        </p>
+      </div>
+      <div class="card-body d-flex flex-column">
+        <div class="card-footer px-0 pb-0 mt-auto" style="background:transparent;border:0;">
+          <a href="{% url 'reporte_personal_pdf' %}" class="btn btn-download w-100">
+            <i class="fas fa-file-pdf"></i> Descargar PDF
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── PDF: Reporte de Asistencia ── #}
+  <div class="col-12 col-lg-3">
+    <div class="card reporte-card h-100">
+      <div class="card-header">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="reporte-icon reporte-icon-amber">
+            <i class="fas fa-clipboard-check"></i>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold" style="color:#92400e;">Asistencia</h5>
+            <small class="text-muted">Resumen ejecutivo PDF</small>
+          </div>
+        </div>
+        <p class="text-muted mb-0" style="font-size:.875rem;">
+          Asistencia por area, faltas, tardanzas y horas extra del mes.
+        </p>
+      </div>
+      <form method="get" action="{% url 'reporte_asistencia_pdf' %}" class="card-body d-flex flex-column gap-3">
+        <div class="row g-2">
+          <div class="col-7">
+            <div class="filter-label">Mes</div>
+            <select name="mes" class="form-select form-select-sm">
+              {% for num, nombre in meses %}
+              <option value="{{ num }}" {% if num == mes_actual %}selected{% endif %}>{{ nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-5">
+            <div class="filter-label">Anio</div>
+            <select name="anio" class="form-select form-select-sm">
+              {% for anio in anios %}
+              <option value="{{ anio }}" {% if anio == anio_actual %}selected{% endif %}>{{ anio }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="card-footer px-0 pb-0 mt-auto" style="background:transparent;border:0;">
+          <button type="submit" class="btn btn-download w-100">
+            <i class="fas fa-file-pdf"></i> Descargar PDF
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ── PDF: Reporte de Vacaciones ── #}
+  <div class="col-12 col-lg-3">
+    <div class="card reporte-card h-100">
+      <div class="card-header">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="reporte-icon" style="background:#fef9c3;color:#a16207;">
+            <i class="fas fa-umbrella-beach"></i>
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold" style="color:#a16207;">Vacaciones</h5>
+            <small class="text-muted">Resumen ejecutivo PDF</small>
+          </div>
+        </div>
+        <p class="text-muted mb-0" style="font-size:.875rem;">
+          Dias pendientes por empleado, estadisticas de uso y alertas de riesgo.
+        </p>
+      </div>
+      <div class="card-body d-flex flex-column">
+        <div class="card-footer px-0 pb-0 mt-auto" style="background:transparent;border:0;">
+          <a href="{% url 'reporte_vacaciones_pdf' %}" class="btn btn-download w-100">
+            <i class="fas fa-file-pdf"></i> Descargar PDF
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>{# /row PDF #}
 
 {# ── Nota informativa ──────────────────────────────────────────── #}
 <div class="alert d-flex align-items-start gap-2 mt-4"

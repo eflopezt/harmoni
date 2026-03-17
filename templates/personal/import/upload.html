@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+
+{% block title %}Importar Personal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="mb-1"><i class="fas fa-file-import text-primary"></i> Importacion Masiva de Personal</h3>
+                <p class="text-muted mb-0">Suba un archivo Excel para agregar o actualizar empleados</p>
+            </div>
+            <a href="{% url 'personal_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <!-- Upload Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+
+                    <!-- Drop Zone -->
+                    <div id="dropZone" class="border border-2 border-dashed rounded-3 p-5 text-center mb-4"
+                         style="border-color: #dee2e6 !important; cursor: pointer; transition: all 0.3s;">
+                        <div id="dropContent">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3 d-block"></i>
+                            <h5 class="mb-2">Arrastre su archivo Excel aqui</h5>
+                            <p class="text-muted mb-3">o haga clic para seleccionar</p>
+                            <span class="badge bg-light text-dark px-3 py-2">
+                                <i class="fas fa-file-excel text-success"></i> .xlsx, .xls &mdash; Max 10 MB
+                            </span>
+                        </div>
+                        <div id="fileInfo" class="d-none">
+                            <i class="fas fa-file-excel fa-3x text-success mb-3 d-block"></i>
+                            <h5 class="mb-1" id="fileName"></h5>
+                            <p class="text-muted mb-2" id="fileSize"></p>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="removeFile">
+                                <i class="fas fa-times"></i> Quitar archivo
+                            </button>
+                        </div>
+                        <input type="file" name="archivo" id="fileInput" accept=".xlsx,.xls"
+                               class="d-none" required>
+                    </div>
+
+                    <!-- Validation Preview (AJAX) -->
+                    <div id="validationPreview" class="d-none mb-4">
+                        <div class="card border">
+                            <div class="card-header bg-light py-2">
+                                <strong><i class="fas fa-check-circle"></i> Validacion rapida</strong>
+                            </div>
+                            <div class="card-body py-3" id="validationBody">
+                                <div class="text-center">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                    Analizando archivo...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <a href="{% url 'personal_import_template' %}" class="btn btn-outline-success">
+                            <i class="fas fa-download"></i> Descargar Plantilla
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                            <i class="fas fa-search"></i> Validar y Previsualizar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0"><i class="fas fa-info-circle text-info"></i> Instrucciones</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-download text-success"></i> Paso 1: Plantilla</h6>
+                        <p class="small text-muted">
+                            Descargue la plantilla Excel con los campos y validaciones correctos.
+                            Incluye una hoja de instrucciones y catalogos de valores validos.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-edit text-primary"></i> Paso 2: Completar datos</h6>
+                        <p class="small text-muted">
+                            Complete los datos del personal. Los campos obligatorios son:
+                            <strong>nro_doc</strong> y <strong>nombre</strong> (separado o combinado).
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-upload text-warning"></i> Paso 3: Subir</h6>
+                        <p class="small text-muted">
+                            Suba el archivo. El sistema validara los datos y mostrara un
+                            preview antes de importar.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check text-success"></i> Paso 4: Confirmar</h6>
+                        <p class="small text-muted">
+                            Revise el preview. Si un DNI ya existe, el registro se
+                            <strong>actualizara</strong>. Nuevos DNIs se <strong>crearan</strong>.
+                        </p>
+                    </div>
+                </div>
+
+                <hr>
+                <h6>Formatos de fecha aceptados</h6>
+                <p class="small text-muted mb-0">
+                    <code>DD/MM/YYYY</code>, <code>YYYY-MM-DD</code>, <code>DD-MM-YYYY</code>,
+                    <code>DD/MM/YY</code>, <code>DD.MM.YYYY</code>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const dropContent = document.getElementById('dropContent');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeBtn = document.getElementById('removeFile');
+    const submitBtn = document.getElementById('submitBtn');
+    const validationPreview = document.getElementById('validationPreview');
+    const validationBody = document.getElementById('validationBody');
+
+    // Click to select
+    dropZone.addEventListener('click', function(e) {
+        if (e.target.id !== 'removeFile' && !e.target.closest('#removeFile')) {
+            fileInput.click();
+        }
+    });
+
+    // Drag & drop
+    ['dragenter', 'dragover'].forEach(evt => {
+        dropZone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            dropZone.style.borderColor = '#0d6efd';
+            dropZone.style.backgroundColor = '#f0f6ff';
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+        dropZone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            dropZone.style.borderColor = '#dee2e6';
+            dropZone.style.backgroundColor = '';
+        });
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            showFile(files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            showFile(this.files[0]);
+        }
+    });
+
+    removeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fileInput.value = '';
+        dropContent.classList.remove('d-none');
+        fileInfo.classList.add('d-none');
+        submitBtn.disabled = true;
+        validationPreview.classList.add('d-none');
+    });
+
+    function showFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls'].includes(ext)) {
+            alert('Solo se aceptan archivos .xlsx o .xls');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            alert('El archivo no debe superar 10 MB');
+            return;
+        }
+
+        fileName.textContent = file.name;
+        fileSize.textContent = formatSize(file.size);
+        dropContent.classList.add('d-none');
+        fileInfo.classList.remove('d-none');
+        submitBtn.disabled = false;
+
+        // AJAX validation
+        validateFile(file);
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function validateFile(file) {
+        validationPreview.classList.remove('d-none');
+        validationBody.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Analizando archivo...</div>';
+
+        const formData = new FormData();
+        formData.append('archivo', file);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch('{% url "personal_import_validate" %}', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            let html = '<div class="row g-3">';
+
+            // Stats badges
+            html += '<div class="col-12">';
+            html += `<span class="badge bg-secondary me-2"><i class="fas fa-list"></i> ${data.stats.total} filas</span>`;
+            html += `<span class="badge bg-success me-2"><i class="fas fa-plus"></i> ${data.stats.creates} nuevos</span>`;
+            html += `<span class="badge bg-info me-2"><i class="fas fa-sync"></i> ${data.stats.updates} actualizaciones</span>`;
+            if (data.stats.errors > 0) {
+                html += `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> ${data.stats.errors} con errores</span>`;
+            }
+            html += '</div>';
+
+            // Errors
+            if (data.errors.length > 0) {
+                html += '<div class="col-12"><div class="alert alert-danger py-2 mb-0 small">';
+                html += '<strong>Errores encontrados:</strong><ul class="mb-0 mt-1">';
+                data.errors.slice(0, 5).forEach(e => { html += `<li>${e}</li>`; });
+                if (data.errors.length > 5) html += `<li>... y ${data.errors.length - 5} mas</li>`;
+                html += '</ul></div></div>';
+            }
+
+            // Warnings
+            if (data.warnings.length > 0) {
+                html += '<div class="col-12"><div class="alert alert-warning py-2 mb-0 small">';
+                html += '<strong>Advertencias:</strong><ul class="mb-0 mt-1">';
+                data.warnings.slice(0, 5).forEach(w => { html += `<li>${w}</li>`; });
+                if (data.warnings.length > 5) html += `<li>... y ${data.warnings.length - 5} mas</li>`;
+                html += '</ul></div></div>';
+            }
+
+            if (data.valid) {
+                html += '<div class="col-12"><div class="alert alert-success py-2 mb-0 small"><i class="fas fa-check-circle"></i> Archivo valido. Puede proceder con la importacion.</div></div>';
+            }
+
+            html += '</div>';
+            validationBody.innerHTML = html;
+        })
+        .catch(err => {
+            validationBody.innerHTML = '<div class="alert alert-warning py-2 mb-0 small">No se pudo validar en tiempo real. La validacion completa se hara al subir.</div>';
+        });
+    }
+});
+</script>
+{% endblock %}

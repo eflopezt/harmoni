@@ -1,0 +1,65 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}{{ titulo|default:"Comunicado" }}{% endblock %}
+
+{% block preheader %}{{ empresa_nombre|default:"La empresa" }} tiene un comunicado importante para ti.{% endblock %}
+
+{% block content %}
+<!-- Badge -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:16px;">
+    <tr>
+        <td>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="background-color:#e0f2fe;border-radius:20px;padding:4px 14px;">
+                        <span style="font-size:12px;font-weight:600;color:#0369a1;text-transform:uppercase;letter-spacing:0.5px;">{{ tipo_comunicado|default:"Comunicado" }}</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<h1 style="margin:0 0 16px 0;font-size:24px;font-weight:700;color:#111827;line-height:1.3;">
+    {{ titulo }}
+</h1>
+
+{% if fecha_publicacion %}
+<p style="margin:0 0 16px 0;font-size:13px;color:#9ca3af;">
+    Publicado el {{ fecha_publicacion }}{% if autor %} por {{ autor }}{% endif %}
+</p>
+{% endif %}
+
+<!-- Comunicado body -->
+<div style="font-size:15px;color:#374151;line-height:1.7;">
+    {{ cuerpo|safe }}
+</div>
+
+{% if requiere_confirmacion %}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fef3c7;border-radius:8px;margin-top:20px;">
+    <tr>
+        <td style="padding:14px 20px;">
+            <p style="margin:0;font-size:14px;color:#92400e;font-weight:600;">
+                Este comunicado requiere confirmaci&oacute;n de lectura. Por favor, haz clic en el bot&oacute;n de abajo.
+            </p>
+        </td>
+    </tr>
+</table>
+{% endif %}
+{% endblock %}
+
+{% block cta_section %}
+<tr>
+    <td style="padding:0 32px 28px 32px;text-align:center;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">
+            <tr>
+                <td style="border-radius:8px;background-color:#0f766e;">
+                    <a href="{{ detalle_url|default:'#' }}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">
+                        {% if requiere_confirmacion %}Confirmar lectura{% else %}Ver comunicado completo{% endif %}
+                    </a>
+                </td>
+            </tr>
+        </table>
+    </td>
+</tr>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Onboarding - Paso {{ step }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .wizard-container { max-width: 720px; margin: 0 auto; }
+  .wizard-steps {
+    display: flex; gap: 0; margin-bottom: 2rem;
+    counter-reset: step;
+  }
+  .wizard-step {
+    flex: 1; text-align: center; position: relative;
+    padding-top: 40px; font-size: .82rem; color: #8b9a97;
+  }
+  .wizard-step::before {
+    content: counter(step); counter-increment: step;
+    width: 32px; height: 32px; line-height: 32px;
+    display: block; margin: 0 auto 6px;
+    border-radius: 50%; font-weight: 700; font-size: .85rem;
+    background: #1e3330; color: #5a7370; border: 2px solid #2a4440;
+    position: relative; z-index: 2;
+  }
+  .wizard-step::after {
+    content: ''; position: absolute; top: 55px; left: 50%; width: 100%;
+    height: 3px; background: #2a4440; z-index: 1;
+  }
+  .wizard-step:last-child::after { display: none; }
+  .wizard-step.active::before {
+    background: linear-gradient(135deg, #0d9488, #14b8a6);
+    color: #fff; border-color: #14b8a6;
+    box-shadow: 0 0 12px rgba(20,184,166,.35);
+  }
+  .wizard-step.active { color: #ccfbf1; font-weight: 600; }
+  .wizard-step.done::before {
+    background: #115e59; color: #5eead4; border-color: #115e59;
+    content: '\2713';
+  }
+  .wizard-step.done::after { background: #115e59; }
+  .wizard-step.done { color: #5eead4; }
+  .wizard-card {
+    background: #0f1f1c; border: 1px solid rgba(94,234,212,.08);
+    border-radius: .75rem; padding: 2rem;
+  }
+  .wizard-card .form-label { font-weight: 600; font-size: .88rem; color: #b0cec8; }
+  .wizard-card .form-control,
+  .wizard-card .form-select {
+    background: #162b27; border-color: #2a4440; color: #e2e8f0;
+  }
+  .wizard-card .form-control:focus,
+  .wizard-card .form-select:focus {
+    border-color: #14b8a6; box-shadow: 0 0 0 .2rem rgba(20,184,166,.18);
+    background: #1a332f;
+  }
+  .wizard-card .form-control::placeholder { color: #5a7370; }
+  .wizard-card .form-text { color: #5a7370; }
+  .wizard-actions {
+    display: flex; justify-content: space-between;
+    margin-top: 1.5rem; padding-top: 1.5rem;
+    border-top: 1px solid rgba(94,234,212,.06);
+  }
+  .btn-wizard-next {
+    background: linear-gradient(135deg, #0d9488, #14b8a6);
+    color: #fff; border: none; padding: .5rem 1.5rem;
+    border-radius: .5rem; font-weight: 600;
+  }
+  .btn-wizard-next:hover { background: #0d9488; color: #fff; }
+  .btn-wizard-back {
+    background: transparent; color: #5eead4; border: 1px solid #2a4440;
+    padding: .5rem 1.5rem; border-radius: .5rem;
+  }
+  .btn-wizard-back:hover { background: #1e3330; color: #ccfbf1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="wizard-container">
+
+    <div class="d-flex align-items-center mb-3">
+      <h1 class="h4 fw-bold mb-0">
+        <i class="fas fa-rocket me-2 text-teal"></i>Setup de Nueva Empresa
+      </h1>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="wizard-steps">
+      <div class="wizard-step {% if step > 1 %}done{% elif step == 1 %}active{% endif %}">Empresa</div>
+      <div class="wizard-step {% if step > 2 %}done{% elif step == 2 %}active{% endif %}">Email</div>
+      <div class="wizard-step {% if step > 3 %}done{% elif step == 3 %}active{% endif %}">Admin</div>
+      <div class="wizard-step {% if step > 4 %}done{% elif step == 4 %}active{% endif %}">Datos</div>
+      <div class="wizard-step {% if step == 5 %}active{% endif %}">Listo</div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress mb-4" style="height:4px;background:#1e3330;">
+      <div class="progress-bar" style="width:{% widthratio step 5 100 %}%;background:linear-gradient(90deg,#0d9488,#14b8a6);"></div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-3">
+      {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block wizard_content %}{% endblock %}
+
+  </div>
+</div>
+{% endblock %}

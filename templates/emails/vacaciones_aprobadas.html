@@ -1,0 +1,84 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Vacaciones aprobadas{% endblock %}
+
+{% block preheader %}Tu solicitud de vacaciones ha sido aprobada del {{ fecha_inicio }} al {{ fecha_fin }}.{% endblock %}
+
+{% block content %}
+<h1 style="margin:0 0 8px 0;font-size:24px;font-weight:700;color:#111827;">
+    Vacaciones aprobadas
+</h1>
+<p style="margin:0 0 20px 0;font-size:15px;color:#6b7280;line-height:1.5;">
+    Hola <strong>{{ nombre }}</strong>, tu solicitud de vacaciones ha sido <span style="color:#059669;font-weight:600;">aprobada</span>.
+</p>
+
+<!-- Status badge -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:20px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="background-color:#d1fae5;border-radius:20px;padding:6px 16px;">
+                        <span style="font-size:13px;font-weight:600;color:#065f46;">APROBADA</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Details card -->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
+    <tr>
+        <td style="padding:20px 24px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#6b7280;width:140px;">Fecha inicio:</td>
+                    <td style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ fecha_inicio }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#6b7280;width:140px;">Fecha fin:</td>
+                    <td style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ fecha_fin }}</td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#6b7280;width:140px;">D&iacute;as:</td>
+                    <td style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ dias }} d&iacute;a{{ dias|pluralize:"s" }}</td>
+                </tr>
+                {% if aprobado_por %}
+                <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#6b7280;width:140px;">Aprobado por:</td>
+                    <td style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ aprobado_por }}</td>
+                </tr>
+                {% endif %}
+                {% if saldo_restante %}
+                <tr>
+                    <td style="padding:6px 0;font-size:14px;color:#6b7280;width:140px;">Saldo restante:</td>
+                    <td style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ saldo_restante }} d&iacute;as</td>
+                </tr>
+                {% endif %}
+            </table>
+        </td>
+    </tr>
+</table>
+
+<p style="margin:0;font-size:14px;color:#6b7280;line-height:1.5;">
+    Recuerda coordinar con tu equipo las tareas pendientes antes de tu salida.
+    &iexcl;Disfruta tu descanso!
+</p>
+{% endblock %}
+
+{% block cta_section %}
+<tr>
+    <td style="padding:0 32px 28px 32px;text-align:center;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">
+            <tr>
+                <td style="border-radius:8px;background-color:#0f766e;">
+                    <a href="{{ detalle_url|default:'#' }}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">
+                        Ver Detalle
+                    </a>
+                </td>
+            </tr>
+        </table>
+    </td>
+</tr>
+{% endblock %}

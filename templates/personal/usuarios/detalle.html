@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ usuario.username }} — Usuario — Harmoni{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  {# ── Header ──────────────────────────────────────────────────────────── #}
+  <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+    <a href="{% url 'gestion_usuario_lista' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="d-flex align-items-center justify-content-center rounded-3"
+         style="width:48px;height:48px;background:linear-gradient(135deg,#0f766e,#134e4a)">
+      <i class="fas fa-user text-white fs-5"></i>
+    </div>
+    <div>
+      <h1 class="h3 mb-0 fw-bold text-dark">{{ usuario.username }}</h1>
+      <p class="text-muted mb-0 small">
+        {% if personal %}{{ personal.apellidos_nombres }} — {{ personal.cargo|default:"" }}{% else %}Cuenta sin empleado vinculado{% endif %}
+      </p>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+      <a href="{% url 'gestion_usuario_editar' usuario.pk %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-edit me-1"></i>Editar
+      </a>
+      {% if request.user.is_superuser and not usuario.is_superuser and usuario.pk != request.user.pk %}
+      <form method="post" action="{% url 'gestion_usuario_impersonar' usuario.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-warning btn-sm"
+                onclick="return confirm('Va a iniciar sesion como {{ usuario.username }}. Confirma?')">
+          <i class="fas fa-user-secret me-1"></i>Impersonar
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="row g-4">
+    {# ── Columna izquierda: Info ───────────────────────────────────────── #}
+    <div class="col-lg-4">
+
+      {# Profile card #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body text-center py-4">
+          <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle"
+               style="width:80px;height:80px;background:{% if usuario.is_active %}#dcfce7{% else %}#fef3c7{% endif %}">
+            <i class="fas fa-user-circle"
+               style="font-size:2.5rem;color:{% if usuario.is_active %}#16a34a{% else %}#92400e{% endif %}"></i>
+          </div>
+          <h5 class="fw-bold mb-1">{{ usuario.get_full_name|default:usuario.username }}</h5>
+          <p class="text-muted small mb-2">@{{ usuario.username }}</p>
+
+          {% if usuario.is_superuser %}
+          <span class="badge text-bg-danger mb-2">Superusuario</span>
+          {% endif %}
+          {% if usuario.is_active %}
+          <span class="badge rounded-pill" style="background:#dcfce7;color:#16a34a">Activo</span>
+          {% else %}
+          <span class="badge rounded-pill" style="background:#fef3c7;color:#92400e">Inactivo</span>
+          {% endif %}
+        </div>
+
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="text-muted small">Email</span>
+            <span class="small fw-medium">{{ usuario.email|default:"-" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="text-muted small">Perfil de Acceso</span>
+            <span class="small fw-medium">
+              {% if usuario.is_superuser %}Superusuario
+              {% elif personal and personal.perfil_acceso %}{{ personal.perfil_acceso.nombre }}
+              {% else %}Sin perfil{% endif %}
+            </span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="text-muted small">Empresa</span>
+            <span class="small fw-medium">
+              {% if personal and personal.empresa %}
+                {{ personal.empresa.nombre_comercial|default:personal.empresa.razon_social }}
+              {% else %}-{% endif %}
+            </span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="text-muted small">Ultimo Login</span>
+            <span class="small fw-medium">
+              {% if usuario.last_login %}{{ usuario.last_login|date:"d/m/Y H:i" }}{% else %}Nunca{% endif %}
+            </span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="text-muted small">Fecha Creacion</span>
+            <span class="small fw-medium">{{ usuario.date_joined|date:"d/m/Y" }}</span>
+          </li>
+          {% if personal %}
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="text-muted small">DNI</span>
+            <span class="small fw-medium font-monospace">{{ personal.nro_doc }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="text-muted small">Area</span>
+            <span class="small fw-medium">
+              {% if personal.subarea %}{{ personal.subarea.area.nombre }}{% else %}-{% endif %}
+            </span>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+
+      {# Quick actions #}
+      {% if not usuario.is_superuser %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom py-3">
+          <h6 class="mb-0 fw-semibold"><i class="fas fa-bolt me-2 text-muted"></i>Acciones Rapidas</h6>
+        </div>
+        <div class="card-body d-grid gap-2">
+          <form method="post" action="{% url 'gestion_usuario_toggle_activo' usuario.pk %}">
+            {% csrf_token %}
+            {% if usuario.is_active %}
+            <button type="submit" class="btn btn-outline-warning w-100 btn-sm"
+                    onclick="return confirm('Desactivar al usuario {{ usuario.username }}?')">
+              <i class="fas fa-ban me-1"></i>Desactivar Cuenta
+            </button>
+            {% else %}
+            <button type="submit" class="btn btn-outline-success w-100 btn-sm"
+                    onclick="return confirm('Reactivar al usuario {{ usuario.username }}?')">
+              <i class="fas fa-check me-1"></i>Reactivar Cuenta
+            </button>
+            {% endif %}
+          </form>
+          <form method="post" action="{% url 'gestion_usuario_reset_password' usuario.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-info w-100 btn-sm"
+                    onclick="return confirm('Resetear la password de {{ usuario.username }} a su DNI?')">
+              <i class="fas fa-key me-1"></i>Reset Password (DNI)
+            </button>
+          </form>
+          {% if personal %}
+          <a href="{% url 'personal_detail' personal.pk %}" class="btn btn-outline-secondary w-100 btn-sm">
+            <i class="fas fa-id-badge me-1"></i>Ver Ficha del Empleado
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# ── Columna derecha: Permisos + Auditoria ────────────────────────── #}
+    <div class="col-lg-8">
+
+      {# ── Matriz de permisos (solo lectura) ──────────────────────────── #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+          <h6 class="mb-0 fw-semibold">
+            <i class="fas fa-th me-2 text-muted"></i>Permisos Efectivos por Modulo
+          </h6>
+          {% if not usuario.is_superuser and personal %}
+          <a href="{% url 'gestion_usuario_editar' usuario.pk %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-edit me-1"></i>Editar Permisos
+          </a>
+          {% endif %}
+        </div>
+        <div class="card-body p-0">
+          {% if usuario.is_superuser %}
+          <div class="text-center py-4 text-muted">
+            <i class="fas fa-crown text-warning mb-2 fs-3"></i>
+            <p class="mb-0">Superusuario: acceso total a todos los modulos.</p>
+          </div>
+          {% elif not personal %}
+          <div class="text-center py-4 text-muted">
+            <p class="mb-0">Sin empleado vinculado. Sin permisos granulares.</p>
+          </div>
+          {% else %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:.82rem">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Modulo</th>
+                  <th class="text-center"><i class="fas fa-eye"></i> Ver</th>
+                  <th class="text-center"><i class="fas fa-plus"></i> Crear</th>
+                  <th class="text-center"><i class="fas fa-edit"></i> Editar</th>
+                  <th class="text-center"><i class="fas fa-check-double"></i> Aprobar</th>
+                  <th class="text-center pe-3"><i class="fas fa-download"></i> Exportar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for mod in modulos_permisos %}
+                <tr>
+                  <td class="ps-3 fw-semibold">{{ mod.nombre }}</td>
+                  {% for perm in mod.permisos %}
+                  <td class="text-center">
+                    {% if perm.valor %}
+                    <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                    <i class="fas fa-times-circle text-danger opacity-25"></i>
+                    {% endif %}
+                  </td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── Historial de actividad (AuditLog) ──────────────────────────── #}
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3">
+          <h6 class="mb-0 fw-semibold">
+            <i class="fas fa-history me-2 text-muted"></i>Actividad Reciente
+            <span class="badge text-bg-secondary ms-1" style="font-size:.7rem">{{ audit_logs|length }}</span>
+          </h6>
+        </div>
+        <div class="card-body p-0">
+          {% if audit_logs %}
+          <div class="list-group list-group-flush" style="max-height:400px;overflow-y:auto">
+            {% for log in audit_logs %}
+            <div class="list-group-item px-4 py-3">
+              <div class="d-flex align-items-start gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:32px;height:32px;background:{% if log.accion == 'CREATE' %}#dcfce7{% elif log.accion == 'UPDATE' %}#dbeafe{% else %}#fef3c7{% endif %}">
+                  <i class="fas {% if log.accion == 'CREATE' %}fa-plus text-success{% elif log.accion == 'UPDATE' %}fa-pencil-alt text-primary{% else %}fa-trash text-warning{% endif %}"
+                     style="font-size:.75rem"></i>
+                </div>
+                <div class="flex-grow-1 min-width-0">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <span class="fw-semibold small">{{ log.get_accion_display }}</span>
+                      <span class="text-muted small ms-1">{{ log.content_type }}</span>
+                    </div>
+                    <small class="text-muted">{{ log.timestamp|date:"d/m/Y H:i" }}</small>
+                  </div>
+                  {% if log.descripcion %}
+                  <p class="small text-muted mb-0 mt-1">{{ log.descripcion }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="fas fa-clipboard-list opacity-25 fs-3 d-block mb-2"></i>
+            <p class="mb-0 small">No hay actividad registrada para este usuario.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

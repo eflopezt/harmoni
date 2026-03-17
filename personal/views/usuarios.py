@@ -766,3 +766,583 @@ def portal_reset_credenciales(request, personal_pk):
         'username':      personal.usuario.username,
         'email_enviado': bool(email),
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GESTIÓN COMPLETA DE USUARIOS (interfaz ERP — no Django admin)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _get_modulos_permisos_for_user(user):
+    """
+    Construye la lista de módulos con sus permisos (ver/crear/editar/aprobar/exportar)
+    para renderizar la matriz de permisos en templates.
+    """
+    from core.models import PermisoModulo, MODULOS_SISTEMA
+
+    # Obtener overrides existentes
+    overrides = {}
+    for pm in PermisoModulo.objects.filter(usuario=user):
+        overrides[pm.modulo] = pm
+
+    modulos = []
+    for codigo, nombre in MODULOS_SISTEMA:
+        pm = overrides.get(codigo)
+        campos = ['puede_ver', 'puede_crear', 'puede_editar', 'puede_aprobar', 'puede_exportar']
+        permisos = []
+        for campo in campos:
+            valor = getattr(pm, campo, False) if pm else False
+            permisos.append({'campo': campo, 'valor': valor})
+        modulos.append({
+            'codigo': codigo,
+            'nombre': nombre,
+            'permisos': permisos,
+        })
+    return modulos
+
+
+@login_required
+def gestion_usuario_lista(request):
+    """Lista completa de usuarios con filtros, búsqueda y acciones masivas."""
+    if not _puede_gestionar_accesos(request.user):
+        messages.error(request, 'No tienes permisos para gestionar usuarios.')
+        return redirect('home')
+
+    from django.contrib.auth.models import User
+    from django.db.models import Q
+    from core.models import PerfilAcceso
+
+    qs = User.objects.select_related('personal_data', 'personal_data__perfil_acceso',
+                                      'personal_data__subarea__area',
+                                      'personal_data__empresa').order_by('username')
+
+    filtros = {
+        'q': request.GET.get('q', '').strip(),
+        'estado': request.GET.get('estado', '').strip(),
+        'perfil': request.GET.get('perfil', '').strip(),
+        'empresa': request.GET.get('empresa', '').strip(),
+    }
+
+    if filtros['q']:
+        qs = qs.filter(
+            Q(username__icontains=filtros['q']) |
+            Q(email__icontains=filtros['q']) |
+            Q(first_name__icontains=filtros['q']) |
+            Q(last_name__icontains=filtros['q']) |
+            Q(personal_data__apellidos_nombres__icontains=filtros['q'])
+        )
+    if filtros['estado'] == 'activo':
+        qs = qs.filter(is_active=True)
+    elif filtros['estado'] == 'inactivo':
+        qs = qs.filter(is_active=False)
+    if filtros['perfil'] == 'sin_perfil':
+        qs = qs.filter(
+            Q(personal_data__perfil_acceso__isnull=True) | Q(personal_data__isnull=True)
+        ).exclude(is_superuser=True)
+    elif filtros['perfil']:
+        qs = qs.filter(personal_data__perfil_acceso__codigo=filtros['perfil'])
+    if filtros['empresa']:
+        qs = qs.filter(personal_data__empresa_id=filtros['empresa'])
+
+    # Stats
+    all_users = User.objects.all()
+    stats = {
+        'total': all_users.count(),
+        'activos': all_users.filter(is_active=True).count(),
+        'inactivos': all_users.filter(is_active=False).count(),
+        'sin_vincular': all_users.filter(personal_data__isnull=True).exclude(is_superuser=True).count(),
+    }
+
+    # Empresas para filtro
+    try:
+        from empresas.models import Empresa
+        empresas = Empresa.objects.filter(activa=True).order_by('razon_social')
+    except Exception:
+        empresas = []
+
+    context = {
+        'usuarios': qs,
+        'filtros': filtros,
+        'stats': stats,
+        'perfiles': PerfilAcceso.objects.order_by('nombre'),
+        'empresas': empresas,
+    }
+    return render(request, 'personal/usuarios/lista.html', context)
+
+
+@login_required
+def gestion_usuario_crear(request):
+    """Crear un nuevo usuario con vinculación a Personal y perfil de acceso."""
+    if not _puede_gestionar_accesos(request.user):
+        messages.error(request, 'No tienes permisos para crear usuarios.')
+        return redirect('home')
+
+    from django.contrib.auth.models import User
+    from django.db import transaction
+    from core.models import PerfilAcceso
+
+    try:
+        from empresas.models import Empresa
+        empresas = Empresa.objects.filter(activa=True).order_by('razon_social')
+    except Exception:
+        empresas = []
+
+    personal_sin_usuario = Personal.objects.filter(
+        usuario__isnull=True, estado='Activo'
+    ).select_related('subarea').order_by('apellidos_nombres')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        password2 = request.POST.get('password2', '')
+        personal_id = request.POST.get('personal_id', '').strip()
+        perfil_id = request.POST.get('perfil_acceso', '').strip()
+        empresa_id = request.POST.get('empresa', '').strip()
+        is_active = request.POST.get('is_active') == 'on'
+
+        # Validations
+        if not username:
+            messages.error(request, 'El username es obligatorio.')
+        elif password != password2:
+            messages.error(request, 'Las passwords no coinciden.')
+        elif len(password) < 6:
+            messages.error(request, 'La password debe tener al menos 6 caracteres.')
+        elif User.objects.filter(username=username).exists():
+            messages.error(request, f'El username "{username}" ya existe.')
+        else:
+            try:
+                with transaction.atomic():
+                    user = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        password=password,
+                        is_active=is_active,
+                    )
+
+                    # Vincular con Personal si se seleccionó
+                    if personal_id:
+                        personal = Personal.objects.get(pk=personal_id)
+                        personal.usuario = user
+
+                        # Asignar perfil si se seleccionó
+                        if perfil_id:
+                            perfil = PerfilAcceso.objects.get(pk=perfil_id)
+                            personal.perfil_acceso = perfil
+
+                        # Asignar empresa
+                        if empresa_id:
+                            personal.empresa_id = empresa_id
+
+                        personal.save()
+
+                        # Extraer nombre del personal
+                        partes = personal.apellidos_nombres.strip().split(',')
+                        user.last_name = partes[0].strip()[:150] if partes else ''
+                        user.first_name = partes[1].strip()[:150] if len(partes) > 1 else ''
+                        user.save(update_fields=['first_name', 'last_name'])
+
+                messages.success(request, f'Usuario "{username}" creado exitosamente.')
+                return redirect('gestion_usuario_detalle', pk=user.pk)
+
+            except Personal.DoesNotExist:
+                messages.error(request, 'Empleado no encontrado.')
+            except PerfilAcceso.DoesNotExist:
+                messages.error(request, 'Perfil de acceso no encontrado.')
+            except Exception as e:
+                messages.error(request, f'Error al crear usuario: {e}')
+
+        # Preserve form data on error
+        form_data = request.POST.dict()
+    else:
+        form_data = {}
+
+    return render(request, 'personal/usuarios/crear.html', {
+        'personal_sin_usuario': personal_sin_usuario,
+        'perfiles': PerfilAcceso.objects.order_by('nombre'),
+        'empresas': empresas,
+        'form_data': form_data,
+    })
+
+
+@login_required
+def gestion_usuario_editar(request, pk):
+    """Editar datos de cuenta, perfil y password de un usuario."""
+    if not _puede_gestionar_accesos(request.user):
+        messages.error(request, 'No tienes permisos para editar usuarios.')
+        return redirect('home')
+
+    from django.contrib.auth.models import User
+    from core.models import PerfilAcceso
+
+    try:
+        usuario = User.objects.select_related('personal_data', 'personal_data__perfil_acceso',
+                                               'personal_data__empresa').get(pk=pk)
+    except User.DoesNotExist:
+        messages.error(request, 'Usuario no encontrado.')
+        return redirect('gestion_usuario_lista')
+
+    personal = getattr(usuario, 'personal_data', None)
+
+    try:
+        from empresas.models import Empresa
+        empresas = Empresa.objects.filter(activa=True).order_by('razon_social')
+    except Exception:
+        empresas = []
+
+    if request.method == 'POST':
+        section = request.POST.get('section', '')
+
+        if section == 'account':
+            new_username = request.POST.get('username', '').strip()
+            if new_username and new_username != usuario.username:
+                if User.objects.filter(username=new_username).exclude(pk=pk).exists():
+                    messages.error(request, f'El username "{new_username}" ya existe.')
+                else:
+                    usuario.username = new_username
+            usuario.email = request.POST.get('email', '').strip()
+            usuario.first_name = request.POST.get('first_name', '').strip()[:150]
+            usuario.last_name = request.POST.get('last_name', '').strip()[:150]
+            usuario.is_active = request.POST.get('is_active') == 'on'
+            usuario.save()
+            messages.success(request, 'Datos de cuenta actualizados.')
+
+        elif section == 'profile' and personal:
+            perfil_id = request.POST.get('perfil_acceso', '').strip()
+            empresa_id = request.POST.get('empresa', '').strip()
+
+            if perfil_id:
+                try:
+                    personal.perfil_acceso = PerfilAcceso.objects.get(pk=perfil_id)
+                except PerfilAcceso.DoesNotExist:
+                    pass
+            else:
+                personal.perfil_acceso = None
+
+            personal.empresa_id = empresa_id if empresa_id else None
+            personal.save(update_fields=['perfil_acceso', 'empresa'])
+
+            # Invalidate RBAC cache
+            from personal.context_processors import invalidar_perfil
+            invalidar_perfil(usuario.pk)
+
+            messages.success(request, 'Perfil y empresa actualizados.')
+
+        elif section == 'password':
+            new_pw = request.POST.get('new_password', '')
+            new_pw2 = request.POST.get('new_password2', '')
+            if new_pw != new_pw2:
+                messages.error(request, 'Las passwords no coinciden.')
+            elif len(new_pw) < 6:
+                messages.error(request, 'La password debe tener al menos 6 caracteres.')
+            else:
+                usuario.set_password(new_pw)
+                usuario.save(update_fields=['password'])
+                messages.success(request, 'Password actualizada exitosamente.')
+
+        return redirect('gestion_usuario_editar', pk=pk)
+
+    modulos_permisos = _get_modulos_permisos_for_user(usuario) if personal and not usuario.is_superuser else []
+
+    return render(request, 'personal/usuarios/editar.html', {
+        'usuario': usuario,
+        'personal': personal,
+        'perfiles': PerfilAcceso.objects.order_by('nombre'),
+        'empresas': empresas,
+        'modulos_permisos': modulos_permisos,
+    })
+
+
+@login_required
+def gestion_usuario_detalle(request, pk):
+    """Vista detalle de un usuario con permisos y actividad."""
+    if not _puede_gestionar_accesos(request.user):
+        messages.error(request, 'No tienes permisos para ver usuarios.')
+        return redirect('home')
+
+    from django.contrib.auth.models import User
+    from django.contrib.contenttypes.models import ContentType
+    from core.models import AuditLog
+
+    try:
+        usuario = User.objects.select_related('personal_data', 'personal_data__perfil_acceso',
+                                               'personal_data__subarea__area',
+                                               'personal_data__empresa').get(pk=pk)
+    except User.DoesNotExist:
+        messages.error(request, 'Usuario no encontrado.')
+        return redirect('gestion_usuario_lista')
+
+    personal = getattr(usuario, 'personal_data', None)
+
+    # Audit logs for this user
+    audit_logs = AuditLog.objects.filter(usuario=usuario).select_related('content_type')[:50]
+
+    modulos_permisos = _get_modulos_permisos_for_user(usuario) if personal and not usuario.is_superuser else []
+
+    return render(request, 'personal/usuarios/detalle.html', {
+        'usuario': usuario,
+        'personal': personal,
+        'modulos_permisos': modulos_permisos,
+        'audit_logs': audit_logs,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def gestion_usuario_bulk(request):
+    """Acciones masivas: activar, desactivar, reset password."""
+    if not _puede_gestionar_accesos(request.user):
+        return JsonResponse({'success': False, 'error': 'Sin permisos.'}, status=403)
+
+    from django.contrib.auth.models import User
+
+    action = request.POST.get('action', '')
+    user_ids = request.POST.getlist('user_ids')
+
+    if not user_ids:
+        return JsonResponse({'success': False, 'error': 'No se seleccionaron usuarios.'})
+
+    users = User.objects.filter(pk__in=user_ids, is_superuser=False)
+    count = users.count()
+
+    if action == 'activate':
+        users.update(is_active=True)
+        msg = f'{count} usuario(s) activados.'
+    elif action == 'deactivate':
+        users.update(is_active=False)
+        msg = f'{count} usuario(s) desactivados.'
+    elif action == 'reset_password':
+        reset_count = 0
+        for user in users.select_related('personal_data'):
+            personal = getattr(user, 'personal_data', None)
+            if personal and personal.nro_doc:
+                user.set_password(personal.nro_doc.strip())
+                user.save(update_fields=['password'])
+                reset_count += 1
+        msg = f'Password restablecida para {reset_count} usuario(s) (usando DNI).'
+    else:
+        return JsonResponse({'success': False, 'error': 'Accion invalida.'})
+
+    return JsonResponse({'success': True, 'message': msg})
+
+
+@login_required
+@require_http_methods(["POST"])
+def gestion_usuario_permiso_ajax(request):
+    """AJAX: cambia un permiso individual (PermisoModulo) para un usuario."""
+    if not _puede_gestionar_accesos(request.user):
+        return JsonResponse({'success': False, 'error': 'Sin permisos.'}, status=403)
+
+    from django.contrib.auth.models import User
+    from core.models import PermisoModulo, MODULOS_SISTEMA
+    from personal.context_processors import invalidar_perfil
+
+    user_id = request.POST.get('user_id')
+    modulo = request.POST.get('modulo', '').strip()
+    permiso = request.POST.get('permiso', '').strip()
+    valor = request.POST.get('valor', '0') == '1'
+
+    codigos_validos = {c for c, _ in MODULOS_SISTEMA}
+    campos_validos = {'puede_ver', 'puede_crear', 'puede_editar', 'puede_aprobar', 'puede_exportar'}
+
+    if modulo not in codigos_validos:
+        return JsonResponse({'success': False, 'error': f'Modulo "{modulo}" invalido.'}, status=400)
+    if permiso not in campos_validos:
+        return JsonResponse({'success': False, 'error': f'Permiso "{permiso}" invalido.'}, status=400)
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Usuario no encontrado.'}, status=404)
+
+    pm, created = PermisoModulo.objects.get_or_create(
+        usuario=user,
+        modulo=modulo,
+        defaults={
+            'puede_ver': False,
+            'puede_crear': False,
+            'puede_editar': False,
+            'puede_aprobar': False,
+            'puede_exportar': False,
+        }
+    )
+    setattr(pm, permiso, valor)
+    pm.save()
+
+    invalidar_perfil(user.pk)
+
+    return JsonResponse({'success': True, 'modulo': modulo, 'permiso': permiso, 'valor': valor})
+
+
+@login_required
+@require_http_methods(["POST"])
+def gestion_usuario_prefill_perfil(request):
+    """
+    AJAX: Reemplaza todos los PermisoModulo de un usuario
+    con los valores base de su PerfilAcceso asignado.
+    """
+    if not _puede_gestionar_accesos(request.user):
+        return JsonResponse({'success': False, 'error': 'Sin permisos.'}, status=403)
+
+    from django.contrib.auth.models import User
+    from core.models import PermisoModulo, MODULOS_SISTEMA
+    from personal.context_processors import invalidar_perfil
+
+    user_id = request.POST.get('user_id')
+
+    try:
+        user = User.objects.get(pk=user_id)
+        personal = Personal.objects.select_related('perfil_acceso').get(usuario=user)
+    except (User.DoesNotExist, Personal.DoesNotExist):
+        return JsonResponse({'success': False, 'error': 'Usuario o personal no encontrado.'}, status=404)
+
+    perfil = personal.perfil_acceso
+    if not perfil:
+        return JsonResponse({'success': False, 'error': 'El usuario no tiene perfil asignado.'}, status=400)
+
+    # Delete existing overrides
+    PermisoModulo.objects.filter(usuario=user).delete()
+
+    # Create new ones based on profile
+    perfil_mods = perfil.as_modulos_dict()
+    for codigo, _nombre in MODULOS_SISTEMA:
+        key = f'mod_{codigo}'
+        tiene_acceso = perfil_mods.get(key, False)
+        PermisoModulo.objects.create(
+            usuario=user,
+            modulo=codigo,
+            puede_ver=tiene_acceso,
+            puede_crear=tiene_acceso,
+            puede_editar=tiene_acceso,
+            puede_aprobar=perfil.puede_aprobar if tiene_acceso else False,
+            puede_exportar=perfil.puede_exportar if tiene_acceso else False,
+        )
+
+    invalidar_perfil(user.pk)
+
+    return JsonResponse({'success': True, 'message': f'Permisos rellenados desde perfil "{perfil.nombre}".'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def gestion_usuario_toggle_activo(request, pk):
+    """Toggle active/inactive state of a user."""
+    if not _puede_gestionar_accesos(request.user):
+        messages.error(request, 'Sin permisos.')
+        return redirect('home')
+
+    from django.contrib.auth.models import User
+
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        messages.error(request, 'Usuario no encontrado.')
+        return redirect('gestion_usuario_lista')
+
+    if user.is_superuser and not request.user.is_superuser:
+        messages.error(request, 'No puedes modificar un superusuario.')
+        return redirect('gestion_usuario_detalle', pk=pk)
+
+    user.is_active = not user.is_active
+    user.save(update_fields=['is_active'])
+
+    estado = 'activado' if user.is_active else 'desactivado'
+    messages.success(request, f'Usuario "{user.username}" {estado}.')
+    return redirect('gestion_usuario_detalle', pk=pk)
+
+
+@login_required
+@require_http_methods(["POST"])
+def gestion_usuario_reset_password(request, pk):
+    """Reset a user's password to their DNI."""
+    if not _puede_gestionar_accesos(request.user):
+        messages.error(request, 'Sin permisos.')
+        return redirect('home')
+
+    from django.contrib.auth.models import User
+
+    try:
+        user = User.objects.get(pk=pk)
+        personal = Personal.objects.get(usuario=user)
+    except User.DoesNotExist:
+        messages.error(request, 'Usuario no encontrado.')
+        return redirect('gestion_usuario_lista')
+    except Personal.DoesNotExist:
+        messages.error(request, 'El usuario no tiene empleado vinculado para obtener DNI.')
+        return redirect('gestion_usuario_detalle', pk=pk)
+
+    if not personal.nro_doc:
+        messages.error(request, 'El empleado no tiene numero de documento.')
+        return redirect('gestion_usuario_detalle', pk=pk)
+
+    user.set_password(personal.nro_doc.strip())
+    user.save(update_fields=['password'])
+    messages.success(request, f'Password de "{user.username}" restablecida al DNI.')
+    return redirect('gestion_usuario_detalle', pk=pk)
+
+
+@login_required
+@require_http_methods(["POST"])
+def gestion_usuario_impersonar(request, pk):
+    """
+    Impersonate: Admin logs in as another user temporarily.
+    Stores original user ID in session for de-impersonation.
+    Only superusers can impersonate.
+    """
+    if not request.user.is_superuser:
+        messages.error(request, 'Solo superusuarios pueden impersonar.')
+        return redirect('home')
+
+    from django.contrib.auth.models import User
+    from django.contrib.auth import login
+
+    try:
+        target_user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        messages.error(request, 'Usuario no encontrado.')
+        return redirect('gestion_usuario_lista')
+
+    if target_user.is_superuser:
+        messages.error(request, 'No se puede impersonar a otro superusuario.')
+        return redirect('gestion_usuario_detalle', pk=pk)
+
+    # Store original user for de-impersonation
+    request.session['_impersonator_id'] = request.user.pk
+    request.session['_impersonator_username'] = request.user.username
+
+    # Login as target user
+    target_user.backend = 'django.contrib.auth.backends.ModelBackend'
+    login(request, target_user)
+
+    messages.info(request, f'Ahora estas navegando como "{target_user.username}". '
+                           f'Cierra sesion para volver a tu cuenta de administrador.')
+    return redirect('home')
+
+
+@login_required
+def gestion_usuario_dejar_impersonar(request):
+    """
+    De-impersonate: return to original admin session.
+    """
+    impersonator_id = request.session.get('_impersonator_id')
+    if not impersonator_id:
+        messages.warning(request, 'No estas impersonando a nadie.')
+        return redirect('home')
+
+    from django.contrib.auth.models import User
+    from django.contrib.auth import login
+
+    try:
+        original_user = User.objects.get(pk=impersonator_id)
+    except User.DoesNotExist:
+        messages.error(request, 'Usuario original no encontrado.')
+        return redirect('home')
+
+    # Clean up session keys
+    del request.session['_impersonator_id']
+    del request.session['_impersonator_username']
+
+    original_user.backend = 'django.contrib.auth.backends.ModelBackend'
+    login(request, original_user)
+
+    messages.success(request, f'Has vuelto a tu sesion de administrador ({original_user.username}).')
+    return redirect('gestion_usuario_lista')

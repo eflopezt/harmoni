@@ -20,9 +20,25 @@ import logging
 
 from django.core.mail import EmailMessage
 from django.template import Template, Context
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 logger = logging.getLogger('comunicaciones')
+
+# Mapping from PlantillaNotificacion.codigo to HTML email template paths.
+# When an EMAIL notification matches one of these codes, the branded
+# HTML template is used instead of sending the raw cuerpo string.
+EMAIL_TEMPLATE_MAP = {
+    'bienvenida':             'emails/bienvenida.html',
+    'bienvenida_onboarding':  'emails/bienvenida.html',
+    'vacaciones_aprobadas':   'emails/vacaciones_aprobadas.html',
+    'boleta_disponible':      'emails/boleta_disponible.html',
+    'boleta_pago':            'emails/boleta_disponible.html',
+    'recordatorio':           'emails/recordatorio.html',
+    'recordatorio_general':   'emails/recordatorio.html',
+    'comunicado':             'emails/comunicado.html',
+    'comunicado_masivo':      'emails/comunicado.html',
+}
 
 
 class NotificacionService:
@@ -212,12 +228,80 @@ class NotificacionService:
         )
         return len(notificaciones)
 
+    # ── Helpers ────────────────────────────────────────────────
+
+    @staticmethod
+    def _build_empresa_context(personal):
+        """
+        Build template context dict with empresa branding fields.
+        Returns a dict suitable for merging into email template context.
+        """
+        ctx = {}
+        empresa = None
+        if personal:
+            empresa = getattr(personal, 'empresa', None)
+
+        if empresa:
+            ctx['empresa_nombre'] = (
+                empresa.nombre_comercial or empresa.razon_social
+            )
+            ctx['empresa_direccion'] = empresa.direccion or ''
+            ctx['empresa_telefono'] = empresa.telefono or ''
+            ctx['empresa_email'] = empresa.email_rrhh or ''
+            ctx['empresa_web'] = empresa.web or ''
+            # If the empresa model gains a logo field in the future,
+            # populate empresa_logo_url here.
+            ctx['empresa_logo_url'] = ''
+        else:
+            ctx['empresa_nombre'] = 'Harmoni'
+            ctx['empresa_logo_url'] = ''
+
+        return ctx
+
+    @staticmethod
+    def _render_branded_email(notificacion):
+        """
+        If the notification has a matching branded HTML template,
+        render it with empresa branding and return the HTML string.
+        Otherwise return None (caller falls back to raw cuerpo).
+        """
+        # Determine template code
+        template_code = None
+        if notificacion.plantilla:
+            template_code = notificacion.plantilla.codigo
+        elif notificacion.metadata and isinstance(notificacion.metadata, dict):
+            template_code = notificacion.metadata.get('plantilla_codigo')
+
+        template_path = EMAIL_TEMPLATE_MAP.get(template_code) if template_code else None
+        if not template_path:
+            return None
+
+        # Build context from metadata + empresa branding
+        ctx = {}
+        if notificacion.metadata and isinstance(notificacion.metadata, dict):
+            ctx.update(notificacion.metadata)
+
+        ctx['asunto'] = notificacion.asunto
+        ctx.update(
+            NotificacionService._build_empresa_context(notificacion.destinatario)
+        )
+
+        try:
+            return render_to_string(template_path, ctx)
+        except Exception as exc:
+            logger.warning(
+                f"Error rendering branded template '{template_path}': {exc}. "
+                f"Falling back to raw cuerpo."
+            )
+            return None
+
     # ── Email interno ────────────────────────────────────────
 
     @staticmethod
     def _enviar_email(notificacion):
         """
         Envía un email usando ConfiguracionSMTP.
+        Uses branded HTML templates when a matching template code is found.
         Actualiza el estado de la notificación a ENVIADA o FALLIDA.
         """
         from comunicaciones.models import ConfiguracionSMTP
@@ -241,10 +325,13 @@ class NotificacionService:
             return
 
         try:
-            # Construir cuerpo con firma
-            cuerpo_completo = notificacion.cuerpo
-            if config.firma_html:
-                cuerpo_completo += f"\n<hr>\n{config.firma_html}"
+            # Try branded template first, fall back to raw cuerpo
+            cuerpo_completo = NotificacionService._render_branded_email(notificacion)
+            if not cuerpo_completo:
+                # No branded template matched — use raw cuerpo with firma
+                cuerpo_completo = notificacion.cuerpo
+                if config.firma_html:
+                    cuerpo_completo += f"\n<hr>\n{config.firma_html}"
 
             from django.core.mail import get_connection
             connection = get_connection(

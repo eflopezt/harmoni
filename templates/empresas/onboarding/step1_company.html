@@ -1,0 +1,125 @@
+{% extends "empresas/onboarding/base_wizard.html" %}
+
+{% block wizard_content %}
+<div class="wizard-card">
+  <h5 class="fw-bold mb-1"><i class="fas fa-building me-2 text-teal"></i>Datos de la Empresa</h5>
+  <p class="text-muted small mb-4">Informacion basica de la empresa cliente.</p>
+
+  <form method="post" id="step1Form">
+    {% csrf_token %}
+    <div class="row g-3">
+      <!-- RUC -->
+      <div class="col-md-4">
+        <label class="form-label">RUC <span class="text-danger">*</span></label>
+        <input type="text" name="ruc" value="{{ data.ruc|default:'' }}" class="form-control"
+          maxlength="11" pattern="\d{11}" required placeholder="20XXXXXXXXX"
+          title="11 digitos numericos">
+      </div>
+
+      <!-- Razon Social -->
+      <div class="col-md-8">
+        <label class="form-label">Razon Social <span class="text-danger">*</span></label>
+        <input type="text" name="razon_social" value="{{ data.razon_social|default:'' }}"
+          class="form-control" required placeholder="Nombre legal de la empresa">
+      </div>
+
+      <!-- Nombre Comercial -->
+      <div class="col-12">
+        <label class="form-label">Nombre Comercial</label>
+        <input type="text" name="nombre_comercial" value="{{ data.nombre_comercial|default:'' }}"
+          class="form-control" id="nombreComercial"
+          placeholder="Si es diferente a la razon social">
+      </div>
+
+      <!-- Direccion -->
+      <div class="col-12">
+        <label class="form-label">Direccion</label>
+        <input type="text" name="direccion" value="{{ data.direccion|default:'' }}"
+          class="form-control" placeholder="Direccion fiscal">
+      </div>
+
+      <!-- Telefono / Email -->
+      <div class="col-md-6">
+        <label class="form-label">Telefono</label>
+        <input type="text" name="telefono" value="{{ data.telefono|default:'' }}"
+          class="form-control" placeholder="01-XXXXXXX">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Email RRHH</label>
+        <input type="email" name="email_rrhh" value="{{ data.email_rrhh|default:'' }}"
+          class="form-control" placeholder="rrhh@empresa.com">
+      </div>
+
+      <!-- Regimen / Sector -->
+      <div class="col-md-6">
+        <label class="form-label">Regimen Laboral</label>
+        <select name="regimen_laboral" class="form-select">
+          {% for val, label in regimen_choices %}
+          <option value="{{ val }}" {% if data.regimen_laboral == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Sector</label>
+        <select name="sector" class="form-select">
+          {% for val, label in sector_choices %}
+          <option value="{{ val }}" {% if data.sector == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Subdominio -->
+      <div class="col-12">
+        <label class="form-label">Subdominio</label>
+        <div class="input-group">
+          <input type="text" name="subdominio" value="{{ data.subdominio|default:'' }}"
+            class="form-control" id="subdominio" placeholder="miempresa"
+            pattern="[a-z0-9][a-z0-9-]*[a-z0-9]" maxlength="50">
+          <span class="input-group-text" style="background:#1e3330;border-color:#2a4440;color:#5eead4;">
+            .harmoni.pe
+          </span>
+        </div>
+        <div class="form-text">
+          <span id="subdomainStatus"></span>
+          <button type="button" class="btn btn-link btn-sm p-0 ms-2 text-teal" id="btnSuggestSubdomain">
+            Sugerir desde nombre
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="wizard-actions">
+      <a href="{% url 'empresas_panel' %}" class="btn btn-wizard-back">
+        <i class="fas fa-times me-1"></i>Cancelar
+      </a>
+      <button type="submit" class="btn btn-wizard-next">
+        Siguiente <i class="fas fa-arrow-right ms-1"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const btnSuggest = document.getElementById('btnSuggestSubdomain');
+  const inputSubdomain = document.getElementById('subdominio');
+  const inputNombre = document.getElementById('nombreComercial');
+  const status = document.getElementById('subdomainStatus');
+
+  btnSuggest.addEventListener('click', function() {
+    const nombre = inputNombre.value || document.querySelector('[name=razon_social]').value;
+    if (!nombre) return;
+    fetch('{% url "onboarding_suggest_subdomain" %}?nombre=' + encodeURIComponent(nombre))
+      .then(r => r.json())
+      .then(data => {
+        inputSubdomain.value = data.subdomain;
+        if (data.available) {
+          status.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>Disponible</span>';
+        } else {
+          status.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Ya en uso</span>';
+        }
+      });
+  });
+});
+</script>
+{% endblock %}

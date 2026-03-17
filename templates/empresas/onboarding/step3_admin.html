@@ -1,0 +1,132 @@
+{% extends "empresas/onboarding/base_wizard.html" %}
+
+{% block wizard_content %}
+<div class="wizard-card">
+  <h5 class="fw-bold mb-1"><i class="fas fa-user-shield me-2 text-teal"></i>Usuario Administrador</h5>
+  <p class="text-muted small mb-4">Crear el superusuario que administrara esta empresa en Harmoni.</p>
+
+  <form method="post" id="step3Form">
+    {% csrf_token %}
+    <div class="row g-3">
+
+      <!-- Username -->
+      <div class="col-md-6">
+        <label class="form-label">Nombre de Usuario <span class="text-danger">*</span></label>
+        <input type="text" name="username" value="{{ data.username|default:'' }}"
+          class="form-control" required placeholder="admin.miempresa"
+          pattern="[a-zA-Z0-9_.@+-]+" title="Letras, numeros y @/./+/-/_">
+      </div>
+
+      <!-- Email -->
+      <div class="col-md-6">
+        <label class="form-label">Email <span class="text-danger">*</span></label>
+        <input type="email" name="email" value="{{ data.email|default:'' }}"
+          class="form-control" required placeholder="admin@empresa.com">
+      </div>
+
+      <!-- Name -->
+      <div class="col-md-6">
+        <label class="form-label">Nombres</label>
+        <input type="text" name="first_name" value="{{ data.first_name|default:'' }}"
+          class="form-control" placeholder="Juan">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Apellidos</label>
+        <input type="text" name="last_name" value="{{ data.last_name|default:'' }}"
+          class="form-control" placeholder="Perez">
+      </div>
+
+      <!-- Password -->
+      <div class="col-md-6">
+        <label class="form-label">Contrasena <span class="text-danger">*</span></label>
+        <div class="input-group">
+          <input type="password" name="password1" class="form-control" id="password1"
+            required minlength="8" placeholder="Min. 8 caracteres">
+          <button type="button" class="btn btn-outline-secondary" id="btnTogglePass"
+            style="border-color:#2a4440;">
+            <i class="fas fa-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Confirmar Contrasena <span class="text-danger">*</span></label>
+        <input type="password" name="password2" class="form-control" id="password2"
+          required minlength="8" placeholder="Repetir contrasena">
+        <div class="form-text" id="passMatch"></div>
+      </div>
+
+      <div class="col-12">
+        <!-- Password strength indicator -->
+        <div class="progress mt-1" style="height:4px;background:#1e3330;" id="passStrengthBar">
+          <div class="progress-bar" id="passStrength" style="width:0%;"></div>
+        </div>
+        <small class="text-muted" id="passStrengthText"></small>
+      </div>
+
+      <div class="col-12">
+        <div class="alert alert-info py-2 small mb-0" style="background:#132e2a;border-color:#1a4440;color:#5eead4;">
+          <i class="fas fa-info-circle me-1"></i>
+          Este usuario tendra acceso de <strong>superadministrador</strong> a todos los modulos de Harmoni
+          para la empresa que se esta configurando.
+        </div>
+      </div>
+    </div>
+
+    <div class="wizard-actions">
+      <a href="{% url 'onboarding_step2' %}" class="btn btn-wizard-back">
+        <i class="fas fa-arrow-left me-1"></i>Anterior
+      </a>
+      <button type="submit" class="btn btn-wizard-next">
+        Siguiente <i class="fas fa-arrow-right ms-1"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const pass1 = document.getElementById('password1');
+  const pass2 = document.getElementById('password2');
+  const matchMsg = document.getElementById('passMatch');
+  const strengthBar = document.getElementById('passStrength');
+  const strengthText = document.getElementById('passStrengthText');
+  const btnToggle = document.getElementById('btnTogglePass');
+  const eyeIcon = document.getElementById('eyeIcon');
+
+  btnToggle.addEventListener('click', function() {
+    const type = pass1.type === 'password' ? 'text' : 'password';
+    pass1.type = type;
+    pass2.type = type;
+    eyeIcon.classList.toggle('fa-eye');
+    eyeIcon.classList.toggle('fa-eye-slash');
+  });
+
+  pass2.addEventListener('input', function() {
+    if (pass2.value && pass1.value !== pass2.value) {
+      matchMsg.innerHTML = '<span class="text-danger">Las contrasenas no coinciden</span>';
+    } else if (pass2.value) {
+      matchMsg.innerHTML = '<span class="text-success">Coinciden</span>';
+    } else {
+      matchMsg.innerHTML = '';
+    }
+  });
+
+  pass1.addEventListener('input', function() {
+    const val = pass1.value;
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (val.length >= 12) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const pct = (score / 5) * 100;
+    strengthBar.style.width = pct + '%';
+    const colors = ['#dc3545','#dc3545','#ffc107','#14b8a6','#14b8a6'];
+    const labels = ['Muy debil','Debil','Regular','Buena','Excelente'];
+    strengthBar.style.background = colors[Math.min(score, 4)];
+    strengthText.textContent = val ? labels[Math.min(score, 4)] : '';
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>{% block title %}{{ asunto|default:"Notificación" }}{% endblock %}</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#f4f5f7;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+    <!-- Preheader text (hidden, shown in email preview) -->
+    <div style="display:none;font-size:1px;color:#f4f5f7;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+        {% block preheader %}{% endblock %}
+    </div>
+
+    <!-- Wrapper table -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f5f7;">
+        <tr>
+            <td align="center" style="padding:24px 12px;">
+
+                <!-- Email container -->
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%);padding:28px 32px;text-align:center;">
+                            {% if empresa_logo_url %}
+                                <img src="{{ empresa_logo_url }}" alt="{{ empresa_nombre|default:'Harmoni' }}" width="160" style="max-width:160px;height:auto;display:inline-block;" />
+                            {% else %}
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">
+                                    <tr>
+                                        <td style="vertical-align:middle;padding-right:10px;">
+                                            <div style="width:36px;height:36px;background-color:rgba(255,255,255,0.2);border-radius:8px;text-align:center;line-height:36px;">
+                                                <span style="font-size:20px;color:#ffffff;">H</span>
+                                            </div>
+                                        </td>
+                                        <td style="vertical-align:middle;">
+                                            <span style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">{{ empresa_nombre|default:"Harmoni" }}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:32px 32px 24px 32px;">
+                            {% block content %}{% endblock %}
+                        </td>
+                    </tr>
+
+                    <!-- CTA button block -->
+                    {% block cta_section %}{% endblock %}
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding:0 32px;">
+                            <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;" />
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding:20px 32px 28px 32px;text-align:center;">
+                            <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;line-height:1.5;">
+                                {{ empresa_nombre|default:"Harmoni" }}{% if empresa_direccion %} &mdash; {{ empresa_direccion }}{% endif %}
+                            </p>
+                            {% if empresa_telefono %}
+                            <p style="margin:0 0 6px 0;font-size:13px;color:#6b7280;">
+                                Tel: {{ empresa_telefono }}{% if empresa_email %} | {{ empresa_email }}{% endif %}
+                            </p>
+                            {% endif %}
+                            {% if empresa_web %}
+                            <p style="margin:0 0 12px 0;font-size:13px;">
+                                <a href="{{ empresa_web }}" style="color:#0f766e;text-decoration:none;">{{ empresa_web }}</a>
+                            </p>
+                            {% endif %}
+                            <p style="margin:12px 0 0 0;font-size:11px;color:#9ca3af;line-height:1.4;">
+                                Este mensaje fue enviado autom&aacute;ticamente por el sistema de gesti&oacute;n {{ empresa_nombre|default:"Harmoni" }}.
+                                {% if unsubscribe_url %}
+                                <br/>Si no deseas recibir estos correos, puedes
+                                <a href="{{ unsubscribe_url }}" style="color:#9ca3af;text-decoration:underline;">cancelar tu suscripci&oacute;n</a>.
+                                {% endif %}
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+                <!-- /Email container -->
+
+            </td>
+        </tr>
+    </table>
+    <!-- /Wrapper table -->
+</body>
+</html>

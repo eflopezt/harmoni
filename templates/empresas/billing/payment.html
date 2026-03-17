@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar pago{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-bold">
+      <i class="fas fa-money-bill-wave me-2 text-teal"></i>Registrar pago
+    </h1>
+    <a href="{% url 'billing_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-transparent">
+          <h5 class="mb-0">Datos del pago</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Plan info -->
+            <div class="alert alert-light border mb-4">
+              <div class="row">
+                <div class="col-sm-6">
+                  <small class="text-muted">Plan</small>
+                  <div class="fw-bold">{{ suscripcion.plan.nombre }}</div>
+                </div>
+                <div class="col-sm-3">
+                  <small class="text-muted">Ciclo</small>
+                  <div class="fw-bold">{{ suscripcion.get_ciclo_display }}</div>
+                </div>
+                <div class="col-sm-3">
+                  <small class="text-muted">Monto</small>
+                  <div class="fw-bold text-teal fs-5">S/ {{ suscripcion.monto_periodo|floatformat:2 }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Método de pago -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Método de pago</label>
+              <div class="row g-2">
+                {% for value, label in metodos %}
+                <div class="col-auto">
+                  <input type="radio" class="btn-check" name="metodo_pago"
+                         id="metodo_{{ value }}" value="{{ value }}"
+                         {% if value == 'YAPE' %}checked{% endif %}>
+                  <label class="btn btn-outline-primary" for="metodo_{{ value }}">
+                    {% if value == 'YAPE' %}<i class="fas fa-mobile-alt me-1"></i>
+                    {% elif value == 'PLIN' %}<i class="fas fa-mobile-alt me-1"></i>
+                    {% elif value == 'TRANSFERENCIA' %}<i class="fas fa-university me-1"></i>
+                    {% elif value == 'TARJETA' %}<i class="fas fa-credit-card me-1"></i>
+                    {% elif value == 'EFECTIVO' %}<i class="fas fa-money-bill me-1"></i>
+                    {% else %}<i class="fas fa-ellipsis-h me-1"></i>
+                    {% endif %}
+                    {{ label }}
+                  </label>
+                </div>
+                {% empty %}
+                <!-- Fallback if metodos not passed -->
+                <div class="col-auto">
+                  <input type="radio" class="btn-check" name="metodo_pago" id="metodo_yape" value="YAPE" checked>
+                  <label class="btn btn-outline-primary" for="metodo_yape"><i class="fas fa-mobile-alt me-1"></i>Yape</label>
+                </div>
+                <div class="col-auto">
+                  <input type="radio" class="btn-check" name="metodo_pago" id="metodo_plin" value="PLIN">
+                  <label class="btn btn-outline-primary" for="metodo_plin"><i class="fas fa-mobile-alt me-1"></i>Plin</label>
+                </div>
+                <div class="col-auto">
+                  <input type="radio" class="btn-check" name="metodo_pago" id="metodo_trans" value="TRANSFERENCIA">
+                  <label class="btn btn-outline-primary" for="metodo_trans"><i class="fas fa-university me-1"></i>Transferencia</label>
+                </div>
+                <div class="col-auto">
+                  <input type="radio" class="btn-check" name="metodo_pago" id="metodo_tarjeta" value="TARJETA">
+                  <label class="btn btn-outline-primary" for="metodo_tarjeta"><i class="fas fa-credit-card me-1"></i>Tarjeta</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Referencia -->
+            <div class="mb-3">
+              <label for="referencia" class="form-label fw-semibold">
+                Nro. de operación / referencia
+              </label>
+              <input type="text" class="form-control" id="referencia" name="referencia"
+                     placeholder="Ej: 0012345678, código Yape, etc.">
+              <div class="form-text">Número de operación de Yape, Plin o transferencia bancaria.</div>
+            </div>
+
+            <!-- Comprobante -->
+            <div class="mb-3">
+              <label for="comprobante" class="form-label fw-semibold">
+                Captura / comprobante (opcional)
+              </label>
+              <input type="file" class="form-control" id="comprobante" name="comprobante"
+                     accept="image/*,.pdf">
+              <div class="form-text">Adjunte captura de pantalla del pago o voucher.</div>
+            </div>
+
+            <!-- Notas -->
+            <div class="mb-4">
+              <label for="notas" class="form-label fw-semibold">Notas (opcional)</label>
+              <textarea class="form-control" id="notas" name="notas" rows="2"
+                        placeholder="Información adicional..."></textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-paper-plane me-1"></i>Registrar pago — S/ {{ suscripcion.monto_periodo|floatformat:2 }}
+              </button>
+              <a href="{% url 'billing_dashboard' %}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar info -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header bg-transparent">
+          <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Instrucciones</h6>
+        </div>
+        <div class="card-body small">
+          <h6 class="fw-bold">Yape / Plin</h6>
+          <ol class="ps-3">
+            <li>Realice el pago al número indicado por el administrador</li>
+            <li>Copie el número de operación</li>
+            <li>Adjunte captura de pantalla</li>
+            <li>Su pago será validado en 24h</li>
+          </ol>
+
+          <h6 class="fw-bold mt-3">Transferencia bancaria</h6>
+          <ol class="ps-3">
+            <li>Transfiera el monto a la cuenta indicada</li>
+            <li>Ingrese el número de operación</li>
+            <li>Adjunte el voucher de transferencia</li>
+          </ol>
+
+          <div class="alert alert-info mt-3 mb-0">
+            <i class="fas fa-clock me-1"></i>
+            Los pagos son validados manualmente.
+            Recibirá confirmación por email.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
