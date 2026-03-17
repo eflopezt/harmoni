@@ -4,16 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Harmoni — Sistema ERP de RRHH y Planillas</title>
-    <meta name="description" content="Harmoni ERP: gestión de personal, planillas, asistencia y más para empresas peruanas. Cumple con SUNAT, AFP, ONP, EsSalud. Prueba gratis.">
-    <meta name="keywords" content="ERP RRHH, planillas Perú, gestión personal, software recursos humanos, nóminas, asistencia, SUNAT">
+    <title>Harmoni — ERP de RRHH y Planillas para empresas</title>
+    <meta name="description" content="Harmoni ERP: gestiona personal, planillas, asistencia y 22 modulos mas. Normativa peruana 100%. IA integrada. Solicita demo.">
     <link rel="icon" href="{% static 'images/favicon.svg' %}" type="image/svg+xml">
-    <meta property="og:title" content="Harmoni — ERP de RRHH para empresas peruanas">
-    <meta property="og:description" content="Gestiona personal, planillas, asistencia y más. Con IA integrada. Cumple normativa peruana.">
+    <meta property="og:title" content="Harmoni — ERP de RRHH y Planillas">
+    <meta property="og:description" content="22 modulos integrados. Normativa peruana. IA asistente. Desde S/149/mes.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://harmoni.pe">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -22,123 +21,186 @@
         --primary-dark: #115e59;
         --primary-light: #14b8a6;
         --accent: #06b6d4;
-        --dark: #0d2b27;
-        --gray-50: #f8fafc;
-        --gray-100: #f1f5f9;
-        --gray-400: #94a3b8;
-        --gray-600: #475569;
-        --gray-800: #1e293b;
-        --gray-900: #0f172a;
+        --accent2: #8b5cf6;
+        --dark: #0a1f1c;
+        --darker: #050f0d;
+        --g50: #f8fafc; --g100: #f1f5f9; --g200: #e2e8f0; --g300: #cbd5e1;
+        --g400: #94a3b8; --g500: #64748b; --g600: #475569; --g700: #334155;
+        --g800: #1e293b; --g900: #0f172a;
     }
     html { scroll-behavior: smooth; }
-    body { font-family:'Inter',system-ui,sans-serif; color:var(--gray-800); line-height:1.6; background:#fff; }
+    body { font-family:'Inter',system-ui,sans-serif; color:var(--g800); line-height:1.6; background:#fff; overflow-x:hidden; }
+    .container { max-width:1200px; margin:0 auto; padding:0 24px; }
 
-    /* ── Nav ── */
-    .nav { position:fixed; top:0; left:0; right:0; z-index:100; padding:16px 0; transition:all .3s; }
-    .nav.scrolled { background:rgba(255,255,255,.95); backdrop-filter:blur(12px); box-shadow:0 1px 3px rgba(0,0,0,.08); }
-    .nav-inner { max-width:1200px; margin:0 auto; padding:0 24px; display:flex; align-items:center; justify-content:space-between; }
-    .nav-logo { font-size:1.5rem; font-weight:800; color:#fff; text-decoration:none; display:flex; align-items:center; gap:8px; }
-    .nav.scrolled .nav-logo { color:var(--primary); }
-    .nav-logo img { height:32px; }
-    .nav-links { display:flex; gap:32px; align-items:center; }
-    .nav-links a { color:rgba(255,255,255,.85); text-decoration:none; font-size:.9rem; font-weight:500; transition:color .2s; }
-    .nav.scrolled .nav-links a { color:var(--gray-600); }
+    /* ── NAVBAR ── */
+    .nav { position:fixed; top:0; left:0; right:0; z-index:100; padding:16px 0; transition:all .35s cubic-bezier(.4,0,.2,1); }
+    .nav.scrolled { background:rgba(10,31,28,.92); backdrop-filter:blur(20px) saturate(1.5); padding:10px 0; box-shadow:0 4px 30px rgba(0,0,0,.15); }
+    .nav-inner { display:flex; align-items:center; justify-content:space-between; }
+    .nav-logo { font-size:1.4rem; font-weight:800; color:#fff; text-decoration:none; display:flex; align-items:center; gap:10px; letter-spacing:-.5px; }
+    .nav-logo img { height:28px; filter:brightness(10); }
+    .nav-links { display:flex; gap:28px; align-items:center; }
+    .nav-links a { color:rgba(255,255,255,.7); text-decoration:none; font-size:.85rem; font-weight:500; transition:color .2s; }
     .nav-links a:hover { color:#fff; }
-    .nav.scrolled .nav-links a:hover { color:var(--primary); }
-    .btn { display:inline-flex; align-items:center; gap:8px; padding:10px 24px; border-radius:8px; font-size:.9rem; font-weight:600; text-decoration:none; transition:all .2s; border:none; cursor:pointer; }
-    .btn-primary { background:var(--primary); color:#fff; }
-    .btn-primary:hover { background:var(--primary-dark); transform:translateY(-1px); box-shadow:0 4px 12px rgba(15,118,110,.3); }
-    .btn-outline { background:transparent; color:#fff; border:1.5px solid rgba(255,255,255,.4); }
-    .btn-outline:hover { background:rgba(255,255,255,.1); border-color:#fff; }
-    .nav.scrolled .btn-outline { color:var(--primary); border-color:var(--primary); }
-    .btn-lg { padding:14px 32px; font-size:1rem; border-radius:10px; }
-    .btn-white { background:#fff; color:var(--primary); }
-    .btn-white:hover { background:var(--gray-100); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.1); }
+    .nav-cta { padding:8px 20px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); border-radius:8px; color:#fff !important; font-weight:600; transition:all .2s; }
+    .nav-cta:hover { background:var(--primary); border-color:var(--primary); }
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 28px; border-radius:10px; font-size:.9rem; font-weight:600; text-decoration:none; transition:all .25s cubic-bezier(.4,0,.2,1); border:none; cursor:pointer; }
+    .btn-primary { background:var(--primary); color:#fff; box-shadow:0 4px 14px rgba(15,118,110,.25); }
+    .btn-primary:hover { background:var(--primary-dark); transform:translateY(-2px); box-shadow:0 8px 25px rgba(15,118,110,.35); }
+    .btn-white { background:#fff; color:var(--g900); box-shadow:0 4px 14px rgba(0,0,0,.08); }
+    .btn-white:hover { transform:translateY(-2px); box-shadow:0 8px 25px rgba(0,0,0,.12); }
+    .btn-ghost { background:transparent; color:rgba(255,255,255,.9); border:1.5px solid rgba(255,255,255,.25); }
+    .btn-ghost:hover { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.5); }
+    .btn-lg { padding:16px 36px; font-size:1rem; border-radius:12px; }
 
-    /* ── Hero ── */
-    .hero { background:linear-gradient(135deg, var(--dark) 0%, #134e4a 50%, var(--primary) 100%); min-height:100vh; display:flex; align-items:center; position:relative; overflow:hidden; }
-    .hero::before { content:''; position:absolute; top:-50%; right:-20%; width:800px; height:800px; background:radial-gradient(circle, rgba(6,182,212,.12) 0%, transparent 70%); }
-    .hero::after { content:''; position:absolute; bottom:-30%; left:-10%; width:600px; height:600px; background:radial-gradient(circle, rgba(20,184,166,.08) 0%, transparent 70%); }
-    .hero-inner { max-width:1200px; margin:0 auto; padding:120px 24px 80px; display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; position:relative; z-index:1; }
-    .hero-badge { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:rgba(6,182,212,.15); border:1px solid rgba(6,182,212,.3); border-radius:100px; font-size:.8rem; color:var(--accent); font-weight:500; margin-bottom:20px; }
-    .hero h1 { font-size:3.2rem; font-weight:800; line-height:1.1; color:#fff; margin-bottom:20px; }
-    .hero h1 span { background:linear-gradient(135deg, var(--accent), var(--primary-light)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    .hero-sub { font-size:1.15rem; color:rgba(255,255,255,.7); margin-bottom:32px; max-width:500px; }
-    .hero-actions { display:flex; gap:12px; flex-wrap:wrap; }
-    .hero-stats { display:flex; gap:40px; margin-top:40px; }
-    .hero-stat-num { font-size:2rem; font-weight:800; color:#fff; }
-    .hero-stat-label { font-size:.8rem; color:rgba(255,255,255,.5); }
-    .hero-visual { display:flex; justify-content:center; align-items:center; }
-    .hero-mockup { width:100%; max-width:520px; border-radius:12px; box-shadow:0 25px 50px rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.1); }
+    /* ── HERO ── */
+    .hero { min-height:100vh; background:var(--darker); position:relative; display:flex; align-items:center; overflow:hidden; }
+    .hero-bg { position:absolute; inset:0; }
+    .hero-bg::before { content:''; position:absolute; top:-200px; right:-200px; width:900px; height:900px; background:radial-gradient(circle, rgba(6,182,212,.08) 0%, transparent 60%); animation:float 20s ease-in-out infinite; }
+    .hero-bg::after { content:''; position:absolute; bottom:-300px; left:-100px; width:700px; height:700px; background:radial-gradient(circle, rgba(15,118,110,.1) 0%, transparent 60%); animation:float 15s ease-in-out infinite reverse; }
+    @keyframes float { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-30px)} }
+    .hero-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px); background-size:60px 60px; }
+    .hero-content { position:relative; z-index:2; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; padding:140px 0 100px; }
+    .hero-left { }
+    .hero-pill { display:inline-flex; align-items:center; gap:8px; padding:6px 16px 6px 8px; background:rgba(6,182,212,.1); border:1px solid rgba(6,182,212,.2); border-radius:100px; font-size:.78rem; color:var(--accent); font-weight:600; margin-bottom:24px; }
+    .hero-pill-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+    .hero h1 { font-size:3.8rem; font-weight:900; line-height:1.05; color:#fff; margin-bottom:24px; letter-spacing:-1.5px; }
+    .hero h1 .gradient { background:linear-gradient(135deg, var(--accent) 0%, var(--primary-light) 50%, #a78bfa 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .hero-sub { font-size:1.15rem; color:rgba(255,255,255,.55); margin-bottom:36px; max-width:480px; line-height:1.7; }
+    .hero-actions { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:48px; }
+    .hero-trust { display:flex; align-items:center; gap:16px; }
+    .hero-avatars { display:flex; }
+    .hero-avatars span { width:36px; height:36px; border-radius:50%; border:2px solid var(--darker); margin-left:-10px; display:flex; align-items:center; justify-content:center; font-size:.7rem; font-weight:700; color:#fff; }
+    .hero-avatars span:first-child { margin-left:0; }
+    .hero-trust-text { font-size:.82rem; color:rgba(255,255,255,.45); line-height:1.4; }
+    .hero-trust-text strong { color:rgba(255,255,255,.8); }
 
-    /* ── Section ── */
-    .section { padding:100px 24px; }
-    .section-inner { max-width:1200px; margin:0 auto; }
-    .section-label { font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--primary); margin-bottom:12px; }
-    .section-title { font-size:2.4rem; font-weight:800; color:var(--gray-900); margin-bottom:16px; line-height:1.2; }
-    .section-sub { font-size:1.05rem; color:var(--gray-600); max-width:600px; margin-bottom:48px; }
-    .section-center { text-align:center; }
-    .section-center .section-sub { margin-left:auto; margin-right:auto; }
-    .bg-gray { background:var(--gray-50); }
+    /* ── Dashboard Mockup ── */
+    .hero-mockup { position:relative; perspective:1200px; }
+    .mockup-window { background:var(--g900); border-radius:12px; border:1px solid rgba(255,255,255,.08); overflow:hidden; transform:rotateY(-5deg) rotateX(2deg); box-shadow:0 40px 80px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.05); transition:transform .5s cubic-bezier(.4,0,.2,1); }
+    .mockup-window:hover { transform:rotateY(0) rotateX(0); }
+    .mockup-bar { height:32px; background:rgba(255,255,255,.05); display:flex; align-items:center; padding:0 12px; gap:6px; }
+    .mockup-dot { width:10px; height:10px; border-radius:50%; }
+    .mockup-body { padding:16px; display:grid; grid-template-columns:140px 1fr; gap:12px; min-height:280px; }
+    .mockup-sidebar { display:flex; flex-direction:column; gap:6px; }
+    .mockup-sidebar-item { height:28px; border-radius:6px; background:rgba(255,255,255,.04); display:flex; align-items:center; padding:0 10px; font-size:.6rem; color:rgba(255,255,255,.3); gap:6px; }
+    .mockup-sidebar-item.active { background:rgba(15,118,110,.3); color:var(--primary-light); }
+    .mockup-main { display:flex; flex-direction:column; gap:10px; }
+    .mockup-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .mockup-kpi { background:rgba(255,255,255,.04); border-radius:8px; padding:12px; }
+    .mockup-kpi-label { font-size:.55rem; color:rgba(255,255,255,.3); margin-bottom:4px; }
+    .mockup-kpi-value { font-size:1.1rem; font-weight:800; color:#fff; }
+    .mockup-chart { flex:1; background:rgba(255,255,255,.03); border-radius:8px; padding:12px; min-height:120px; position:relative; overflow:hidden; }
+    .mockup-chart-title { font-size:.6rem; color:rgba(255,255,255,.25); margin-bottom:8px; }
+    .mockup-bars { display:flex; align-items:flex-end; gap:6px; height:80px; padding-top:10px; }
+    .mockup-bar-item { flex:1; border-radius:4px 4px 0 0; animation:grow 1.5s ease-out forwards; transform-origin:bottom; }
+    @keyframes grow { from{transform:scaleY(0)} to{transform:scaleY(1)} }
 
-    /* ── Features ── */
-    .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
-    .feature-card { background:#fff; border-radius:12px; padding:32px; border:1px solid #e2e8f0; transition:all .2s; }
-    .feature-card:hover { transform:translateY(-4px); box-shadow:0 12px 24px rgba(0,0,0,.06); border-color:var(--primary-light); }
-    .feature-icon { width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin-bottom:16px; }
-    .feature-card h3 { font-size:1.1rem; font-weight:700; margin-bottom:8px; color:var(--gray-900); }
-    .feature-card p { font-size:.9rem; color:var(--gray-600); line-height:1.6; }
+    /* ── Logos / Trust ── */
+    .logos-section { padding:60px 0; background:var(--darker); border-top:1px solid rgba(255,255,255,.05); position:relative; z-index:2; }
+    .logos-label { text-align:center; font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:3px; color:rgba(255,255,255,.25); margin-bottom:28px; }
+    .logos-row { display:flex; justify-content:center; align-items:center; gap:48px; flex-wrap:wrap; opacity:.35; }
+    .logos-row span { font-size:1.1rem; font-weight:800; color:#fff; letter-spacing:1px; }
+
+    /* ── Sections ── */
+    .section { padding:100px 0; }
+    .section-header { text-align:center; margin-bottom:60px; }
+    .section-label { font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:3px; color:var(--primary); margin-bottom:12px; }
+    .section-title { font-size:2.6rem; font-weight:800; color:var(--g900); line-height:1.15; letter-spacing:-.5px; margin-bottom:16px; }
+    .section-sub { font-size:1.05rem; color:var(--g500); max-width:560px; margin:0 auto; }
+    .bg-subtle { background:var(--g50); }
+
+    /* ── Features Grid ── */
+    .feat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+    .feat-card { background:#fff; border-radius:16px; padding:32px 28px; border:1px solid var(--g200); transition:all .3s cubic-bezier(.4,0,.2,1); position:relative; overflow:hidden; }
+    .feat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--primary), var(--accent)); transform:scaleX(0); transition:transform .3s; transform-origin:left; }
+    .feat-card:hover { transform:translateY(-6px); box-shadow:0 20px 40px rgba(0,0,0,.06); border-color:transparent; }
+    .feat-card:hover::before { transform:scaleX(1); }
+    .feat-icon { width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin-bottom:20px; }
+    .feat-card h3 { font-size:1.05rem; font-weight:700; margin-bottom:8px; color:var(--g900); }
+    .feat-card p { font-size:.88rem; color:var(--g500); line-height:1.65; }
+
+    /* ── Big Feature (alternating) ── */
+    .bigfeat { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; padding:60px 0; }
+    .bigfeat.reverse { direction:rtl; }
+    .bigfeat.reverse > * { direction:ltr; }
+    .bigfeat-visual { background:linear-gradient(135deg, var(--g50), var(--g100)); border-radius:20px; padding:40px; min-height:320px; display:flex; align-items:center; justify-content:center; border:1px solid var(--g200); }
+    .bigfeat-content { }
+    .bigfeat-label { font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--primary); margin-bottom:12px; }
+    .bigfeat-title { font-size:1.8rem; font-weight:800; color:var(--g900); margin-bottom:16px; line-height:1.2; }
+    .bigfeat-desc { font-size:.95rem; color:var(--g500); margin-bottom:24px; line-height:1.7; }
+    .bigfeat-list { list-style:none; }
+    .bigfeat-list li { padding:8px 0; font-size:.9rem; color:var(--g600); display:flex; align-items:flex-start; gap:10px; }
+    .bigfeat-list li i { color:var(--primary); margin-top:4px; font-size:.8rem; }
+
+    /* ── Stats ── */
+    .stats-bar { background:linear-gradient(135deg, var(--dark), var(--primary-dark)); padding:60px 0; }
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; text-align:center; }
+    .stat-num { font-size:3rem; font-weight:900; color:#fff; line-height:1; margin-bottom:4px; }
+    .stat-label { font-size:.85rem; color:rgba(255,255,255,.5); }
 
     /* ── Compliance ── */
-    .compliance-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
-    .compliance-item { text-align:center; padding:24px 16px; background:#fff; border-radius:10px; border:1px solid #e2e8f0; }
-    .compliance-item i { font-size:1.5rem; color:var(--primary); margin-bottom:8px; }
-    .compliance-item h4 { font-size:.9rem; font-weight:700; margin-bottom:4px; }
-    .compliance-item p { font-size:.78rem; color:var(--gray-600); }
+    .comp-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+    .comp-item { background:#fff; border-radius:12px; padding:24px 16px; text-align:center; border:1px solid var(--g200); transition:all .2s; }
+    .comp-item:hover { border-color:var(--primary-light); box-shadow:0 4px 16px rgba(15,118,110,.08); }
+    .comp-item i { font-size:1.6rem; color:var(--primary); margin-bottom:10px; display:block; }
+    .comp-item h4 { font-size:.88rem; font-weight:700; margin-bottom:4px; color:var(--g900); }
+    .comp-item p { font-size:.76rem; color:var(--g500); line-height:1.5; }
 
     /* ── Pricing ── */
-    .pricing-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; align-items:start; }
-    .pricing-card { background:#fff; border-radius:16px; padding:36px; border:1px solid #e2e8f0; position:relative; }
-    .pricing-card.popular { border-color:var(--primary); box-shadow:0 8px 30px rgba(15,118,110,.12); transform:scale(1.03); }
-    .pricing-card.popular::before { content:'Popular'; position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--primary); color:#fff; font-size:.75rem; font-weight:700; padding:4px 16px; border-radius:100px; }
-    .pricing-name { font-size:1.1rem; font-weight:700; margin-bottom:4px; }
-    .pricing-desc { font-size:.85rem; color:var(--gray-600); margin-bottom:16px; }
-    .pricing-price { font-size:2.5rem; font-weight:800; color:var(--gray-900); margin-bottom:4px; }
-    .pricing-price span { font-size:.9rem; font-weight:500; color:var(--gray-400); }
-    .pricing-period { font-size:.8rem; color:var(--gray-400); margin-bottom:24px; }
-    .pricing-features { list-style:none; margin-bottom:24px; }
-    .pricing-features li { padding:8px 0; font-size:.88rem; color:var(--gray-600); display:flex; align-items:center; gap:10px; }
-    .pricing-features li i { color:var(--primary); font-size:.85rem; }
-    .pricing-btn { display:block; text-align:center; }
+    .price-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; align-items:start; }
+    .price-card { background:#fff; border-radius:16px; padding:36px 28px; border:1px solid var(--g200); transition:all .3s; }
+    .price-card.pop { border:2px solid var(--primary); box-shadow:0 12px 40px rgba(15,118,110,.12); position:relative; }
+    .price-card.pop::before { content:'Recomendado'; position:absolute; top:-14px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg, var(--primary), var(--accent)); color:#fff; font-size:.72rem; font-weight:700; padding:5px 18px; border-radius:100px; letter-spacing:.5px; }
+    .price-name { font-size:1.1rem; font-weight:700; color:var(--g900); }
+    .price-desc { font-size:.82rem; color:var(--g500); margin-bottom:20px; }
+    .price-amount { font-size:2.8rem; font-weight:900; color:var(--g900); letter-spacing:-1px; }
+    .price-amount span { font-size:.85rem; font-weight:500; color:var(--g400); letter-spacing:0; }
+    .price-period { font-size:.78rem; color:var(--g400); margin-bottom:24px; }
+    .price-list { list-style:none; margin-bottom:28px; }
+    .price-list li { padding:7px 0; font-size:.86rem; color:var(--g600); display:flex; align-items:center; gap:10px; }
+    .price-list li i { color:var(--primary); font-size:.8rem; width:16px; text-align:center; }
+    .price-btn { display:block; text-align:center; width:100%; padding:14px; }
 
     /* ── CTA ── */
-    .cta { background:linear-gradient(135deg, var(--dark), var(--primary-dark)); padding:80px 24px; text-align:center; }
-    .cta h2 { font-size:2.2rem; font-weight:800; color:#fff; margin-bottom:12px; }
-    .cta p { font-size:1.05rem; color:rgba(255,255,255,.7); margin-bottom:32px; max-width:500px; margin-left:auto; margin-right:auto; }
+    .cta { background:linear-gradient(135deg, var(--dark) 0%, #134e4a 50%, var(--primary-dark) 100%); padding:100px 0; text-align:center; position:relative; overflow:hidden; }
+    .cta::before { content:''; position:absolute; top:-50%; right:-20%; width:600px; height:600px; background:radial-gradient(circle, rgba(6,182,212,.08) 0%, transparent 70%); }
+    .cta h2 { font-size:2.8rem; font-weight:900; color:#fff; margin-bottom:16px; letter-spacing:-1px; position:relative; }
+    .cta p { font-size:1.1rem; color:rgba(255,255,255,.55); margin-bottom:36px; max-width:500px; margin-left:auto; margin-right:auto; position:relative; }
+    .cta-actions { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; position:relative; }
 
     /* ── Footer ── */
-    .footer { background:var(--gray-900); color:var(--gray-400); padding:48px 24px 24px; }
-    .footer-inner { max-width:1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; }
-    .footer-logo { font-size:1.2rem; font-weight:700; color:#fff; }
+    .footer { background:var(--g900); padding:48px 0 24px; }
+    .footer-inner { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; }
+    .footer-brand { font-size:1.1rem; font-weight:800; color:#fff; }
+    .footer-brand small { display:block; font-size:.75rem; font-weight:400; color:var(--g500); margin-top:2px; }
     .footer-links { display:flex; gap:24px; }
-    .footer-links a { color:var(--gray-400); text-decoration:none; font-size:.85rem; transition:color .2s; }
+    .footer-links a { color:var(--g400); text-decoration:none; font-size:.83rem; transition:color .2s; }
     .footer-links a:hover { color:#fff; }
-    .footer-copy { width:100%; text-align:center; padding-top:24px; border-top:1px solid rgba(255,255,255,.08); font-size:.8rem; margin-top:16px; }
+    .footer-copy { width:100%; text-align:center; padding-top:20px; margin-top:20px; border-top:1px solid rgba(255,255,255,.06); font-size:.75rem; color:var(--g600); }
 
-    /* ── Responsive ── */
-    @media(max-width:900px) {
-        .hero-inner { grid-template-columns:1fr; text-align:center; }
-        .hero h1 { font-size:2.4rem; }
-        .hero-sub { margin-left:auto; margin-right:auto; }
+    /* ── Mobile ── */
+    @media(max-width:1024px) {
+        .hero h1 { font-size:2.8rem; }
+        .hero-content { grid-template-columns:1fr; gap:40px; }
+        .hero-mockup { display:none; }
+        .bigfeat { grid-template-columns:1fr; gap:40px; }
+        .bigfeat.reverse { direction:ltr; }
+        .bigfeat-visual { min-height:200px; }
+    }
+    @media(max-width:768px) {
+        .hero h1 { font-size:2.2rem; }
+        .hero-content { padding:120px 0 60px; text-align:center; }
+        .hero-sub { margin:0 auto 32px; }
         .hero-actions { justify-content:center; }
-        .hero-stats { justify-content:center; }
-        .hero-visual { display:none; }
-        .features-grid { grid-template-columns:1fr; }
-        .compliance-grid { grid-template-columns:repeat(2,1fr); }
-        .pricing-grid { grid-template-columns:1fr; max-width:400px; margin:0 auto; }
-        .pricing-card.popular { transform:none; }
-        .nav-links { display:none; }
-        .section-title { font-size:1.8rem; }
+        .hero-trust { justify-content:center; }
+        .feat-grid { grid-template-columns:1fr; }
+        .comp-grid { grid-template-columns:repeat(2,1fr); }
+        .stats-grid { grid-template-columns:repeat(2,1fr); gap:32px; }
+        .price-grid { grid-template-columns:1fr; max-width:380px; margin:0 auto; }
+        .section-title { font-size:1.9rem; }
+        .nav-links a:not(.nav-cta) { display:none; }
+        .cta h2 { font-size:2rem; }
     }
     </style>
 </head>
@@ -146,207 +208,330 @@
 
 <!-- Nav -->
 <nav class="nav" id="nav">
-    <div class="nav-inner">
+    <div class="container nav-inner">
         <a href="/" class="nav-logo">
-            <img src="{% static 'images/favicon.svg' %}" alt="Harmoni">
+            <img src="{% static 'images/favicon.svg' %}" alt="">
             Harmoni
         </a>
         <div class="nav-links">
-            <a href="#features">Funcionalidades</a>
+            <a href="#features">Modulos</a>
             <a href="#compliance">Normativa</a>
             <a href="#pricing">Planes</a>
-            <a href="{% url 'login' %}" class="btn btn-outline">Iniciar Sesion</a>
+            <a href="https://wa.me/51977538028?text=Hola%2C%20quiero%20una%20demo%20de%20Harmoni" class="nav-cta" target="_blank">Solicitar Demo</a>
         </div>
     </div>
 </nav>
 
 <!-- Hero -->
 <section class="hero">
-    <div class="hero-inner">
-        <div>
-            <div class="hero-badge">
-                <i class="fas fa-bolt"></i> Con IA integrada
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="container hero-content">
+        <div class="hero-left">
+            <div class="hero-pill">
+                <span class="hero-pill-dot"></span>
+                Plataforma con IA integrada
             </div>
-            <h1>Gestion de personas, <span>en armonia</span></h1>
+            <h1>El ERP de RRHH que tu empresa <span class="gradient">necesita</span></h1>
             <p class="hero-sub">
-                ERP de RRHH y planillas para empresas peruanas. Asistencia, nominas, vacaciones, reclutamiento y mas — todo en un solo sistema.
+                22 modulos integrados para gestionar personal, planillas, asistencia, reclutamiento y mas.
+                Cumplimiento total de la normativa laboral peruana. Tu empresa, tu instancia exclusiva.
             </p>
             <div class="hero-actions">
                 <a href="https://wa.me/51977538028?text=Hola%2C%20quiero%20una%20demo%20de%20Harmoni" class="btn btn-white btn-lg" target="_blank">
                     <i class="fab fa-whatsapp"></i> Solicitar Demo
                 </a>
-                <a href="{% url 'login' %}" class="btn btn-outline btn-lg">
-                    Ingresar <i class="fas fa-arrow-right"></i>
+                <a href="#features" class="btn btn-ghost btn-lg">
+                    Conocer mas <i class="fas fa-arrow-down" style="font-size:.8rem"></i>
                 </a>
             </div>
-            <div class="hero-stats">
-                <div>
-                    <div class="hero-stat-num">22</div>
-                    <div class="hero-stat-label">Modulos integrados</div>
+            <div class="hero-trust">
+                <div class="hero-avatars">
+                    <span style="background:#0f766e">HR</span>
+                    <span style="background:#3b82f6">EF</span>
+                    <span style="background:#8b5cf6">AM</span>
+                    <span style="background:#f59e0b">+</span>
                 </div>
-                <div>
-                    <div class="hero-stat-num">100%</div>
-                    <div class="hero-stat-label">Normativa peruana</div>
-                </div>
-                <div>
-                    <div class="hero-stat-num">24/7</div>
-                    <div class="hero-stat-label">IA asistente</div>
+                <div class="hero-trust-text">
+                    <strong>Empresas peruanas</strong> ya confian<br>en Harmoni para su gestion de RRHH
                 </div>
             </div>
         </div>
-        <div class="hero-visual">
-            <img src="{% static 'images/og-image.svg' %}" alt="Harmoni Dashboard" class="hero-mockup">
+        <div class="hero-mockup">
+            <div class="mockup-window">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#ff5f57"></div>
+                    <div class="mockup-dot" style="background:#ffbd2e"></div>
+                    <div class="mockup-dot" style="background:#28c840"></div>
+                </div>
+                <div class="mockup-body">
+                    <div class="mockup-sidebar">
+                        <div class="mockup-sidebar-item active"><i class="fas fa-th-large" style="font-size:.55rem"></i> Dashboard</div>
+                        <div class="mockup-sidebar-item"><i class="fas fa-users" style="font-size:.55rem"></i> Personal</div>
+                        <div class="mockup-sidebar-item"><i class="fas fa-clock" style="font-size:.55rem"></i> Asistencia</div>
+                        <div class="mockup-sidebar-item"><i class="fas fa-calculator" style="font-size:.55rem"></i> Nominas</div>
+                        <div class="mockup-sidebar-item"><i class="fas fa-umbrella-beach" style="font-size:.55rem"></i> Vacaciones</div>
+                        <div class="mockup-sidebar-item"><i class="fas fa-chart-line" style="font-size:.55rem"></i> Analytics</div>
+                        <div class="mockup-sidebar-item"><i class="fas fa-robot" style="font-size:.55rem"></i> IA Chat</div>
+                    </div>
+                    <div class="mockup-main">
+                        <div class="mockup-kpis">
+                            <div class="mockup-kpi">
+                                <div class="mockup-kpi-label">Empleados</div>
+                                <div class="mockup-kpi-value">284</div>
+                            </div>
+                            <div class="mockup-kpi">
+                                <div class="mockup-kpi-label">Asistencia</div>
+                                <div class="mockup-kpi-value" style="color:var(--primary-light)">96.2%</div>
+                            </div>
+                            <div class="mockup-kpi">
+                                <div class="mockup-kpi-label">Neto planilla</div>
+                                <div class="mockup-kpi-value" style="font-size:.9rem">S/ 842K</div>
+                            </div>
+                        </div>
+                        <div class="mockup-chart">
+                            <div class="mockup-chart-title">Headcount mensual</div>
+                            <div class="mockup-bars">
+                                <div class="mockup-bar-item" style="height:45%;background:var(--primary);animation-delay:.1s"></div>
+                                <div class="mockup-bar-item" style="height:52%;background:var(--primary);animation-delay:.2s"></div>
+                                <div class="mockup-bar-item" style="height:48%;background:var(--primary);animation-delay:.3s"></div>
+                                <div class="mockup-bar-item" style="height:60%;background:var(--primary);animation-delay:.4s"></div>
+                                <div class="mockup-bar-item" style="height:55%;background:var(--primary);animation-delay:.5s"></div>
+                                <div class="mockup-bar-item" style="height:65%;background:var(--primary);animation-delay:.6s"></div>
+                                <div class="mockup-bar-item" style="height:70%;background:var(--accent);animation-delay:.7s"></div>
+                                <div class="mockup-bar-item" style="height:68%;background:var(--primary);animation-delay:.8s"></div>
+                                <div class="mockup-bar-item" style="height:75%;background:var(--primary);animation-delay:.9s"></div>
+                                <div class="mockup-bar-item" style="height:80%;background:var(--accent);animation-delay:1s"></div>
+                                <div class="mockup-bar-item" style="height:78%;background:var(--primary);animation-delay:1.1s"></div>
+                                <div class="mockup-bar-item" style="height:85%;background:var(--accent);animation-delay:1.2s"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
-<!-- Features -->
-<section class="section bg-gray" id="features">
-    <div class="section-inner section-center">
-        <div class="section-label">Funcionalidades</div>
-        <h2 class="section-title">Todo lo que necesitas para gestionar tu equipo</h2>
-        <p class="section-sub">22 modulos integrados que cubren desde el reclutamiento hasta la liquidacion, con cumplimiento total de la normativa laboral peruana.</p>
+<!-- Trust logos -->
+<div class="logos-section">
+    <div class="container">
+        <div class="logos-label">Normativa y compatibilidad</div>
+        <div class="logos-row">
+            <span>SUNAT</span>
+            <span>PLAME</span>
+            <span>T-Registro</span>
+            <span>AFP</span>
+            <span>ONP</span>
+            <span>EsSalud</span>
+            <span>SUNAFIL</span>
+        </div>
+    </div>
+</div>
 
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon" style="background:#0f766e18;color:var(--primary)"><i class="fas fa-users"></i></div>
+<!-- Stats -->
+<div class="stats-bar">
+    <div class="container">
+        <div class="stats-grid">
+            <div><div class="stat-num">22</div><div class="stat-label">Modulos integrados</div></div>
+            <div><div class="stat-num">100%</div><div class="stat-label">Normativa peruana</div></div>
+            <div><div class="stat-num">7</div><div class="stat-label">Regimenes de turno</div></div>
+            <div><div class="stat-num">24/7</div><div class="stat-label">IA asistente</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Features -->
+<section class="section" id="features">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-label">Modulos</div>
+            <h2 class="section-title">Todo lo que necesitas, en un solo lugar</h2>
+            <p class="section-sub">Cada empresa recibe su instancia exclusiva con los 22 modulos configurados a su medida.</p>
+        </div>
+        <div class="feat-grid">
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#0f766e12;color:var(--primary)"><i class="fas fa-users"></i></div>
                 <h3>Gestion de Personal</h3>
-                <p>Fichas de empleados, contratos, areas, subareas. Control completo del ciclo de vida laboral.</p>
+                <p>Fichas completas, contratos, areas, subareas, roster. Todo el ciclo de vida del colaborador.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon" style="background:#3b82f618;color:#3b82f6"><i class="fas fa-calculator"></i></div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#3b82f612;color:#3b82f6"><i class="fas fa-calculator"></i></div>
                 <h3>Nominas y Planillas</h3>
-                <p>Calculo automatico de AFP, ONP, EsSalud, IR 5ta, gratificaciones, CTS. Boletas en PDF.</p>
+                <p>AFP, ONP, EsSalud, IR 5ta, gratificaciones, CTS. Calculo automatico con boletas PDF.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon" style="background:#f59e0b18;color:#f59e0b"><i class="fas fa-clock"></i></div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#f59e0b12;color:#f59e0b"><i class="fas fa-fingerprint"></i></div>
                 <h3>Asistencia y Tareo</h3>
-                <p>Marcaciones biometricas, banco de horas, regimenes atipicos (14x7, 21x7), horas extra.</p>
+                <p>Marcaciones biometricas, banco de horas, regimenes atipicos 14x7, 21x7. Horas extra automaticas.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon" style="background:#8b5cf618;color:#8b5cf6"><i class="fas fa-umbrella-beach"></i></div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#8b5cf612;color:#8b5cf6"><i class="fas fa-umbrella-beach"></i></div>
                 <h3>Vacaciones y Permisos</h3>
-                <p>Solicitudes, aprobaciones, saldos vacacionales, licencias. Flujo de aprobacion configurable.</p>
+                <p>Solicitudes con flujo de aprobacion, saldos vacacionales, licencias. Control total.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon" style="background:#10b98118;color:#10b981"><i class="fas fa-chart-line"></i></div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#10b98112;color:#10b981"><i class="fas fa-chart-pie"></i></div>
                 <h3>Analytics y KPIs</h3>
-                <p>Dashboard ejecutivo, headcount, rotacion, predicciones. Toma decisiones basadas en datos.</p>
+                <p>Dashboard ejecutivo: headcount, rotacion, riesgo de fuga, predicciones. Decisiones basadas en datos.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon" style="background:#06b6d418;color:#06b6d4"><i class="fas fa-robot"></i></div>
-                <h3>IA Integrada</h3>
-                <p>Chat con IA que conoce tu data, genera reportes, responde preguntas de RRHH y analiza documentos.</p>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#06b6d412;color:var(--accent)"><i class="fas fa-robot"></i></div>
+                <h3>IA Asistente</h3>
+                <p>Chat inteligente que conoce tu data, genera reportes, responde consultas y analiza documentos con OCR.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#ec489912;color:#ec4899"><i class="fas fa-user-plus"></i></div>
+                <h3>Reclutamiento</h3>
+                <p>Pipeline Kanban, seguimiento de candidatos, etapas configurables, publicacion de vacantes.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#f9731612;color:#f97316"><i class="fas fa-clipboard-check"></i></div>
+                <h3>Onboarding / Offboarding</h3>
+                <p>Checklists automatizados para ingresos y ceses. Nada se queda sin hacer.</p>
+            </div>
+            <div class="feat-card">
+                <div class="feat-icon" style="background:#14b8a612;color:var(--primary-light)"><i class="fas fa-code-branch"></i></div>
+                <h3>Workflows</h3>
+                <p>Flujos de aprobacion N-etapas configurables. Escalacion automatica, notificaciones, SLA.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Big Feature: IA -->
+<section class="section bg-subtle">
+    <div class="container">
+        <div class="bigfeat">
+            <div class="bigfeat-visual">
+                <div style="text-align:center">
+                    <i class="fas fa-robot" style="font-size:4rem;color:var(--primary);opacity:.2;margin-bottom:16px;display:block"></i>
+                    <div style="font-size:.8rem;color:var(--g400);max-width:280px;margin:0 auto">
+                        "Muestra la rotacion por area del ultimo trimestre"<br>
+                        <span style="color:var(--primary);font-weight:600">Harmoni IA genera el grafico al instante</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bigfeat-content">
+                <div class="bigfeat-label">Inteligencia artificial</div>
+                <h3 class="bigfeat-title">Tu analista de RRHH disponible 24/7</h3>
+                <p class="bigfeat-desc">Pregunta en lenguaje natural y obtiene respuestas inmediatas con graficos, tablas y analisis de tu data real.</p>
+                <ul class="bigfeat-list">
+                    <li><i class="fas fa-check"></i> Genera reportes y graficos con un mensaje</li>
+                    <li><i class="fas fa-check"></i> OCR: analiza documentos e imagenes</li>
+                    <li><i class="fas fa-check"></i> Conoce la normativa laboral peruana</li>
+                    <li><i class="fas fa-check"></i> Multi-proveedor: Gemini, OpenAI, DeepSeek</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Big Feature: Instancia exclusiva -->
+<section class="section">
+    <div class="container">
+        <div class="bigfeat reverse">
+            <div class="bigfeat-visual">
+                <div style="text-align:center">
+                    <i class="fas fa-building" style="font-size:4rem;color:var(--accent);opacity:.2;margin-bottom:16px;display:block"></i>
+                    <div style="font-size:.9rem;color:var(--g400)">
+                        <strong style="color:var(--g700)">tuempresa</strong>.harmoni.pe<br>
+                        <span style="font-size:.75rem">Instancia 100% dedicada</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bigfeat-content">
+                <div class="bigfeat-label">Tu empresa, tu plataforma</div>
+                <h3 class="bigfeat-title">Instancia exclusiva con tu marca</h3>
+                <p class="bigfeat-desc">Cada cliente recibe su propia instancia dedicada. Tu dominio, tu logo, tu configuracion. Sin compartir datos con nadie.</p>
+                <ul class="bigfeat-list">
+                    <li><i class="fas fa-check"></i> Base de datos aislada y exclusiva</li>
+                    <li><i class="fas fa-check"></i> Configuracion personalizada por empresa</li>
+                    <li><i class="fas fa-check"></i> SMTP propio (Gmail, Office 365, dominio)</li>
+                    <li><i class="fas fa-check"></i> Acceso por dominio o subdominio</li>
+                    <li><i class="fas fa-check"></i> Backups automaticos diarios</li>
+                </ul>
             </div>
         </div>
     </div>
 </section>
 
 <!-- Compliance -->
-<section class="section" id="compliance">
-    <div class="section-inner section-center">
-        <div class="section-label">Normativa</div>
-        <h2 class="section-title">100% alineado con la legislacion peruana</h2>
-        <p class="section-sub">Todos los calculos siguen la normativa vigente. Actualizaciones automaticas cuando cambia la ley.</p>
-
-        <div class="compliance-grid">
-            <div class="compliance-item">
-                <i class="fas fa-landmark"></i>
-                <h4>SUNAT / PLAME</h4>
-                <p>Exportacion compatible con T-Registro y PLAME</p>
-            </div>
-            <div class="compliance-item">
-                <i class="fas fa-shield-alt"></i>
-                <h4>AFP / ONP</h4>
-                <p>Tasas 2026 actualizadas: Habitat, Integra, Prima, Profuturo</p>
-            </div>
-            <div class="compliance-item">
-                <i class="fas fa-heartbeat"></i>
-                <h4>EsSalud 9%</h4>
-                <p>Calculo automatico del aporte empleador</p>
-            </div>
-            <div class="compliance-item">
-                <i class="fas fa-receipt"></i>
-                <h4>IR 5ta Categoria</h4>
-                <p>Escala progresiva, UIT 2026 = S/ 5,500</p>
-            </div>
-            <div class="compliance-item">
-                <i class="fas fa-gift"></i>
-                <h4>Gratificaciones</h4>
-                <p>Julio y Diciembre, bonificacion 9% (Ley 29351)</p>
-            </div>
-            <div class="compliance-item">
-                <i class="fas fa-piggy-bank"></i>
-                <h4>CTS</h4>
-                <p>Mayo y Noviembre, calculo segun DL 650</p>
-            </div>
-            <div class="compliance-item">
-                <i class="fas fa-business-time"></i>
-                <h4>Jornadas Atipicas</h4>
-                <p>5x2, 14x7, 21x7, 10x4 (DS 007-2002-TR)</p>
-            </div>
-            <div class="compliance-item">
-                <i class="fas fa-file-contract"></i>
-                <h4>Contratos</h4>
-                <p>12 tipos: indefinido, plazo fijo, obra, suplencia, etc.</p>
-            </div>
+<section class="section bg-subtle" id="compliance">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-label">Normativa</div>
+            <h2 class="section-title">Alineado con la legislacion peruana</h2>
+            <p class="section-sub">Todos los calculos se actualizan automaticamente cuando cambia la ley.</p>
+        </div>
+        <div class="comp-grid">
+            <div class="comp-item"><i class="fas fa-landmark"></i><h4>SUNAT / PLAME</h4><p>Exportacion T-Registro y planilla electronica</p></div>
+            <div class="comp-item"><i class="fas fa-shield-alt"></i><h4>AFP / ONP</h4><p>Habitat, Integra, Prima, Profuturo — tasas 2026</p></div>
+            <div class="comp-item"><i class="fas fa-heartbeat"></i><h4>EsSalud 9%</h4><p>Aporte empleador calculado automaticamente</p></div>
+            <div class="comp-item"><i class="fas fa-receipt"></i><h4>IR 5ta Categoria</h4><p>Escala progresiva, UIT 2026 = S/ 5,500</p></div>
+            <div class="comp-item"><i class="fas fa-gift"></i><h4>Gratificaciones</h4><p>Julio y Diciembre, bonificacion 9% Ley 29351</p></div>
+            <div class="comp-item"><i class="fas fa-piggy-bank"></i><h4>CTS</h4><p>Mayo y Noviembre, calculo segun DL 650</p></div>
+            <div class="comp-item"><i class="fas fa-business-time"></i><h4>Jornadas Atipicas</h4><p>5x2, 14x7, 21x7, 10x4 — DS 007-2002-TR</p></div>
+            <div class="comp-item"><i class="fas fa-file-contract"></i><h4>12 Tipos de Contrato</h4><p>Indefinido, plazo fijo, obra, suplencia y mas</p></div>
         </div>
     </div>
 </section>
 
 <!-- Pricing -->
-<section class="section bg-gray" id="pricing">
-    <div class="section-inner section-center">
-        <div class="section-label">Planes</div>
-        <h2 class="section-title">Elige el plan que mejor se adapte</h2>
-        <p class="section-sub">Sin contratos anuales. Escala cuando crezcas.</p>
-
-        <div class="pricing-grid">
-            <div class="pricing-card">
-                <div class="pricing-name">Starter</div>
-                <div class="pricing-desc">Ideal para empresas pequenas</div>
-                <div class="pricing-price">S/ 149<span>/mes</span></div>
-                <div class="pricing-period">Hasta 30 empleados</div>
-                <ul class="pricing-features">
+<section class="section" id="pricing">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-label">Planes</div>
+            <h2 class="section-title">Invierte en la gestion de tu equipo</h2>
+            <p class="section-sub">Cada plan incluye instancia exclusiva, soporte y actualizaciones. Sin contratos anuales obligatorios.</p>
+        </div>
+        <div class="price-grid">
+            <div class="price-card">
+                <div class="price-name">Starter</div>
+                <div class="price-desc">Para empresas de hasta 30 colaboradores</div>
+                <div class="price-amount">S/ 149<span>/mes</span></div>
+                <div class="price-period">+ IGV | Factura electronica</div>
+                <ul class="price-list">
                     <li><i class="fas fa-check"></i> Personal y contratos</li>
                     <li><i class="fas fa-check"></i> Asistencia y tareo</li>
                     <li><i class="fas fa-check"></i> Planillas basicas</li>
                     <li><i class="fas fa-check"></i> Vacaciones y permisos</li>
+                    <li><i class="fas fa-check"></i> Portal del colaborador</li>
                     <li><i class="fas fa-check"></i> Soporte por email</li>
                 </ul>
-                <a href="https://wa.me/51977538028?text=Quiero%20el%20plan%20Starter" class="btn btn-outline btn-lg pricing-btn" style="color:var(--primary);border-color:var(--primary)">Empezar</a>
+                <a href="https://wa.me/51977538028?text=Hola%2C%20me%20interesa%20el%20plan%20Starter%20de%20Harmoni" class="btn btn-white btn-lg price-btn" target="_blank">Empezar</a>
             </div>
-
-            <div class="pricing-card popular">
-                <div class="pricing-name">Profesional</div>
-                <div class="pricing-desc">Para empresas en crecimiento</div>
-                <div class="pricing-price">S/ 349<span>/mes</span></div>
-                <div class="pricing-period">Hasta 100 empleados</div>
-                <ul class="pricing-features">
+            <div class="price-card pop">
+                <div class="price-name">Profesional</div>
+                <div class="price-desc">Para empresas en crecimiento, hasta 100</div>
+                <div class="price-amount">S/ 349<span>/mes</span></div>
+                <div class="price-period">+ IGV | Factura electronica</div>
+                <ul class="price-list">
                     <li><i class="fas fa-check"></i> Todo de Starter</li>
-                    <li><i class="fas fa-check"></i> Nominas completas + boletas</li>
+                    <li><i class="fas fa-check"></i> Nominas completas + boletas PDF</li>
                     <li><i class="fas fa-check"></i> Analytics y KPIs</li>
                     <li><i class="fas fa-check"></i> Workflows de aprobacion</li>
-                    <li><i class="fas fa-check"></i> IA asistente</li>
-                    <li><i class="fas fa-check"></i> Soporte prioritario</li>
+                    <li><i class="fas fa-check"></i> IA asistente (chat)</li>
+                    <li><i class="fas fa-check"></i> Reclutamiento y onboarding</li>
+                    <li><i class="fas fa-check"></i> Soporte prioritario WhatsApp</li>
                 </ul>
-                <a href="https://wa.me/51977538028?text=Quiero%20el%20plan%20Profesional" class="btn btn-primary btn-lg pricing-btn">Empezar</a>
+                <a href="https://wa.me/51977538028?text=Hola%2C%20me%20interesa%20el%20plan%20Profesional%20de%20Harmoni" class="btn btn-primary btn-lg price-btn" target="_blank">Empezar</a>
             </div>
-
-            <div class="pricing-card">
-                <div class="pricing-name">Enterprise</div>
-                <div class="pricing-desc">Para grandes operaciones</div>
-                <div class="pricing-price">A medida</div>
-                <div class="pricing-period">Empleados ilimitados</div>
-                <ul class="pricing-features">
+            <div class="price-card">
+                <div class="price-name">Enterprise</div>
+                <div class="price-desc">Operaciones grandes, empleados ilimitados</div>
+                <div class="price-amount">A medida</div>
+                <div class="price-period">Cotizacion personalizada</div>
+                <ul class="price-list">
                     <li><i class="fas fa-check"></i> Todo de Profesional</li>
-                    <li><i class="fas fa-check"></i> Multi-empresa</li>
+                    <li><i class="fas fa-check"></i> Multi-empresa / holding</li>
                     <li><i class="fas fa-check"></i> API REST completa</li>
-                    <li><i class="fas fa-check"></i> Integraciones custom</li>
-                    <li><i class="fas fa-check"></i> SLA garantizado</li>
+                    <li><i class="fas fa-check"></i> Integraciones a medida</li>
+                    <li><i class="fas fa-check"></i> SLA garantizado 99.9%</li>
                     <li><i class="fas fa-check"></i> Soporte dedicado</li>
+                    <li><i class="fas fa-check"></i> Capacitacion in-house</li>
                 </ul>
-                <a href="https://wa.me/51977538028?text=Quiero%20info%20del%20plan%20Enterprise" class="btn btn-outline btn-lg pricing-btn" style="color:var(--primary);border-color:var(--primary)">Contactar</a>
+                <a href="https://wa.me/51977538028?text=Hola%2C%20necesito%20info%20del%20plan%20Enterprise%20de%20Harmoni" class="btn btn-white btn-lg price-btn" target="_blank">Contactar</a>
             </div>
         </div>
     </div>
@@ -354,49 +539,45 @@
 
 <!-- CTA -->
 <section class="cta">
-    <h2>Empieza a gestionar tu equipo en armonia</h2>
-    <p>Agenda una demo personalizada y descubre como Harmoni puede simplificar tu gestion de RRHH.</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-        <a href="https://wa.me/51977538028?text=Hola%2C%20quiero%20una%20demo%20de%20Harmoni" class="btn btn-white btn-lg" target="_blank">
-            <i class="fab fa-whatsapp"></i> WhatsApp
-        </a>
-        <a href="mailto:eflopezt@gmail.com?subject=Demo%20Harmoni%20ERP" class="btn btn-outline btn-lg">
-            <i class="fas fa-envelope"></i> Email
-        </a>
+    <div class="container" style="position:relative;z-index:1">
+        <h2>Gestiona tu equipo en armonia</h2>
+        <p>Agenda una demo personalizada de 15 minutos y descubre como Harmoni simplifica tu operacion de RRHH.</p>
+        <div class="cta-actions">
+            <a href="https://wa.me/51977538028?text=Hola%2C%20quiero%20agendar%20una%20demo%20de%20Harmoni" class="btn btn-white btn-lg" target="_blank">
+                <i class="fab fa-whatsapp"></i> Agendar Demo Gratis
+            </a>
+            <a href="mailto:eflopezt@gmail.com?subject=Consulta%20Harmoni%20ERP" class="btn btn-ghost btn-lg">
+                <i class="fas fa-envelope"></i> Escribenos
+            </a>
+        </div>
     </div>
 </section>
 
 <!-- Footer -->
 <footer class="footer">
-    <div class="footer-inner">
-        <div class="footer-logo">Harmoni</div>
+    <div class="container footer-inner">
+        <div class="footer-brand">
+            Harmoni
+            <small>ERP de RRHH y Planillas</small>
+        </div>
         <div class="footer-links">
-            <a href="#features">Funcionalidades</a>
+            <a href="#features">Modulos</a>
+            <a href="#compliance">Normativa</a>
             <a href="#pricing">Planes</a>
             <a href="https://wa.me/51977538028" target="_blank">Contacto</a>
-            <a href="{% url 'login' %}">Ingresar</a>
         </div>
-        <div class="footer-copy">
-            &copy; 2026 Harmoni ERP. Todos los derechos reservados.
-        </div>
+        <div class="footer-copy">&copy; 2026 Harmoni. Todos los derechos reservados.</div>
     </div>
 </footer>
 
 <script>
-// Nav scroll effect
-const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 50);
-});
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>50));
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=document.querySelector(a.getAttribute('href'));t&&t.scrollIntoView({behavior:'smooth',block:'start'})}));
 
-// Smooth scroll for anchor links
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
-        e.preventDefault();
-        const target = document.querySelector(a.getAttribute('href'));
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-});
+// Animate elements on scroll
+const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)'}})},{threshold:.1,rootMargin:'0px 0px -50px 0px'});
+document.querySelectorAll('.feat-card,.comp-item,.price-card,.bigfeat').forEach(el=>{el.style.opacity='0';el.style.transform='translateY(20px)';el.style.transition='opacity .5s,transform .5s';observer.observe(el)});
 </script>
 </body>
 </html>
