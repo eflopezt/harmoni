@@ -39,7 +39,7 @@ class DetalleSimulacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = DetalleSimulacion
         fields = '__all__'
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'creado_en', 'actualizado_en']
 
 
 class SimulacionIncrementoSerializer(serializers.ModelSerializer):

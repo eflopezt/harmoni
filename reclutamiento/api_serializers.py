@@ -33,7 +33,9 @@ class VacanteSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_total_postulantes(self, obj):
-        return obj.postulaciones.count()
+        # Use len() to leverage prefetch_related from the viewset
+        # instead of count() which hits the DB per row
+        return len(obj.postulaciones.all())
 
 
 class VacanteListSerializer(serializers.ModelSerializer):

@@ -63,7 +63,7 @@ class ResultadoConsolidadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResultadoConsolidado
         fields = '__all__'
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'fecha_consolidacion']
 
 
 class PlanDesarrolloSerializer(serializers.ModelSerializer):
@@ -73,7 +73,7 @@ class PlanDesarrolloSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanDesarrollo
         fields = '__all__'
-        read_only_fields = ['id', 'creado_en']
+        read_only_fields = ['id', 'creado_en', 'actualizado_en']
 
 
 # ── OKRs ──────────────────────────────────────────────────────────

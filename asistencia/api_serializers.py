@@ -42,5 +42,11 @@ class BancoHorasSerializer(serializers.ModelSerializer):
 class ConfiguracionSistemaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracionSistema
-        exclude = []
+        exclude = [
+            'ia_api_key',
+            'ia_gemini_api_key',
+            'zapsign_api_key',
+            'telegram_bot_token',
+            'whatsapp_access_token',
+        ]
         read_only_fields = ['id']

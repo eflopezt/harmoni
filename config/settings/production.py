@@ -4,8 +4,8 @@ Production settings - extends base settings.
 import dj_database_url
 from .base import *
 
-# SECURITY
-DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+# SECURITY — DEBUG must always be False in production
+DEBUG = False
 
 # Validate SECRET_KEY
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')

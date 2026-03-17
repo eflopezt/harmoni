@@ -75,7 +75,7 @@ class EvaluacionViewSet(viewsets.ReadOnlyModelViewSet):
 )
 class ResultadoConsolidadoViewSet(viewsets.ReadOnlyModelViewSet):
     """Resultados consolidados (9-Box)."""
-    queryset = ResultadoConsolidado.objects.select_related('ciclo').all()
+    queryset = ResultadoConsolidado.objects.select_related('ciclo', 'personal').all()
     serializer_class = ResultadoConsolidadoSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]

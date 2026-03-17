@@ -26,7 +26,7 @@ def usuario_list(request):
     personal_sin_usuario = Personal.objects.filter(
         usuario__isnull=True,
         estado='Activo'
-    ).order_by('apellidos_nombres')
+    ).select_related('subarea').order_by('apellidos_nombres')
 
     context = {
         'usuarios': usuarios,

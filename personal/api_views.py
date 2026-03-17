@@ -19,7 +19,7 @@ from .permissions import puede_editar_roster
 
 class AreaViewSet(viewsets.ModelViewSet):
     """ViewSet para Gerencias."""
-    queryset = Area.objects.all()
+    queryset = Area.objects.prefetch_related('subareas', 'responsables').all()
     serializer_class = AreaSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -62,7 +62,13 @@ class PersonalViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def activos(self, request):
         """Endpoint para obtener solo personal activo."""
-        personal_activo = self.queryset.filter(estado='Activo')
+        personal_activo = self.filter_queryset(
+            self.queryset.filter(estado='Activo')
+        )
+        page = self.paginate_queryset(personal_activo)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(personal_activo, many=True)
         return Response(serializer.data)
     
@@ -121,14 +127,20 @@ class RosterViewSet(viewsets.ModelViewSet):
         """Obtener roster por rango de fechas."""
         fecha_desde = request.query_params.get('fecha_desde')
         fecha_hasta = request.query_params.get('fecha_hasta')
-        
+
         if not fecha_desde or not fecha_hasta:
             return Response(
                 {'error': 'Debe proporcionar fecha_desde y fecha_hasta'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        roster = self.queryset.filter(fecha__range=[fecha_desde, fecha_hasta])
+
+        roster = self.filter_queryset(
+            self.queryset.filter(fecha__range=[fecha_desde, fecha_hasta])
+        )
+        page = self.paginate_queryset(roster)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(roster, many=True)
         return Response(serializer.data)
 

@@ -374,11 +374,21 @@ def participante_asistencia(request, pk):
     asist.estado = request.POST.get('estado', asist.estado)
     nota = request.POST.get('nota')
     if nota:
-        asist.nota = Decimal(nota)
+        try:
+            asist.nota = Decimal(nota)
+        except Exception:
+            return JsonResponse({'ok': False, 'error': 'Nota inválida.'}, status=400)
     asist.aprobado = request.POST.get('aprobado') == 'on'
     asist.observaciones = request.POST.get('observaciones', asist.observaciones)
     if request.FILES.get('certificado'):
-        asist.certificado = request.FILES['certificado']
+        cert = request.FILES['certificado']
+        allowed_ext = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}
+        ext = cert.name.rsplit('.', 1)[-1].lower() if '.' in cert.name else ''
+        if ext not in allowed_ext:
+            return JsonResponse({'ok': False, 'error': f'Tipo de archivo .{ext} no permitido.'}, status=400)
+        if cert.size > 10 * 1024 * 1024:  # 10MB limit
+            return JsonResponse({'ok': False, 'error': 'Archivo demasiado grande (máx 10MB).'}, status=400)
+        asist.certificado = cert
     asist.save()
     return JsonResponse({'ok': True, 'estado': asist.get_estado_display(), 'aprobado': asist.aprobado})
 

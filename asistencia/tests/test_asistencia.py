@@ -344,7 +344,7 @@ class TestConfiguracionSistema(TestCase):
     """Verify the singleton ConfiguracionSistema and its default values."""
 
     def test_singleton_get_or_create(self):
-        config = ConfiguracionSistema.get_solo()
+        config = ConfiguracionSistema.get()
         assert config.pk == 1
 
     def test_singleton_always_pk_1(self):
@@ -356,27 +356,27 @@ class TestConfiguracionSistema(TestCase):
         assert ConfiguracionSistema.objects.count() == 1
 
     def test_uit_default_value(self):
-        config = ConfiguracionSistema.get_solo()
+        config = ConfiguracionSistema.get()
         assert config.uit_valor == Decimal("5500.00")
 
     def test_uit_anno(self):
-        config = ConfiguracionSistema.get_solo()
+        config = ConfiguracionSistema.get()
         assert config.uit_anno == 2026
 
     def test_rmv_default_value(self):
-        config = ConfiguracionSistema.get_solo()
+        config = ConfiguracionSistema.get()
         assert config.rmv_valor == Decimal("1130.00")
 
     def test_jornada_local_horas(self):
-        config = ConfiguracionSistema.get_solo()
+        config = ConfiguracionSistema.get()
         assert config.jornada_local_horas == Decimal("8.5")
 
     def test_jornada_foraneo_horas(self):
-        config = ConfiguracionSistema.get_solo()
+        config = ConfiguracionSistema.get()
         assert config.jornada_foraneo_horas == Decimal("11.0")
 
     def test_str_contains_empresa(self):
-        config = ConfiguracionSistema.get_solo()
+        config = ConfiguracionSistema.get()
         result = str(config)
         assert "Configuraci" in result
 

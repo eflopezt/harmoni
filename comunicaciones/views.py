@@ -393,7 +393,10 @@ def comunicado_crear(request):
 @solo_admin
 def comunicado_detalle(request, pk):
     """Detalle de comunicado con estadísticas de distribución."""
-    comunicado = get_object_or_404(ComunicadoMasivo, pk=pk)
+    comunicado = get_object_or_404(
+        ComunicadoMasivo.objects.prefetch_related('areas'),
+        pk=pk,
+    )
     confirmaciones = comunicado.confirmaciones.select_related('personal').order_by('-fecha_lectura')
 
     return render(request, 'comunicaciones/comunicado_detalle.html', {
