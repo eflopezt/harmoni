@@ -1,49 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <defs>
-    <!-- Fondo radial oscuro tipo vignette -->
+    <!-- Fondo tipo velvet verde oscuro -->
     <radialGradient id="bgGrad" cx="50%" cy="45%" r="65%">
       <stop offset="0%"   stop-color="#1b4a43"/>
       <stop offset="60%"  stop-color="#0f3530"/>
       <stop offset="100%" stop-color="#081a17"/>
     </radialGradient>
 
-    <!-- Pilares: blanco puro con suave glow interno -->
+    <!-- Pilares: blanco luminoso -->
     <linearGradient id="pillarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%"   stop-color="#d6f5f0"/>
       <stop offset="40%"  stop-color="#ffffff"/>
       <stop offset="100%" stop-color="#e8faf7"/>
     </linearGradient>
 
-    <!-- Arco: teal oscuro en extremos → cyan brillante en centro -->
-    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%"   stop-color="#0d9488"/>
-      <stop offset="30%"  stop-color="#2dd4bf"/>
+    <!-- Cinta/wave: oscuro→teal→cyan brillante→teal→oscuro -->
+    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#084e47"/>
+      <stop offset="20%"  stop-color="#0d9488"/>
       <stop offset="50%"  stop-color="#5eead4"/>
-      <stop offset="70%"  stop-color="#2dd4bf"/>
-      <stop offset="100%" stop-color="#0d9488"/>
+      <stop offset="80%"  stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#084e47"/>
     </linearGradient>
 
-    <!-- Glow del arco -->
-    <filter id="arcGlow" x="-60%" y="-150%" width="220%" height="400%">
-      <feGaussianBlur stdDeviation="5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <!-- Glow de la cinta -->
+    <filter id="waveGlow" x="-50%" y="-150%" width="200%" height="400%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
 
     <!-- Glow suave pilares -->
     <filter id="pillarGlow" x="-30%" y="-5%" width="160%" height="110%">
       <feGaussianBlur stdDeviation="2.5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
 
-    <!-- Bloom central debajo del arco -->
-    <radialGradient id="bloomGrad" cx="50%" cy="30%" r="60%">
-      <stop offset="0%"   stop-color="#5eead4" stop-opacity="0.35"/>
+    <!-- Bloom cyan central -->
+    <radialGradient id="bloomGrad" cx="50%" cy="55%" r="55%">
+      <stop offset="0%"   stop-color="#5eead4" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#5eead4" stop-opacity="0"/>
     </radialGradient>
   </defs>
@@ -51,25 +45,47 @@
   <!-- Fondo -->
   <rect width="200" height="200" fill="url(#bgGrad)" rx="0"/>
 
-  <!-- Bloom glow debajo del arco -->
-  <ellipse cx="100" cy="106" rx="52" ry="18" fill="url(#bloomGrad)"/>
+  <!-- Bloom ambiental -->
+  <ellipse cx="100" cy="115" rx="70" ry="28" fill="url(#bloomGrad)"/>
 
-  <!-- Arco borroso (capa glow) -->
-  <path d="M 42,88 Q 100,130 158,88"
-        stroke="#5eead4" stroke-width="7" fill="none"
-        stroke-linecap="round" opacity="0.45"
-        filter="url(#arcGlow)"/>
+  <!-- === S-WAVE RIBBON === -->
+  <!-- Capa glow exterior (muy borrosa) -->
+  <path d="M 8,118 C 42,142 68,78 100,112 C 132,148 158,82 192,106"
+        stroke="#5eead4" stroke-width="18" fill="none"
+        stroke-linecap="round" opacity="0.18" filter="url(#waveGlow)"/>
 
-  <!-- Arco principal (detrás de los pilares) -->
-  <path d="M 42,88 Q 100,130 158,88"
-        stroke="url(#arcGrad)" stroke-width="5.5" fill="none"
+  <!-- Cuerpo principal de la cinta -->
+  <path d="M 8,118 C 42,142 68,78 100,112 C 132,148 158,82 192,106"
+        stroke="url(#waveGrad)" stroke-width="9" fill="none"
         stroke-linecap="round"/>
 
-  <!-- Pilar izquierdo (encima del arco) -->
-  <rect x="55" y="16" width="27" height="142" rx="13.5"
-        fill="url(#pillarGrad)" filter="url(#pillarGlow)"/>
+  <!-- Capa media brillante -->
+  <path d="M 8,118 C 42,142 68,78 100,112 C 132,148 158,82 192,106"
+        stroke="#2dd4bf" stroke-width="4" fill="none"
+        stroke-linecap="round" opacity="0.6"/>
 
-  <!-- Pilar derecho -->
+  <!-- Línea central (highlight brillante) -->
+  <path d="M 8,118 C 42,142 68,78 100,112 C 132,148 158,82 192,106"
+        stroke="#c8faf2" stroke-width="1.4" fill="none"
+        stroke-linecap="round" opacity="0.75"/>
+
+  <!-- === PILARES (encima de la cinta) === -->
+  <rect x="55"  y="16" width="27" height="142" rx="13.5"
+        fill="url(#pillarGrad)" filter="url(#pillarGlow)"/>
   <rect x="118" y="16" width="27" height="142" rx="13.5"
         fill="url(#pillarGrad)" filter="url(#pillarGlow)"/>
+
+  <!-- === PARTÍCULAS a lo largo de la cinta === -->
+  <!-- Lado izquierdo -->
+  <circle cx="18"  cy="122" r="2.8" fill="#5eead4" opacity="0.95"/>
+  <circle cx="30"  cy="128" r="1.8" fill="#5eead4" opacity="0.7"/>
+  <circle cx="42"  cy="134" r="1.2" fill="#a7f3e8" opacity="0.6"/>
+  <!-- Centro -->
+  <circle cx="100" cy="112" r="3.2" fill="#ffffff"  opacity="0.45"/>
+  <circle cx="88"  cy="109" r="1.5" fill="#5eead4" opacity="0.5"/>
+  <circle cx="112" cy="115" r="1.5" fill="#5eead4" opacity="0.5"/>
+  <!-- Lado derecho -->
+  <circle cx="158" cy="89"  r="2.8" fill="#5eead4" opacity="0.95"/>
+  <circle cx="170" cy="96"  r="1.8" fill="#5eead4" opacity="0.7"/>
+  <circle cx="182" cy="101" r="1.2" fill="#a7f3e8" opacity="0.6"/>
 </svg>

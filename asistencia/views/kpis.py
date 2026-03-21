@@ -37,6 +37,8 @@ def kpi_dashboard_view(request):
     from django.db.models import F as DbF
     qs = RegistroTareo.objects.filter(fecha__gte=inicio, fecha__lte=fin).exclude(
         personal__fecha_cese__isnull=False, fecha__gt=DbF('personal__fecha_cese')
+    ).exclude(
+        personal__fecha_alta__isnull=False, fecha__lt=DbF('personal__fecha_alta')
     )
 
     # KPIs principales

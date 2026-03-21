@@ -4,27 +4,44 @@
       <stop offset="0%"   stop-color="#1b4a43"/>
       <stop offset="100%" stop-color="#081a17"/>
     </radialGradient>
-    <linearGradient id="arcG" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%"   stop-color="#0d9488"/>
+    <linearGradient id="waveG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#084e47"/>
+      <stop offset="30%"  stop-color="#0d9488"/>
       <stop offset="50%"  stop-color="#5eead4"/>
-      <stop offset="100%" stop-color="#0d9488"/>
+      <stop offset="70%"  stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#084e47"/>
     </linearGradient>
-    <filter id="glow" x="-80%" y="-200%" width="260%" height="500%">
-      <feGaussianBlur stdDeviation="1.2" result="b"/>
+    <filter id="wGlow" x="-80%" y="-200%" width="260%" height="500%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
 
   <!-- Ícono cuadrado 44x44 -->
   <rect x="0" y="4" width="44" height="44" fill="url(#markBg)" rx="10"/>
-  <!-- Arco -->
-  <path d="M 6,26 Q 22,36 38,26"
-        stroke="url(#arcG)" stroke-width="2.8" fill="none"
-        stroke-linecap="round" filter="url(#glow)"/>
+
+  <!-- S-Wave glow -->
+  <path d="M 2,28 C 8,34 14,18 22,26 C 30,34 36,18 42,24"
+        stroke="#5eead4" stroke-width="6" fill="none"
+        stroke-linecap="round" opacity="0.25" filter="url(#wGlow)"/>
+  <!-- S-Wave body -->
+  <path d="M 2,28 C 8,34 14,18 22,26 C 30,34 36,18 42,24"
+        stroke="url(#waveG)" stroke-width="3" fill="none"
+        stroke-linecap="round"/>
+  <!-- S-Wave highlight -->
+  <path d="M 2,28 C 8,34 14,18 22,26 C 30,34 36,18 42,24"
+        stroke="#c8faf2" stroke-width="0.9" fill="none"
+        stroke-linecap="round" opacity="0.7"/>
+
   <!-- Pilar izquierdo -->
   <rect x="8"  y="8" width="7" height="32" rx="3.5" fill="white"/>
   <!-- Pilar derecho -->
   <rect x="29" y="8" width="7" height="32" rx="3.5" fill="white"/>
+
+  <!-- Partículas -->
+  <circle cx="4"  cy="28"   r="1.1" fill="#5eead4" opacity="0.9"/>
+  <circle cx="40" cy="23.5" r="1.1" fill="#5eead4" opacity="0.9"/>
+  <circle cx="22" cy="26"   r="0.9" fill="#ffffff"  opacity="0.45"/>
 
   <!-- Wordmark "Harmoni" -->
   <text x="54" y="32"

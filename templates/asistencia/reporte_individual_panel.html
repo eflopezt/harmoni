@@ -79,6 +79,9 @@
        class="btn btn-sm btn-success ms-auto">
         <i class="fas fa-download me-1"></i>Descargar Todos (ZIP)
     </a>
+    <button type="button" id="sendAllBtn" class="btn btn-sm btn-primary">
+        <i class="fas fa-paper-plane me-1"></i>Enviar a todos ({{ total_empleados }})
+    </button>
 </form>
 </div>
 
@@ -309,6 +312,58 @@
             .catch(() => {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar seleccionados';
+                showResult('Error', '<div class="text-danger">Error de conexion.</div>');
+            });
+        });
+    });
+
+    // ── Send ALL (button in filter bar) ──
+    document.getElementById('sendAllBtn').addEventListener('click', function(){
+        const allIds = [...document.querySelectorAll('.emp-card')].map(c => parseInt(c.dataset.id));
+        if(!allIds.length) return;
+        let sinCorreo = 0;
+        allIds.forEach(id => {
+            const card = document.querySelector(`.emp-card[data-id="${id}"]`);
+            if(card && !card.dataset.email) sinCorreo++;
+        });
+        let msg = `Se enviaran reportes a <strong>todos los ${allIds.length} empleados</strong> (${grupo}) del periodo.`;
+        if(sinCorreo) msg += `<br><span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${sinCorreo} sin correo registrado (se omitiran).</span>`;
+        msg += `<br><br><strong>Este proceso puede tomar varios minutos.</strong>`;
+
+        showConfirm(msg, function(){
+            const btn = document.getElementById('sendAllBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando a todos...';
+
+            fetch('{% url "asistencia_reporte_enviar_masivo" %}', {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrf, 'Content-Type': 'application/json'},
+                body: JSON.stringify({ids: allIds, anio: anio, mes: mes, grupo: grupo})
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar a todos ({{ total_empleados }})';
+                let html = '';
+                if(data.enviados) html += `<div class="text-success mb-2"><i class="fas fa-check-circle me-1"></i><strong>${data.enviados}</strong> reporte(s) enviados correctamente.</div>`;
+                if(data.sin_correo && data.sin_correo.length) html += `<div class="text-warning mb-2"><i class="fas fa-exclamation-triangle me-1"></i>${data.sin_correo.length} sin correo: ${data.sin_correo.join(', ')}</div>`;
+                if(data.errores && data.errores.length) html += `<div class="text-danger mb-2"><i class="fas fa-times-circle me-1"></i>${data.errores.length} error(es): ${data.errores.join(', ')}</div>`;
+                showResult('Resultado del envio masivo', html);
+                // Mark all sent
+                document.querySelectorAll('.emp-card').forEach(card => {
+                    if(card.dataset.email){
+                        const sendBtn = card.querySelector('.btn-send-individual');
+                        if(sendBtn){
+                            sendBtn.classList.add('sent');
+                            sendBtn.innerHTML = '<i class="fas fa-check me-1"></i>Enviado';
+                            sendBtn.disabled = true;
+                        }
+                    }
+                });
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar a todos ({{ total_empleados }})';
                 showResult('Error', '<div class="text-danger">Error de conexion.</div>');
             });
         });

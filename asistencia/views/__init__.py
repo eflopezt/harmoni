@@ -19,6 +19,8 @@ from asistencia.views.importaciones import (  # noqa: F401
 from asistencia.views.exportaciones import (  # noqa: F401
     exportar_carga_s10_view,
     exportar_cierre_view,
+    reportes_exportar_panel,
+    exportar_horas_rco,
 )
 from asistencia.views.configuracion import (  # noqa: F401
     configuracion_view,
@@ -47,6 +49,7 @@ from asistencia.views.papeletas import (  # noqa: F401
     papeleta_eliminar,
     papeleta_aprobar,
     papeletas_exportar,
+    papeletas_reporte_agrupado,
 )
 from asistencia.views.solicitudes_he import (  # noqa: F401
     solicitudes_he_view,

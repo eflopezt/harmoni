@@ -60,14 +60,20 @@ def tareo_dashboard(request):
     qs_staff_dedup = _qs_staff_dedup(mes_ini, mes_fin)
     qs_rco = RegistroTareo.objects.filter(grupo='RCO', fecha__gte=mes_ini, fecha__lte=mes_fin)
 
-    # Excluir registros de empleados cesados y domingos LOCAL como faltas
+    # Excluir registros post-cese y pre-ingreso
     qs_staff_valid = qs_staff_dedup.exclude(
         personal__fecha_cese__isnull=False,
         fecha__gt=models.F('personal__fecha_cese')
+    ).exclude(
+        personal__fecha_alta__isnull=False,
+        fecha__lt=models.F('personal__fecha_alta')
     )
     qs_rco_valid = qs_rco.exclude(
         personal__fecha_cese__isnull=False,
         fecha__gt=models.F('personal__fecha_cese')
+    ).exclude(
+        personal__fecha_alta__isnull=False,
+        fecha__lt=models.F('personal__fecha_alta')
     )
     # Faltas reales: excluir domingos LOCAL (son DS, no faltas)
     faltas_staff = qs_staff_valid.filter(

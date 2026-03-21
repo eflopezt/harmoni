@@ -153,13 +153,13 @@
                         <td class="text-center">
                             <span class="badge bg-light text-dark border" style="font-size:.7rem">{{ r.condicion }}</span>
                         </td>
-                        <td class="text-center fw-semibold">{{ r.dias_trabajados }}</td>
-                        <td class="text-center text-muted">{% if r.dias_ss %}{{ r.dias_ss }}{% else %}—{% endif %}</td>
-                        <td class="text-center text-muted">{% if r.dias_dl %}{{ r.dias_dl }}{% else %}—{% endif %}</td>
-                        <td class="text-center {% if r.dias_fa %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                        <td class="text-center fw-semibold" data-order="{{ r.dias_trabajados|default:0 }}">{{ r.dias_trabajados }}</td>
+                        <td class="text-center text-muted" data-order="{{ r.dias_ss|default:0 }}">{% if r.dias_ss %}{{ r.dias_ss }}{% else %}—{% endif %}</td>
+                        <td class="text-center text-muted" data-order="{{ r.dias_dl|default:0 }}">{% if r.dias_dl %}{{ r.dias_dl }}{% else %}—{% endif %}</td>
+                        <td class="text-center {% if r.dias_fa %}text-danger fw-semibold{% else %}text-muted{% endif %}" data-order="{{ r.dias_fa|default:0 }}">
                             {% if r.dias_fa %}{{ r.dias_fa }}{% else %}—{% endif %}
                         </td>
-                        <td class="text-center text-muted">{% if r.dias_vac %}{{ r.dias_vac }}{% else %}—{% endif %}</td>
+                        <td class="text-center text-muted" data-order="{{ r.dias_vac|default:0 }}">{% if r.dias_vac %}{{ r.dias_vac }}{% else %}—{% endif %}</td>
                         <td class="text-end {% if r.he_25 %}text-success{% else %}text-muted{% endif %}">
                             {% if r.he_25 %}{{ r.he_25|floatformat:2 }}h{% else %}—{% endif %}
                         </td>
@@ -214,4 +214,24 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#tablaUnificada').DataTable({
+        paging: true,
+        pageLength: 50,
+        lengthMenu: [25, 50, 100, 200],
+        order: [[0, 'asc']],
+        language: {
+            search: 'Buscar:', lengthMenu: 'Mostrar _MENU_',
+            info: '_START_-_END_ de _TOTAL_',
+            infoEmpty: 'Sin resultados',
+            paginate: { previous: '&lsaquo;', next: '&rsaquo;' },
+        },
+        columnDefs: [{ type: 'num', targets: [4,5,6,7,8,9,10,11,12] }]
+    });
+});
+</script>
 {% endblock %}

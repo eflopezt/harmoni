@@ -25,9 +25,12 @@ def _d(v):
 def _staff_resumen(mes_ini, mes_fin, buscar=''):
     """Resumen por persona para STAFF (deduplicado)."""
     from asistencia.models import BancoHoras
+    from django.db.models import F as DbF
 
     qs = (
         _qs_staff_dedup(mes_ini, mes_fin)
+        .exclude(personal__fecha_cese__isnull=False, fecha__gt=DbF('personal__fecha_cese'))
+        .exclude(personal__fecha_alta__isnull=False, fecha__lt=DbF('personal__fecha_alta'))
         .values('personal_id', 'personal__apellidos_nombres',
                 'personal__nro_doc', 'personal__condicion')
         .annotate(
@@ -35,7 +38,7 @@ def _staff_resumen(mes_ini, mes_fin, buscar=''):
                 'T', 'NOR', 'TR', 'LCG', 'ATM', 'CDT', 'CPF', 'SS'])),
             dias_ss=Count('id', filter=Q(codigo_dia='SS')),
             dias_dl=Count('id', filter=Q(codigo_dia__in=['DL', 'DLA'])),
-            dias_fa=Count('id', filter=Q(codigo_dia__in=['FA', 'F'])),
+            dias_fa=Count('id', filter=Q(codigo_dia__in=['FA', 'F']) & ~Q(condicion__in=['LOCAL', 'LIMA', ''], dia_semana=6)),
             dias_vac=Count('id', filter=Q(codigo_dia__in=['VAC', 'V'])),
             he_25=Sum('he_25'),
             he_35=Sum('he_35'),
@@ -84,15 +87,18 @@ def _staff_resumen(mes_ini, mes_fin, buscar=''):
 def _rco_resumen(mes_ini, mes_fin, buscar=''):
     """Resumen por persona para RCO."""
     from asistencia.models import RegistroTareo
+    from django.db.models import F as DbF
 
     qs = (
         RegistroTareo.objects
         .filter(grupo='RCO', fecha__gte=mes_ini, fecha__lte=mes_fin)
+        .exclude(personal__fecha_cese__isnull=False, fecha__gt=DbF('personal__fecha_cese'))
+        .exclude(personal__fecha_alta__isnull=False, fecha__lt=DbF('personal__fecha_alta'))
         .values('personal_id', 'personal__apellidos_nombres',
                 'personal__nro_doc', 'personal__condicion', 'dni', 'nombre_archivo')
         .annotate(
-            dias_trabajados=Count('id'),
-            dias_fa=Count('id', filter=Q(codigo_dia__in=['FA', 'F'])),
+            dias_trabajados=Count('id', filter=Q(codigo_dia__in=['T', 'NOR', 'TR', 'A', 'CDT', 'CPF', 'LCG', 'ATM', 'CHE', 'LIM', 'SS'])),
+            dias_fa=Count('id', filter=Q(codigo_dia__in=['FA', 'F']) & ~Q(condicion__in=['LOCAL', 'LIMA', ''], dia_semana=6)),
             he_25=Sum('he_25'),
             he_35=Sum('he_35'),
             he_100=Sum('he_100'),

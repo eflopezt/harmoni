@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F as DbF, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import render
 
@@ -46,6 +46,10 @@ def vista_rco(request):
     # Base queryset for the selected period
     qs_base = RegistroTareo.objects.filter(
         grupo='RCO', fecha__gte=mes_ini, fecha__lte=mes_fin
+    ).exclude(
+        personal__fecha_cese__isnull=False, fecha__gt=DbF('personal__fecha_cese')
+    ).exclude(
+        personal__fecha_alta__isnull=False, fecha__lt=DbF('personal__fecha_alta')
     )
 
     # KPIs from full period (no text filter)
@@ -82,7 +86,10 @@ def vista_rco(request):
             total_he_35=Sum('he_35'),
             total_he_100=Sum('he_100'),
             total_horas=Sum('horas_marcadas'),
-            dias_trabajados=Count('id'),
+            dias_trabajados=Count('id', filter=Q(codigo_dia__in=['T', 'NOR', 'TR', 'A', 'CDT', 'CPF', 'LCG', 'ATM', 'CHE', 'LIM', 'SS'])),
+            dias_fa=Count('id', filter=Q(codigo_dia__in=['FA', 'F']) & ~Q(condicion__in=['LOCAL', 'LIMA', ''], dia_semana=6)),
+            dias_dl=Count('id', filter=Q(codigo_dia__in=['DL', 'DLA'])),
+            dias_vac=Count('id', filter=Q(codigo_dia__in=['VAC', 'V'])),
         )
         .order_by('nombre_archivo')
     )

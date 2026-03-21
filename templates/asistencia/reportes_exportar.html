@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Reportes y Exportaciones{% endblock %}
+
+{% block extra_css %}
+<style>
+.hero-exp{background:linear-gradient(135deg,#1e293b 0%,#0f766e 100%);border-radius:.75rem}
+.report-card{background:#fff;border:1px solid #e2e8f0;border-radius:.75rem;padding:1.25rem;transition:all .15s;height:100%}
+.report-card:hover{border-color:#0f766e;box-shadow:0 4px 16px rgba(15,118,110,.12);transform:translateY(-2px)}
+.report-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:.75rem}
+.report-title{font-weight:700;font-size:.95rem;color:#1e293b;margin-bottom:.25rem}
+.report-desc{font-size:.78rem;color:#64748b;margin-bottom:.75rem}
+.filter-bar{background:rgba(255,255,255,.95);border:1px solid rgba(0,0,0,.06);border-radius:.75rem;padding:.75rem 1rem;margin-bottom:1rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-exp p-3 mb-4 text-white">
+    <h2 class="mb-1 fw-bold"><i class="fas fa-file-export me-2 opacity-75"></i>Reportes y Exportaciones</h2>
+    <p class="mb-0 opacity-75" style="font-size:.82rem">Descarga reportes en Excel y PDF del modulo de asistencia</p>
+</div>
+
+<div class="filter-bar">
+    <form id="filterForm" class="d-flex flex-wrap gap-2 align-items-center">
+        <label class="fw-semibold" style="font-size:.85rem">Periodo:</label>
+        <select id="selMes" class="form-select form-select-sm" style="width:130px">
+            {% for m_val, m_name in meses_list %}
+            <option value="{{ m_val }}" {% if m_val == mes %}selected{% endif %}>{{ m_name }}</option>
+            {% endfor %}
+        </select>
+        <select id="selAnio" class="form-select form-select-sm" style="width:90px">
+            {% for a in anios %}
+            <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="row g-3">
+    <!-- Reporte de Cierre -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="report-card">
+            <div class="report-icon" style="background:#dcfce7;color:#16a34a"><i class="fas fa-file-excel"></i></div>
+            <div class="report-title">Reporte de Cierre</div>
+            <div class="report-desc">Resumen por empleado: dias trabajados, faltas, LSG, vacaciones, DM, DL, horas extra, % asistencia. Usa ciclo de planilla.</div>
+            <a href="#" onclick="descargar('{% url 'asistencia_exportar_cierre' %}')" class="btn btn-sm btn-success"><i class="fas fa-download me-1"></i>Descargar Excel</a>
+        </div>
+    </div>
+
+    <!-- Carga S10 -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="report-card">
+            <div class="report-icon" style="background:#dbeafe;color:#2563eb"><i class="fas fa-file-export"></i></div>
+            <div class="report-title">Carga S10</div>
+            <div class="report-desc">Excel para importar en S10: horas extras (25%, 35%, 100%), faltas, DM, LSG, vacaciones. Solo personal RCO.</div>
+            <a href="#" onclick="descargar('{% url 'asistencia_exportar_s10' %}')" class="btn btn-sm btn-primary"><i class="fas fa-download me-1"></i>Descargar Excel</a>
+        </div>
+    </div>
+
+    <!-- Reporte Papeletas Agrupado -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="report-card">
+            <div class="report-icon" style="background:#fef3c7;color:#d97706"><i class="fas fa-clipboard-list"></i></div>
+            <div class="report-title">Reporte de Papeletas</div>
+            <div class="report-desc">Papeletas agrupadas por tipo (DM, Vacaciones, LSG, LCG, etc.) y por trabajador con rangos de fechas.</div>
+            <a href="#" onclick="descargar('{% url 'asistencia_papeletas_reporte' %}')" class="btn btn-sm btn-warning text-dark"><i class="fas fa-download me-1"></i>Descargar Excel</a>
+        </div>
+    </div>
+
+    <!-- Reportes PDF Individuales -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="report-card">
+            <div class="report-icon" style="background:#fee2e2;color:#dc2626"><i class="fas fa-file-pdf"></i></div>
+            <div class="report-title">Reportes PDF Individuales</div>
+            <div class="report-desc">Genera PDF de asistencia por empleado (STAFF o RCO) con calendario semanal, horas, papeletas y firma.</div>
+            <a href="#" onclick="irA('{% url 'asistencia_reportes' %}')" class="btn btn-sm btn-danger"><i class="fas fa-arrow-right me-1"></i>Ir a Reportes PDF</a>
+        </div>
+    </div>
+
+    <!-- Calendario Excel -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="report-card">
+            <div class="report-icon" style="background:#e0e7ff;color:#4f46e5"><i class="fas fa-calendar-alt"></i></div>
+            <div class="report-title">Calendario Excel</div>
+            <div class="report-desc">Grilla mensual de asistencia con codigos de color por empleado. Export desde la vista calendario.</div>
+            <a href="#" onclick="irA('{% url 'asistencia_calendario' %}')" class="btn btn-sm btn-outline-primary"><i class="fas fa-arrow-right me-1"></i>Ir a Calendario</a>
+        </div>
+    </div>
+
+    <!-- Exportar Papeletas -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="report-card">
+            <div class="report-icon" style="background:#f3e8ff;color:#7c3aed"><i class="fas fa-file-contract"></i></div>
+            <div class="report-title">Exportar Papeletas (detalle)</div>
+            <div class="report-desc">Listado detallado de todas las papeletas con filtros por estado, tipo, origen. Hasta 2000 registros.</div>
+            <a href="#" onclick="irA('{% url 'asistencia_papeletas' %}')" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-right me-1"></i>Ir a Papeletas</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getParams() {
+    return `?mes=${document.getElementById('selMes').value}&anio=${document.getElementById('selAnio').value}`;
+}
+function descargar(url) {
+    window.open(url + getParams(), '_blank');
+}
+function irA(url) {
+    window.location.href = url + getParams();
+}
+</script>
+{% endblock %}

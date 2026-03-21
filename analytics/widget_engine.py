@@ -205,6 +205,9 @@ def _asistencia_mes(user):
         ).exclude(
             personal__fecha_cese__isnull=False,
             fecha__gt=DbF('personal__fecha_cese')
+        ).exclude(
+            personal__fecha_alta__isnull=False,
+            fecha__lt=DbF('personal__fecha_alta')
         )
         total = tareo.count()
         presentes = tareo.filter(codigo_dia__in=['T', 'NOR', 'TR', 'SS', 'A', 'CDT', 'CPF', 'LCG', 'ATM', 'CHE', 'LIM']).count()

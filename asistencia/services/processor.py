@@ -57,6 +57,9 @@ TIPO_PERMISO_MAP = {
     'COMPENSACION DIA TRABAJO': 'COMP_DIA_TRABAJO',
     'CDT': 'COMP_DIA_TRABAJO',
     'SUSPENSION': 'SUSPENSION',
+    'SUSPENSION ACTO INSEGURO': 'SUSPENSION_ACTO_INSEGURO',
+    'SUSPENSION POR ACTO INSEGURO': 'SUSPENSION_ACTO_INSEGURO',
+    'SAI': 'SUSPENSION_ACTO_INSEGURO',
     'ATENCION MEDICA': 'LICENCIA_CON_GOCE',   # ATM → cuenta como LCG (asistencia)
     'ATM': 'LICENCIA_CON_GOCE',
     'TRABAJO REMOTO': 'COMISION_TRABAJO',
@@ -79,6 +82,7 @@ INICIALES_A_CODIGO = {
     'TR':  'TR',   # Trabajo remoto
     'CDT': 'CDT',  # Compensación día trabajado
     'CPF': 'CPF',  # Compensación por feriado
+    'SAI': 'SAI',  # Suspensión por acto inseguro
     'F':   'FA',   # Falta
     'FA':  'FA',   # Falta
     'NOR': 'T',    # Día normal trabajado
@@ -87,11 +91,11 @@ INICIALES_A_CODIGO = {
 }
 
 # Códigos que descuentan remuneración
-CODIGOS_DESCUENTO = {'FA', 'LSG'}
+CODIGOS_DESCUENTO = {'FA', 'LSG', 'SAI'}
 
 # Códigos que NO generan HE (el día se paga pero no suma horas al banco/pago)
 CODIGOS_SIN_HE = {'SS', 'DL', 'DLA', 'CHE', 'VAC', 'DM', 'LCG', 'LF',
-                  'LP', 'LSG', 'FA', 'TR', 'CDT', 'CPF', 'FR', 'ATM'}
+                  'LP', 'LSG', 'FA', 'TR', 'CDT', 'CPF', 'FR', 'ATM', 'SAI'}
 
 # Códigos que SÍ cuentan como día trabajado para el resumen mensual
 CODIGOS_ASISTENCIA = {'T', 'TR', 'LCG', 'ATM', 'CPF', 'CDT', 'SS'}

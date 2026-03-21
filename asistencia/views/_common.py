@@ -4,7 +4,7 @@ Utilidades compartidas entre las vistas del módulo Tareo.
 from django.contrib.auth.decorators import user_passes_test
 from django.db.models import OuterRef, Subquery
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
+solo_admin = user_passes_test(lambda u: u.is_superuser or u.is_staff, login_url='login')
 
 
 def _get_importacion_activa(tipo='RELOJ', importacion_id=None):

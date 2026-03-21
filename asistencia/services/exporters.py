@@ -128,6 +128,14 @@ class CargaS10Exporter:
                     self.anio, self.mes,
                 )
 
+        # Excluir registros post-cese y pre-ingreso
+        from django.db.models import F as DbF
+        qs_base = qs_base.exclude(
+            personal__fecha_cese__isnull=False, fecha__gt=DbF('personal__fecha_cese')
+        ).exclude(
+            personal__fecha_alta__isnull=False, fecha__lt=DbF('personal__fecha_alta')
+        )
+
         # HE: del ciclo HE (21 mes ant → 20 mes actual)
         qs_he = qs_base.filter(fecha__gte=inicio_he, fecha__lte=fin_he)
 
@@ -305,11 +313,15 @@ class ReporteCierreExporter:
         inicio, fin = self.config.get_ciclo_asistencia(self.anio, self.mes)
         total_dias = (fin - inicio).days + 1
 
+        from django.db.models import F as DbF
         qs = (RegistroTareo.objects
               .filter(fecha__gte=inicio, fecha__lte=fin, personal__isnull=False)
+              .exclude(personal__fecha_cese__isnull=False, fecha__gt=DbF('personal__fecha_cese'))
+              .exclude(personal__fecha_alta__isnull=False, fecha__lt=DbF('personal__fecha_alta'))
               .values('personal_id', 'personal__apellidos_nombres',
                       'personal__nro_doc', 'personal__grupo_tareo',
-                      'personal__codigo_sap', 'codigo_dia')
+                      'personal__codigo_sap', 'personal__condicion',
+                      'codigo_dia', 'condicion', 'dia_semana')
               .annotate(
                   sum_he25=Sum('he_25'),
                   sum_he35=Sum('he_35'),
@@ -337,9 +349,11 @@ class ReporteCierreExporter:
                     'he100': CERO,
                 }
             cod = (r['codigo_dia'] or '').upper()
-            if cod in ('T', 'NOR', 'TR'):
+            # Domingos LOCAL con FA → DS (descanso semanal, no falta)
+            es_dom_local = r.get('dia_semana') == 6 and r.get('condicion', '') in ('LOCAL', 'LIMA', '')
+            if cod in ('T', 'NOR', 'TR', 'A', 'SS', 'CDT', 'CPF', 'LCG', 'ATM', 'CHE', 'LIM'):
                 datos[pid]['dias_trabajados'] += 1
-            elif cod == 'FA':
+            elif cod in ('FA', 'F') and not es_dom_local:
                 datos[pid]['faltas'] += 1
             elif cod in ('VAC', 'V'):
                 datos[pid]['vacaciones'] += 1
@@ -347,6 +361,11 @@ class ReporteCierreExporter:
                 datos[pid]['dm'] += 1
             elif cod in ('DL', 'DLA', 'B'):
                 datos[pid]['dl'] += 1
+            elif cod == 'LSG':
+                datos[pid].setdefault('lsg', 0)
+                datos[pid]['lsg'] += 1
+            elif cod in ('DS', 'NA', 'FR', 'FER'):
+                pass  # No contar como "otros"
             else:
                 datos[pid]['otros'] += 1
             datos[pid]['he25'] = (datos[pid]['he25'] or CERO) + (r['sum_he25'] or CERO)
@@ -361,13 +380,13 @@ class ReporteCierreExporter:
         header_fill = PatternFill(start_color='D6E4F0', end_color='D6E4F0', fill_type='solid')
         header_font = Font(bold=True, size=9)
 
-        ws.merge_cells('A1:N1')
+        ws.merge_cells('A1:O1')
         ws['A1'] = f'REPORTE DE CIERRE — {self.mes_nombre.upper()} {self.anio}'
         ws['A1'].font = title_font
         ws['A1'].alignment = Alignment(horizontal='center')
 
         headers = ['Código SAP', 'DNI', 'Apellidos y Nombres', 'Grupo',
-                   'Días Trabajados', 'Faltas', 'Vacaciones', 'DM', 'DL/Bajadas', 'Otros',
+                   'Días Trabajados', 'Faltas', 'LSG', 'Vacaciones', 'DM', 'DL/Bajadas', 'Otros',
                    'HE 25% (h)', 'HE 35% (h)', 'HE 100% (h)', '% Asistencia']
 
         for col, h in enumerate(headers, 1):
@@ -381,13 +400,13 @@ class ReporteCierreExporter:
             pct_asist = (d['dias_trabajados'] / dias_habiles * 100) if dias_habiles else 0
             ws.append([
                 d['sap'], d['dni'], d['nombre'], d['grupo'],
-                d['dias_trabajados'], d['faltas'], d['vacaciones'],
+                d['dias_trabajados'], d['faltas'], d.get('lsg', 0), d['vacaciones'],
                 d['dm'], d['dl'], d['otros'],
                 float(d['he25']), float(d['he35']), float(d['he100']),
                 round(pct_asist, 1),
             ])
 
-        for col_idx in range(1, 15):
+        for col_idx in range(1, 16):
             ws.column_dimensions[get_column_letter(col_idx)].width = 16
         ws.column_dimensions['C'].width = 35
 

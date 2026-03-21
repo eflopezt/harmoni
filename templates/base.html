@@ -49,25 +49,39 @@
                       <stop offset="0%" stop-color="#1b4a43"/>
                       <stop offset="100%" stop-color="#081a17"/>
                     </radialGradient>
-                    <linearGradient id="sb-arc" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%"  stop-color="#0d9488"/>
+                    <linearGradient id="sb-wv" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%"  stop-color="#084e47"/>
+                      <stop offset="30%" stop-color="#0d9488"/>
                       <stop offset="50%" stop-color="#5eead4"/>
-                      <stop offset="100%" stop-color="#0d9488"/>
+                      <stop offset="70%" stop-color="#0d9488"/>
+                      <stop offset="100%" stop-color="#084e47"/>
                     </linearGradient>
                     <filter id="sb-glow" x="-80%" y="-200%" width="260%" height="500%">
-                      <feGaussianBlur stdDeviation="1" result="b"/>
+                      <feGaussianBlur stdDeviation="1.2" result="b"/>
                       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
                     </filter>
                   </defs>
                   <rect width="40" height="40" fill="url(#sb-bg)" rx="8"/>
-                  <!-- Arco sonrisa (detrás de pilares) -->
-                  <path d="M 5,20 Q 20,30 35,20"
-                        stroke="url(#sb-arc)" stroke-width="2.8" fill="none"
-                        stroke-linecap="round" filter="url(#sb-glow)"/>
+                  <!-- S-Wave glow -->
+                  <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
+                        stroke="#5eead4" stroke-width="6" fill="none"
+                        stroke-linecap="round" opacity="0.22" filter="url(#sb-glow)"/>
+                  <!-- S-Wave body -->
+                  <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
+                        stroke="url(#sb-wv)" stroke-width="3" fill="none"
+                        stroke-linecap="round"/>
+                  <!-- S-Wave highlight -->
+                  <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
+                        stroke="#c8faf2" stroke-width="0.9" fill="none"
+                        stroke-linecap="round" opacity="0.65"/>
                   <!-- Pilar izquierdo -->
                   <rect x="7"  y="5" width="7" height="28" rx="3.5" fill="white"/>
                   <!-- Pilar derecho -->
                   <rect x="26" y="5" width="7" height="28" rx="3.5" fill="white"/>
+                  <!-- Partículas -->
+                  <circle cx="5"  cy="22"   r="1"   fill="#5eead4" opacity="0.95"/>
+                  <circle cx="35" cy="19.5" r="1"   fill="#5eead4" opacity="0.95"/>
+                  <circle cx="20" cy="21"   r="0.8" fill="#ffffff"  opacity="0.45"/>
                 </svg>
             </div>
             <div class="ms-2">
@@ -317,6 +331,9 @@
                     </a>
                     <a href="{% url 'asistencia_reportes' %}" class="nav-item" data-match="/asistencia/reportes">
                         <i class="fas fa-file-pdf"></i><span>Reportes PDF</span>
+                    </a>
+                    <a href="{% url 'asistencia_exportar_panel' %}" class="nav-item" data-match="/asistencia/exportar">
+                        <i class="fas fa-file-export"></i><span>Exportaciones</span>
                     </a>
                     <a href="{% url 'asistencia_importar' %}" class="nav-item" data-match="/asistencia/importar">
                         <i class="fas fa-file-import"></i><span>Importaciones</span>

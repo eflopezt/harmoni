@@ -65,6 +65,10 @@
                 </select>
             </form>
             <!-- Action buttons -->
+            <a href="{% url 'asistencia_exportar_horas_rco' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+               class="btn btn-sm btn-success fw-semibold">
+                <i class="fas fa-file-excel me-1"></i>Exportar Horas
+            </a>
             <a href="{% url 'asistencia_exportar_s10' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
                class="btn btn-sm btn-warning fw-semibold">
                 <i class="fas fa-file-excel me-1"></i>CargaS10
@@ -233,8 +237,10 @@
                                     <span class="badge rco-badge-100">HE 100%</span>
                                 </th>
                                 <th class="text-end">Total HE</th>
-                                <th class="text-end">H. Marcadas</th>
-                                <th class="text-center">Días</th>
+                                <th class="text-center">Trab</th>
+                                <th class="text-center text-danger">Faltas</th>
+                                <th class="text-center">DL</th>
+                                <th class="text-center text-info">VAC</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -255,8 +261,10 @@
                                     {{ r.total_he_100|floatformat:2 }}
                                 </td>
                                 <td class="he-cell fw-bold" data-order="{{ r.total_he|default:0 }}">{{ r.total_he|floatformat:2 }}</td>
-                                <td class="text-end text-muted small" data-order="{{ r.total_horas|default:0 }}">{{ r.total_horas|floatformat:1 }}</td>
                                 <td class="text-center" data-order="{{ r.dias_trabajados|default:0 }}">{{ r.dias_trabajados }}</td>
+                                <td class="text-center {% if r.dias_fa %}text-danger fw-bold{% else %}text-muted{% endif %}" data-order="{{ r.dias_fa|default:0 }}">{% if r.dias_fa %}{{ r.dias_fa }}{% else %}—{% endif %}</td>
+                                <td class="text-center {% if r.dias_dl %}text-primary{% else %}text-muted{% endif %}" data-order="{{ r.dias_dl|default:0 }}">{% if r.dias_dl %}{{ r.dias_dl }}{% else %}—{% endif %}</td>
+                                <td class="text-center {% if r.dias_vac %}text-info{% else %}text-muted{% endif %}" data-order="{{ r.dias_vac|default:0 }}">{% if r.dias_vac %}{{ r.dias_vac }}{% else %}—{% endif %}</td>
                             </tr>
                             {% empty %}
                             <tr>
@@ -356,7 +364,7 @@ $(document).ready(function() {
         paging: false, searching: true, info: true,
         order: [[6, 'desc']],
         language: { decimal: ',', emptyTable: 'Sin datos', search: 'Buscar:', info: '_TOTAL_ personas' },
-        columnDefs: [{ type: 'num', targets: [3,4,5,6,7,8] }]
+        columnDefs: [{ type: 'num', targets: [3,4,5,6,7,8,9,10] }]
     });
     // Adjust columns when summary tab becomes visible
     $('#tab-resumen-btn').on('shown.bs.tab', function() {

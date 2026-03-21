@@ -24,8 +24,10 @@ urlpatterns = [
     path('importar/s10/', views.importar_s10_view, name='asistencia_importar_s10'),
 
     # Exportaciones
+    path('exportar/', views.reportes_exportar_panel, name='asistencia_exportar_panel'),
     path('exportar/carga-s10/', views.exportar_carga_s10_view, name='asistencia_exportar_s10'),
     path('exportar/cierre/', views.exportar_cierre_view, name='asistencia_exportar_cierre'),
+    path('exportar/horas-rco/', views.exportar_horas_rco, name='asistencia_exportar_horas_rco'),
 
     # Relojes Biométricos ZKTeco
     path('relojes/', views.lista_relojes, name='asistencia_relojes_lista'),
@@ -77,6 +79,7 @@ urlpatterns = [
     path('papeletas/<int:pk>/eliminar/', views.papeleta_eliminar, name='asistencia_papeleta_eliminar'),
     path('papeletas/<int:pk>/aprobar/', views.papeleta_aprobar, name='asistencia_papeleta_aprobar'),
     path('papeletas/exportar/', views.papeletas_exportar, name='asistencia_papeletas_exportar'),
+    path('papeletas/reporte/', views.papeletas_reporte_agrupado, name='asistencia_papeletas_reporte'),
 
     # Homologaciones CRUD
     path('homologaciones/crear/', views.homologacion_crear, name='asistencia_homologacion_crear'),

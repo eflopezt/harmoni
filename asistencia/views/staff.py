@@ -57,8 +57,14 @@ def vista_staff(request):
 
     # Resumen por persona para el mes calendario
     # Usa queryset deduplicado: 1 registro por (personal, fecha) → importación más reciente
+    from django.db.models import F as DbF
+    qs_base = _qs_staff_dedup(mes_ini, mes_fin).exclude(
+        personal__fecha_cese__isnull=False, fecha__gt=DbF('personal__fecha_cese')
+    ).exclude(
+        personal__fecha_alta__isnull=False, fecha__lt=DbF('personal__fecha_alta')
+    )
     qs_resumen = (
-        _qs_staff_dedup(mes_ini, mes_fin)
+        qs_base
         .values('personal_id', 'personal__apellidos_nombres', 'personal__nro_doc',
                 'personal__condicion', 'dni')
         .annotate(
@@ -69,7 +75,8 @@ def vista_staff(request):
             dias_vac        = Count('id', filter=Q(codigo_dia__in=['VAC', 'V'])),
             dias_dm         = Count('id', filter=Q(codigo_dia='DM')),
             dias_lsg        = Count('id', filter=Q(codigo_dia='LSG')),
-            dias_fa         = Count('id', filter=Q(codigo_dia__in=['FA', 'F'])),
+            # Faltas: excluir domingos LOCAL (son DS, no faltas)
+            dias_fa         = Count('id', filter=Q(codigo_dia__in=['FA', 'F']) & ~Q(condicion__in=['LOCAL', 'LIMA', ''], dia_semana=6)),
             he_25           = Sum('he_25'),
             he_35           = Sum('he_35'),
             he_100          = Sum('he_100'),

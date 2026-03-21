@@ -38,7 +38,7 @@ LIBRE = {'DL', 'DLA'}
 
 CODE_COLORS = {
     'A': '#c6f6d5', 'NOR': '#c6f6d5', 'T': '#c6f6d5', 'TR': '#c6f6d5', 'SS': '#c6f6d5',
-    'F': '#fed7d7', 'FA': '#fed7d7',
+    'F': '#fed7d7', 'FA': '#fed7d7', 'SAI': '#fed7d7',
     'VAC': '#bee3f8', 'V': '#bee3f8',
     'DL': '#e2e8f0', 'DLA': '#e2e8f0', 'DS': '#e2e8f0', 'B': '#e2e8f0',
     'DM': '#fefcbf', 'SUB': '#fefcbf',
@@ -219,7 +219,8 @@ def reporte_individual_pdf(request, personal_id):
     personal = get_object_or_404(Personal, pk=personal_id)
     anio = int(request.GET.get('anio', date.today().year))
     mes = int(request.GET.get('mes', date.today().month))
-    grupo = request.GET.get('grupo', 'STAFF')
+    # Usar grupo_tareo del empleado, no del filtro
+    grupo = personal.grupo_tareo or request.GET.get('grupo', 'STAFF')
     inicio, fin = _get_ciclo(anio, mes)
     papeletas = _get_papeletas(personal, inicio, fin)
     if grupo == 'RCO':
@@ -256,7 +257,9 @@ def reporte_masivo_pdf(request):
     with ZipFile(zip_buffer, 'w') as zf:
         for p in empleados:
             pap = _get_papeletas(p, inicio, fin)
-            if grupo == 'RCO':
+            # Usar grupo_tareo del empleado
+            g = p.grupo_tareo or grupo
+            if g == 'RCO':
                 d, t = _build_rco_data(p, inicio, fin)
                 h = _render_rco_html(p, d, t, pap, inicio, fin, mes, anio)
             else:
@@ -273,6 +276,8 @@ def reporte_masivo_pdf(request):
 
 def _generar_pdf_empleado(personal, anio, mes, grupo):
     """Genera bytes del PDF de reporte para un empleado."""
+    # Usar grupo_tareo del empleado si está configurado
+    grupo = personal.grupo_tareo or grupo
     inicio, fin = _get_ciclo(anio, mes)
     papeletas = _get_papeletas(personal, inicio, fin)
     if grupo == 'RCO':
@@ -289,6 +294,65 @@ def _get_email_empleado(personal):
     return personal.correo_corporativo or personal.correo_personal or ''
 
 
+def _cuerpo_reporte(nombre, mes_nombre, anio):
+    """Genera el cuerpo del correo de reporte de asistencia."""
+    return (
+        f'Estimado(a) {nombre},\n'
+        f'\n'
+        f'Como parte del proceso de mejora en el control de asistencia, estamos '
+        f'implementando el envio automatizado de reportes individuales. Adjunto '
+        f'encontrara su reporte correspondiente al periodo {mes_nombre} {anio}.\n'
+        f'\n'
+        f'Le pedimos revisarlo con atencion. Si identifica alguna diferencia en sus '
+        f'marcaciones, papeletas no registradas o cualquier dato que requiera '
+        f'correccion, por favor comuniquelo a la brevedad a cualquiera de los '
+        f'siguientes correos para su regularizacion:\n'
+        f'\n'
+        f'    - jochoa@consorciosrt.com\n'
+        f'    - eflopez@consorciosrt.com\n'
+        f'    - randrade@consorciosrt.com\n'
+        f'\n'
+        f'Esta informacion sera utilizada para el calculo de la nomina del periodo, '
+        f'por lo que es importante contar con datos actualizados.\n'
+        f'\n'
+        f'Agradecemos su colaboracion.\n'
+        f'\n'
+        f'Saludos cordiales,\n'
+        f'Area de Recursos Humanos\n'
+        f'Consorcio SRT'
+    )
+
+
+def _enviar_reporte(personal, anio, mes, grupo):
+    """Genera y envía el reporte PDF al correo del empleado.
+    Retorna (ok, email_o_error)."""
+    email_dest = _get_email_empleado(personal)
+    if not email_dest:
+        return False, 'sin_correo'
+
+    pdf = _generar_pdf_empleado(personal, anio, mes, grupo)
+    if not pdf:
+        return False, 'error_pdf'
+
+    filename = f'Asistencia_{personal.nro_doc}_{MESES[mes]}_{anio}.pdf'
+    asunto = f'Reporte de Asistencia - {MESES[mes]} {anio}'
+    cuerpo = _cuerpo_reporte(personal.apellidos_nombres, MESES[mes], anio)
+
+    try:
+        email = EmailMessage(
+            subject=asunto,
+            body=cuerpo,
+            to=[email_dest],
+        )
+        email.attach(filename, pdf, 'application/pdf')
+        email.send()
+        logger.info('Reporte enviado a %s (%s)', personal.nro_doc, email_dest)
+        return True, email_dest
+    except Exception as e:
+        logger.exception('Error enviando reporte a %s', personal.nro_doc)
+        return False, str(e)
+
+
 @login_required
 @solo_admin
 @require_POST
@@ -303,32 +367,10 @@ def enviar_reporte_email(request, personal_id):
     if not email_dest:
         return JsonResponse({'ok': False, 'error': f'{personal.apellidos_nombres} no tiene correo registrado.'}, status=400)
 
-    pdf = _generar_pdf_empleado(personal, anio, mes, grupo)
-    if not pdf:
-        return JsonResponse({'ok': False, 'error': 'Error generando PDF.'}, status=500)
-
-    filename = f'Asistencia_{personal.nro_doc}_{MESES[mes]}_{anio}.pdf'
-    asunto = f'Reporte de Asistencia - {MESES[mes]} {anio}'
-    cuerpo = (
-        f'Estimado/a {personal.apellidos_nombres},\n\n'
-        f'Adjunto encontrará su reporte de asistencia correspondiente al periodo '
-        f'{MESES[mes]} {anio}.\n\n'
-        f'Saludos cordiales,\nRRHH'
-    )
-
-    try:
-        email = EmailMessage(
-            subject=asunto,
-            body=cuerpo,
-            to=[email_dest],
-        )
-        email.attach(filename, pdf, 'application/pdf')
-        email.send()
-        logger.info('Reporte enviado a %s (%s)', personal.nro_doc, email_dest)
-        return JsonResponse({'ok': True, 'email': email_dest})
-    except Exception as e:
-        logger.exception('Error enviando reporte a %s', personal.nro_doc)
-        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+    ok, resultado = _enviar_reporte(personal, anio, mes, grupo)
+    if ok:
+        return JsonResponse({'ok': True, 'email': resultado})
+    return JsonResponse({'ok': False, 'error': resultado}, status=500)
 
 
 @login_required
@@ -355,36 +397,12 @@ def enviar_reportes_masivo_email(request):
     errores = []
 
     for personal in empleados:
-        email_dest = _get_email_empleado(personal)
-        if not email_dest:
-            sin_correo.append(personal.apellidos_nombres)
-            continue
-
-        pdf = _generar_pdf_empleado(personal, anio, mes, grupo)
-        if not pdf:
-            errores.append(personal.apellidos_nombres)
-            continue
-
-        filename = f'Asistencia_{personal.nro_doc}_{MESES[mes]}_{anio}.pdf'
-        asunto = f'Reporte de Asistencia - {MESES[mes]} {anio}'
-        cuerpo = (
-            f'Estimado/a {personal.apellidos_nombres},\n\n'
-            f'Adjunto encontrará su reporte de asistencia correspondiente al periodo '
-            f'{MESES[mes]} {anio}.\n\n'
-            f'Saludos cordiales,\nRRHH'
-        )
-
-        try:
-            email = EmailMessage(
-                subject=asunto,
-                body=cuerpo,
-                to=[email_dest],
-            )
-            email.attach(filename, pdf, 'application/pdf')
-            email.send()
+        ok, resultado = _enviar_reporte(personal, anio, mes, grupo)
+        if ok:
             enviados.append(personal.apellidos_nombres)
-        except Exception:
-            logger.exception('Error enviando reporte a %s', personal.nro_doc)
+        elif resultado == 'sin_correo':
+            sin_correo.append(personal.apellidos_nombres)
+        else:
             errores.append(personal.apellidos_nombres)
 
     return JsonResponse({

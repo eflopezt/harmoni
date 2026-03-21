@@ -11,6 +11,7 @@ Base legal:
 - Ley 26644: licencia maternidad
 - Ley 29409: licencia paternidad
 """
+import calendar
 from datetime import date
 
 from django.contrib.auth.decorators import login_required
@@ -315,3 +316,116 @@ def _papeleta_dict(p):
         'es_compensacion': p.es_compensacion,
         'es_importada': p.es_importada,
     }
+
+
+@login_required
+@solo_admin
+def papeletas_reporte_agrupado(request):
+    """Reporte de papeletas agrupado por tipo y por trabajador."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    from django.http import HttpResponse
+    from asistencia.models import RegistroPapeleta
+    from collections import defaultdict
+
+    anio = int(request.GET.get('anio', date.today().year))
+    mes = int(request.GET.get('mes', date.today().month))
+
+    _, num_dias = calendar.monthrange(anio, mes)
+    mes_ini = date(anio, mes, 1)
+    mes_fin = date(anio, mes, num_dias)
+
+    MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+    qs = RegistroPapeleta.objects.filter(
+        fecha_inicio__lte=mes_fin, fecha_fin__gte=mes_ini,
+        estado__in=['APROBADA', 'EJECUTADA'],
+    ).select_related('personal').order_by('tipo_permiso', 'personal__apellidos_nombres', 'fecha_inicio')
+
+    # Agrupar por tipo -> trabajador -> lista de rangos
+    por_tipo = defaultdict(lambda: defaultdict(list))
+    for p in qs:
+        nombre = p.personal.apellidos_nombres if p.personal else p.dni
+        dni = p.personal.nro_doc if p.personal else p.dni
+        por_tipo[p.get_tipo_permiso_display()][f'{nombre} ({dni})'].append({
+            'inicio': p.fecha_inicio,
+            'fin': p.fecha_fin,
+            'dias': p.dias_habiles,
+            'obs': p.observaciones or '',
+        })
+
+    # Generar Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f'Papeletas {MESES[mes-1]} {anio}'
+
+    title_font = Font(bold=True, size=14, color='0f766e')
+    tipo_font = Font(bold=True, size=11, color='FFFFFF')
+    tipo_fill = PatternFill(start_color='0f766e', end_color='0f766e', fill_type='solid')
+    header_font = Font(bold=True, size=9, color='FFFFFF')
+    header_fill = PatternFill(start_color='334155', end_color='334155', fill_type='solid')
+    nombre_font = Font(bold=True, size=9)
+    data_font = Font(size=9)
+    border = Border(
+        bottom=Side(style='thin', color='e2e8f0'),
+    )
+
+    # Titulo
+    ws.cell(row=1, column=1, value=f'REPORTE DE PAPELETAS — {MESES[mes-1].upper()} {anio}').font = title_font
+    ws.cell(row=2, column=1, value=f'Periodo: {mes_ini.strftime("%d/%m/%Y")} al {mes_fin.strftime("%d/%m/%Y")}').font = Font(size=9, color='64748b')
+
+    row = 4
+    for tipo_nombre, trabajadores in sorted(por_tipo.items()):
+        # Header de tipo
+        for c in range(1, 6):
+            cell = ws.cell(row=row, column=c)
+            cell.fill = tipo_fill
+            cell.font = tipo_font
+        ws.cell(row=row, column=1, value=tipo_nombre)
+        total_tipo = sum(sum(p['dias'] for p in papeletas) for papeletas in trabajadores.values())
+        ws.cell(row=row, column=5, value=f'{total_tipo} días total')
+        row += 1
+
+        # Sub-headers
+        for c, h in enumerate(['Trabajador', 'Fecha Inicio', 'Fecha Fin', 'Días', 'Observación'], 1):
+            cell = ws.cell(row=row, column=c, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center')
+        row += 1
+
+        for nombre_trab, papeletas in sorted(trabajadores.items()):
+            for i, p in enumerate(papeletas):
+                if i == 0:
+                    ws.cell(row=row, column=1, value=nombre_trab).font = nombre_font
+                else:
+                    ws.cell(row=row, column=1, value='').font = data_font
+                ws.cell(row=row, column=2, value=p['inicio'].strftime('%d/%m/%Y')).font = data_font
+                ws.cell(row=row, column=3, value=p['fin'].strftime('%d/%m/%Y')).font = data_font
+                ws.cell(row=row, column=4, value=p['dias']).font = Font(bold=True, size=9)
+                ws.cell(row=row, column=5, value=p['obs'][:60]).font = Font(size=8, color='64748b')
+                for c in range(1, 6):
+                    ws.cell(row=row, column=c).border = border
+                row += 1
+
+        row += 1  # Espacio entre tipos
+
+    # Anchos de columna
+    ws.column_dimensions['A'].width = 40
+    ws.column_dimensions['B'].width = 14
+    ws.column_dimensions['C'].width = 14
+    ws.column_dimensions['D'].width = 8
+    ws.column_dimensions['E'].width = 45
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="Papeletas_{MESES[mes-1]}_{anio}.xlsx"'
+    return response

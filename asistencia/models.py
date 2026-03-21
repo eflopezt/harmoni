@@ -558,6 +558,7 @@ class RegistroPapeleta(models.Model):
         ('COMPENSACION_FERIADO', 'Compensación por Feriado (CPF)'),
         ('COMP_DIA_TRABAJO', 'Compensación de Día por Trabajo (CDT)'),
         ('SUSPENSION', 'Suspensión Disciplinaria'),
+        ('SUSPENSION_ACTO_INSEGURO', 'Suspensión por Acto Inseguro (SAI)'),
         ('CAPACITACION', 'Capacitación (CAP)'),
         ('TRABAJO_REMOTO', 'Trabajo Remoto (TR)'),
         ('OTRO', 'Otro'),
