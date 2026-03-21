@@ -26,8 +26,8 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;transition:all .4s cubic-bezier(.4,0,.2,1)}
 .nav.s{background:rgba(5,13,11,.85);backdrop-filter:blur(24px) saturate(1.8);padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 .nav-i{display:flex;align-items:center;justify-content:space-between}
-.nav-logo{font-size:1.35rem;font-weight:800;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px;letter-spacing:-.5px}
-.nav-logo img{height:26px;filter:brightness(10)}
+.nav-logo{font-size:1.35rem;font-weight:800;color:#fff;text-decoration:none;display:flex;align-items:center;gap:10px;letter-spacing:-.5px}
+.nav-logo svg{width:30px;height:30px;flex-shrink:0}
 .nav-r{display:flex;gap:24px;align-items:center}
 .nav-r a{color:rgba(255,255,255,.6);text-decoration:none;font-size:.82rem;font-weight:500;transition:color .2s}
 .nav-r a:hover{color:#fff}
@@ -46,6 +46,10 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 .btn-g:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25)}
 .btn-lg{padding:16px 36px;font-size:1rem;border-radius:14px}
 
+/* ══ HERO RIBBON ══ */
+.hero-ribbon{position:absolute;left:0;right:0;top:50%;transform:translateY(-52%);pointer-events:none;z-index:1;animation:ribFloat 12s ease-in-out infinite}
+.hero-ribbon svg{width:100%;display:block}
+@keyframes ribFloat{0%,100%{transform:translateY(-52%) scaleY(1)}50%{transform:translateY(-48%) scaleY(1.06)}}
 /* ══ HERO ══ */
 .hero{min-height:100vh;background:var(--dk);position:relative;display:flex;align-items:center;overflow:hidden}
 .hero-orbs{position:absolute;inset:0;pointer-events:none}
@@ -220,7 +224,28 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 <!-- Nav -->
 <nav class="nav" id="nav">
 <div class="ctr nav-i">
-    <a href="/" class="nav-logo"><img src="{% static 'images/favicon.svg' %}" alt="">Harmoni</a>
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="nl-wv" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"  stop-color="rgba(13,148,136,0)"/>
+            <stop offset="30%" stop-color="#0d9488"/>
+            <stop offset="50%" stop-color="#5eead4"/>
+            <stop offset="70%" stop-color="#0d9488"/>
+            <stop offset="100%" stop-color="rgba(13,148,136,0)"/>
+          </linearGradient>
+        </defs>
+        <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
+              stroke="url(#nl-wv)" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
+              stroke="rgba(200,250,242,0.45)" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        <rect x="7"  y="5" width="7" height="28" rx="3.5" fill="white"/>
+        <rect x="26" y="5" width="7" height="28" rx="3.5" fill="white"/>
+        <circle cx="5"  cy="22"   r="1.1" fill="#5eead4" opacity="0.95"/>
+        <circle cx="35" cy="19.5" r="1.1" fill="#5eead4" opacity="0.95"/>
+      </svg>
+      Harmoni
+    </a>
     <div class="nav-r">
         <a href="#modulos">Modulos</a>
         <a href="#normativa">Normativa</a>
@@ -235,6 +260,52 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 <section class="hero">
 <div class="hero-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
 <div class="hero-mesh"></div>
+
+<!-- S-Wave Ribbon decorativa (brand identity) -->
+<div class="hero-ribbon">
+  <svg viewBox="0 0 1440 180" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="hr-wv" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#0d9488" stop-opacity="0"/>
+        <stop offset="15%"  stop-color="#0d9488" stop-opacity="0.35"/>
+        <stop offset="35%"  stop-color="#5eead4" stop-opacity="0.45"/>
+        <stop offset="50%"  stop-color="#5eead4" stop-opacity="0.5"/>
+        <stop offset="65%"  stop-color="#5eead4" stop-opacity="0.45"/>
+        <stop offset="85%"  stop-color="#0d9488" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#0d9488" stop-opacity="0"/>
+      </linearGradient>
+      <filter id="hr-glow" x="-5%" y="-200%" width="110%" height="500%">
+        <feGaussianBlur stdDeviation="12" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <!-- Glow exterior -->
+    <path d="M-80,100 C160,150 320,40 540,95 C760,150 920,35 1160,90 C1320,130 1420,70 1520,95"
+          stroke="#5eead4" stroke-width="40" fill="none"
+          stroke-linecap="round" opacity="0.06" filter="url(#hr-glow)"/>
+    <!-- Cuerpo principal -->
+    <path d="M-80,100 C160,150 320,40 540,95 C760,150 920,35 1160,90 C1320,130 1420,70 1520,95"
+          stroke="url(#hr-wv)" stroke-width="14" fill="none"
+          stroke-linecap="round"/>
+    <!-- Banda media -->
+    <path d="M-80,100 C160,150 320,40 540,95 C760,150 920,35 1160,90 C1320,130 1420,70 1520,95"
+          stroke="#2dd4bf" stroke-width="5" fill="none"
+          stroke-linecap="round" opacity="0.5"/>
+    <!-- Highlight central -->
+    <path d="M-80,100 C160,150 320,40 540,95 C760,150 920,35 1160,90 C1320,130 1420,70 1520,95"
+          stroke="#c8faf2" stroke-width="1.5" fill="none"
+          stroke-linecap="round" opacity="0.55"/>
+    <!-- Partículas sobre la cinta -->
+    <circle cx="200"  cy="136" r="3" fill="#5eead4" opacity="0.7"/>
+    <circle cx="400"  cy="68"  r="2" fill="#5eead4" opacity="0.5"/>
+    <circle cx="540"  cy="95"  r="4" fill="#ffffff"  opacity="0.2"/>
+    <circle cx="760"  cy="140" r="2.5" fill="#5eead4" opacity="0.6"/>
+    <circle cx="920"  cy="43"  r="2" fill="#5eead4" opacity="0.5"/>
+    <circle cx="1160" cy="90"  r="4" fill="#ffffff"  opacity="0.2"/>
+    <circle cx="1350" cy="118" r="2.5" fill="#5eead4" opacity="0.6"/>
+  </svg>
+</div>
+
 <div class="ctr hero-c">
     <div>
         <div class="hero-pill"><span class="hero-pill-dot"></span> Plataforma con IA integrada</div>
@@ -495,7 +566,34 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 <!-- Footer -->
 <footer class="ft">
 <div class="ctr ft-i">
-    <div class="ft-brand">Harmoni<small>ERP de RRHH y Planillas</small></div>
+    <div class="ft-brand">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="ft-bg" cx="50%" cy="45%" r="65%">
+              <stop offset="0%" stop-color="#1b4a43"/>
+              <stop offset="100%" stop-color="#081a17"/>
+            </radialGradient>
+            <linearGradient id="ft-wv" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"  stop-color="#084e47"/>
+              <stop offset="50%" stop-color="#5eead4"/>
+              <stop offset="100%" stop-color="#084e47"/>
+            </linearGradient>
+          </defs>
+          <rect width="40" height="40" fill="url(#ft-bg)" rx="8"/>
+          <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
+                stroke="url(#ft-wv)" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
+                stroke="rgba(200,250,242,0.5)" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+          <rect x="7"  y="5" width="7" height="28" rx="3.5" fill="white"/>
+          <rect x="26" y="5" width="7" height="28" rx="3.5" fill="white"/>
+          <circle cx="5"  cy="22"   r="1" fill="#5eead4" opacity="0.95"/>
+          <circle cx="35" cy="19.5" r="1" fill="#5eead4" opacity="0.95"/>
+        </svg>
+        <span>Harmoni</span>
+      </div>
+      <small>ERP de RRHH y Planillas</small>
+    </div>
     <div class="ft-links">
         <a href="#modulos">Modulos</a>
         <a href="#normativa">Normativa</a>
