@@ -224,8 +224,9 @@ class TareoProcessor:
             condicion = (personal_obj.condicion if personal_obj and personal_obj.condicion
                          else reg.get('condicion', 'LOCAL'))
 
-            # Jornada diaria según condición del trabajador
-            jornada_h = self._obtener_jornada(personal_obj, condicion)
+            # Jornada diaria según condición y día de semana
+            jornada_h = self._obtener_jornada(personal_obj, condicion,
+                                               dia_semana=fecha.weekday())
 
             # ── Determinar código y fuente ────────────────────
             codigo_dia, fuente, horas_marcadas, es_ss = self._determinar_codigo(
@@ -365,17 +366,28 @@ class TareoProcessor:
                 fecha_cur += timedelta(days=1)
         return idx
 
-    def _obtener_jornada(self, personal_obj, condicion: str) -> Decimal:
+    def _obtener_jornada(self, personal_obj, condicion: str,
+                         dia_semana: int | None = None) -> Decimal:
         """
-        Jornada diaria en horas según condición del trabajador.
-          LOCAL / LIMA  → 8.5h (jornada normal + 30 min almuerzo pagado)
-          FORÁNEO       → 11.0h (régimen acumulativo en obra)
-        Si el personal tiene jornada_horas definida explícitamente, usa eso.
+        Jornada diaria en horas según condición y día de semana.
+          LOCAL / LIMA  lun–vie (0–4) → config.jornada_local_horas   (def 8.5h)
+          LOCAL / LIMA  sábado  (5)   → config.jornada_sabado_horas  (def 5.5h)
+          FORÁNEO                     → config.jornada_foraneo_horas (def 11.0h)
+
+        Override explícito en Personal.jornada_horas solo se aplica si el valor
+        difiere del default 8 (evita que el default del campo anule la config).
         """
-        if personal_obj and personal_obj.jornada_horas:
+        # Override manual en ficha del trabajador (distinto al default 8)
+        if (personal_obj and personal_obj.jornada_horas
+                and Decimal(str(personal_obj.jornada_horas)) != Decimal('8')):
             return Decimal(str(personal_obj.jornada_horas))
+
         if condicion == 'FORANEO':
             return Decimal(str(self.config.jornada_foraneo_horas))
+
+        # LOCAL / LIMA: distinguir sábado de lun–vie
+        if dia_semana == 5:          # sábado
+            return Decimal(str(self.config.jornada_sabado_horas))
         return Decimal(str(self.config.jornada_local_horas))
 
     def _determinar_codigo(self, reg: dict, fecha: date,
@@ -470,18 +482,17 @@ class TareoProcessor:
             return CERO, CERO, CERO, CERO, CERO
 
         # ── Descontar almuerzo ─────────────────────────────────
-        # LOCAL/LIMA: 30 min (0.5h) si la jornada > 5h
-        # FORÁNEO: no se descuenta (el almuerzo está incluido en la jornada de 11h)
-        # La jornada_h ya viene configurada correctamente:
-        #   LOCAL=8.5h ya incluye que se trabajan 8h efectivas + 0.5h almuerzo pago
-        #   FORÁNEO=11h ya es la jornada base sin descuento de almuerzo
-        # Por tanto, usamos horas_marcadas directamente como horas efectivas
-        # (el biométrico marca desde entrada hasta salida inclusive almuerzo si aplica)
+        # • FORÁNEO (jornada > 9h):  el almuerzo ya está incluido → no descontar
+        # • LOCAL sábado (jornada ≤ 6h): jornada corta sin break pagado → no descontar
+        # • LOCAL lun–vie (6h < jornada ≤ 9h): 30 min almuerzo pagado → descontar 0.5h
         if jornada_h > Decimal('9'):
-            # FORÁNEO: no descontar almuerzo del total
+            # FORÁNEO: jornada incluye almuerzo
+            horas_ef = horas_marcadas
+        elif jornada_h <= Decimal('6'):
+            # Jornada corta (ej: sábado 5.5h 07:30–13:00): sin break de almuerzo
             horas_ef = horas_marcadas
         else:
-            # LOCAL/LIMA: descontar 0.5h de almuerzo si marcó más de 5h
+            # LOCAL/LIMA lun–vie: descontar 0.5h almuerzo si marcó más de 5h
             almuerzo_h = Decimal('0.5') if horas_marcadas > 5 else CERO
             horas_ef = max(CERO, horas_marcadas - almuerzo_h)
 

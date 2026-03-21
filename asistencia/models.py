@@ -1209,8 +1209,12 @@ class ConfiguracionSistema(models.Model):
     # ── Jornada por defecto (se puede sobreescribir en Personal) ──
     jornada_local_horas = models.DecimalField(
         max_digits=4, decimal_places=1, default=Decimal('8.5'),
-        verbose_name="Jornada Local (h/día)",
-        help_text="Ej: 8.5 para personal LOCAL 7:30–17:00")
+        verbose_name="Jornada Local Lun–Vie (h/día)",
+        help_text="Ej: 8.5 para personal LOCAL 7:30–17:00 (incluye 30 min almuerzo pagado)")
+    jornada_sabado_horas = models.DecimalField(
+        max_digits=4, decimal_places=1, default=Decimal('5.5'),
+        verbose_name="Jornada Local Sábado (h/día)",
+        help_text="Ej: 5.5 para personal LOCAL sábados 07:30–13:00 (sin descuento almuerzo)")
     jornada_foraneo_horas = models.DecimalField(
         max_digits=4, decimal_places=1, default=Decimal('11.0'),
         verbose_name="Jornada Foráneo (h/día)",
