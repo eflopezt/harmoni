@@ -118,10 +118,10 @@ def _build_staff_data(personal, inicio, fin):
     # Buscar ambos grupos
     staff_regs = list(RegistroTareo.objects.filter(
         personal=personal, fecha__gte=inicio, fecha__lte=fin, grupo='STAFF'
-    ).order_by('fecha').values('fecha', 'codigo_dia'))
+    ).order_by('fecha', 'pk').values('fecha', 'codigo_dia'))
     rco_regs = list(RegistroTareo.objects.filter(
         personal=personal, fecha__gte=inicio, fecha__lte=fin, grupo='RCO'
-    ).order_by('fecha').values('fecha', 'codigo_dia'))
+    ).order_by('fecha', 'pk').values('fecha', 'codigo_dia'))
     # RCO como base, STAFF sobreescribe EXCEPTO DS en domingos
     tareo_map = {}
     rco_map = {r['fecha']: r['codigo_dia'] for r in rco_regs}
@@ -162,17 +162,19 @@ def _build_staff_data(personal, inicio, fin):
 
 def _build_rco_data(personal, inicio, fin):
     # Buscar RCO primero, luego STAFF como fallback
-    rco_regs = list(RegistroTareo.objects.filter(
-        personal=personal, fecha__gte=inicio, fecha__lte=fin, grupo='RCO'
-    ).order_by('fecha').values('fecha', 'codigo_dia', 'horas_normales', 'he_25', 'he_35', 'he_100'))
-    staff_regs = list(RegistroTareo.objects.filter(
-        personal=personal, fecha__gte=inicio, fecha__lte=fin, grupo='STAFF'
-    ).order_by('fecha').values('fecha', 'codigo_dia', 'horas_normales', 'he_25', 'he_35', 'he_100'))
+    all_regs = list(RegistroTareo.objects.filter(
+        personal=personal, fecha__gte=inicio, fecha__lte=fin,
+    ).order_by('fecha', 'pk').values(
+        'fecha', 'codigo_dia', 'horas_normales', 'he_25', 'he_35', 'he_100', 'fuente_codigo',
+    ))
     tareo_map = {}
-    for r in staff_regs:
-        tareo_map[r['fecha']] = r
-    for r in rco_regs:  # RCO sobreescribe STAFF
-        tareo_map[r['fecha']] = r
+    for r in all_regs:
+        fecha = r['fecha']
+        existing = tareo_map.get(fecha)
+        if existing is None:
+            tareo_map[fecha] = r
+        elif r['fuente_codigo'] == 'RELOJ' and existing['fuente_codigo'] != 'RELOJ':
+            tareo_map[fecha] = r
     condicion = personal.condicion or ''
     dias = []
     tot = {'normales': Decimal('0'), 'he_25': Decimal('0'), 'he_35': Decimal('0'), 'he_100': Decimal('0')}
