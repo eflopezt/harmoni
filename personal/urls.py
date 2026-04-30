@@ -71,8 +71,11 @@ urlpatterns = [
     
     # Personal
     path('personal/', views.personal_list, name='personal_list'),
+    # Aliases populares
+    path('empleados/', views.personal_list, name='empleados_list_alias'),
     path('personal/crear/', views.personal_create, name='personal_create'),
     path('personal/<int:pk>/', views.personal_detail, name='personal_detail'),
+    path('personal/empleado/<int:pk>/', views.personal_detail, name='personal_detail_alias'),
     path('personal/<int:pk>/timeline/', views.timeline_empleado, name='timeline_empleado'),
     path('personal/<int:pk>/editar/', views.personal_update, name='personal_update'),
     path('personal/exportar/', views.personal_export, name='personal_export'),

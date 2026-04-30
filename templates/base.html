@@ -1915,7 +1915,8 @@ window.cmdClose = close;
 </nav>
 {% endif %}
 
-<!-- ═══ Add to Home Screen Banner ═══ -->
+<!-- ═══ Add to Home Screen Banner (deshabilitado en DEMO_MODE) ═══ -->
+{% if not DEMO_MODE %}
 <div class="harmoni-a2hs" id="harmoniA2HS" style="display:none">
     <div class="a2hs-content">
         <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="a2hs-icon">
@@ -1937,6 +1938,7 @@ window.cmdClose = close;
         <button class="a2hs-close" id="a2hsClose" aria-label="Cerrar">&times;</button>
     </div>
 </div>
+{% endif %}
 
 <style>
 /* ═══ Bottom Navigation Bar (mobile only) ═══ */

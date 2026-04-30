@@ -252,8 +252,13 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-(function () {
+(function init() {
+    if (typeof Chart === 'undefined') {
+        // Chart.js aún no cargó; reintentar en 100ms
+        return setTimeout(init, 100);
+    }
     var raw = {{ cuotas_mes_json|safe }};
     if (!raw || raw.length === 0) {
         var canvas = document.getElementById('chartCuotasSemana');
@@ -321,7 +326,7 @@
             }
         }
     });
-}());
+})();
 </script>
 
 <!-- Estado de cuenta por empleado -->
