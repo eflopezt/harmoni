@@ -194,8 +194,19 @@ def _get_frase_dia(hoy: date) -> dict:
 
 
 def home(request):
-    """Vista principal — Landing pública o Dashboard según autenticación."""
+    """Vista principal — Landing pública o Dashboard según autenticación.
+
+    En instancias de cliente (subdominio) o demo, saltar el landing
+    comercial y mandar directo al login. El landing solo se muestra en
+    harmoni.pe (dominio raíz, marketing).
+    """
     if not request.user.is_authenticated:
+        import os
+        es_subdominio_cliente = bool(getattr(request, 'empresa_subdomain', None))
+        es_demo = os.environ.get('DEMO_MODE', 'False').lower() in ('true', '1', 'yes')
+        if es_subdominio_cliente or es_demo:
+            from django.shortcuts import redirect
+            return redirect('login')
         return render(request, 'landing.html')
 
     # ── Dashboard (requiere login) ──────────────────────────────────────────
