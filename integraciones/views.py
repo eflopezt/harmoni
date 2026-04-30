@@ -1208,12 +1208,13 @@ def synkro_sync_now(request):
 @solo_admin
 def synkro_sync_status(request):
     """Devuelve el último SyncSynkroLog (cualquier estado) y métricas resumidas."""
+    from django.conf import settings
     from .models import SyncSynkroLog
     last = SyncSynkroLog.objects.order_by('-iniciado_en').first()
     if not last:
         return JsonResponse({
             'has_log': False,
-            'configurado': 'synkro' in settings.DATABASES if hasattr(settings, 'DATABASES') else False,
+            'configurado': 'synkro' in settings.DATABASES,
         })
     return JsonResponse({
         'has_log': True,
