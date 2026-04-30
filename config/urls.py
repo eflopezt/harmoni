@@ -40,10 +40,23 @@ def robots_txt(request):
     return HttpResponse("\n".join(lines), content_type="text/plain")
 
 def landing(request):
-    """Landing page pública — si ya está autenticado, va al dashboard."""
+    """Landing page pública — si ya está autenticado, va al dashboard.
+
+    En instancias de cliente (subdominio o DEMO_MODE), saltar el landing
+    comercial y mandar directo al login: el cliente ya conoce el producto.
+    """
+    import os
     if request.user.is_authenticated:
         from django.shortcuts import redirect
         return redirect('home')
+
+    # En instancias de cliente o demo, saltar landing
+    es_subdominio_cliente = bool(getattr(request, 'empresa_subdomain', None))
+    es_demo = os.environ.get('DEMO_MODE', 'False').lower() in ('true', '1', 'yes')
+    if es_subdominio_cliente or es_demo:
+        from django.shortcuts import redirect
+        return redirect('login')
+
     return render(request, 'landing.html')
 
 @require_GET
