@@ -818,6 +818,12 @@ class Personal(models.Model):
             # Búsquedas de contratos próximos a vencer
             models.Index(fields=['fecha_fin_contrato'],
                          name='personal_fin_contrato_idx'),
+            # Multi-tenant (audit perf 2026-05-20): con 24 RUCs cada query
+            # "activos de empresa X" puede usar index compuesto.
+            models.Index(fields=['empresa', 'estado'],
+                         name='personal_empresa_estado_idx'),
+            models.Index(fields=['empresa', 'grupo_tareo', 'estado'],
+                         name='personal_emp_grupo_est_idx'),
         ]
     
     def __str__(self):

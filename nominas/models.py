@@ -249,6 +249,12 @@ class RegistroNomina(models.Model):
         verbose_name_plural = 'Registros de Nómina'
         ordering = ['personal__apellidos_nombres']
         unique_together = [['periodo', 'personal']]
+        # Audit perf 2026-05-20: con 800 trabajadores las listas y reportes
+        # filtran constantemente por periodo+estado y por personal+periodo.
+        indexes = [
+            models.Index(fields=['periodo', 'estado'], name='regnom_periodo_estado_idx'),
+            models.Index(fields=['personal', '-periodo'], name='regnom_personal_periodo_idx'),
+        ]
 
     def __str__(self):
         return f'{self.personal} — {self.periodo}'
@@ -268,6 +274,11 @@ class LineaNomina(models.Model):
         verbose_name = 'Línea de Nómina'
         verbose_name_plural = 'Líneas de Nómina'
         ordering = ['concepto__tipo', 'concepto__orden']
+        # Audit perf: 800 reg x ~18 lineas = 14400 filas. Index (registro, concepto)
+        # acelera la query "todas las lineas de este registro ordenadas por concepto".
+        indexes = [
+            models.Index(fields=['registro', 'concepto'], name='linom_reg_concepto_idx'),
+        ]
 
     def __str__(self):
         return f'{self.concepto.nombre}: S/ {self.monto}'
