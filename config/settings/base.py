@@ -199,6 +199,10 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
+    # Security audit (2026-05-20): /api/schema/, /api/docs/, /api/redoc/ ya no
+    # son publicos. Solo staff puede ver el esquema (evita mapeo de la API
+    # por terceros) ni se exponen modelos/endpoints en payload.
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAdminUser'],
     'CONTACT': {
         'name': 'Harmoni ERP',
         'url': 'https://harmoni.pe',

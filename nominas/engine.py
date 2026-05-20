@@ -699,52 +699,60 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
         _calcular = calcular_registro
         dias_default = 30  # Mes completo
 
-    for emp in qs:
-        try:
-            registro, created = RegistroNomina.objects.update_or_create(
-                periodo=periodo, personal=emp,
-                defaults={
-                    'sueldo_base':      emp.sueldo_base or Decimal('0'),
-                    'regimen_pension':  emp.regimen_pension or 'AFP',
-                    'afp':              emp.afp or '',
-                    'grupo':            emp.grupo_tareo or '',
-                    'asignacion_familiar': getattr(emp, 'asignacion_familiar', False),
-                    'dias_trabajados':  dias_default,
-                },
-            )
-            # Recalcular con el calculador apropiado
-            resultado = _calcular(registro, conceptos)
-
-            # Limpiar líneas previas y recrear
-            registro.lineas.all().delete()
-            for l in resultado['lineas']:
-                LineaNomina.objects.create(
-                    registro=registro,
-                    concepto=l['concepto'],
-                    base_calculo=l['base_calculo'],
-                    porcentaje_aplicado=l['porcentaje_aplicado'],
-                    monto=l['monto'],
-                    observacion=l['observacion'],
+    # Performance audit fix: envolver en transaction.atomic para batch atomico
+    # y usar bulk_create para LineaNomina. Para 800 trabajadores x ~18 lineas
+    # cada uno, esto reduce de ~14400 INSERTs individuales a 800 bulk_creates,
+    # bajando tiempo de minutos a segundos.
+    from django.db import transaction as _txn
+    with _txn.atomic():
+        for emp in qs.select_related('cargo', 'subarea', 'empresa'):
+            try:
+                registro, created = RegistroNomina.objects.update_or_create(
+                    periodo=periodo, personal=emp,
+                    defaults={
+                        'sueldo_base':      emp.sueldo_base or Decimal('0'),
+                        'regimen_pension':  emp.regimen_pension or 'AFP',
+                        'afp':              emp.afp or '',
+                        'grupo':            emp.grupo_tareo or '',
+                        'asignacion_familiar': getattr(emp, 'asignacion_familiar', False),
+                        'dias_trabajados':  dias_default,
+                    },
                 )
+                # Recalcular con el calculador apropiado
+                resultado = _calcular(registro, conceptos)
 
-            # Actualizar totales
-            registro.total_ingresos      = resultado['total_ingresos']
-            registro.total_descuentos    = resultado['total_descuentos']
-            registro.neto_a_pagar        = resultado['neto_a_pagar']
-            registro.aporte_essalud      = resultado['aporte_essalud']
-            registro.costo_total_empresa = resultado['costo_total_empresa']
-            registro.estado = 'CALCULADO'
-            registro.save()
+                # Limpiar líneas previas y bulk_create las nuevas
+                registro.lineas.all().delete()
+                LineaNomina.objects.bulk_create([
+                    LineaNomina(
+                        registro=registro,
+                        concepto=l['concepto'],
+                        base_calculo=l['base_calculo'],
+                        porcentaje_aplicado=l['porcentaje_aplicado'],
+                        monto=l['monto'],
+                        observacion=l['observacion'],
+                    )
+                    for l in resultado['lineas']
+                ])
 
-            stats['total_neto'] += resultado['neto_a_pagar']
-            if created:
-                stats['generados'] += 1
-            else:
-                stats['actualizados'] += 1
+                # Actualizar totales
+                registro.total_ingresos      = resultado['total_ingresos']
+                registro.total_descuentos    = resultado['total_descuentos']
+                registro.neto_a_pagar        = resultado['neto_a_pagar']
+                registro.aporte_essalud      = resultado['aporte_essalud']
+                registro.costo_total_empresa = resultado['costo_total_empresa']
+                registro.estado = 'CALCULADO'
+                registro.save()
 
-        except Exception as e:
-            stats['errores'] += 1
-            stats.setdefault('detalle_errores', []).append(f'{emp}: {e}')
+                stats['total_neto'] += resultado['neto_a_pagar']
+                if created:
+                    stats['generados'] += 1
+                else:
+                    stats['actualizados'] += 1
+
+            except Exception as e:
+                stats['errores'] += 1
+                stats.setdefault('detalle_errores', []).append(f'{emp}: {e}')
 
     # Actualizar totales del período
     from django.db.models import Sum

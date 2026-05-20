@@ -911,12 +911,25 @@ def gestion_usuario_crear(request):
         is_active = request.POST.get('is_active') == 'on'
 
         # Validations
+        # Validar la password con los validadores estandar de Django (AUTH_PASSWORD_VALIDATORS:
+        # min 8, no comun, no toda numerica, no similar al usuario)
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        password_errors = []
+        if password:
+            tmp_user = User(username=username, email=email)
+            try:
+                validate_password(password, tmp_user)
+            except ValidationError as e:
+                password_errors = list(e.messages)
+
         if not username:
             messages.error(request, 'El username es obligatorio.')
         elif password != password2:
             messages.error(request, 'Las passwords no coinciden.')
-        elif len(password) < 6:
-            messages.error(request, 'La password debe tener al menos 6 caracteres.')
+        elif password_errors:
+            for msg in password_errors:
+                messages.error(request, msg)
         elif User.objects.filter(username=username).exists():
             messages.error(request, f'El username "{username}" ya existe.')
         else:
