@@ -1152,18 +1152,33 @@ def verificar_boleta(request, token):
     """
     Vista pública (sin login) para verificar la validez de una boleta a partir
     del token contenido en el QR del PDF.
+
+    Audit security 2026-05-20: rate limit por IP (10/min). Token de 128 bits
+    (32 hex chars) hace enumeration infactible, pero la búsqueda itera sobre
+    todos los RegistroNomina recientes — DoS-able sin throttle.
     """
     from .pdf import generar_token_verificacion
+    from django.core.cache import cache as _cache
 
     if not token or len(token) != 32:
         return render(request, 'nominas/boleta_verificacion.html',
                       {'encontrado': False, 'mensaje': 'Token inválido.'},
                       status=404)
 
-    # No tenemos índice del token (es derivado). En la práctica son pocas
-    # boletas por trabajador, pero para el verificador iteramos sobre los
-    # registros recientes y comparamos en memoria. Optimización: limitar
-    # a los últimos 24 meses.
+    # Rate limit por IP (10 requests/minuto) — previene DoS por fullscan
+    xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    ip = xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR', 'unknown')
+    rl_key = f'verify_boleta_rl:{ip}'
+    n = (_cache.get(rl_key) or 0) + 1
+    _cache.set(rl_key, n, timeout=60)
+    if n > 10:
+        from django.http import HttpResponse
+        return HttpResponse(
+            'Demasiadas solicitudes de verificación. Intentá nuevamente en 1 minuto.',
+            status=429,
+        )
+
+    # Iteración acotada a últimos 24 meses + select_related para evitar N+1.
     from datetime import timedelta
     desde = timezone.now().date() - timedelta(days=730)
     qs = (
