@@ -459,7 +459,7 @@ def exportar_contable(request, formato):
     from .contables import (
         generar_asiento_concar, generar_asiento_sigo,
         generar_asiento_sap_excel, generar_sire_libro_diario,
-        generar_asiento_siscont,
+        generar_asiento_siscont, generar_asiento_provisiones,
     )
 
     periodo_id = request.GET.get('periodo_id') or request.POST.get('periodo_id')
@@ -476,11 +476,12 @@ def exportar_contable(request, formato):
         return redirect('integraciones_panel')
 
     FORMATO_MAP = {
-        'concar':  ('concar',  generar_asiento_concar,   'csv',  'text/csv; charset=utf-8-sig',                                           '.csv'),
-        'sigo':    ('sigo',    generar_asiento_sigo,     'txt',  'text/plain; charset=utf-8',                                             '.txt'),
-        'sap':     ('sap',     generar_asiento_sap_excel, 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',     '.xlsx'),
-        'sire':    ('sire',    generar_sire_libro_diario, 'txt', 'text/plain; charset=utf-8',                                             '.txt'),
-        'siscont': ('siscont', generar_asiento_siscont,  'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',     '.xlsx'),
+        'concar':       ('concar',       generar_asiento_concar,    'csv',  'text/csv; charset=utf-8-sig',                                           '.csv'),
+        'sigo':         ('sigo',         generar_asiento_sigo,      'txt',  'text/plain; charset=utf-8',                                             '.txt'),
+        'sap':          ('sap',          generar_asiento_sap_excel, 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',     '.xlsx'),
+        'sire':         ('sire',         generar_sire_libro_diario, 'txt',  'text/plain; charset=utf-8',                                             '.txt'),
+        'siscont':      ('siscont',      generar_asiento_siscont,   'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',     '.xlsx'),
+        'provisiones':  ('provisiones',  generar_asiento_provisiones, 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',   '.xlsx'),
     }
 
     if formato not in FORMATO_MAP:
@@ -551,7 +552,7 @@ def exportar_contable(request, formato):
     TIPO_CONTABLE = {
         'concar': 'CONCAR', 'sigo': 'SIGO',
         'sap': 'SAP_EXCEL', 'sire': 'SIRE_PLE',
-        'siscont': 'SISCONT',
+        'siscont': 'SISCONT', 'provisiones': 'PROVISIONES',
     }
     LogExportacion.objects.create(
         tipo=TIPO_CONTABLE.get(formato, 'OTRO'),
@@ -562,13 +563,15 @@ def exportar_contable(request, formato):
         generado_por=request.user,
     )
 
-    # Tracking de contabilización (audit fix 2026-05-20)
-    from django.utils import timezone as _tz
-    if not periodo.contabilizado:
-        periodo.contabilizado         = True
-        periodo.contabilizado_en      = _tz.now()
-        periodo.contabilizado_formato = TIPO_CONTABLE.get(formato, 'OTRO')
-        periodo.save(update_fields=['contabilizado', 'contabilizado_en', 'contabilizado_formato'])
+    # Tracking de contabilización (audit fix 2026-05-20).
+    # Provisiones NO marca el período como contabilizado (es complementario).
+    if formato != 'provisiones':
+        from django.utils import timezone as _tz
+        if not periodo.contabilizado:
+            periodo.contabilizado         = True
+            periodo.contabilizado_en      = _tz.now()
+            periodo.contabilizado_formato = TIPO_CONTABLE.get(formato, 'OTRO')
+            periodo.save(update_fields=['contabilizado', 'contabilizado_en', 'contabilizado_formato'])
 
     if isinstance(contenido, bytes):
         response = HttpResponse(contenido, content_type=content_type)

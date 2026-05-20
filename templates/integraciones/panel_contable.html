@@ -181,6 +181,32 @@
       </div>
     </div>
 
+    {# Provisiones Contables — NUEVO #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border-info">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background:#1e40af; color:#fff;">
+          <span><i class="fas fa-piggy-bank me-2"></i><strong>Provisiones</strong></span>
+          <span class="badge bg-light text-dark">Nuevo</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-2">
+            Asientos <strong>separados por tipo de provisión</strong> (Gratif, CTS, Vacaciones, Bonif 9%).
+            Lo que prefiere tu contador para conciliar pasivos.
+          </p>
+          <ul class="small text-muted mb-0">
+            <li>Excel .xlsx con 1 hoja resumen + 4 hojas de asiento</li>
+            <li>DEBE 6291/6294/6215/6214 → HABER 4152/4115/4151/4118</li>
+            <li>Base cálculo: 1/6 grat · 1/12 vac · 1/12+1/72 CTS</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-primary w-100" onclick="descargar('provisiones')" {% if not periodos %}disabled{% endif %}>
+            <i class="fas fa-download me-1"></i>Exportar Provisiones
+          </button>
+        </div>
+      </div>
+    </div>
+
     {# SIRE SUNAT #}
     <div class="col-md-6 col-lg-4">
       <div class="card h-100 shadow-sm">

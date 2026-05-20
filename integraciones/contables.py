@@ -31,6 +31,14 @@ PLAN_CUENTAS_DEFAULT = {
     "afp_pagar_haber":     ("4031", "AFP por pagar"),
     "onp_pagar_haber":     ("4011", "ONP por pagar"),
     "essalud_pagar_haber": ("4032", "EsSalud por pagar"),
+    # Provisiones contables separadas (PCGE 2020)
+    "cts_debe":            ("6291", "Compensacion tiempo de servicios (provision)"),
+    "cts_pagar_haber":     ("4152", "CTS por pagar"),
+    "vac_debe":            ("6214", "Vacaciones (provision)"),
+    "vac_pagar_haber":     ("4115", "Vacaciones por pagar"),
+    "gratif_pagar_haber":  ("4151", "Gratificaciones por pagar"),
+    "bonif_9_debe":        ("6294", "Bonificacion extraordinaria Ley 29351"),
+    "bonif_9_pagar_haber": ("4118", "Bonificacion extraordinaria por pagar"),
 }
 
 
@@ -624,3 +632,142 @@ def generar_asiento_siscont(periodo, empresa=None):
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue(), 1
+
+
+# ====================================================================
+# PROVISIONES CONTABLES SEPARADAS — Excel
+# ====================================================================
+
+def generar_asiento_provisiones(periodo, empresa=None):
+    """
+    Genera UN asiento separado por TIPO de provisión contable:
+      - Gratificación  (DEBE 6215 → HABER 4151)
+      - CTS            (DEBE 6291 → HABER 4152)
+      - Vacaciones     (DEBE 6214 → HABER 4115)
+      - Bonif. 9% Ley 29351 (DEBE 6294 → HABER 4118) si aplica al mes
+
+    Devuelve Excel xlsx con una hoja por provisión + hoja resumen.
+
+    Por qué separado: muchos contadores prefieren tener cada provisión
+    como un asiento contable distinto para facilitar la conciliación
+    con la cuenta de pasivo correspondiente al momento del pago real.
+
+    El asiento principal (planilla regular en CONCAR/Siscont/etc) sigue
+    incluyendo la provisión de gratificación como hasta ahora — este
+    formato es ADICIONAL, no reemplaza al consolidado.
+
+    Provisiones calculadas según normativa peruana:
+      - Gratificación: 1/6 del bruto del mes
+      - CTS:           1/12 del bruto + 1/72 del bruto (1/6 de gratif provisional)
+      - Vacaciones:    1/12 del bruto
+      - Bonif 9%:      9% del bruto si es mes que va con gratificación
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    plan        = _get_plan_cuentas(empresa=empresa)
+    tots        = _get_totales_periodo(periodo, empresa=empresa)
+    fecha       = periodo.fecha_fin or date.today()
+    cc, emp_nom = _empresa_label(empresa)
+    suf         = f"-{cc[:3]}" if cc else ""
+    nro_base    = f"PRV{periodo.anio}{periodo.mes:02d}"
+    bruto       = tots["bruto"]
+    glosa_emp   = f" — {emp_nom}" if emp_nom else ""
+
+    # Cálculos de cada provisión (normativa peruana)
+    prov_gratif = (bruto / Decimal("6")).quantize(Decimal("0.01"))
+    prov_vac    = (bruto / Decimal("12")).quantize(Decimal("0.01"))
+    # CTS: 1/12 sueldo + 1/72 (1/6 de 1/12 = provisión gratif del mes)
+    prov_cts    = ((bruto / Decimal("12")) + (bruto / Decimal("72"))).quantize(Decimal("0.01"))
+    # Bonif 9% solo en meses que devengan gratif (semestres jul/dic). Tomamos
+    # el cálculo conservador: 9% de la provisión gratif mensual.
+    prov_bonif9 = (prov_gratif * Decimal("0.09")).quantize(Decimal("0.01"))
+
+    wb = openpyxl.Workbook()
+
+    TEAL     = "FF0D2B27"
+    HDR_FONT = Font(color="FFFFFFFF", bold=True, size=10)
+    HDR_FILL = PatternFill(fill_type="solid", fgColor=TEAL)
+    cc_field = cc or "001"
+
+    def _hoja_asiento(nombre_hoja, glosa, nro_voucher, cuenta_debe, monto_debe, cuenta_haber, monto_haber):
+        """Crea una hoja con un asiento simple DEBE → HABER."""
+        ws = wb.create_sheet(nombre_hoja)
+        headers = ["Cuenta", "Descripcion", "Centro Costo", "Debe (S/)", "Haber (S/)",
+                   "Glosa", "Fecha", "Tipo Doc", "Voucher"]
+        for col, h in enumerate(headers, 1):
+            c = ws.cell(row=1, column=col, value=h)
+            c.font = HDR_FONT; c.fill = HDR_FILL
+            c.alignment = Alignment(horizontal="center")
+        # Fila DEBE
+        cod_d, nom_d = plan.get(cuenta_debe, ("0000", ""))
+        ws.append([cod_d, nom_d, cc_field, float(monto_debe), 0.0, glosa, fecha, "PL", nro_voucher])
+        # Fila HABER
+        cod_h, nom_h = plan.get(cuenta_haber, ("0000", ""))
+        ws.append([cod_h, nom_h, cc_field, 0.0, float(monto_haber), glosa, fecha, "PL", nro_voucher])
+        # Total
+        ws.append(["", "TOTAL", "", f"=SUM(D2:D3)", f"=SUM(E2:E3)", "", "", "", ""])
+        # Anchos
+        ws.column_dimensions["A"].width = 10
+        ws.column_dimensions["B"].width = 38
+        ws.column_dimensions["D"].width = 14
+        ws.column_dimensions["E"].width = 14
+        ws.column_dimensions["F"].width = 40
+
+    # Resumen (hoja 0)
+    ws_res = wb.active
+    ws_res.title = "Resumen"
+    ws_res.append(["Provisiones Contables del Periodo"])
+    ws_res["A1"].font = Font(bold=True, size=14, color="FF0D2B27")
+    ws_res.append([])
+    ws_res.append([f"Periodo: {periodo.mes_nombre} {periodo.anio}"])
+    if emp_nom:
+        ws_res.append([f"Empresa: {emp_nom}"])
+    ws_res.append([f"Base de cálculo (bruto mensual): S/ {bruto:,.2f}"])
+    ws_res.append([])
+    ws_res.append(["Provision", "Cuenta DEBE", "Cuenta HABER", "Monto S/"])
+    for cell in ws_res[ws_res.max_row]:
+        cell.font = HDR_FONT; cell.fill = HDR_FILL
+    ws_res.append(["Gratificación (1/6)",     plan["gratif_debe"][0],  plan["gratif_pagar_haber"][0], float(prov_gratif)])
+    ws_res.append(["CTS (1/12 + 1/72)",       plan["cts_debe"][0],     plan["cts_pagar_haber"][0],    float(prov_cts)])
+    ws_res.append(["Vacaciones (1/12)",       plan["vac_debe"][0],     plan["vac_pagar_haber"][0],    float(prov_vac)])
+    ws_res.append(["Bonif 9% Ley 29351",      plan["bonif_9_debe"][0], plan["bonif_9_pagar_haber"][0], float(prov_bonif9)])
+    ws_res.append([])
+    total_row = ws_res.max_row + 1
+    ws_res.cell(row=total_row, column=1, value="TOTAL PROVISIONES").font = Font(bold=True)
+    ws_res.cell(row=total_row, column=4, value=float(prov_gratif + prov_cts + prov_vac + prov_bonif9)).font = Font(bold=True)
+    ws_res.column_dimensions["A"].width = 32
+    ws_res.column_dimensions["B"].width = 14
+    ws_res.column_dimensions["C"].width = 14
+    ws_res.column_dimensions["D"].width = 16
+
+    # 4 hojas de asientos
+    _hoja_asiento(
+        "Asiento Gratificación",
+        f"Provision gratificacion {periodo.mes_nombre} {periodo.anio}{glosa_emp}",
+        f"{nro_base}-GRAT{suf}",
+        "gratif_debe", prov_gratif, "gratif_pagar_haber", prov_gratif,
+    )
+    _hoja_asiento(
+        "Asiento CTS",
+        f"Provision CTS {periodo.mes_nombre} {periodo.anio}{glosa_emp}",
+        f"{nro_base}-CTS{suf}",
+        "cts_debe", prov_cts, "cts_pagar_haber", prov_cts,
+    )
+    _hoja_asiento(
+        "Asiento Vacaciones",
+        f"Provision vacaciones {periodo.mes_nombre} {periodo.anio}{glosa_emp}",
+        f"{nro_base}-VAC{suf}",
+        "vac_debe", prov_vac, "vac_pagar_haber", prov_vac,
+    )
+    if prov_bonif9 > 0:
+        _hoja_asiento(
+            "Asiento Bonif 9%",
+            f"Provision bonif 9% Ley 29351 {periodo.mes_nombre} {periodo.anio}{glosa_emp}",
+            f"{nro_base}-B9{suf}",
+            "bonif_9_debe", prov_bonif9, "bonif_9_pagar_haber", prov_bonif9,
+        )
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue(), 4

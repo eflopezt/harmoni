@@ -399,6 +399,108 @@ class TestSirePLE:
 # 7. Asiento SIGO — formato pipe-delimitado
 # ════════════════════════════════════════════════════════════════════════════
 
+class TestProvisionesExcel:
+    """Asiento de provisiones contables separadas."""
+
+    @patch("integraciones.contables._get_totales_periodo")
+    def test_provisiones_genera_xlsx(self, mock_totales):
+        """Debe generar bytes de un Excel valido."""
+        mock_totales.return_value = {
+            "bruto": Decimal("60000"), "neto": Decimal("48000"),
+            "essalud": Decimal("5400"), "afp": Decimal("6600"),
+            "onp": Decimal("0"), "gratif_prov": Decimal("10000"),
+        }
+        from integraciones.contables import generar_asiento_provisiones
+        contenido, count = generar_asiento_provisiones(_mock_periodo(total_bruto=60000))
+        assert isinstance(contenido, bytes)
+        assert contenido.startswith(b"PK")  # zip header de xlsx
+        assert count == 4  # 4 asientos generados
+
+    @patch("integraciones.contables._get_totales_periodo")
+    def test_provisiones_tiene_5_hojas(self, mock_totales):
+        """Debe tener Resumen + 4 hojas de asiento."""
+        mock_totales.return_value = {
+            "bruto": Decimal("60000"), "neto": Decimal("48000"),
+            "essalud": Decimal("5400"), "afp": Decimal("6600"),
+            "onp": Decimal("0"), "gratif_prov": Decimal("10000"),
+        }
+        from integraciones.contables import generar_asiento_provisiones
+        import openpyxl
+        from io import BytesIO
+
+        contenido, _ = generar_asiento_provisiones(_mock_periodo(total_bruto=60000))
+        wb = openpyxl.load_workbook(BytesIO(contenido))
+        nombres_hojas = set(wb.sheetnames)
+        assert "Resumen" in nombres_hojas
+        assert "Asiento Gratificación" in nombres_hojas
+        assert "Asiento CTS" in nombres_hojas
+        assert "Asiento Vacaciones" in nombres_hojas
+        # Bonif 9% solo aparece si prov_bonif9 > 0 (siempre debe aparecer en este test)
+        assert "Asiento Bonif 9%" in nombres_hojas
+
+    @patch("integraciones.contables._get_totales_periodo")
+    def test_provisiones_calculos_correctos(self, mock_totales):
+        """Verifica que los cálculos de provisión cumplen la normativa peruana."""
+        bruto = Decimal("60000.00")
+        mock_totales.return_value = {
+            "bruto": bruto, "neto": Decimal("48000"),
+            "essalud": Decimal("5400"), "afp": Decimal("6600"),
+            "onp": Decimal("0"), "gratif_prov": Decimal("10000"),
+        }
+        from integraciones.contables import generar_asiento_provisiones
+        import openpyxl
+        from io import BytesIO
+
+        contenido, _ = generar_asiento_provisiones(_mock_periodo(total_bruto=60000))
+        wb = openpyxl.load_workbook(BytesIO(contenido))
+
+        # Hoja Asiento Gratificación: 1/6 del bruto = 10,000
+        ws = wb["Asiento Gratificación"]
+        debe_grat = ws.cell(row=2, column=4).value  # Fila DEBE, columna Debe
+        assert abs(debe_grat - 10000.00) < 0.05
+
+        # Hoja Asiento Vacaciones: 1/12 del bruto = 5,000
+        ws = wb["Asiento Vacaciones"]
+        debe_vac = ws.cell(row=2, column=4).value
+        assert abs(debe_vac - 5000.00) < 0.05
+
+        # Hoja Asiento CTS: 1/12 + 1/72 = 0.0833 + 0.01389 = 0.0972 del bruto = 5833.33
+        ws = wb["Asiento CTS"]
+        debe_cts = ws.cell(row=2, column=4).value
+        # 60000 * (1/12 + 1/72) = 60000 * 0.0972 = 5833.33
+        assert abs(debe_cts - 5833.33) < 0.10
+
+    @patch("integraciones.contables._get_totales_periodo")
+    def test_provisiones_cuentas_pcge_correctas(self, mock_totales):
+        """Las cuentas usadas deben ser PCGE 2020."""
+        mock_totales.return_value = {
+            "bruto": Decimal("60000"), "neto": Decimal("48000"),
+            "essalud": Decimal("5400"), "afp": Decimal("6600"),
+            "onp": Decimal("0"), "gratif_prov": Decimal("10000"),
+        }
+        from integraciones.contables import generar_asiento_provisiones
+        import openpyxl
+        from io import BytesIO
+
+        contenido, _ = generar_asiento_provisiones(_mock_periodo(total_bruto=60000))
+        wb = openpyxl.load_workbook(BytesIO(contenido))
+
+        # Gratif: DEBE 6215 → HABER 4151
+        ws = wb["Asiento Gratificación"]
+        assert ws.cell(row=2, column=1).value == "6215"  # DEBE
+        assert ws.cell(row=3, column=1).value == "4151"  # HABER
+
+        # CTS: DEBE 6291 → HABER 4152
+        ws = wb["Asiento CTS"]
+        assert ws.cell(row=2, column=1).value == "6291"
+        assert ws.cell(row=3, column=1).value == "4152"
+
+        # Vacaciones: DEBE 6214 → HABER 4115
+        ws = wb["Asiento Vacaciones"]
+        assert ws.cell(row=2, column=1).value == "6214"
+        assert ws.cell(row=3, column=1).value == "4115"
+
+
 class TestSigoTxt:
     @patch("integraciones.contables._get_totales_periodo")
     def test_sigo_lineas_15_campos(self, mock_totales):
