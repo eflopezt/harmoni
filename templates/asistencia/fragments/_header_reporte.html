@@ -1,0 +1,66 @@
+{% comment %}
+Header reutilizable para reportes de asistencia (HTML preview).
+
+Contexto esperado:
+    empresa     — ConfiguracionSistema (con .empresa_nombre, .ruc, .logo_base64)
+    personal    — instancia Personal (opcional, si es reporte individual)
+    periodo     — Periodo (del helper) con .label, .fecha_inicio, .fecha_fin
+    tipo_label  — string corto: "STAFF" | "RCO" | "BANCO DE HORAS"
+
+Fallback: si no hay empresa.empresa_nombre, muestra "Reporte de Asistencia"
+(NO hardcodear ningún cliente específico).
+{% endcomment %}
+<div class="rep-header" style="margin-bottom:8px">
+    {% if empresa.logo_base64 %}
+    <p style="text-align:center;margin:0 0 6px 0">
+        <img src="{{ empresa.logo_base64 }}" height="50" alt="logo">
+    </p>
+    {% else %}
+    <p style="text-align:center;font-size:11pt;font-weight:bold;color:#0f766e;margin:0 0 4px 0">
+        {{ empresa.empresa_nombre|default:"Reporte de Asistencia" }}
+        {% if empresa.ruc %}<span style="font-size:8pt;color:#64748b;font-weight:normal">  RUC {{ empresa.ruc }}</span>{% endif %}
+    </p>
+    {% endif %}
+
+    <table style="margin-bottom:3px;width:100%;border-collapse:collapse">
+    <tr>
+        <td style="background-color:#0f766e;color:white;padding:5px 12px;text-align:left;font-size:10pt;font-weight:bold">
+            CONTROL DE ASISTENCIA{% if tipo_label %} — {{ tipo_label }}{% endif %}
+        </td>
+        {% if personal %}
+        <td style="background-color:#0f766e;color:white;padding:5px 12px;text-align:left;font-size:10pt;font-weight:bold">
+            {{ personal.apellidos_nombres }}
+        </td>
+        {% endif %}
+        <td style="background-color:#134e4a;color:white;padding:5px 12px;text-align:right;font-size:10pt;font-weight:bold">
+            {{ periodo.label }}
+        </td>
+    </tr>
+    </table>
+
+    {% if personal %}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:4px">
+    <tr>
+        <td style="background-color:#f1f5f9;padding:3px 8px;font-size:7pt;font-weight:bold;color:#64748b;border:1px solid #e2e8f0">DNI</td>
+        <td style="padding:3px 8px;font-size:8pt;font-weight:bold;border:1px solid #e2e8f0">{{ personal.nro_doc }}</td>
+        <td style="background-color:#f1f5f9;padding:3px 8px;font-size:7pt;font-weight:bold;color:#64748b;border:1px solid #e2e8f0">Cargo</td>
+        <td style="padding:3px 8px;font-size:8pt;border:1px solid #e2e8f0">{{ personal.cargo }}</td>
+        <td style="background-color:#f1f5f9;padding:3px 8px;font-size:7pt;font-weight:bold;color:#64748b;border:1px solid #e2e8f0">Área</td>
+        <td style="padding:3px 8px;font-size:8pt;border:1px solid #e2e8f0">{% if personal.subarea %}{{ personal.subarea.area.nombre }}{% else %}-{% endif %}</td>
+    </tr>
+    <tr>
+        <td style="background-color:#f1f5f9;padding:3px 8px;font-size:7pt;font-weight:bold;color:#64748b;border:1px solid #e2e8f0">Condición</td>
+        <td style="padding:3px 8px;font-size:8pt;border:1px solid #e2e8f0">{{ personal.condicion|default:"-" }}</td>
+        <td style="background-color:#f1f5f9;padding:3px 8px;font-size:7pt;font-weight:bold;color:#64748b;border:1px solid #e2e8f0">F. Ingreso</td>
+        <td style="padding:3px 8px;font-size:8pt;border:1px solid #e2e8f0">{% if personal.fecha_alta %}{{ personal.fecha_alta|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+        <td style="background-color:#f1f5f9;padding:3px 8px;font-size:7pt;font-weight:bold;color:#64748b;border:1px solid #e2e8f0">Pensión</td>
+        <td style="padding:3px 8px;font-size:8pt;border:1px solid #e2e8f0">{{ personal.regimen_pension|default:"-" }} {{ personal.afp|default:"" }}</td>
+    </tr>
+    </table>
+    {% else %}
+    <p style="font-size:8pt;color:#64748b;margin:2px 0">
+        Período: <b>{{ periodo.fecha_inicio|date:"d/m/Y" }}</b> al <b>{{ periodo.fecha_fin|date:"d/m/Y" }}</b>
+        ({{ periodo.dias }} días)
+    </p>
+    {% endif %}
+</div>

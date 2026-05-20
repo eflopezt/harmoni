@@ -1435,6 +1435,13 @@ class ConfiguracionSistema(models.Model):
         verbose_name="RMV / Sueldo Mínimo (S/)",
         help_text="Remuneración Mínima Vital vigente. Desde ene-2025: S/ 1,130 (DS 006-2024-TR). "
                   "Se usa para asignación familiar (10% RMV = S/ 113.00) y otros cálculos.")
+    usar_metodo_sunat_ir5ta = models.BooleanField(
+        default=False,
+        verbose_name="IR 5ta: usar método SUNAT (retención mensual acumulada)",
+        help_text="Si está activo, IR 5ta usa el método oficial SUNAT con proyección mes-a-mes "
+                  "(remuneración fija proyectada + variables percibidas). Recomendado para "
+                  "evitar sobre-estimación en empleados con HE/bonos variables o cese a mitad "
+                  "de año. Default: False (método legacy proyección × 14).")
 
     # ── Synkro (nombres de hojas) ──
     synkro_hoja_reloj = models.CharField(

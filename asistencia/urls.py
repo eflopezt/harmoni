@@ -3,6 +3,7 @@ URLs del módulo Asistencia y Control.
 """
 from django.urls import path
 from asistencia import views, views_ai, views_reglas, views_reglas_ia
+from asistencia.views import reportes_unificado
 from asistencia.views.reportes_area import (
     panel_reportes_area, configurar_area,
     generar_zip_por_area, enviar_reportes_por_area, historial_envios,
@@ -129,8 +130,14 @@ urlpatterns = [
     path('reportes/areas/excel/', reporte_excel_areas, name='asistencia_reporte_excel_areas'),
     path('reportes/areas/pdf/', reporte_pdf_area, name='asistencia_reporte_pdf_areas'),
 
-    # Reportes Individuales
-    path('reportes/', views.reporte_panel, name='asistencia_reportes'),
+    # ── Panel Unificado de Reportes ──
+    # Entry point principal: 3 tabs (SEMANA, MES, MES_CORTE) con filtros y
+    # acciones consistentes. Las URLs legacy debajo siguen vivas para
+    # mantener compatibilidad con código existente.
+    path('reportes/', reportes_unificado.panel, name='asistencia_reportes_unificado'),
+
+    # Reportes Individuales — listado de empleados (legacy panel)
+    path('reportes/listado/', views.reporte_panel, name='asistencia_reportes'),
     path('reportes/<int:personal_id>/pdf/', views.reporte_individual_pdf, name='asistencia_reporte_pdf'),
     path('reportes/<int:personal_id>/enviar/', views.enviar_reporte_email, name='asistencia_reporte_enviar'),
     path('reportes/masivo/', views.reporte_masivo_pdf, name='asistencia_reporte_masivo'),

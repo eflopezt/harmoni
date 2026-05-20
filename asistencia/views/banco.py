@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from xhtml2pdf import pisa
 
+from asistencia.services.periodo_helper import get_periodo, TIPO_MES_CORTE
 from asistencia.views._common import solo_admin, _papeletas_por_fecha, CODIGOS_AUSENCIA_PAGADA
 
 
@@ -97,20 +98,12 @@ def banco_horas_view(request):
 # ---------------------------------------------------------------------------
 
 def _get_ciclo(anio, mes):
-    """Ciclo STAFF: lee ConfiguracionSistema.dia_corte_planilla.
+    """Ciclo STAFF: usa el helper unificado de período (MES_CORTE).
 
     Con dia_corte=21 → ciclo 22 mes anterior → 21 mes actual.
     """
-    from asistencia.models import ConfiguracionSistema
-    config = ConfiguracionSistema.objects.first()
-    if config:
-        return config.get_ciclo_he(anio, mes)
-    # Fallback
-    if mes == 1:
-        inicio = date(anio - 1, 12, 22)
-    else:
-        inicio = date(anio, mes - 1, 22)
-    return inicio, date(anio, mes, 21)
+    periodo = get_periodo(TIPO_MES_CORTE, anio, mes)
+    return periodo.fecha_inicio, periodo.fecha_fin
 
 
 def _render_pdf(html_string):
@@ -442,10 +435,23 @@ def banco_horas_lista_pdf(request):
     except ImportError:
         HEADER_IMG = ''
 
+    # Nombre de empresa: ConfiguracionSistema.empresa_nombre (multi-tenant
+    # safe). Si no hay nombre configurado, fallback genérico (NO hardcodear
+    # ningún cliente específico).
+    nombre_emp = ''
+    try:
+        from asistencia.models import ConfiguracionSistema
+        _cfg = ConfiguracionSistema.get()
+        nombre_emp = (_cfg.empresa_nombre or '').strip()
+    except Exception:
+        nombre_emp = ''
+
     if HEADER_IMG:
         logo = f'<p style="text-align:center;margin:0 0 6px 0"><img src="{HEADER_IMG}" height="50"></p>'
+    elif nombre_emp:
+        logo = f'<p style="text-align:center;font-size:10pt;font-weight:bold;color:#0f766e;margin:0 0 6px 0">{nombre_emp}</p>'
     else:
-        logo = '<p style="text-align:center;font-size:10pt;font-weight:bold;color:#0f766e;margin:0 0 6px 0">CONSORCIO STILER - RIPCONCIV - TECNOEDIL</p>'
+        logo = '<p style="text-align:center;font-size:10pt;font-weight:bold;color:#0f766e;margin:0 0 6px 0">Reporte de Asistencia</p>'
 
     # Header
     hdr = f"""{logo}

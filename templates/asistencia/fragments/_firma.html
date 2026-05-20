@@ -1,0 +1,29 @@
+{% comment %}
+Bloque de firma del trabajador / RRHH.
+Contexto opcional: empresa.firma_nombre, empresa.firma_cargo, empresa.firma_base64
+{% endcomment %}
+<table style="margin-top:14px;width:100%;border-collapse:collapse">
+<tr>
+    <td style="padding:18px 40px 0 20px;text-align:center;font-size:6pt;width:50%">
+        {% if empresa.firma_base64 %}
+            <img src="{{ empresa.firma_base64 }}" height="40" alt="firma">
+        {% else %}
+            &nbsp;
+        {% endif %}
+    </td>
+    <td style="padding:18px 40px;text-align:center;font-size:6pt;width:50%">&nbsp;</td>
+</tr>
+<tr>
+    <td style="padding:2px 40px 0 20px;border-top:1px solid #334155;text-align:center;font-size:7pt;font-weight:bold;color:#334155">
+        Firma del Trabajador
+    </td>
+    <td style="padding:2px 40px;border-top:1px solid #334155;text-align:center;font-size:7pt;font-weight:bold;color:#334155">
+        {% if empresa.firma_nombre %}
+            {{ empresa.firma_nombre }}<br>
+            <span style="font-weight:normal;color:#64748b">{{ empresa.firma_cargo|default:"Recursos Humanos" }}</span>
+        {% else %}
+            Recursos Humanos
+        {% endif %}
+    </td>
+</tr>
+</table>

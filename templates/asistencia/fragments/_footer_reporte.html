@@ -1,0 +1,8 @@
+{% comment %}
+Footer reutilizable para reportes de asistencia.
+Contexto opcional: empresa (ConfiguracionSistema)
+{% endcomment %}
+<p style="font-size:6pt;color:#94a3b8;text-align:center;margin-top:6px;border-top:1px solid #e2e8f0;padding-top:3px">
+    Generado por Harmoni ERP{% if empresa.empresa_nombre %} para {{ empresa.empresa_nombre }}{% endif %}
+    · {% now "d/m/Y H:i" %}
+</p>

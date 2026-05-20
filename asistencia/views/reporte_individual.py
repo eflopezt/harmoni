@@ -21,6 +21,7 @@ from django.views.decorators.http import require_POST
 from xhtml2pdf import pisa
 
 from asistencia.models import RegistroTareo, RegistroPapeleta, ConfiguracionSistema
+from asistencia.services.periodo_helper import get_periodo, TIPO_MES_CORTE
 from asistencia.views._common import solo_admin, _qs_staff_dedup, _papeletas_por_fecha, CODIGOS_AUSENCIA_PAGADA
 
 logger = logging.getLogger('asistencia')
@@ -55,9 +56,9 @@ CODE_COLORS = {
 
 
 def _get_ciclo(anio, mes):
-    from asistencia.models import ConfiguracionSistema
-    config = ConfiguracionSistema.get()
-    return config.get_ciclo_he(anio, mes)
+    """Ciclo mensual STAFF/RCO — usa el helper unificado (MES_CORTE)."""
+    periodo = get_periodo(TIPO_MES_CORTE, anio, mes)
+    return periodo.fecha_inicio, periodo.fecha_fin
 
 
 # ========== VIEWS ==========
@@ -349,8 +350,8 @@ def _cuerpo_reporte(nombre, mes_nombre, anio):
     """Genera el cuerpo del correo de reporte de asistencia."""
     from asistencia.models import ConfiguracionSistema
     config = ConfiguracionSistema.get()
-    empresa = config.nombre_empresa or 'la empresa'
-    contacto = config.email or ''
+    empresa = (config.empresa_nombre or '').strip() or 'la empresa'
+    contacto = (config.empresa_email or '').strip()
     linea_contacto = (
         f'    - {contacto}\n\n'
         if contacto else
@@ -493,7 +494,7 @@ def _header(p, inicio, fin, mes, anio, tipo):
     if HEADER_IMG:
         logo_html = f'<p style="text-align:center;margin:0 0 6px 0"><img src="{HEADER_IMG}" height="50"></p>'
     else:
-        nombre_emp = _cfg.nombre_empresa or 'EMPRESA'
+        nombre_emp = (_cfg.empresa_nombre or '').strip() or 'Reporte de Asistencia'
         logo_html = f'<p style="text-align:center;font-size:10pt;font-weight:bold;color:#0f766e;margin:0 0 6px 0">{nombre_emp}</p>'
 
     return f"""{logo_html}

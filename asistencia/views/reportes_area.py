@@ -26,6 +26,9 @@ from django.shortcuts import get_object_or_404, render
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
+from asistencia.services.periodo_helper import (
+    get_periodo, TIPO_SEMANA, TIPO_MES, TIPO_MES_CORTE,
+)
 from asistencia.views._common import solo_admin
 from personal.models import Area, Personal
 
@@ -63,13 +66,26 @@ def _pdf_empleado_rango(personal, inicio: date, fin: date) -> bytes | None:
 
 
 def _get_rango(tipo_periodo: str, fecha_inicio_str: str = '', fecha_fin_str: str = '') -> tuple[date, date]:
-    """Calcula inicio/fin según el tipo de periodo seleccionado."""
+    """Calcula inicio/fin según el tipo de período legacy.
+
+    Para los tres tipos oficiales (SEMANA/MES/MES_CORTE) delega en el
+    helper unificado ``periodo_helper.get_periodo``. Mantiene compatibles
+    los códigos legacy (``SEMANAL`` = semana pasada lun-dom, ``MENSUAL``
+    = mes anterior completo, ``QUINCENAL`` = quincena previa,
+    ``ESTA_SEMANA`` / ``ESTE_MES`` = parciales hasta hoy, ``PERSONALIZADO``
+    = fechas explícitas) porque varias vistas existentes los usan.
+    """
     hoy = date.today()
 
+    # ── Tipos oficiales (vía helper unificado) ──
+    if tipo_periodo in (TIPO_SEMANA, TIPO_MES, TIPO_MES_CORTE):
+        p = get_periodo(tipo_periodo, hoy.year, hoy.month)
+        return p.fecha_inicio, p.fecha_fin
+
     if tipo_periodo == 'SEMANAL':
-        # Semana pasada: lun–dom
-        lun = hoy - timedelta(days=hoy.weekday() + 7)
-        return lun, lun + timedelta(days=6)
+        # Semana pasada: lun–dom = helper SEMANA con offset -1
+        p = get_periodo(TIPO_SEMANA, hoy.year, hoy.month, semana_offset=-1)
+        return p.fecha_inicio, p.fecha_fin
 
     if tipo_periodo == 'QUINCENAL':
         if hoy.day <= 15:
@@ -80,10 +96,11 @@ def _get_rango(tipo_periodo: str, fecha_inicio_str: str = '', fecha_fin_str: str
             return hoy.replace(day=1), hoy.replace(day=15)
 
     if tipo_periodo == 'MENSUAL':
-        # Mes anterior completo
+        # Mes anterior completo = helper MES del mes anterior
         primer_dia = hoy.replace(day=1)
         fin_mes = primer_dia - timedelta(days=1)
-        return fin_mes.replace(day=1), fin_mes
+        p = get_periodo(TIPO_MES, fin_mes.year, fin_mes.month)
+        return p.fecha_inicio, p.fecha_fin
 
     if tipo_periodo == 'ESTA_SEMANA':
         lun = hoy - timedelta(days=hoy.weekday())
@@ -111,10 +128,16 @@ def _periodo_label(inicio: date, fin: date) -> str:
 
 
 def _get_empresa() -> str:
+    """Nombre de la empresa para mostrar en panel y emails.
+
+    Usa ``ConfiguracionSistema.empresa_nombre`` (campo canónico). Si no
+    está configurado o falla la carga, retorna string vacío (UI hará
+    fallback genérico, sin hardcodear ningún cliente específico).
+    """
     try:
         from asistencia.models import ConfiguracionSistema
         cfg = ConfiguracionSistema.get()
-        return cfg.nombre_empresa or ''
+        return (cfg.empresa_nombre or '').strip()
     except Exception:
         return ''
 

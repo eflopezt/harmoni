@@ -342,12 +342,14 @@ def papeletas_reporte_agrupado(request):
     from asistencia.models import RegistroPapeleta
     from collections import defaultdict
 
+    from asistencia.services.periodo_helper import get_periodo, TIPO_MES
+
     anio = int(request.GET.get('anio', date.today().year))
     mes = int(request.GET.get('mes', date.today().month))
 
-    _, num_dias = calendar.monthrange(anio, mes)
-    mes_ini = date(anio, mes, 1)
-    mes_fin = date(anio, mes, num_dias)
+    _periodo = get_periodo(TIPO_MES, anio, mes)
+    mes_ini = _periodo.fecha_inicio
+    mes_fin = _periodo.fecha_fin
 
     MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
              'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']

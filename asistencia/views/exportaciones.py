@@ -12,6 +12,9 @@ from django.db.models import Count, F as DbF, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 
+from asistencia.services.periodo_helper import (
+    get_periodo, TIPO_MES, TIPO_MES_CORTE,
+)
 from asistencia.views._common import solo_admin, _qs_sin_papeleta
 
 
@@ -120,22 +123,18 @@ MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
 def _calcular_periodo(anio: int, mes: int, tipo: str = 'calendario',
                       dia_inicio_corte: int = 22, dia_fin_corte: int = 21):
     """
-    Calcula las fechas de inicio y fin del período.
-    tipo='calendario' → del 1 al último día del mes seleccionado.
-    tipo='corte'      → del dia_inicio_corte del mes anterior al dia_fin_corte del mes seleccionado.
-    Los días de corte se leen de la configuración de la empresa (Empresa.dia_inicio_corte / dia_fin_corte).
+    Calcula las fechas de inicio y fin del período usando el helper unificado.
+
+    tipo='calendario' → mes calendario completo (helper ``MES``).
+    tipo='corte'      → ciclo 22→21 (helper ``MES_CORTE``).
+
+    Los argumentos ``dia_inicio_corte``/``dia_fin_corte`` se mantienen por
+    compatibilidad con call-sites previos pero ya no se usan: el helper
+    lee el día de corte desde ``ConfiguracionSistema.dia_corte_planilla``.
     """
-    import calendar as _cal
-    if tipo == 'corte':
-        if mes == 1:
-            ini = date(anio - 1, 12, dia_inicio_corte)
-        else:
-            ini = date(anio, mes - 1, dia_inicio_corte)
-        fin = date(anio, mes, dia_fin_corte)
-    else:
-        ini = date(anio, mes, 1)
-        fin = date(anio, mes, _cal.monthrange(anio, mes)[1])
-    return ini, fin
+    tipo_p = TIPO_MES_CORTE if tipo == 'corte' else TIPO_MES
+    p = get_periodo(tipo_p, anio, mes)
+    return p.fecha_inicio, p.fecha_fin
 
 
 def _get_corte_config(request):

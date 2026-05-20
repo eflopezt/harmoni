@@ -1,0 +1,43 @@
+{% comment %}
+Sección de papeletas del período (HTML).
+Contexto esperado:
+    papeletas — list[dict|RegistroPapeleta] con campos:
+        tipo_permiso, fecha_inicio, fecha_fin, dias_habiles, estado,
+        observaciones (opcional)
+{% endcomment %}
+{% if papeletas %}
+<table style="margin-top:6px;width:100%;border-collapse:collapse">
+<tr>
+    <td colspan="5" style="background-color:#14532d;color:white;padding:5px 10px;text-align:left;font-size:8pt;font-weight:bold">
+        PAPELETAS DEL PERÍODO
+    </td>
+</tr>
+<tr>
+    <th style="background-color:#334155;color:white;padding:4px 10px;text-align:left;font-size:7pt;font-weight:bold">Tipo de Permiso</th>
+    <th style="background-color:#334155;color:white;padding:4px 8px;font-size:7pt;font-weight:bold">Inicio</th>
+    <th style="background-color:#334155;color:white;padding:4px 8px;font-size:7pt;font-weight:bold">Fin</th>
+    <th style="background-color:#334155;color:white;padding:4px 8px;font-size:7pt;font-weight:bold">Días</th>
+    <th style="background-color:#334155;color:white;padding:4px 8px;font-size:7pt;font-weight:bold">Estado</th>
+</tr>
+{% for p in papeletas %}
+{% cycle '#f8fafc' '#f1f5f9' as bg silent %}
+<tr>
+    <td style="background-color:{% cycle '#f8fafc' '#f1f5f9' %};text-align:left;padding:4px 10px;font-size:7pt;border-bottom:1px solid #e2e8f0">
+        {% if p.tipo_permiso %}{{ p.tipo_permiso|cut:"_"|title }}{% endif %}
+    </td>
+    <td style="background-color:{% cycle '#f8fafc' '#f1f5f9' %};padding:4px 8px;font-size:7pt;border-bottom:1px solid #e2e8f0">
+        {{ p.fecha_inicio|date:"d/m/Y" }}
+    </td>
+    <td style="background-color:{% cycle '#f8fafc' '#f1f5f9' %};padding:4px 8px;font-size:7pt;border-bottom:1px solid #e2e8f0">
+        {{ p.fecha_fin|date:"d/m/Y" }}
+    </td>
+    <td style="background-color:{% cycle '#f8fafc' '#f1f5f9' %};padding:4px 8px;font-size:7pt;font-weight:bold;border-bottom:1px solid #e2e8f0">
+        {{ p.dias_habiles|default:0 }}
+    </td>
+    <td style="background-color:{% cycle '#f8fafc' '#f1f5f9' %};padding:4px 8px;font-size:7pt;font-weight:bold;border-bottom:1px solid #e2e8f0">
+        {{ p.estado|default:"-" }}
+    </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}

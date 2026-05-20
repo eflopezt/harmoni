@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Reportes de Asistencia{% endblock %}
+
+{% block extra_css %}
+<style>
+.hero-rep{background:linear-gradient(135deg,#1e293b 0%,#0f766e 100%);border-radius:.75rem}
+.tabs-pill{display:flex;gap:.5rem;margin-bottom:1rem}
+.tab-pill{flex:1;text-align:center;padding:.85rem 1rem;border-radius:.75rem;background:#fff;border:2px solid #e2e8f0;cursor:pointer;font-weight:600;color:#475569;transition:all .15s;text-decoration:none}
+.tab-pill:hover{border-color:#0f766e;color:#0f766e}
+.tab-pill.active{background:#0f766e;border-color:#0f766e;color:#fff;box-shadow:0 4px 16px rgba(15,118,110,.18)}
+.tab-pill .small{display:block;font-size:.7rem;opacity:.7;font-weight:400;margin-top:2px}
+.tab-pill.active .small{opacity:.85}
+.filters-card{background:#fff;border:1px solid #e2e8f0;border-radius:.75rem;padding:1rem;margin-bottom:1rem}
+.filters-card label{font-size:.72rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem}
+.filters-card select,.filters-card input{font-size:.85rem;border-radius:.5rem}
+.actions-bar{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem;padding-top:1rem;border-top:1px solid #f1f5f9}
+.actions-bar .btn{font-size:.85rem;border-radius:.5rem;padding:.45rem 1rem}
+.periodo-preview{background:#f0fdf4;border-left:4px solid #0f766e;padding:.6rem .9rem;border-radius:.5rem;margin-top:.5rem;font-size:.82rem;color:#134e4a}
+.periodo-preview b{color:#0f766e}
+.legacy-card{background:#fef9c3;border:1px solid #fde047;border-radius:.5rem;padding:.9rem;margin-top:1.5rem}
+.legacy-card h6{color:#854d0e;font-weight:700;margin-bottom:.4rem}
+.legacy-card .small-link{font-size:.82rem;color:#854d0e;text-decoration:underline}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-rep p-3 mb-4 text-white">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold">
+                <i class="fas fa-chart-bar me-2 opacity-75"></i>
+                Reportes de Asistencia
+            </h2>
+            <p class="mb-0 opacity-75" style="font-size:.85rem">
+                Panel unificado · 3 vistas oficiales: semana, mes calendario, ciclo de corte (22→21)
+            </p>
+        </div>
+        {% if empresa.razon_social %}
+        <div class="text-end">
+            <div style="font-size:.85rem;font-weight:600">{{ empresa.razon_social }}</div>
+            {% if empresa.ruc %}<div style="font-size:.7rem;opacity:.7">RUC {{ empresa.ruc }}</div>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs-pill">
+    <a href="?tipo={{ TIPO_SEMANA }}&anio={{ anio }}&mes={{ mes }}&grupo={{ grupo_sel }}{% if area_sel %}&area={{ area_sel }}{% endif %}"
+       class="tab-pill {% if tipo_sel == TIPO_SEMANA %}active{% endif %}">
+        <i class="fas fa-calendar-week me-1"></i>SEMANA
+        <span class="small">Lunes a domingo</span>
+    </a>
+    <a href="?tipo={{ TIPO_MES }}&anio={{ anio }}&mes={{ mes }}&grupo={{ grupo_sel }}{% if area_sel %}&area={{ area_sel }}{% endif %}"
+       class="tab-pill {% if tipo_sel == TIPO_MES %}active{% endif %}">
+        <i class="fas fa-calendar me-1"></i>MES
+        <span class="small">Calendario completo</span>
+    </a>
+    <a href="?tipo={{ TIPO_MES_CORTE }}&anio={{ anio }}&mes={{ mes }}&grupo={{ grupo_sel }}{% if area_sel %}&area={{ area_sel }}{% endif %}"
+       class="tab-pill {% if tipo_sel == TIPO_MES_CORTE %}active{% endif %}">
+        <i class="fas fa-calendar-alt me-1"></i>MES DE CORTE
+        <span class="small">Ciclo 22 → 21</span>
+    </a>
+</div>
+
+<form method="get" id="filtersForm" class="filters-card">
+    <input type="hidden" name="tipo" value="{{ tipo_sel }}">
+
+    <div class="row g-3">
+        {% if tipo_sel == TIPO_SEMANA %}
+        <!-- SEMANA: selector de semana -->
+        <div class="col-md-4">
+            <label>Semana</label>
+            <select name="semana_offset" class="form-select form-select-sm">
+                {% for sem in semanas_recientes %}
+                <option value="-{{ forloop.counter0 }}"
+                        {% if forloop.counter0 == semana_offset|stringformat:"s"|slice:"1:"|add:"0"|default:0 %}selected{% endif %}>
+                    {{ sem.label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% else %}
+        <!-- MES / MES_CORTE: selector mes + año -->
+        <div class="col-md-3">
+            <label>Mes</label>
+            <select name="mes" class="form-select form-select-sm">
+                <option value="1" {% if mes == 1 %}selected{% endif %}>Enero</option>
+                <option value="2" {% if mes == 2 %}selected{% endif %}>Febrero</option>
+                <option value="3" {% if mes == 3 %}selected{% endif %}>Marzo</option>
+                <option value="4" {% if mes == 4 %}selected{% endif %}>Abril</option>
+                <option value="5" {% if mes == 5 %}selected{% endif %}>Mayo</option>
+                <option value="6" {% if mes == 6 %}selected{% endif %}>Junio</option>
+                <option value="7" {% if mes == 7 %}selected{% endif %}>Julio</option>
+                <option value="8" {% if mes == 8 %}selected{% endif %}>Agosto</option>
+                <option value="9" {% if mes == 9 %}selected{% endif %}>Septiembre</option>
+                <option value="10" {% if mes == 10 %}selected{% endif %}>Octubre</option>
+                <option value="11" {% if mes == 11 %}selected{% endif %}>Noviembre</option>
+                <option value="12" {% if mes == 12 %}selected{% endif %}>Diciembre</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label>Año</label>
+            <select name="anio" class="form-select form-select-sm">
+                {% for a in anios %}
+                <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="col-md-3">
+            <label>Grupo</label>
+            <select name="grupo" class="form-select form-select-sm">
+                <option value="TODOS" {% if grupo_sel == 'TODOS' %}selected{% endif %}>Todos</option>
+                <option value="STAFF" {% if grupo_sel == 'STAFF' %}selected{% endif %}>STAFF</option>
+                <option value="RCO" {% if grupo_sel == 'RCO' %}selected{% endif %}>RCO</option>
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label>Área</label>
+            <select name="area" class="form-select form-select-sm">
+                <option value="">Todas las áreas</option>
+                {% for a in areas %}
+                <option value="{{ a.id }}" {% if area_sel|stringformat:"s" == a.id|stringformat:"s" %}selected{% endif %}>
+                    {{ a.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-12">
+            <button type="submit" class="btn btn-sm btn-primary">
+                <i class="fas fa-filter me-1"></i>Aplicar filtros
+            </button>
+        </div>
+    </div>
+
+    <div class="periodo-preview">
+        <i class="fas fa-info-circle me-1"></i>
+        Período seleccionado: <b>{{ periodo_actual.label }}</b>
+        ({{ periodo_actual.fecha_inicio|date:"d/m/Y" }} al {{ periodo_actual.fecha_fin|date:"d/m/Y" }}
+         · {{ periodo_actual.dias }} día{{ periodo_actual.dias|pluralize }})
+    </div>
+
+    <div class="actions-bar">
+        {% if tipo_sel == TIPO_MES_CORTE %}
+        <a href="{% url 'asistencia_reportes' %}?anio={{ anio }}&mes={{ mes }}&grupo={{ grupo_sel }}{% if area_sel %}&area={{ area_sel }}{% endif %}"
+           class="btn btn-outline-primary">
+            <i class="fas fa-eye me-1"></i>Ver listado (HTML)
+        </a>
+        <a href="{% url 'asistencia_reporte_masivo' %}?anio={{ anio }}&mes={{ mes }}&grupo={{ grupo_sel }}{% if area_sel %}&area={{ area_sel }}{% endif %}"
+           class="btn btn-success">
+            <i class="fas fa-file-archive me-1"></i>Descargar PDFs (ZIP)
+        </a>
+        <a href="{% url 'asistencia_exportar_horas_rco' %}?anio={{ anio }}&mes={{ mes }}&tipo_periodo=corte"
+           class="btn btn-outline-success">
+            <i class="fas fa-file-excel me-1"></i>Excel — Horas RCO
+        </a>
+        <a href="{% url 'asistencia_exportar_faltas' %}?anio={{ anio }}&mes={{ mes }}&tipo_periodo=corte"
+           class="btn btn-outline-warning">
+            <i class="fas fa-file-excel me-1"></i>Excel — Faltas
+        </a>
+        {% elif tipo_sel == TIPO_MES %}
+        <a href="{% url 'asistencia_reportes' %}?anio={{ anio }}&mes={{ mes }}&grupo={{ grupo_sel }}{% if area_sel %}&area={{ area_sel }}{% endif %}"
+           class="btn btn-outline-primary">
+            <i class="fas fa-eye me-1"></i>Ver listado (HTML)
+        </a>
+        <a href="{% url 'asistencia_reporte_masivo' %}?anio={{ anio }}&mes={{ mes }}&grupo={{ grupo_sel }}{% if area_sel %}&area={{ area_sel }}{% endif %}"
+           class="btn btn-success">
+            <i class="fas fa-file-archive me-1"></i>Descargar PDFs (ZIP)
+        </a>
+        <a href="{% url 'asistencia_exportar_horas_rco' %}?anio={{ anio }}&mes={{ mes }}&tipo_periodo=calendario"
+           class="btn btn-outline-success">
+            <i class="fas fa-file-excel me-1"></i>Excel — Horas RCO
+        </a>
+        <a href="{% url 'asistencia_papeletas_reporte' %}?anio={{ anio }}&mes={{ mes }}"
+           class="btn btn-outline-info">
+            <i class="fas fa-file-excel me-1"></i>Excel — Papeletas
+        </a>
+        {% else %}
+        <!-- SEMANA -->
+        <a href="{% url 'asistencia_reportes_areas' %}"
+           class="btn btn-outline-primary">
+            <i class="fas fa-eye me-1"></i>Reportes por área
+        </a>
+        <a href="{% url 'asistencia_reporte_horario' %}?tipo_periodo=SEMANAL"
+           class="btn btn-outline-success">
+            <i class="fas fa-clock me-1"></i>Reporte horario
+        </a>
+        <a href="{% url 'asistencia_reporte_excel_areas' %}?tipo_periodo=SEMANAL"
+           class="btn btn-outline-success">
+            <i class="fas fa-file-excel me-1"></i>Excel matriz E/S
+        </a>
+        {% endif %}
+    </div>
+</form>
+
+{% if mostrar_legacy %}
+<div class="legacy-card">
+    <h6><i class="fas fa-archive me-1"></i>Reportes adicionales (legacy)</h6>
+    <p class="mb-2" style="font-size:.78rem;color:#854d0e">
+        Estos reportes existen para clientes con necesidades específicas (banco de horas
+        acumulativo STAFF, cargas S10, etc.). No forman parte del flujo principal.
+    </p>
+    <div class="d-flex flex-wrap gap-3">
+        <a href="{% url 'asistencia_banco_horas' %}" class="small-link">Banco de Horas (STAFF acumulativo)</a>
+        <a href="{% url 'asistencia_exportar_s10' %}?anio={{ anio }}&mes={{ mes }}" class="small-link">Exportar Carga S10</a>
+        <a href="{% url 'asistencia_exportar_cierre' %}?anio={{ anio }}&mes={{ mes }}" class="small-link">Reporte de Cierre</a>
+        <a href="{% url 'asistencia_exportar_planilla' %}?anio={{ anio }}&mes={{ mes }}" class="small-link">Planilla consolidada</a>
+        <a href="{% url 'asistencia_exportar_validacion' %}?anio={{ anio }}&mes={{ mes }}" class="small-link">Validación de datos</a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
