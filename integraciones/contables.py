@@ -34,17 +34,45 @@ PLAN_CUENTAS_DEFAULT = {
 }
 
 
-def _get_plan_cuentas():
-    """Obtiene el plan de cuentas desde ConfiguracionSistema o usa el default."""
+def _get_plan_cuentas(empresa=None):
+    """Obtiene el plan de cuentas con prioridad:
+       1. Empresa.plan_cuentas (JSON por RUC, si existe)
+       2. ConfiguracionSistema.plan_cuentas (global, si existe)
+       3. PLAN_CUENTAS_DEFAULT (constante PCGE 2020).
+
+    Cada nivel mergea sobre el anterior, así puedes sobreescribir solo
+    las cuentas que difieran del default.
+
+    Siempre devuelve una COPIA del dict (no la referencia).
+    """
+    import json
+    plan = dict(PLAN_CUENTAS_DEFAULT)
+
+    # Nivel 2: configuración global
     try:
         from core.models import ConfiguracionSistema
         cfg = ConfiguracionSistema.objects.first()
         if cfg and hasattr(cfg, "plan_cuentas") and cfg.plan_cuentas:
-            import json
-            return {**PLAN_CUENTAS_DEFAULT, **json.loads(cfg.plan_cuentas)}
+            try:
+                global_pc = json.loads(cfg.plan_cuentas)
+                # Convertir listas [codigo, nombre] a tuplas para mantener el formato
+                global_pc = {k: tuple(v) if isinstance(v, list) else v for k, v in global_pc.items()}
+                plan.update(global_pc)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                pass
     except Exception:
         pass
-    return PLAN_CUENTAS_DEFAULT
+
+    # Nivel 1: empresa específica (sobre-escribe global)
+    if empresa is not None and hasattr(empresa, 'plan_cuentas') and empresa.plan_cuentas:
+        try:
+            emp_pc = json.loads(empresa.plan_cuentas) if isinstance(empresa.plan_cuentas, str) else empresa.plan_cuentas
+            emp_pc = {k: tuple(v) if isinstance(v, list) else v for k, v in emp_pc.items()}
+            plan.update(emp_pc)
+        except (json.JSONDecodeError, TypeError, ValueError, AttributeError):
+            pass
+
+    return plan
 
 
 def _get_totales_periodo(periodo, empresa=None):
@@ -180,7 +208,7 @@ def generar_asiento_concar(periodo, empresa=None):
         "Pendiente", "Marcador", "FecVcto", "CodMoneda",
     ])
 
-    plan        = _get_plan_cuentas()
+    plan        = _get_plan_cuentas(empresa=empresa)
     tots        = _get_totales_periodo(periodo, empresa=empresa)
     fecha       = (periodo.fecha_fin or date.today()).strftime("%d/%m/%Y")
     cc, emp_nom = _empresa_label(empresa)
@@ -249,7 +277,7 @@ def generar_asiento_sigo(periodo, empresa=None):
     Debe|Haber|CentroCosto|TipoDoc|NroDoc|CodMoneda|TipoCambio|Estado
     """
     output      = io.StringIO()
-    plan        = _get_plan_cuentas()
+    plan        = _get_plan_cuentas(empresa=empresa)
     tots        = _get_totales_periodo(periodo, empresa=empresa)
     fecha       = (periodo.fecha_fin or date.today()).strftime("%d%m%Y")
     periodo_str = f"{periodo.anio}{periodo.mes:02d}"
@@ -306,7 +334,7 @@ def generar_asiento_sap_excel(periodo, empresa=None):
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment
 
-    plan        = _get_plan_cuentas()
+    plan        = _get_plan_cuentas(empresa=empresa)
     tots        = _get_totales_periodo(periodo, empresa=empresa)
     fecha       = periodo.fecha_fin or date.today()
     cc, emp_nom = _empresa_label(empresa)
@@ -453,7 +481,7 @@ def generar_sire_libro_diario(periodo, empresa=None):
     13 Indicador estado (1=activo, 2=anulado, 9=cierre)
     """
     output      = io.StringIO()
-    plan        = _get_plan_cuentas()
+    plan        = _get_plan_cuentas(empresa=empresa)
     tots        = _get_totales_periodo(periodo, empresa=empresa)
     fecha       = (periodo.fecha_fin or date.today()).strftime("%d/%m/%Y")
     periodo_ple = f"{periodo.anio}{periodo.mes:02d}00"
@@ -517,7 +545,7 @@ def generar_asiento_siscont(periodo, empresa=None):
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment
 
-    plan        = _get_plan_cuentas()
+    plan        = _get_plan_cuentas(empresa=empresa)
     tots        = _get_totales_periodo(periodo, empresa=empresa)
     fecha       = periodo.fecha_fin or date.today()
     cc, emp_nom = _empresa_label(empresa)

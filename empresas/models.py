@@ -60,6 +60,22 @@ class Empresa(models.Model):
         help_text='Código empleador SUNAT (si aplica)'
     )
 
+    # ── Configuración contable por empresa ─────────────────────────────
+    # Permite sobreescribir cuentas del PCGE 2020 default por RUC.
+    # Formato JSON: {"sueldos_debe": ["6211", "Sueldos y salarios"], ...}
+    # Si está vacío o nulo, se usa el plan global (ConfiguracionSistema) o
+    # el PLAN_CUENTAS_DEFAULT de integraciones/contables.py.
+    plan_cuentas = models.JSONField(
+        null=True, blank=True,
+        verbose_name='Plan de cuentas (override)',
+        help_text=(
+            'JSON con cuentas contables personalizadas para esta empresa. '
+            'Llaves esperadas: sueldos_debe, gratif_debe, essalud_debe, '
+            'rem_pagar_haber, afp_pagar_haber, onp_pagar_haber, '
+            'essalud_pagar_haber. Cada valor es [codigo, nombre].'
+        ),
+    )
+
     # ── Configuración SMTP (email por empresa) ──────────────
     PROVEEDOR_EMAIL_CHOICES = [
         ('GMAIL',     'Gmail (SMTP)'),
