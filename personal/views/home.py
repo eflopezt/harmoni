@@ -585,17 +585,22 @@ def home(request):
         except Exception:
             pass
 
-    # ── Bandas salariales: cobertura (admin) ──
+    # ── Bandas salariales: cobertura (admin) ── cacheada 5 min
     if request.user.is_superuser:
         try:
-            con_banda = personal_activo.filter(
-                historial_salarial__banda_salarial__isnull=False
-            ).distinct().count()
-            context['bandas_cobertura'] = {
-                'con_banda': con_banda,
-                'sin_banda': total_activos - con_banda,
-                'pct': round((con_banda / total_activos * 100) if total_activos else 0),
-            }
+            cache_key_bandas = f'home_bandas_cobertura:{hoy.isoformat()}'
+            bandas = cache.get(cache_key_bandas)
+            if bandas is None:
+                con_banda = personal_activo.filter(
+                    historial_salarial__banda_salarial__isnull=False
+                ).distinct().count()
+                bandas = {
+                    'con_banda': con_banda,
+                    'sin_banda': total_activos - con_banda,
+                    'pct': round((con_banda / total_activos * 100) if total_activos else 0),
+                }
+                cache.set(cache_key_bandas, bandas, timeout=300)
+            context['bandas_cobertura'] = bandas
         except Exception:
             pass
 
@@ -633,36 +638,41 @@ def home(request):
     # ── Alertas de planilla/S10 (admin) ────────────────────────────────
     if request.user.is_superuser or request.user.is_staff:
         try:
+            # Perf audit fix: cachear KPIs caros del home por 5 min.
+            # Con 800 trab × 30 dias = 24000 registros, calcular he_elevadas
+            # en cada pageview era pesado. El home se carga constantemente.
+            from django.db.models import ExpressionWrapper, DecimalField as DField, F as DbF
             from asistencia.models import RegistroTareo
             mes_ini_t = hoy.replace(day=1)
-            # SS del mes en curso
-            ss_mes = RegistroTareo.objects.filter(
-                codigo_dia='SS',
-                fecha__gte=mes_ini_t,
-                fecha__lte=hoy,
-            ).count()
-            # Personal activo sin DNI
-            sin_dni = Personal.objects.filter(
-                Q(nro_doc__isnull=True) | Q(nro_doc=''),
-                estado='Activo',
-            ).count()
-            # HE elevadas en el mes (>50h individual)
-            from django.db.models import ExpressionWrapper, DecimalField as DField, F as DbF
-            he_elevadas_count = RegistroTareo.objects.filter(
-                fecha__gte=mes_ini_t, fecha__lte=hoy,
-                grupo='RCO',
-            ).values('personal_id').annotate(
-                total_he=ExpressionWrapper(
-                    DbF('he_25') + DbF('he_35') + DbF('he_100'),
-                    output_field=DField(max_digits=6, decimal_places=2)
-                )
-            ).filter(total_he__gt=50).count()
-            context['alertas_planilla'] = {
-                'ss_mes': ss_mes,
-                'sin_dni': sin_dni,
-                'he_elevadas': he_elevadas_count,
-                'mes_label': hoy.strftime('%B %Y'),
-            }
+            cache_key = f'home_alertas_planilla:{hoy.isoformat()}'
+            cached = cache.get(cache_key)
+            if cached is None:
+                ss_mes = RegistroTareo.objects.filter(
+                    codigo_dia='SS',
+                    fecha__gte=mes_ini_t,
+                    fecha__lte=hoy,
+                ).count()
+                sin_dni = Personal.objects.filter(
+                    Q(nro_doc__isnull=True) | Q(nro_doc=''),
+                    estado='Activo',
+                ).count()
+                he_elevadas_count = RegistroTareo.objects.filter(
+                    fecha__gte=mes_ini_t, fecha__lte=hoy,
+                    grupo='RCO',
+                ).values('personal_id').annotate(
+                    total_he=ExpressionWrapper(
+                        DbF('he_25') + DbF('he_35') + DbF('he_100'),
+                        output_field=DField(max_digits=6, decimal_places=2)
+                    )
+                ).filter(total_he__gt=50).count()
+                cached = {
+                    'ss_mes': ss_mes,
+                    'sin_dni': sin_dni,
+                    'he_elevadas': he_elevadas_count,
+                    'mes_label': hoy.strftime('%B %Y'),
+                }
+                cache.set(cache_key, cached, timeout=300)  # 5 min
+            context['alertas_planilla'] = cached
         except Exception:
             pass
 

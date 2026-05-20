@@ -76,6 +76,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # CSP — solo activa si la libreria esta instalada (audit security fix)
+    # Las constantes CSP_* en production.py controlan el comportamiento.
+    *(['csp.middleware.CSPMiddleware'] if __import__('importlib').util.find_spec('csp') else []),
     'empresas.middleware_subdomain.SubdomainMiddleware',
     'empresas.middleware.EmpresaMiddleware',
     'empresas.middleware_billing.BillingMiddleware',
