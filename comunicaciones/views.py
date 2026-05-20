@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST
 
 from comunicaciones.models import (
     ComunicadoMasivo, ConfiguracionSMTP, ConfirmacionLectura,
-    Notificacion, PlantillaNotificacion, PreferenciaNotificacion,
+    Notificacion, PlantillaNotificacion,
 )
 from comunicaciones.services import NotificacionService
 from core.audit import log_create, log_update

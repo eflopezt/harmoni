@@ -23,7 +23,6 @@ class AreaSerializer(serializers.ModelSerializer):
         return obj.subareas.filter(activa=True).count()
     
     def get_total_personal(self, obj):
-        from django.db.models import Count
         return Personal.objects.filter(
             subarea__area=obj,
             estado='Activo'

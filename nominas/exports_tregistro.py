@@ -345,7 +345,6 @@ def generar_tregistro_desde_periodo(periodo) -> tuple[str, int]:
 
     Util para generar el T-Registro alineado con la planilla del periodo.
     """
-    from nominas.models import PeriodoNomina
 
     personal_ids = (
         periodo.registros

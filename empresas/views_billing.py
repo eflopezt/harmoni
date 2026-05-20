@@ -4,14 +4,11 @@ Billing Views — Dashboard de facturación, pagos y cambio de plan.
 Para usuarios normales (no admin). Cada empresa ve su propia suscripción.
 """
 from datetime import date, timedelta
-from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Empresa
 from .models_billing import HistorialPago, Plan, Suscripcion
 
 

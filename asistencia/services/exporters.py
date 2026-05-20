@@ -7,18 +7,16 @@ ReporteCierreExporter → reporte de cierre de mes con regularizaciones
 """
 from __future__ import annotations
 
-import calendar
 import logging
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
-from typing import Any
 
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from django.db.models import Q, Sum
+from django.db.models import Sum
 
 logger = logging.getLogger('personal.business')
 
@@ -358,7 +356,7 @@ class ReporteCierreExporter:
     def generar(self) -> BytesIO:
         from datetime import timedelta
         from personal.models import Personal
-        from asistencia.models import BancoHoras, RegistroTareo, RegistroPapeleta
+        from asistencia.models import RegistroTareo, RegistroPapeleta
 
         if self.tipo_periodo == 'corte':
             inicio, fin = self.config.get_ciclo_he(self.anio, self.mes)

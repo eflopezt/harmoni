@@ -4,7 +4,6 @@ Tests for the Empresa model and EmpresaEmailBackend — empresas module.
 import pytest
 from unittest.mock import patch, MagicMock
 
-from django.test import TestCase, override_settings
 
 from empresas.models import Empresa
 from empresas.email_backend import (

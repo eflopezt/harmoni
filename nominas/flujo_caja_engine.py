@@ -291,7 +291,6 @@ def proyectar_desde_plan(plan, n_meses: int = None) -> tuple:
         (meses, posiciones) con la misma estructura que proyectar_flujo_caja(),
         pero 'posiciones' son dicts derivados de LineaPlan (sin FK Personal).
     """
-    from .models import PlanPlantilla  # import local para evitar circular
 
     hoy     = date.today()
     inicio  = hoy.replace(day=1)

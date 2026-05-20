@@ -24,7 +24,7 @@ CODIGOS_PERMISO = ['PL', 'PC', 'PM', 'PE', 'LCG', 'LSG', 'LF', 'LP', 'LM',
 @solo_admin
 def kpi_dashboard_view(request):
     """Dashboard de KPIs de asistencia con gráficas."""
-    from asistencia.models import BancoHoras, RegistroTareo, TareoImportacion
+    from asistencia.models import BancoHoras, RegistroTareo
 
     hoy = date.today()
     anio = int(request.GET.get('anio', hoy.year))

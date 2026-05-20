@@ -15,20 +15,19 @@ Flujo:
 """
 from __future__ import annotations
 
-import io
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import models, transaction
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from personal.models import Personal
-from .models import PeriodoNomina, RegistroNomina, ConceptoRemunerativo
+from .models import PeriodoNomina, RegistroNomina
 
 # ── constantes (fallbacks — se sobreescriben con snapshot del período) ───────
 RMV        = Decimal('1130.00')

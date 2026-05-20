@@ -8,7 +8,6 @@ Uso:
     python manage.py setup_harmoni --no-input   # sin interactividad (Render/CI)
     python manage.py setup_harmoni --force      # re-ejecuta seeds aunque ya existan datos
 """
-import sys
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
 

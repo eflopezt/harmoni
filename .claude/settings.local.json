@@ -1,17 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(powershell.exe*)",
-      "Bash(python*)",
-      "Bash(pip*)",
-      "Bash(git*)",
-      "Bash(ls*)",
-      "Bash(find*)",
-      "Bash(mkdir*)",
-      "Bash(cp*)",
-      "Bash(cat*)",
-      "Bash(sleep*)",
-      "mcp__Claude_Preview__preview_start"
+      "Bash(grep -v \"^\\\\.$\\\\|^\\\\.\\\\.$\")",
+      "PowerShell(Get-ChildItem -Recurse -Force -Depth 4 | Where-Object { -not $_.PSIsContainer } | Select-Object -First 30 | Format-Table FullName, Length -AutoSize)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(winget install *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell($attrs = Get-ChildItem -Path \"templates\" -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 10 FullName, Attributes; $attrs | Format-Table -AutoSize -Wrap; Write-Output \"---placeholders count---\"; \\(Get-ChildItem -Path . -Recurse -Force -ErrorAction SilentlyContinue | Where-Object { $_.Attributes -band 0x400000 }\\).Count)"
     ]
   }
 }

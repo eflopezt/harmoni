@@ -7,14 +7,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
-from django.views.decorators.cache import cache_page
-from django.utils.decorators import method_decorator
 from datetime import date, timedelta
-from django.db.models import Count, Q, Sum, Prefetch
+from django.db.models import Count, Q, Sum
 from django.core.cache import cache
-import json
 
-from ..models import Area, SubArea, Personal, Roster
+from ..models import Personal, Roster
 from ..permissions import (
     filtrar_areas, filtrar_subareas, filtrar_personal,
     get_context_usuario, get_areas_responsable,
@@ -591,7 +588,6 @@ def home(request):
     # ── Bandas salariales: cobertura (admin) ──
     if request.user.is_superuser:
         try:
-            from salarios.models import HistorialSalarial
             con_banda = personal_activo.filter(
                 historial_salarial__banda_salarial__isnull=False
             ).distinct().count()
@@ -1257,7 +1253,6 @@ def hr_ask(request):
 
     # ── Intent: Distribución por área ───────────────────────────────────────
     if kw('área', 'area', 'áreas', 'areas', 'gerencia', 'gerencias', 'departamento'):
-        from personal.models import Area as AreaModel
         activos = Personal.objects.filter(estado='Activo')
         areas_data = (
             activos.values('subarea__area__nombre')

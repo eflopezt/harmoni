@@ -3,12 +3,12 @@ Super-admin billing dashboard â€” Vista global de tenants, revenue y acciones rÃ
 
 Solo accesible para superusers.
 """
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Count, Q, Sum, F
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 

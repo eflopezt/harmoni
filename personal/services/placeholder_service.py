@@ -6,7 +6,6 @@ del contrato, personal, empresa, adenda, etc.
 """
 import re
 import html as html_module
-from decimal import Decimal
 
 from django.utils.formats import number_format
 

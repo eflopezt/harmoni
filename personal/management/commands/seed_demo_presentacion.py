@@ -50,7 +50,7 @@ class Command(BaseCommand):
     # ── Reset ─────────────────────────────────────────────────────────────
 
     def _reset(self):
-        from personal.models import Personal, Area, SubArea
+        from personal.models import Personal
         self.stdout.write('  Eliminando datos demo anteriores...')
         User.objects.filter(username__in=[
             'rrhh.admin', 'reclutadora', 'planillas', 'jefe.ops', 'bienestar'
@@ -128,7 +128,7 @@ class Command(BaseCommand):
     # ── Empleados ──────────────────────────────────────────────────────────
 
     def _crear_empleados(self, areas_map):
-        from personal.models import Personal, SubArea
+        from personal.models import Personal
 
         # Tomamos sub-áreas
         sa = lambda cod, nombre: areas_map[cod][nombre]
@@ -410,4 +410,3 @@ class Command(BaseCommand):
 
 
 # Import necesario para usar el modelo Personal dentro del Command
-from personal.models import Personal

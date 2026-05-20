@@ -3,7 +3,7 @@ Tests for the Prestamos (Loans) module.
 Covers: Prestamo model, CuotaPrestamo, TipoPrestamo, business logic,
 cuota generation, estado transitions, edge cases, and payroll integration.
 """
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 
 import pytest

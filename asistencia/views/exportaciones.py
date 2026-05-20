@@ -1,7 +1,6 @@
 """
 Vistas del módulo Tareo — Exportaciones.
 """
-import calendar
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
@@ -162,7 +161,7 @@ def _label_periodo(ini, fin, tipo: str) -> str:
 def exportar_horas_rco(request):
     """Excel con resumen de horas y HE por trabajador RCO del periodo."""
     import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from asistencia.models import RegistroTareo
     from personal.models import Personal
 

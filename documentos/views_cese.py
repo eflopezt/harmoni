@@ -7,19 +7,16 @@ Digitaliza el flujo de la macro Excel (Módulo2 + Módulo3):
   - pdf_cese_procesar → AJAX: procesa un PDF → retorna datos + empleado encontrado
   - pdf_cese_confirmar → guarda DocumentoTrabajador definitivo tras revisión
 """
-import json
-import os
 
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render, redirect
-from django.views.decorators.http import require_POST, require_http_methods
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_POST
 
 from documentos.models import (
     CategoriaDocumento, TipoDocumento, DocumentoTrabajador,
 )
-from documentos.services_pdf import buscar_empleado_por_pdf, procesar_pdf_cese
+from documentos.services_pdf import buscar_empleado_por_pdf
 
 solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
 

@@ -10,7 +10,6 @@ Soporta:
 - Generación de plantilla con validaciones Excel
 """
 import logging
-import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
@@ -20,7 +19,6 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
-from django.db import transaction
 
 from personal.models import Area, SubArea, Personal
 

@@ -3,13 +3,10 @@ Tests for Personal, Area, and SubArea models — personal module.
 """
 import pytest
 from datetime import date, timedelta
-from decimal import Decimal
 
-from django.contrib.auth.models import User
 from django.db import IntegrityError
-from django.utils import timezone
 
-from personal.models import Area, SubArea, Personal, Roster
+from personal.models import Area, SubArea, Personal
 
 
 # ────────────────────────────────────────────────────────────────

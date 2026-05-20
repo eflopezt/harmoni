@@ -10,11 +10,9 @@ Empresas -- Wizard de onboarding multi-paso para nuevos clientes.
 
 Almacena estado en request.session['onboarding_data'] entre pasos.
 """
-import json
 import logging
 import re
 import smtplib
-from email.mime.text import MIMEText
 
 from django.conf import settings
 from django.contrib import messages
@@ -276,7 +274,6 @@ def step4_data(request):
         # Store the excel file temporarily if provided
         if excel_file:
             import os
-            import tempfile
             tmp_dir = os.path.join(settings.MEDIA_ROOT, 'onboarding_tmp')
             os.makedirs(tmp_dir, exist_ok=True)
             tmp_path = os.path.join(tmp_dir, f'employees_{data["company"]["ruc"]}.xlsx')

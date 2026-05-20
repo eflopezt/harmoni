@@ -8,7 +8,6 @@ Flujo:
 4. template — descargar plantilla Excel vacía
 5. validate — endpoint AJAX para validación en tiempo real
 """
-import json
 import logging
 import tempfile
 import os

@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Q, Count, Avg, F, ExpressionWrapper, DurationField
+from django.db.models import Q, Count
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
@@ -1473,7 +1473,6 @@ def dashboard_reclutamiento(request):
     """
     Dashboard ejecutivo de reclutamiento con KPIs, funnel y actividad reciente.
     """
-    from django.db.models import Min
 
     hoy = date.today()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
@@ -1553,7 +1552,6 @@ def dashboard_reclutamiento(request):
     # ── Tendencia postulaciones — últimos 6 meses ─────────────
     postulaciones_6m_json = '[]'
     try:
-        from datetime import date as _date
         from django.db.models.functions import TruncMonth
         meses = (
             Postulacion.objects

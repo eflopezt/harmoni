@@ -7,8 +7,7 @@ Covers:
 - NotificacionService.enviar_desde_plantilla(): renders template with context
 - PlantillaNotificacion: template rendering with variables
 """
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone

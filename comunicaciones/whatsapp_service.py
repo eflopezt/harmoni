@@ -14,9 +14,7 @@ Uso:
     # Mensaje con plantilla aprobada por Meta
     WhatsAppService.send_template('51999888777', 'boleta_disponible', ['Enero 2026', 'S/ 3,500'])
 """
-import json
 import logging
-from urllib.parse import urljoin
 
 import requests
 from django.conf import settings

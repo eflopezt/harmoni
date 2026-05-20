@@ -6,7 +6,7 @@ import calendar as _cal
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import user_passes_test
 from django.db.models import Sum, Count, Q
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -16,7 +16,7 @@ import openpyxl
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-from ..models import Area, SubArea, Personal
+from ..models import Area, Personal
 
 # ─── Solo admin ───────────────────────────────────────────────────────────────
 solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')

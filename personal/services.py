@@ -7,10 +7,9 @@ from django.utils import timezone
 import logging
 import pandas as pd
 import re
-from decimal import Decimal
 from datetime import datetime
 
-from .models import Area, SubArea, Personal, Roster, RosterAudit
+from .models import Area, Personal, Roster, RosterAudit
 from .validators import (
     PersonalValidator, RosterValidator,
     validar_archivo_excel

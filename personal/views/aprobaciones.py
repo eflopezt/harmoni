@@ -5,14 +5,14 @@ Agrega: Roster, Papeletas, Solicitudes HE, Justificaciones.
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from datetime import date, timedelta
 import json
 
-from ..models import Area, SubArea, Roster
+from ..models import Area, Roster
 from ..permissions import get_areas_responsable
 
 

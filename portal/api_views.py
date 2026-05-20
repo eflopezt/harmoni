@@ -5,9 +5,7 @@ All endpoints require authentication and return data for the current user only.
 """
 import calendar
 from datetime import date
-from decimal import Decimal
 
-from django.db.models import Sum
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated

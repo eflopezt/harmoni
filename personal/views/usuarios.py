@@ -1083,7 +1083,6 @@ def gestion_usuario_detalle(request, pk):
         return redirect('home')
 
     from django.contrib.auth.models import User
-    from django.contrib.contenttypes.models import ContentType
     from core.models import AuditLog
 
     try:

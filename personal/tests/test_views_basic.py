@@ -17,7 +17,6 @@ Las vistas de personal usan filtrar_personal(user), que:
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal
 
 import pytest
 from django.contrib.auth.models import User

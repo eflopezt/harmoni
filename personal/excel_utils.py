@@ -127,7 +127,7 @@ def crear_plantilla_personal(personal_queryset=None):
     """
     Crea una plantilla Excel para importar/actualizar Personal con catálogos y validaciones.
     """
-    from .models import Area, SubArea, Personal
+    from .models import SubArea
     
     # Datos principales (personal actual si se proporciona)
     if personal_queryset:
@@ -220,7 +220,7 @@ def crear_plantilla_gerencias(gerencias_queryset=None):
     """
     Crea una plantilla Excel para importar/actualizar Gerencias.
     """
-    from .models import Area, Personal
+    from .models import Personal
     
     # Datos principales
     if gerencias_queryset:
@@ -268,7 +268,7 @@ def crear_plantilla_areas(areas_queryset=None):
     """
     Crea una plantilla Excel para importar/actualizar Áreas.
     """
-    from .models import SubArea, Area
+    from .models import Area
     
     # Datos principales
     if areas_queryset:
@@ -313,7 +313,6 @@ def crear_plantilla_roster(mes, anio, personal_queryset, rosters_queryset=None):
     Crea una plantilla Excel para importar/actualizar Roster con validaciones.
     """
     from calendar import monthrange
-    from datetime import datetime
     from collections import defaultdict
     
     dias_en_mes = monthrange(anio, mes)[1]

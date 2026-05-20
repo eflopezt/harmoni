@@ -14,9 +14,8 @@ UIT 2026: S/ 5,500  |  RMV 2025: S/ 1,130
 import io
 from decimal import Decimal
 
-from django.db.models import Sum
 
-from .models import PeriodoNomina, RegistroNomina
+from .models import PeriodoNomina
 
 
 # ── Mapeos SUNAT ─────────────────────────────────────────────────────

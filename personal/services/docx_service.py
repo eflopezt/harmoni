@@ -11,7 +11,6 @@ from html.parser import HTMLParser
 from docx import Document
 from docx.shared import Inches, Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.section import WD_ORIENT
 
 
 class SimpleHTMLToDocx(HTMLParser):

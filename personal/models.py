@@ -6,7 +6,6 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.utils.functional import cached_property
 from decimal import Decimal
-from .user_models import UserProfile
 
 
 class Area(models.Model):

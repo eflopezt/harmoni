@@ -25,7 +25,6 @@ Uso:
 from __future__ import annotations
 
 import unicodedata
-import sys
 from decimal import Decimal, InvalidOperation
 from datetime import date
 from pathlib import Path

@@ -41,7 +41,7 @@ def portal_home(request):
     context = {'empleado': empleado}
 
     if empleado:
-        from django.db.models import Sum, Count, Q
+        from django.db.models import Sum
 
         hoy = date.today()
         inicio_mes = hoy.replace(day=1)
@@ -193,7 +193,6 @@ def portal_home(request):
             elif empleado.subarea:
                 area_filtro['subarea'] = empleado.subarea
             if area_filtro:
-                from django.db.models import Q as _Q
                 companeros_qs = Personal.objects.filter(
                     **area_filtro,
                     estado='Activo',
@@ -960,7 +959,6 @@ def papeleta_anular_portal(request, pk):
 def mi_timeline(request):
     """Timeline cronológica del propio empleado (vista portal)."""
     from personal.views.timeline import _build_timeline
-    from datetime import timedelta
 
     empleado = _get_empleado(request.user)
     context = {'empleado': empleado}

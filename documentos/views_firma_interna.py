@@ -23,7 +23,7 @@ from django.views.decorators.http import require_POST
 
 from .models import (
     FirmaDigital, ConstanciaGenerada, DocumentoTrabajador,
-    DocumentoLaboral, PlantillaConstancia,
+    DocumentoLaboral,
 )
 
 solo_admin = user_passes_test(lambda u: u.is_superuser or u.is_staff)
@@ -40,7 +40,6 @@ def _get_client_ip(request):
 def _calcular_hash_constancia(constancia):
     """Calcula SHA-256 del contenido de una constancia generada."""
     from django.template import Template, Context
-    from personal.models import Personal
 
     plantilla = constancia.plantilla
     personal = constancia.personal
@@ -418,14 +417,14 @@ def descargar_firmado(request, token):
 def _generar_pdf_firmado(firma, request):
     """Genera PDF con la firma embebida usando ReportLab."""
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import cm, mm
+    from reportlab.lib.units import cm
     from reportlab.lib import colors
     from reportlab.platypus import (
         SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image,
         HRFlowable,
     )
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(

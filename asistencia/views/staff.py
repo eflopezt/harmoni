@@ -25,7 +25,6 @@ def vista_staff(request):
     Muestra por persona: días trabajados, SS, DL, CHE, HE, saldo banco.
     Selector de año/mes. Click en persona → detalle diario.
     """
-    from personal.models import Personal
     from asistencia.models import BancoHoras, RegistroTareo
 
     MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',

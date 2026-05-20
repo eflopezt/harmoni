@@ -6,13 +6,11 @@ sin necesidad de base de datos.
 """
 from __future__ import annotations
 
-import calendar
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
-import pytest
 
 # Importar funciones bajo test
 from nominas.views_liquidacion import (
@@ -20,7 +18,6 @@ from nominas.views_liquidacion import (
     _meses_semestre_cts,
     _calcular_liquidacion,
     _rd,
-    RMV,
     ASIG_FAM,
     AFP_APORTE,
     ONP_TASA,

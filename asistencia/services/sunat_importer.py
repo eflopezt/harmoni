@@ -21,7 +21,6 @@ import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-import pandas as pd
 
 logger = logging.getLogger('personal.business')
 

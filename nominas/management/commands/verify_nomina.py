@@ -12,7 +12,6 @@ from django.core.management.base import BaseCommand
 from django.db.models import Sum
 
 from nominas.models import PeriodoNomina, RegistroNomina
-from personal.models import Personal
 
 
 class Command(BaseCommand):

@@ -11,7 +11,7 @@ Recalcula:
   3. BancoHoras (saldos HE)
 """
 import logging
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 
 from django.db import transaction

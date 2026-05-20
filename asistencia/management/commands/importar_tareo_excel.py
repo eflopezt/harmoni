@@ -451,8 +451,7 @@ class Command(BaseCommand):
     # ── Importar Reloj ──────────────────────────────────────────
 
     def _importar_reloj(self, xls: pd.ExcelFile, options, ctx, dry_run) -> dict:
-        from asistencia.models import (TareoImportacion, RegistroTareo,
-                                   BancoHoras, MovimientoBancoHoras)
+        from asistencia.models import (TareoImportacion, RegistroTareo)
 
         hoja = options['hoja_reloj']
         if hoja not in xls.sheet_names:
@@ -805,8 +804,7 @@ class Command(BaseCommand):
 
     def _importar_papeletas(self, xls: pd.ExcelFile, options, ctx,
                              importacion_reloj, dry_run) -> dict:
-        from asistencia.models import (TareoImportacion, RegistroPapeleta,
-                                   RegistroTareo)
+        from asistencia.models import (TareoImportacion, RegistroPapeleta)
 
         hoja = options['hoja_papeletas']
         if hoja not in xls.sheet_names:

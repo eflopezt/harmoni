@@ -11,7 +11,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from personal.models import Personal
-from prestamos.models import Prestamo, TipoPrestamo, CuotaPrestamo
+from prestamos.models import Prestamo, TipoPrestamo
 
 random.seed(42)
 

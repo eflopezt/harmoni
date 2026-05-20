@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from personal.models import Area, SubArea, Personal
+from personal.models import Area
 from reclutamiento.models import (
     Vacante, EtapaPipeline, Postulacion,
     NotaPostulacion, EntrevistaPrograma,

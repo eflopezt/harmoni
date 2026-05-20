@@ -6,7 +6,6 @@ Covers:
 - TipoDocumento: obligatorio flag, vencimiento handling
 - PlantillaConstancia: HTML template rendering with context variables
 """
-import pytest
 from datetime import date, timedelta
 
 from django.db import IntegrityError

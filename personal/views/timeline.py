@@ -4,7 +4,7 @@ Vistas para Timeline del Empleado — historia laboral cronológica.
 Agrega eventos de: Personal, Papeletas, Solicitudes HE, Justificaciones,
 BancoHoras, Documentos, Roster.
 """
-from datetime import date, timedelta
+from datetime import date
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, render
@@ -18,7 +18,7 @@ def _build_timeline(empleado, limit=100):
     """Construye la lista de eventos cronológicos para un empleado."""
     from asistencia.models import (
         RegistroPapeleta, SolicitudHE, JustificacionNoMarcaje,
-        BancoHoras, MovimientoBancoHoras,
+        MovimientoBancoHoras,
     )
     from documentos.models import DocumentoTrabajador
 

@@ -19,7 +19,6 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.test import Client
 from django.urls import reverse
 
 from nominas.models import PeriodoNomina, RegistroNomina

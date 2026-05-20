@@ -19,7 +19,7 @@ from django.core.management.base import BaseCommand
 
 from asistencia.models import RegistroPapeleta, RegistroTareo
 from asistencia.services.papeletas_sync import (
-    aplicar_papeleta, revertir_papeleta, reset_caches,
+    aplicar_papeleta, reset_caches,
     TIPO_A_CODIGO,
 )
 

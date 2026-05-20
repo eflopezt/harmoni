@@ -2,14 +2,13 @@
 Vistas para gestión de contratos laborales, adendas, renovaciones y alertas.
 """
 from datetime import date
-from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
 
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q, Count, Case, When, Value, CharField
+from django.db.models import Q, Count
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
@@ -1131,7 +1130,6 @@ def contrato_analizar_ia(request, pk):
                 from pdfminer.high_level import extract_text
                 texto = extract_text(archivo_path)
             except ImportError:
-                import subprocess
                 # Fallback: intentar con xhtml2pdf o lectura básica
                 texto = '[No se pudo extraer texto del PDF — instale pdfminer.six]'
         elif ext in ('docx', 'doc'):
@@ -1707,7 +1705,6 @@ def plantilla_contrato_ia(request, pk):
 def plantilla_contrato_aplicar_ia(request, pk):
     """Aplica el HTML sugerido por la IA a la plantilla."""
     import json as _json
-    import re
     plantilla = get_object_or_404(PlantillaContrato, pk=pk)
 
     try:

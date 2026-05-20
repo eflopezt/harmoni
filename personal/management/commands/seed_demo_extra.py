@@ -29,7 +29,7 @@ Línea para agregar al final del `reset_demo.sh` del VPS:
     docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_extra >> $LOG 2>&1 || echo "  ! seed_demo_extra fallo" >> $LOG
 """
 import random
-from datetime import date, datetime, timedelta, time
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand

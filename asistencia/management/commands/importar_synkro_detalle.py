@@ -50,8 +50,8 @@ USO:
   python manage.py importar_synkro_detalle /ruta/Asistencia_Detalle.xlsx --fecha-ini 2026-02-21 --fecha-fin 2026-03-21
 """
 import logging
-from datetime import date, time, datetime, timedelta
-from decimal import Decimal, ROUND_FLOOR, ROUND_HALF_UP
+from datetime import date, time, datetime
+from decimal import Decimal, ROUND_FLOOR
 from pathlib import Path
 
 import pandas as pd

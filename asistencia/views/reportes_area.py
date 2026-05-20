@@ -14,13 +14,11 @@ Funcionalidades:
 from __future__ import annotations
 
 import io
-import json
 import logging
 from datetime import date, time, timedelta
 from zipfile import ZipFile
 
 from django.contrib.auth.decorators import login_required
-from django.core.mail import EmailMessage
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.text import slugify
@@ -343,7 +341,7 @@ def enviar_reportes_por_area(request):
       cuerpo_override  → Cuerpo personalizado
     """
     from asistencia.models import ConfiguracionReporteArea, EnvioReporteArea
-    from django.core.mail import get_connection, EmailMessage as DjEmail
+    from django.core.mail import EmailMessage as DjEmail
 
     tipo_periodo  = request.POST.get('tipo_periodo', 'PERSONALIZADO')
     fecha_ini_str = request.POST.get('fecha_inicio', '')
@@ -1206,7 +1204,7 @@ def reporte_pdf_area(request):
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import (
         SimpleDocTemplate, Table, TableStyle, Paragraph,
-        Spacer, PageBreak,
+        Spacer,
     )
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
     from asistencia.models import RegistroTareo, RegistroPapeleta

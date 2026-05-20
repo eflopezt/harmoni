@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 
 from documentos.models import (
     CategoriaDocumento, TipoDocumento, DocumentoTrabajador, PlantillaConstancia,
-    ConstanciaGenerada, BoletaPago, DocumentoLaboral, EntregaDocumento,
+    ConstanciaGenerada, DocumentoLaboral, EntregaDocumento,
     PlantillaDossier, PlantillaDossierItem, Dossier, DossierPersonal, DossierItem,
 )
 
@@ -874,7 +874,7 @@ def constancia_generar(request, plantilla_id):
 def constancia_preview(request, plantilla_id):
     """Preview HTML de la constancia (sin generar PDF)."""
     from personal.models import Personal
-    from documentos.services import generar_constancia_pdf, _fecha_texto, _calcular_antiguedad
+    from documentos.services import _fecha_texto, _calcular_antiguedad
 
     plantilla = get_object_or_404(PlantillaConstancia, pk=plantilla_id, activa=True)
     personal_id = request.GET.get('personal_id')
@@ -1537,7 +1537,6 @@ def doc_laboral_confirmar(request, pk):
 @solo_admin
 def dossier_list(request):
     """Lista de dossiers con filtros por estado y proyecto."""
-    from django.db.models import Prefetch
 
     qs = Dossier.objects.select_related('plantilla', 'responsable').annotate(
         total_p=Count('personal_dossier', distinct=True),
@@ -1574,7 +1573,6 @@ def dossier_list(request):
 def dossier_crear(request):
     """Crear un nuevo dossier."""
     from django.contrib import messages
-    from personal.models import Personal
 
     plantillas = PlantillaDossier.objects.filter(activa=True).order_by('nombre')
 
@@ -1655,7 +1653,6 @@ def dossier_detalle(request, pk):
 def dossier_agregar_personal(request, pk):
     """Agrega trabajadores al dossier y genera sus ítems."""
     from django.contrib import messages
-    from personal.models import Personal
 
     dossier = get_object_or_404(Dossier, pk=pk)
     ids = request.POST.getlist('personal_ids')
@@ -1959,7 +1956,6 @@ def archivo_hr_descargar(request, pk):
     """
     from .models import ArchivoHR
     from django.http import FileResponse
-    import os
 
     archivo = get_object_or_404(ArchivoHR, pk=pk)
 

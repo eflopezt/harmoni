@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_POST
 
 from asistencia.views._common import solo_admin
 
@@ -25,7 +25,7 @@ from asistencia.views._common import solo_admin
 @solo_admin
 def lista_relojes(request):
     """Lista de relojes biométricos configurados."""
-    from asistencia.models import RelojBiometrico, MarcacionBiometrica
+    from asistencia.models import RelojBiometrico
 
     relojes = (
         RelojBiometrico.objects

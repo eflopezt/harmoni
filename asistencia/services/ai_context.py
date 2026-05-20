@@ -1293,7 +1293,7 @@ def get_individual_ranking(query_type: str, user, limit: int = 10) -> list[dict]
     try:
         if query_type in ('faltas_mes', 'falta'):
             from asistencia.models import RegistroTareo
-            from django.db.models import Count, Q
+            from django.db.models import Count
             inicio_mes = date(hoy.year, hoy.month, 1)
             qs = (
                 RegistroTareo.objects

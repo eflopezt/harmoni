@@ -29,7 +29,7 @@ from collections import defaultdict
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.db.models import Sum, Q
+from django.db.models import Sum
 
 from asistencia.models import (
     RegistroTareo,

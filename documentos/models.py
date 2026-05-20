@@ -859,7 +859,6 @@ class Dossier(models.Model):
 
     def progreso_por_personal(self):
         """Devuelve lista de {personal, total, completos, pct} para el detalle."""
-        from django.db.models import Count, Q
         resultado = []
         for dp in self.personal_dossier.select_related('personal').order_by(
             'personal__apellidos_nombres'

@@ -9,7 +9,7 @@ Uso:
     python manage.py alertas_diarias --solo-contratos
     python manage.py alertas_diarias --dry-run
 """
-from datetime import date, timedelta
+from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta
 from django.core.management.base import BaseCommand

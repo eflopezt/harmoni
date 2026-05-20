@@ -4,7 +4,7 @@ Management command: actualizar fecha_fin_contrato desde empleados_activos.json.
 Si ultima_prorroga > fecha_fin_contrato actual, actualiza.
 """
 import json
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 
 from django.core.management.base import BaseCommand

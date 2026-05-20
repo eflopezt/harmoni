@@ -19,7 +19,6 @@ from __future__ import annotations
 import logging
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Any
 
 from django.db import transaction
 from django.utils import timezone
@@ -190,7 +189,6 @@ class TareoProcessor:
 
         Retorna dict con contadores y listas de errores/advertencias.
         """
-        from personal.models import Personal
         from asistencia.models import RegistroPapeleta, RegistroTareo
 
         creados = 0

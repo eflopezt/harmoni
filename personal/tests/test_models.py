@@ -2,10 +2,8 @@
 Tests para modelos del módulo personal.
 """
 import pytest
-from django.contrib.auth.models import User
 from personal.models import Area, SubArea, Personal, Roster
 from datetime import date
-from decimal import Decimal
 
 
 @pytest.mark.django_db

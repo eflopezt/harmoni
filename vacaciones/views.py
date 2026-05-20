@@ -636,7 +636,6 @@ def saldo_detalle(request, pk):
     solicitudes, días VAC del tareo, adelanto máximo global.
     """
     from asistencia.models import RegistroTareo
-    from collections import defaultdict
 
     saldo = get_object_or_404(
         SaldoVacacional.objects.select_related('personal'),

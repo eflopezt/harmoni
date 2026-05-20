@@ -4,11 +4,9 @@ Vistas del módulo Tareo — Panel Biométrico.
 Panel de gestión de dispositivos ZKTeco con vista de status,
 formulario de alta y logs de sincronización.
 """
-from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST

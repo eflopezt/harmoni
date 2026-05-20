@@ -285,7 +285,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     Retorna dict con todas las líneas calculadas.
     Persiste las líneas y actualiza el registro.
     """
-    from .models import ConceptoRemunerativo, LineaNomina
+    from .models import ConceptoRemunerativo
 
     if conceptos_activos is None:
         conceptos_activos = ConceptoRemunerativo.objects.filter(activo=True).order_by('tipo', 'orden')
@@ -479,7 +479,7 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     Para generar un período tipo GRATIFICACION, establece:
         registro.dias_trabajados = meses trabajados en el semestre (1-6)
     """
-    from .models import ConceptoRemunerativo, LineaNomina
+    from .models import ConceptoRemunerativo
 
     if conceptos_activos is None:
         conceptos_activos = ConceptoRemunerativo.objects.filter(activo=True).order_by('tipo', 'orden')
@@ -583,7 +583,7 @@ def calcular_cts(registro, conceptos_activos=None) -> dict:
     Para generar un período tipo CTS, establece:
         registro.dias_trabajados = meses trabajados en el semestre (1-6)
     """
-    from .models import ConceptoRemunerativo, LineaNomina
+    from .models import ConceptoRemunerativo
 
     if conceptos_activos is None:
         conceptos_activos = ConceptoRemunerativo.objects.filter(activo=True).order_by('tipo', 'orden')

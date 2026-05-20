@@ -8,11 +8,9 @@ Covers:
 - Edge cases: double approval, anulacion restores saldo, overlapping requests
 """
 from datetime import date, timedelta
-from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db.models import F
 from django.test import TestCase
 
 from personal.models import Personal

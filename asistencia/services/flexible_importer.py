@@ -28,7 +28,7 @@ import logging
 import re
 import unicodedata
 from datetime import date, datetime, time, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 
 import pandas as pd

@@ -11,7 +11,6 @@ Base legal:
 - Ley 26644: licencia maternidad
 - Ley 29409: licencia paternidad
 """
-import calendar
 from datetime import date, datetime
 
 from django.contrib.auth.decorators import login_required

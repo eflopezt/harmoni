@@ -6,7 +6,6 @@ Ambos incluyen papeletas del periodo.
 """
 import io
 import json
-import calendar
 import logging
 from datetime import date, timedelta
 from decimal import Decimal
@@ -15,14 +14,13 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import EmailMessage
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404
-from django.db.models import Q, Sum
 from django.views.decorators.http import require_POST
 
 from xhtml2pdf import pisa
 
-from asistencia.models import RegistroTareo, RegistroPapeleta, ConfiguracionSistema
+from asistencia.models import RegistroTareo, RegistroPapeleta
 from asistencia.services.periodo_helper import get_periodo, TIPO_MES_CORTE
-from asistencia.views._common import solo_admin, _qs_staff_dedup, _papeletas_por_fecha, CODIGOS_AUSENCIA_PAGADA
+from asistencia.views._common import solo_admin, _papeletas_por_fecha, CODIGOS_AUSENCIA_PAGADA
 
 logger = logging.getLogger('asistencia')
 from personal.models import Personal, Area
