@@ -30,11 +30,22 @@ EXEMPT_URL_PATTERNS = [
     r'^/$',           # landing
     # Portal del trabajador — acceso siempre disponible para empleados vinculados
     r'^/mi-portal/',
+    r'^/portal/',                            # alias /portal/ -> /mi-portal/
     r'^/documentos/boletas/mis/',
     r'^/documentos/archivos-hr/\d+/descargar/',
     r'^/documentos/constancias/mis/',
     r'^/documentos/laborales/mis/',
     r'^/vacaciones/mis',
+    r'^/nominas/mis-recibos',                 # boletas calculadas (autoservicio)
+    r'^/nominas/registros/\d+/boleta\.pdf',   # descarga PDF de su propia boleta
+    r'^/nominas/registros/\d+/explicar/',     # explicador IA de su boleta
+    r'^/prestamos/mis',                       # mis préstamos
+    r'^/capacitaciones/mis',                  # mis capacitaciones
+    r'^/evaluaciones/mis',                    # mis evaluaciones / OKRs
+    r'^/encuestas/mis',                       # mis encuestas
+    r'^/comunicaciones/mis-',                 # notificaciones y comunicados
+    r'^/viaticos/mis',                        # mis viáticos
+    r'^/asistencia/mi-',                      # mi asistencia
     r'^/cuenta/',
 ]
 
