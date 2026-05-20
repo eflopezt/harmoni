@@ -343,13 +343,47 @@ def generar_boleta_pdf(registro):
         t.setStyle(TableStyle(cmds))
         return t
 
+    # Logo Harmoni para el header (path en static/images/)
+    logo_path = None
+    try:
+        import os
+        candidate = os.path.join(
+            settings.BASE_DIR, 'static', 'images', 'logo-mark-120.png'
+        )
+        if os.path.exists(candidate):
+            logo_path = candidate
+    except Exception:
+        logo_path = None
+
     for copia_idx in range(2):
         clabel = "EMPLEADOR" if copia_idx == 0 else "TRABAJADOR"
 
         # --- HEADER ---
-        hl = [_p(empresa_nombre, h_emp)]
-        if empresa_ruc: hl.append(_p(f"RUC: {empresa_ruc}", h_ruc))
-        if empresa_dir: hl.append(_p(empresa_dir, h_dir))
+        info_box = [_p(empresa_nombre, h_emp)]
+        if empresa_ruc: info_box.append(_p(f"RUC: {empresa_ruc}", h_ruc))
+        if empresa_dir: info_box.append(_p(empresa_dir, h_dir))
+
+        if logo_path:
+            try:
+                logo_img = RLImage(logo_path, width=14*mm, height=14*mm)
+                logo_img.hAlign = 'LEFT'
+                # Logo + info empresa lado a lado dentro del header_left
+                logo_table = Table([[logo_img, info_box]],
+                                   colWidths=[16*mm, USABLE_W*0.62 - 16*mm])
+                logo_table.setStyle(TableStyle([
+                    ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+                    ("LEFTPADDING",   (0,0),(-1,-1), 0),
+                    ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+                    ("TOPPADDING",    (0,0),(-1,-1), 0),
+                    ("BOTTOMPADDING", (0,0),(-1,-1), 0),
+                ]))
+                hl = logo_table
+            except Exception as exc:
+                logger.warning('No se pudo cargar logo en boleta PDF: %s', exc)
+                hl = info_box
+        else:
+            hl = info_box
+
         hr_list = [_p("Boleta de Pago", h_tit),
                    _p(f"{mes_nombre} {anio}  -  {tipo_display}", h_per),
                    _p(f"Copia: {clabel}", h_cop)]
