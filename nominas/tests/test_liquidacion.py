@@ -263,13 +263,15 @@ class TestCalcularLiquidacion:
         assert result['meses_cts'] == meses_cts
 
     def test_cts_trunca_with_asig_familiar(self):
-        """CTS base incluye asignacion familiar."""
+        """CTS base incluye asignacion familiar + 1/6 de gratif (sobre rem computable)."""
         p = _make_personal(sueldo_base=3000, fecha_cese=date(2026, 6, 30),
                            asignacion_familiar=True)
         result = self._calc(p)
 
         sueldo = Decimal('3000')
-        prov_grat = _rd(sueldo / 6)
+        # prov_gratif se calcula sobre la remuneracion computable (sueldo + asig_fam),
+        # no solo sueldo. Es lo legalmente correcto (Ley 25129 + DL 650).
+        prov_grat = _rd((sueldo + ASIG_FAM) / 6)
         base_cts = sueldo + ASIG_FAM + prov_grat
         assert result['base_cts'] == base_cts
 

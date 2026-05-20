@@ -20,6 +20,8 @@ CONCEPTOS = [
     ('he-100',              'Horas Extra 100% (Feriados)',  'INGRESO', 'REMUNERATIVO',    'HE_100',          100,  True, True, False,False, 5),
     ('bono-productividad',  'Bono de Productividad',        'INGRESO', 'REMUNERATIVO',    'MANUAL',          0,    True, True, False,False, 6),
     ('bono-puntualidad',    'Bono de Puntualidad',          'INGRESO', 'REMUNERATIVO',    'MANUAL',          0,    True, True, False,False, 7),
+    ('comisiones',          'Comisiones por Ventas',        'INGRESO', 'REMUNERATIVO',    'MANUAL',          0,    True, True, True, True,  8),
+    ('bono-resultados',     'Bono por Resultados',          'INGRESO', 'REMUNERATIVO',    'MANUAL',          0,    True, True, False,False, 9),
 
     # ── INGRESOS NO REMUNERATIVOS ──────────────────────────────────
     ('movilidad',           'Movilidad',                    'INGRESO', 'NO_REMUNERATIVO', 'FIJO',            0,    False,False,False,False, 10),
@@ -48,7 +50,11 @@ CONCEPTOS = [
     ('ir-5ta',              'IR 5ta Categoría (Retención)', 'DESCUENTO','REMUNERATIVO',   'IR_5TA',          0,    False,False,False,False, 35),
     ('descto-prestamo',     'Descuento Préstamo',           'DESCUENTO','REMUNERATIVO',   'MANUAL',          0,    False,False,False,False, 36),
     ('descto-adelanto',     'Descuento Adelanto',           'DESCUENTO','REMUNERATIVO',   'MANUAL',          0,    False,False,False,False, 37),
+    ('descto-falta',        'Descuento por Falta',          'DESCUENTO','REMUNERATIVO',   'MANUAL',          0,    False,False,False,False, 38),
     ('otros-descuentos',    'Otros Descuentos',             'DESCUENTO','REMUNERATIVO',   'MANUAL',          0,    False,False,False,False, 39),
+    ('embargo-judicial',    'Embargo Judicial',             'DESCUENTO','REMUNERATIVO',   'MANUAL',          0,    False,False,False,False, 40),
+    ('retencion-judicial',  'Retención por Mandato Judicial','DESCUENTO','REMUNERATIVO',  'MANUAL',          0,    False,False,False,False, 41),
+    ('cuota-sindical',      'Cuota Sindical',               'DESCUENTO','REMUNERATIVO',   'MANUAL',          0,    False,False,False,False, 42),
 
     # ── APORTES EMPLEADOR ─────────────────────────────────────────
     ('essalud',             'EsSalud 9% (Empleador)',       'APORTE_EMPLEADOR','REMUNERATIVO','ESSALUD',     9,    False,False,False,False, 50),

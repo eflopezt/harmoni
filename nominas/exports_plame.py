@@ -70,18 +70,62 @@ CATEGORIA_SUNAT = {
 }
 
 # Codigos de concepto PLAME (Tabla 22 SUNAT - conceptos remunerativos)
-# Mapea codigos internos del sistema a codigos PLAME
+# Mapea codigos internos del sistema a codigos PLAME.
+#
+# Donde el código exacto no fue verificable, dejamos TODO con la nota
+# 'verificar con Tabla 22 SUNAT'. No inventamos códigos: si no estamos
+# seguros, no exportamos esa línea (el caller debe filtrar None).
 CONCEPTO_PLAME = {
-    'sueldo':        '0100',   # Remuneracion basica
-    'asig-familiar': '0201',   # Asignacion familiar
-    'he-25':         '0301',   # Horas extra 25%
-    'he-35':         '0302',   # Horas extra 35%
-    'he-100':        '0303',   # Horas extra 100%
-    'bonificacion':  '0400',   # Bonificaciones
-    'gratif':        '0600',   # Gratificaciones Ley 27735
-    'bon-ext-9':     '0604',   # Bonificacion extraordinaria 9%
-    'vacaciones':    '0800',   # Vacaciones
-    'cts':           '0900',   # CTS
+    # ── Alias legados (no remover, los usa generar_plame_remuneraciones) ──
+    'sueldo':              '0100',   # Remuneracion basica (alias legado)
+    'asig-familiar':       '0201',   # Asignacion familiar
+    'he-25':               '0301',   # Horas extra 25%
+    'he-35':               '0302',   # Horas extra 35%
+    'he-100':              '0303',   # Horas extra 100%
+    'bonificacion':        '0400',   # Bonificaciones (genérico)
+    'gratif':              '0600',   # Gratificaciones Ley 27735 (alias)
+    'bon-ext-9':           '0604',   # Bonificacion extraordinaria 9%
+    'vacaciones':          '0800',   # Vacaciones
+    'cts':                 '0900',   # CTS (alias)
+
+    # ── Códigos internos seedeados (mapping completo) ──
+    'sueldo-basico':       '0100',   # Remuneracion basica
+    'bono-productividad':  '0121',   # Bonificación habitual - productividad
+    'bono-puntualidad':    '0123',   # Bonificación habitual - puntualidad
+    'comisiones':          '0121',   # Comisiones (rem. variable habitual)
+    # TODO: verificar código PLAME exacto para 'bono-resultados' con Tabla 22 SUNAT
+    'bono-resultados':     None,     # Bono por resultados — pendiente verificar
+    'gratificacion':       '0600',   # Gratificación semestral
+    'bonif-extraordinaria':'0604',   # Bonificación extraordinaria 9% Ley 29351
+    'cts-semestral':       '0904',   # Depósito semestral CTS
+
+    # Conceptos no remunerativos (no van en remuneraciones, pero referenciados)
+    'movilidad':           None,     # No remunerativo
+    'refrigerio':          None,     # No remunerativo
+    'viaticos-cdt':        None,     # No remunerativo
+    'otros-ingresos':      None,     # Categoría genérica — depende del caso
+
+    # ── DESCUENTOS — pensión y renta ──
+    'afp-aporte':          '0605',   # Aporte obligatorio AFP (en archivo de aportes)
+    'afp-comision':        '0606',   # Comisión flujo AFP
+    'afp-seguro':          '0607',   # Prima seguro AFP
+    'onp':                 '0608',   # Aporte ONP
+    'ir-5ta':              '0610',   # Retención IR 5ta categoría
+
+    # ── DESCUENTOS — otros ──
+    # Códigos según Tabla 22 SUNAT — sección descuentos.
+    'descto-prestamo':     '0802',   # Adelantos y préstamos
+    'descto-adelanto':     '0802',   # Adelantos al trabajador (mismo código)
+    'descto-falta':        '0810',   # Descuento por faltas e inasistencias
+    'cuota-sindical':      '0805',   # Cuota sindical (autorizada)
+    'retencion-judicial':  '0807',   # Retenciones por mandato judicial
+    'embargo-judicial':    '0809',   # Embargos judiciales / otros descuentos
+    'otros-descuentos':    '0809',   # Otros descuentos al trabajador
+
+    # ── APORTES EMPLEADOR ──
+    'essalud':             '2001',   # EsSalud 9% empleador
+    'sctr-pension':        '2009',   # SCTR pensión (empleador)
+    'sctr-salud':          '2010',   # SCTR salud (empleador)
 }
 
 

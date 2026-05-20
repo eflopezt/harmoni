@@ -30,7 +30,7 @@ from django.views.decorators.http import require_POST
 from personal.models import Personal
 from .models import PeriodoNomina, RegistroNomina, ConceptoRemunerativo
 
-# ── constantes ────────────────────────────────────────────────────────────────
+# ── constantes (fallbacks — se sobreescriben con snapshot del período) ───────
 RMV        = Decimal('1130.00')
 ASIG_FAM   = (RMV * Decimal('0.10')).quantize(Decimal('0.01'), ROUND_HALF_UP)
 ESSALUD    = Decimal('0.09')
@@ -40,6 +40,15 @@ ONP_TASA   = Decimal('0.13')
 
 def _rd(v) -> Decimal:
     return Decimal(str(v)).quantize(Decimal('0.01'), ROUND_HALF_UP)
+
+
+def _rmv_actual() -> Decimal:
+    """Lee RMV live de ConfiguracionSistema con fallback a RMV constante."""
+    try:
+        from asistencia.models import ConfiguracionSistema
+        return Decimal(ConfiguracionSistema.get().rmv_valor)
+    except Exception:
+        return RMV
 
 
 # ── helpers de cálculo ────────────────────────────────────────────────────────
@@ -80,15 +89,24 @@ def _meses_semestre_cts(fecha_cese: date) -> int:
         return m - 10       # nov=1, dic=2
 
 
-def _calcular_liquidacion(personal: Personal) -> dict:
+def _calcular_liquidacion(personal: Personal, rmv: Decimal = None) -> dict:
     """
     Retorna dict con todos los conceptos de la liquidación.
     Usa fecha_cese del empleado; si no tiene, usa hoy.
+
+    Args:
+        personal: empleado cesado
+        rmv:      RMV a usar (si None, lee de ConfiguracionSistema). Permite
+                  pasar un snapshot congelado si la liquidación ya tiene período.
     """
     fecha_cese = personal.fecha_cese or timezone.localdate()
     sueldo     = _rd(personal.sueldo_base or 0)
     tiene_af   = getattr(personal, 'asignacion_familiar', False)
-    asig_fam   = ASIG_FAM if tiene_af else Decimal('0')
+
+    if rmv is None:
+        rmv = _rmv_actual()
+    asig_fam_calc = _rd(rmv * Decimal('0.10'))
+    asig_fam      = asig_fam_calc if tiene_af else Decimal('0')
 
     # ── 1. Remuneración trunca ────────────────────────────────────────────────
     # días trabajados en el mes de cese: del 1 al día del cese
@@ -96,6 +114,8 @@ def _calcular_liquidacion(personal: Personal) -> dict:
     rem_trunca = _rd(sueldo / 30 * dias_mes)
 
     # ── 2. Gratificación trunca (Ley 27735) ───────────────────────────────────
+    # Usar helper centralizado para evitar duplicación.
+    from .engine import calcular_prov_gratif
     meses_gratif  = _meses_semestre_gratif(fecha_cese)
     rem_base_grat = sueldo + asig_fam
     gratif_trunca = _rd(rem_base_grat / 6 * meses_gratif)
@@ -104,10 +124,15 @@ def _calcular_liquidacion(personal: Personal) -> dict:
     bonus_ext     = _rd(gratif_trunca * Decimal('0.09'))
 
     # ── 3. CTS trunca (DL 650) ───────────────────────────────────────────────
-    meses_cts  = _meses_semestre_cts(fecha_cese)
-    prov_grat  = _rd(sueldo / 6)                    # 1/6 sueldo = provisión gratif
-    base_cts   = sueldo + asig_fam + prov_grat
-    cts_trunca = _rd(base_cts / 12 * meses_cts)
+    # Trabajamos con Decimal exacto y redondeamos SOLO al final para evitar
+    # pérdida por redondeo en cascada (prov_gratif * 12 * meses).
+    meses_cts          = _meses_semestre_cts(fecha_cese)
+    prov_gratif_exacto = (sueldo + asig_fam) / Decimal('6')   # NO redondear aún
+    base_cts_exacta    = sueldo + asig_fam + prov_gratif_exacto
+    cts_trunca         = _rd(base_cts_exacta / Decimal('12') * Decimal(meses_cts))
+    # Versiones redondeadas para informar al usuario
+    prov_grat          = calcular_prov_gratif(sueldo, asig_fam)
+    base_cts           = _rd(base_cts_exacta)
 
     # ── 4. Vacaciones truncas (DL 713) ───────────────────────────────────────
     dias_pendientes = Decimal('0')

@@ -19,10 +19,13 @@ Referencia legal:
 - Gratif: Ley 27735 Art. 2 — 1 sueldo en julio y 1 en diciembre
 - CTS: DL 650 Art. 21 — 1/12 sueldo por mes trabajado
 """
+import logging
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 # ── Tasas AFP vigentes 2026 ──────────────────────────────────────────
@@ -57,6 +60,45 @@ def _get_rmv() -> Decimal:
     except Exception:
         return RMV_2026
 
+
+def _get_usar_metodo_sunat_ir5ta() -> bool:
+    """Lee el flag de método SUNAT IR 5ta desde ConfiguracionSistema. Fallback False."""
+    try:
+        from asistencia.models import ConfiguracionSistema
+        return bool(getattr(ConfiguracionSistema.get(), 'usar_metodo_sunat_ir5ta', False))
+    except Exception:
+        return False
+
+
+def _rmv_efectivo(periodo=None) -> Decimal:
+    """
+    Devuelve el RMV a usar para un cálculo.
+    - Si hay período con `rmv_snapshot`, usa ese valor (congelado).
+    - Sino, lee live de ConfiguracionSistema.
+    """
+    if periodo is not None:
+        snap = getattr(periodo, 'rmv_snapshot', None)
+        if snap is not None and Decimal(snap) > 0:
+            return Decimal(snap)
+    return _get_rmv()
+
+
+def _uit_efectivo(periodo=None) -> Decimal:
+    """
+    Devuelve la UIT a usar para un cálculo.
+    - Si hay período con `uit_snapshot`, usa ese valor (congelado).
+    - Sino, lee live de ConfiguracionSistema.
+    """
+    if periodo is not None:
+        snap = getattr(periodo, 'uit_snapshot', None)
+        if snap is not None and Decimal(snap) > 0:
+            return Decimal(snap)
+    return _get_uit()
+
+
+# Tope HE auditoría: 4 h/día × 15 días útiles = 60 h/mes (bandera, no bloqueante)
+TOPE_HE_MES = Decimal('60')
+
 # Escala IR 5ta Categoría 2026 (en UITs)
 # Tramos: (limite_uits, tasa%)
 IR_5TA_ESCALA = [
@@ -74,25 +116,23 @@ def _redondear(valor: Decimal) -> Decimal:
     return Decimal(valor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 
-def calcular_ir_5ta_mensual(
-    rem_anual_proyectada: Decimal,
-    deduccion_eps_anual: Decimal = Decimal('0'),
-) -> Decimal:
+def calcular_prov_gratif(sueldo: Decimal, asig_fam: Decimal) -> Decimal:
     """
-    Calcula la retención mensual de IR 5ta categoría.
-    Proyección anual → escala progresiva → dividir por 12.
+    Provisión de gratificación = (sueldo + asig_fam) / 6.
 
-    Args:
-        rem_anual_proyectada: Remuneración anual proyectada (sueldo × 14 + HE).
-        deduccion_eps_anual:  Aporte anual del trabajador a EPS (si aplica).
-                              Reduce la base imponible antes de las 7 UIT.
+    Helper centralizado para evitar duplicación entre planilla regular,
+    CTS y liquidación. Usa Decimal exacto, redondea al final.
     """
-    uit = _get_uit()
-    # Deducción EPS trabajador + 7 UIT (base legal: Art. 46° TUO LIR)
-    base_imponible = max(
-        rem_anual_proyectada - deduccion_eps_anual - (IR_5TA_DEDUCCION_UITS * uit),
-        Decimal('0'),
-    )
+    sueldo = Decimal(sueldo or 0)
+    asig_fam = Decimal(asig_fam or 0)
+    return _redondear((sueldo + asig_fam) / Decimal('6'))
+
+
+def _ir_anual(base_imponible: Decimal, uit: Decimal) -> Decimal:
+    """
+    Aplica la escala progresiva de IR 5ta a una base imponible anual.
+    Retorna el impuesto anual SIN dividir por meses (Decimal exacto).
+    """
     if base_imponible <= 0:
         return Decimal('0')
 
@@ -101,7 +141,6 @@ def calcular_ir_5ta_mensual(
 
     for limite_uits, tasa in IR_5TA_ESCALA:
         if limite_uits is None:
-            # Tramo ilimitado
             exceso = base_imponible - anterior
         else:
             limite = limite_uits * uit
@@ -119,7 +158,125 @@ def calcular_ir_5ta_mensual(
         if base_imponible <= anterior:
             break
 
-    return _redondear(impuesto / Decimal('12'))
+    return impuesto
+
+
+def calcular_ir_5ta_mensual(
+    rem_anual_proyectada: Decimal,
+    deduccion_eps_anual: Decimal = Decimal('0'),
+    uit: Decimal = None,
+) -> Decimal:
+    """
+    Calcula la retención mensual de IR 5ta categoría (método legacy).
+    Proyección anual → escala progresiva → dividir por 12.
+
+    Args:
+        rem_anual_proyectada: Remuneración anual proyectada (sueldo × 14 + HE).
+        deduccion_eps_anual:  Aporte anual del trabajador a EPS (si aplica).
+                              Reduce la base imponible antes de las 7 UIT.
+        uit:                  UIT a usar (si None, lee de ConfiguracionSistema).
+    """
+    if uit is None:
+        uit = _get_uit()
+    # Deducción EPS trabajador + 7 UIT (base legal: Art. 46° TUO LIR)
+    base_imponible = max(
+        rem_anual_proyectada - deduccion_eps_anual - (IR_5TA_DEDUCCION_UITS * uit),
+        Decimal('0'),
+    )
+    impuesto_anual = _ir_anual(base_imponible, uit)
+    if impuesto_anual <= 0:
+        return Decimal('0')
+    return _redondear(impuesto_anual / Decimal('12'))
+
+
+# Alias explícito para que el código consumidor pueda elegir el método.
+_calcular_ir_5ta_legacy = calcular_ir_5ta_mensual
+
+
+def _calcular_ir_5ta_sunat(
+    sueldo_fijo_mes: Decimal,
+    asig_fam: Decimal,
+    variables_acumuladas_ano: Decimal,
+    mes_actual: int,
+    deduccion_eps_anual: Decimal = Decimal('0'),
+    uit: Decimal = None,
+) -> Decimal:
+    """
+    Método oficial SUNAT de retención mensual acumulada (IR 5ta).
+
+    Referencia: https://orientacion.sunat.gob.pe/3071-02-calculo-del-impuesto
+
+    Estrategia (resumen del método de proyección con ajuste por variables):
+      1. Tomar la remuneración FIJA proyectada en el año:
+         (sueldo + asig_fam) × meses_restantes_en_año
+         + gratificaciones que falten cobrar (julio y/o diciembre).
+      2. SUMAR variables (HE, bonos) YA PERCIBIDAS en lo que va del año
+         (no se proyectan a futuro — sólo lo cobrado).
+      3. Restar 7 UIT + deducción EPS → base imponible.
+      4. Aplicar escala progresiva → impuesto anual proyectado.
+      5. Dividir entre los meses RESTANTES (incluyendo el actual) para
+         obtener la retención del mes.
+
+    Args:
+        sueldo_fijo_mes:           Sueldo base mensual (sin HE/bonos).
+        asig_fam:                  Asignación familiar (fija) del mes.
+        variables_acumuladas_ano:  HE + bonos percibidos en lo que va del año
+                                   (sin incluir el mes actual aún si querés —
+                                   convención del caller).
+        mes_actual:                Mes 1..12 del cálculo.
+        deduccion_eps_anual:       Aporte anual EPS (si aplica).
+        uit:                       UIT vigente.
+
+    Notes:
+        - Esta implementación es una versión simplificada del método SUNAT
+          (que tiene un cuadro por mes con bases distintas). Para producción
+          ver R.S. 010-2006/SUNAT y modificatorias.
+        - Si `mes_actual` está fuera de 1..12 se ajusta al rango.
+    """
+    if uit is None:
+        uit = _get_uit()
+
+    mes = max(1, min(int(mes_actual or 1), 12))
+    sueldo_fijo_mes = Decimal(sueldo_fijo_mes or 0)
+    asig_fam = Decimal(asig_fam or 0)
+    variables_acumuladas_ano = Decimal(variables_acumuladas_ano or 0)
+    deduccion_eps_anual = Decimal(deduccion_eps_anual or 0)
+
+    rem_fija_mes = sueldo_fijo_mes + asig_fam
+    meses_restantes = Decimal(12 - mes + 1)  # incluye el mes actual
+
+    # Meses ya transcurridos antes del actual (1..12 → 0..11)
+    meses_transcurridos = Decimal(mes - 1)
+
+    # Gratificaciones que faltan cobrar en el año
+    # Julio (mes 7) y diciembre (mes 12) → 1 sueldo computable cada una.
+    gratif_faltantes = Decimal('0')
+    if mes <= 7:
+        gratif_faltantes += rem_fija_mes  # gratif de julio
+    if mes <= 12:
+        gratif_faltantes += rem_fija_mes  # gratif de diciembre
+
+    # Proyección anual:
+    # - Fija ya cobrada (meses transcurridos completos, sin contar mes actual)
+    # - Fija a cobrar (mes actual + restantes)
+    # - Variables ya percibidas (HE/bonos) — no se proyectan
+    # - Gratificaciones futuras
+    fija_cobrada = rem_fija_mes * meses_transcurridos
+    fija_a_cobrar = rem_fija_mes * meses_restantes
+    rem_anual_proyectada = (
+        fija_cobrada + fija_a_cobrar + variables_acumuladas_ano + gratif_faltantes
+    )
+
+    base_imponible = max(
+        rem_anual_proyectada - deduccion_eps_anual - (IR_5TA_DEDUCCION_UITS * uit),
+        Decimal('0'),
+    )
+    impuesto_anual = _ir_anual(base_imponible, uit)
+    if impuesto_anual <= 0:
+        return Decimal('0')
+
+    # Retención del mes = impuesto anual proyectado / meses restantes
+    return _redondear(impuesto_anual / meses_restantes)
 
 
 def calcular_registro(registro, conceptos_activos=None) -> dict:
@@ -139,17 +296,36 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     pension   = p.regimen_pension  # AFP / ONP / SIN_PENSION
     afp_nombre= p.afp or 'Prima'
 
+    # Snapshots: si el registro pertenece a un período con snapshot, usar ese valor.
+    periodo = getattr(p, 'periodo', None)
+    rmv = _rmv_efectivo(periodo)
+    uit = _uit_efectivo(periodo)
+
     # ── 1. Sueldo proporcional a días trabajados (D.Leg. 713 Art. 12) ──
     sueldo_prop = _redondear(sueldo * Decimal(dias) / Decimal('30'))
 
     # ── 2. Asignación familiar (10% RMV si tiene hijos) ──
-    asig_fam = _redondear(_get_rmv() * Decimal('0.10')) if p.asignacion_familiar else Decimal('0')
+    asig_fam = _redondear(rmv * Decimal('0.10')) if p.asignacion_familiar else Decimal('0')
 
     # ── 3. Valor hora y horas extra ──
     valor_hora   = _redondear(sueldo / Decimal('30') / Decimal('8'))
     monto_he_25  = _redondear(p.horas_extra_25  * valor_hora * Decimal('1.25'))
     monto_he_35  = _redondear(p.horas_extra_35  * valor_hora * Decimal('1.35'))
     monto_he_100 = _redondear(p.horas_extra_100 * valor_hora * Decimal('2.00'))
+
+    # ── 3b. Validación de tope HE (bandera de auditoría, no bloqueante) ──
+    #     DL 713: máximo 4h/día — referenciamos 60h/mes como umbral de alerta.
+    total_he_horas = (
+        Decimal(p.horas_extra_25 or 0)
+        + Decimal(p.horas_extra_35 or 0)
+        + Decimal(p.horas_extra_100 or 0)
+    )
+    if total_he_horas > TOPE_HE_MES:
+        logger.warning(
+            "HE excedidas para %s: %sh > tope mensual %sh (DL 713 4h/día). "
+            "Se permite registrar para auditoría.",
+            getattr(p, 'personal', '?'), total_he_horas, TOPE_HE_MES,
+        )
 
     # ── 4. Otros ingresos manuales ──
     otros_ing = _redondear(p.otros_ingresos)
@@ -174,10 +350,28 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     elif pension == 'ONP':
         onp = _redondear(rem_computable * ONP_TASA / Decimal('100'))
 
-    # ── 7. IR 5ta categoría (proyección anual) ──
-    # Proyección: 12 sueldos + 2 gratificaciones = 14 remuneraciones
-    rem_anual = rem_computable * Decimal('14')
-    ir_5ta = calcular_ir_5ta_mensual(rem_anual)
+    # ── 7. IR 5ta categoría ──
+    # Dos métodos disponibles:
+    #   - SUNAT (default opt-in): proyección con fija + variables percibidas
+    #   - Legacy: rem × 14 (sobre-estima con HE variables o cese a mitad de año)
+    usar_sunat = _get_usar_metodo_sunat_ir5ta()
+    if usar_sunat and periodo is not None:
+        # Variables percibidas: HE + otros_ing del mes actual (proxy mínimo;
+        # el caller puede pasar lo acumulado-año por otro canal en el futuro).
+        variables_mes = monto_he_25 + monto_he_35 + monto_he_100
+        mes_actual = getattr(periodo, 'mes', 1) or 1
+        ir_5ta = _calcular_ir_5ta_sunat(
+            sueldo_fijo_mes=sueldo_prop,
+            asig_fam=asig_fam,
+            variables_acumuladas_ano=variables_mes,
+            mes_actual=mes_actual,
+            uit=uit,
+        )
+        rem_anual = rem_computable * Decimal('14')  # info en lineas
+    else:
+        # Proyección: 12 sueldos + 2 gratificaciones = 14 remuneraciones
+        rem_anual = rem_computable * Decimal('14')
+        ir_5ta = calcular_ir_5ta_mensual(rem_anual, uit=uit)
 
     # ── 8. Otros descuentos manuales ──
     descto_prestamo  = _redondear(p.descuento_prestamo)
@@ -193,7 +387,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     # ── 11. Provisiones (informativas en planilla regular) ──
     # Gratificación = 1/6 de (sueldo + asig_fam) — HE no computan (Ley 27735)
     base_gratif = sueldo_prop + asig_fam
-    prov_gratif = _redondear(base_gratif / Decimal('6'))
+    prov_gratif = calcular_prov_gratif(sueldo_prop, asig_fam)
     # CTS = 1/12 de (sueldo + asig_fam + 1/6 gratif) — DL 650
     prov_cts    = _redondear((base_gratif + prov_gratif) / Decimal('12'))
 
@@ -218,7 +412,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     _agregar('sueldo-basico',       sueldo,        Decimal('0'), sueldo_prop,
              f'{dias} días trabajados')
     if asig_fam > 0:
-        _agregar('asig-familiar',   _get_rmv(),    Decimal('10'), asig_fam)
+        _agregar('asig-familiar',   rmv,           Decimal('10'), asig_fam)
     if monto_he_25 > 0:
         _agregar('he-25',           valor_hora,    Decimal('25'), monto_he_25,
                  f'{p.horas_extra_25}h × S/{valor_hora} × 1.25')
@@ -297,8 +491,12 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     pension    = p.regimen_pension
     afp_nombre = p.afp or 'Prima'
 
+    # Snapshot RMV del período si existe
+    periodo = getattr(p, 'periodo', None)
+    rmv = _rmv_efectivo(periodo)
+
     # ── 1. Remuneración computable (solo sueldo + asig_fam) ──────────────
-    asig_fam   = _redondear(_get_rmv() * Decimal('0.10')) if p.asignacion_familiar else Decimal('0')
+    asig_fam   = _redondear(rmv * Decimal('0.10')) if p.asignacion_familiar else Decimal('0')
     rem_base   = sueldo + asig_fam
 
     # ── 2. Gratificación proporcional ────────────────────────────────────
@@ -393,15 +591,26 @@ def calcular_cts(registro, conceptos_activos=None) -> dict:
     p          = registro
     sueldo     = _redondear(p.sueldo_base)
     meses      = max(1, min(int(p.dias_trabajados or 6), 6))
-    asig_fam   = _redondear(_get_rmv() * Decimal('0.10')) if p.asignacion_familiar else Decimal('0')
+
+    # Snapshot RMV del período si existe
+    periodo = getattr(p, 'periodo', None)
+    rmv = _rmv_efectivo(periodo)
+
+    asig_fam   = _redondear(rmv * Decimal('0.10')) if p.asignacion_familiar else Decimal('0')
 
     # ── Base computable CTS ───────────────────────────────────────────────
-    # Incluye: sueldo + asig_fam + 1/6 sueldo (gratificación proporcional)
-    prov_gratif   = _redondear(sueldo / Decimal('6'))
-    base_cts      = sueldo + asig_fam + prov_gratif
+    # Incluye: sueldo + asig_fam + 1/6 (sueldo + asig_fam) (gratificación proporcional)
+    # IMPORTANTE: trabajamos con Decimal exacto y redondeamos SOLO al final
+    # del cálculo de cts_semestral para evitar pérdida por redondeo en cascada.
+    prov_gratif_exacto   = (sueldo + asig_fam) / Decimal('6')   # NO redondear aún
+    base_cts_exacta      = sueldo + asig_fam + prov_gratif_exacto
 
     # ── CTS proporcional al semestre ─────────────────────────────────────
-    cts_semestral = _redondear(base_cts / Decimal('12') * Decimal(meses))
+    cts_semestral = _redondear(base_cts_exacta / Decimal('12') * Decimal(meses))
+
+    # Versiones redondeadas para mostrar en UI/lineas (informativas)
+    prov_gratif = _redondear(prov_gratif_exacto)
+    base_cts    = _redondear(base_cts_exacta)
 
     # ── Sin descuentos al trabajador (CTS inafecta) ──────────────────────
     # El depósito va íntegro al banco designado
@@ -461,6 +670,16 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
     from .models import RegistroNomina, LineaNomina, ConceptoRemunerativo
 
     conceptos = ConceptoRemunerativo.objects.filter(activo=True).order_by('tipo', 'orden')
+
+    # ── Snapshot de RMV/UIT al inicio del cálculo ──────────────────────
+    # Si el período aún no tiene snapshot (recién creado), lo congelamos
+    # ahora con el valor live de ConfiguracionSistema. Recalculos futuros
+    # del MISMO período reutilizan este snapshot, garantizando consistencia
+    # frente a cambios posteriores de la configuración.
+    if not getattr(periodo, 'rmv_snapshot', None) or Decimal(periodo.rmv_snapshot or 0) <= 0:
+        periodo.rmv_snapshot = _get_rmv()
+    if not getattr(periodo, 'uit_snapshot', None) or Decimal(periodo.uit_snapshot or 0) <= 0:
+        periodo.uit_snapshot = _get_uit()
 
     qs = Personal.objects.filter(estado='Activo')
     if grupo:
