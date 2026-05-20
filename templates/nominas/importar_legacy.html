@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Migración Legacy — Harmoni{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-0">
+        <i class="fas fa-file-upload me-2" style="color:#0f766e;"></i>Migración de Planilla Legacy
+      </h1>
+      <p class="text-muted small mb-0">
+        Importa planillas históricas desde Spring (u otro sistema) en formato Excel/CSV.
+      </p>
+    </div>
+    <a href="{% url 'nominas_panel' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+
+  {% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header" style="background:#0d2b27; color:#fff;">
+          <i class="fas fa-cloud-upload-alt me-2"></i><strong>Subir archivo</strong>
+        </div>
+        <div class="card-body">
+
+          <div class="alert alert-info small mb-3">
+            <strong>Formato esperado</strong> (columnas auto-detectadas):
+            <ul class="mb-0 mt-2">
+              <li><strong>DNI</strong>, <em>Año</em>, <em>Mes</em>, <strong>Total Bruto</strong>, <strong>Total Neto</strong></li>
+              <li>Opcional: AFP, ONP, EsSalud, Empresa/RUC</li>
+              <li>Cualquier nombre de columna en español funciona</li>
+            </ul>
+          </div>
+
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Archivo Excel o CSV</label>
+              <input type="file" name="archivo" class="form-control"
+                     accept=".xlsx,.xls,.csv" required>
+              <small class="text-muted">Formatos: .xlsx, .xls, .csv (hasta 50 MB)</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Empresa default (opcional)</label>
+              <select name="empresa" class="form-select">
+                <option value="">— Sin filtro / usar columna del archivo —</option>
+                {% for e in empresas %}
+                <option value="{{ e.pk }}"
+                  {% if form_data.empresa_id == e.pk|stringformat:"s" %}selected{% endif %}>
+                  {{ e.razon_social|truncatechars:40 }} ({{ e.ruc }})
+                </option>
+                {% endfor %}
+              </select>
+              <small class="text-muted">
+                Si el archivo trae columna Empresa/RUC se prioriza por fila.
+              </small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Tolerancia cuadre (S/)</label>
+              <input type="number" name="tolerancia"
+                     class="form-control"
+                     value="{{ form_data.tolerancia|default:'1.00' }}"
+                     step="0.01" min="0">
+              <small class="text-muted">Margen aceptable entre totales del archivo vs Harmoni.</small>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" name="confirmar" value=""
+                      class="btn btn-info">
+                <i class="fas fa-eye me-1"></i>Vista previa (dry-run)
+              </button>
+              {% if resultado and not resultado.error and resultado.dry_run %}
+              <button type="submit" name="confirmar" value="1"
+                      class="btn btn-success"
+                      onclick="return confirm('¿Persistir los cambios? Esto creará/actualizará registros.');">
+                <i class="fas fa-check me-1"></i>Confirmar y persistir
+              </button>
+              {% endif %}
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="card shadow-sm h-100">
+        <div class="card-header" style="background:#134e4a; color:#fff;">
+          <i class="fas fa-terminal me-2"></i><strong>Resultado de la ejecución</strong>
+        </div>
+        <div class="card-body">
+          {% if not resultado %}
+          <p class="text-muted">Esperando archivo…</p>
+          <hr>
+          <p class="text-muted small mb-0">
+            <strong>Flujo recomendado:</strong>
+          </p>
+          <ol class="mt-2 small text-muted">
+            <li>Sube el archivo y ejecuta <em>Vista previa</em> primero.</li>
+            <li>Revisa el cuadre y los DNIs no encontrados.</li>
+            <li>Si todo OK, presiona <em>Confirmar y persistir</em>.</li>
+            <li>Si hay diferencias, corrige el archivo y vuelve a subir.</li>
+          </ol>
+          {% else %}
+            {% if resultado.error %}
+            <div class="alert alert-danger">
+              <strong>Error crítico:</strong>
+              <pre class="mb-0 mt-2" style="white-space: pre-wrap;">{{ resultado.error }}</pre>
+            </div>
+            {% endif %}
+
+            {% if resultado.dry_run %}
+            <div class="alert alert-warning small mb-3">
+              <i class="fas fa-eye me-1"></i><strong>Vista previa (no se persistió nada todavía).</strong>
+            </div>
+            {% else %}
+            <div class="alert alert-success small mb-3">
+              <i class="fas fa-check-circle me-1"></i><strong>Cambios persistidos en BD.</strong>
+            </div>
+            {% endif %}
+
+            {% if resultado.stdout %}
+            <h6 class="text-muted small fw-bold mb-1">SALIDA</h6>
+            <pre style="background:#0d2b27;color:#a7f3d0;padding:14px;border-radius:6px;font-size:11px;max-height:480px;overflow:auto;">{{ resultado.stdout }}</pre>
+            {% endif %}
+
+            {% if resultado.stderr %}
+            <h6 class="text-muted small fw-bold mb-1 mt-3">WARNINGS</h6>
+            <pre style="background:#7f1d1d;color:#fecaca;padding:14px;border-radius:6px;font-size:11px;max-height:240px;overflow:auto;">{{ resultado.stderr }}</pre>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

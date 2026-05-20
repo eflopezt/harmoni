@@ -120,13 +120,26 @@ def _detectar_columnas(df_columns) -> dict:
 
 
 def _to_decimal(value) -> Decimal:
-    """Convierte cualquier valor a Decimal de forma defensiva."""
+    """Convierte cualquier valor a Decimal de forma defensiva.
+
+    Acepta:
+      - Decimal, int, float -> directo
+      - str con 'S/', 'S/.', 'PEN', comas de miles, espacios -> limpia y convierte
+      - None, '', 'nan', 'none', '-' -> 0
+      - Cualquier otro string sin numero -> 0 (silencioso)
+    """
     if value is None:
         return Decimal("0")
     try:
-        # Limpiar string si viene con S/, comas, etc.
         if isinstance(value, str):
-            s = value.replace("S/", "").replace("S/.", "").replace(",", "").strip()
+            s = value.strip()
+            # Quitar prefijos de moneda (orden importa: S/. antes que S/)
+            for prefix in ("S/.", "S/", "PEN", "$"):
+                if s.upper().startswith(prefix):
+                    s = s[len(prefix):].strip()
+                    break
+            # Quitar comas de miles
+            s = s.replace(",", "").strip()
             if not s or s.lower() in ("nan", "none", "-"):
                 return Decimal("0")
             return Decimal(s)

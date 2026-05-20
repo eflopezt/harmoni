@@ -1,11 +1,15 @@
 from django.urls import path
 from . import views
 from . import views_liquidacion
+from . import views_legacy_import
 
 urlpatterns = [
     # Panel y portal
     path('', views.nominas_panel, name='nominas_panel'),
     path('mis-recibos/', views.mis_recibos, name='mis_recibos'),
+
+    # Migración legacy (Spring u otro sistema)
+    path('importar-legacy/', views_legacy_import.importar_legacy, name='nominas_importar_legacy'),
 
     # Conceptos remunerativos
     path('conceptos/', views.conceptos_panel, name='nominas_conceptos'),
