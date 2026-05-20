@@ -29,7 +29,7 @@
         <div class="card-body">
           {% if periodos %}
           <div class="row g-3 align-items-end">
-            <div class="col-md-5">
+            <div class="col-md-4">
               <label class="form-label fw-semibold">Periodo</label>
               <select id="periodoSelect" class="form-select">
                 {% for p in periodos %}
@@ -38,13 +38,34 @@
                   — {{ p.get_tipo_display }}
                   — {{ p.get_estado_display }}
                   {% if p.total_neto %} — S/ {{ p.total_neto|floatformat:2 }}{% endif %}
+                  {% if p.contabilizado %} 🔒{% endif %}
                 </option>
                 {% endfor %}
               </select>
             </div>
             <div class="col-md-3">
+              <label class="form-label fw-semibold">Empresa (RUC)</label>
+              <select id="empresaSelect" class="form-select">
+                <option value="">Todas (consolidado)</option>
+                {% for e in empresas %}
+                <option value="{{ e.pk }}">{{ e.razon_social|truncatechars:30 }} ({{ e.ruc }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold d-block">Modo multi-RUC</label>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="porEmpresa">
+                <label class="form-check-label small" for="porEmpresa">
+                  Generar ZIP con un asiento por RUC
+                </label>
+              </div>
+              <small class="text-muted">Útil para 24 RUCs en una sola descarga.</small>
+            </div>
+            <div class="col-md-2">
               <small class="text-muted">
-                Solo periodos calculados, aprobados o cerrados.
+                🔒 = ya contabilizado.<br>
+                Solo periodos calculados / aprobados / cerrados.
               </small>
             </div>
           </div>
@@ -58,33 +79,60 @@
       </div>
     </div>
 
-    {# CONCAR #}
-    <div class="col-md-6 col-lg-3">
-      <div class="card h-100 shadow-sm">
-        <div class="card-header" style="background:#0d2b27; color:#fff;">
-          <i class="fas fa-file-csv me-2"></i><strong>Concar</strong>
+    {# CONCAR — el más usado, recomendado para Spring #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border-success">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background:#0d2b27; color:#fff;">
+          <span><i class="fas fa-file-csv me-2"></i><strong>Concar</strong></span>
+          <span class="badge bg-success">Recomendado</span>
         </div>
         <div class="card-body">
           <p class="text-muted small mb-2">
-            El software contable mas usado en el Peru para medianas empresas.
-            Compatible con Concar CB y Concar SQL.
+            El software contable más usado en Perú.
+            <strong>Compatible directo con Spring</strong>, Concar CB y Concar SQL.
           </p>
           <ul class="small text-muted mb-0">
-            <li>Formato: CSV 20 columnas</li>
-            <li>SubDiario 01 (Libro Diario)</li>
-            <li>TipoMov: D / H</li>
+            <li>Formato: CSV 20 columnas con BOM UTF-8</li>
+            <li>SubDiario 01 (Libro Diario), TipoMov D/H</li>
+            <li>Centro de costo por RUC (multi-tenant)</li>
+            <li>Cuadre automático DEBE = HABER</li>
           </ul>
         </div>
         <div class="card-footer">
           <button class="btn btn-success w-100" onclick="descargar('concar')" {% if not periodos %}disabled{% endif %}>
-            <i class="fas fa-download me-1"></i>Exportar Concar
+            <i class="fas fa-download me-1"></i>Exportar Concar / Spring
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {# Siscont — nuevo #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header" style="background:#7c2d12; color:#fff;">
+          <i class="fas fa-file-excel me-2"></i><strong>Siscont Smart</strong>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-2">
+            Excel para Siscont Smart, popular entre estudios contables peruanos.
+            Plantilla con fila TOTAL al final.
+          </p>
+          <ul class="small text-muted mb-0">
+            <li>Formato: Excel .xlsx</li>
+            <li>Columnas: Fecha · Cuenta · Glosa · Debe · Haber · CC</li>
+            <li>Centro de costo por RUC</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-warning w-100" onclick="descargar('siscont')" {% if not periodos %}disabled{% endif %}>
+            <i class="fas fa-download me-1"></i>Exportar Siscont
           </button>
         </div>
       </div>
     </div>
 
     {# SIGO #}
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-6 col-lg-4">
       <div class="card h-100 shadow-sm">
         <div class="card-header" style="background:#134e4a; color:#fff;">
           <i class="fas fa-file-alt me-2"></i><strong>SIGO / SIAF</strong>
@@ -109,10 +157,10 @@
     </div>
 
     {# SAP Generico #}
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-6 col-lg-4">
       <div class="card h-100 shadow-sm">
         <div class="card-header" style="background:#0f766e; color:#fff;">
-          <i class="fas fa-file-excel me-2"></i><strong>SAP / Generico</strong>
+          <i class="fas fa-file-excel me-2"></i><strong>SAP / Genérico</strong>
         </div>
         <div class="card-body">
           <p class="text-muted small mb-2">
@@ -134,7 +182,7 @@
     </div>
 
     {# SIRE SUNAT #}
-    <div class="col-md-6 col-lg-3">
+    <div class="col-md-6 col-lg-4">
       <div class="card h-100 shadow-sm">
         <div class="card-header" style="background:#b91c1c; color:#fff;">
           <i class="fas fa-landmark me-2"></i><strong>SIRE SUNAT</strong>
@@ -201,7 +249,15 @@ function descargar(formato) {
     alert('Selecciona un periodo de nomina.');
     return;
   }
-  window.location.href = '/integraciones/contable/' + formato + '/?periodo_id=' + periodoId;
+  var empresaSel = document.getElementById('empresaSelect');
+  var porEmpresa = document.getElementById('porEmpresa');
+  var url = '/integraciones/contable/' + formato + '/?periodo_id=' + periodoId;
+  if (porEmpresa && porEmpresa.checked) {
+    url += '&por_empresa=1';
+  } else if (empresaSel && empresaSel.value) {
+    url += '&empresa_id=' + empresaSel.value;
+  }
+  window.location.href = url;
 }
 </script>
 {% endblock %}

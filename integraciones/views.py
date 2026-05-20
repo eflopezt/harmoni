@@ -582,16 +582,21 @@ def exportar_contable(request, formato):
 @login_required
 @solo_admin
 def panel_contable(request):
-    """Panel de exportaciones contables — muestra formatos disponibles y selector de periodo."""
+    """Panel de exportaciones contables — muestra formatos disponibles + selector multi-RUC."""
     from nominas.models import PeriodoNomina
+    from empresas.models import Empresa
 
     periodos = PeriodoNomina.objects.filter(
         estado__in=['CALCULADO', 'APROBADO', 'CERRADO']
     ).order_by('-anio', '-mes')[:12]
 
+    # Multi-tenant: lista de empresas activas para el selector
+    empresas = Empresa.objects.filter(activa=True).order_by('razon_social')
+
     return render(request, 'integraciones/panel_contable.html', {
         'titulo': 'Integraciones Contables',
         'periodos': periodos,
+        'empresas': empresas,
     })
 
 
