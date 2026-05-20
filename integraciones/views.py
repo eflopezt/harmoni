@@ -448,17 +448,21 @@ def exportar_banco_especifico(request, banco):
 def exportar_contable(request, formato):
     """
     Genera el asiento contable de un periodo de nomina.
-    formato: concar | sigo | sap | sire
+    formato: concar | sigo | sap | sire | siscont
     Requiere ?periodo_id=<pk> del PeriodoNomina.
+    Opcional ?empresa_id=<pk> para desagregar por RUC (multi-tenant).
+    Opcional ?por_empresa=1 para generar ZIP con un archivo por cada empresa activa.
     """
     from django.shortcuts import get_object_or_404
     from nominas.models import PeriodoNomina
+    from empresas.models import Empresa
     from .contables import (
         generar_asiento_concar, generar_asiento_sigo,
         generar_asiento_sap_excel, generar_sire_libro_diario,
+        generar_asiento_siscont,
     )
 
-    periodo_id = request.GET.get('periodo_id')
+    periodo_id = request.GET.get('periodo_id') or request.POST.get('periodo_id')
     if not periodo_id:
         # Si no hay periodo, usar el ultimo aprobado/cerrado
         periodo = PeriodoNomina.objects.filter(
@@ -472,10 +476,11 @@ def exportar_contable(request, formato):
         return redirect('integraciones_panel')
 
     FORMATO_MAP = {
-        'concar': ('concar', generar_asiento_concar,   'csv',  'text/csv; charset=utf-8-sig',                                           '.csv'),
-        'sigo':   ('sigo',   generar_asiento_sigo,     'txt',  'text/plain; charset=utf-8',                                             '.txt'),
-        'sap':    ('sap',    generar_asiento_sap_excel, 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',     '.xlsx'),
-        'sire':   ('sire',   generar_sire_libro_diario, 'txt', 'text/plain; charset=utf-8',                                             '.txt'),
+        'concar':  ('concar',  generar_asiento_concar,   'csv',  'text/csv; charset=utf-8-sig',                                           '.csv'),
+        'sigo':    ('sigo',    generar_asiento_sigo,     'txt',  'text/plain; charset=utf-8',                                             '.txt'),
+        'sap':     ('sap',     generar_asiento_sap_excel, 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',     '.xlsx'),
+        'sire':    ('sire',    generar_sire_libro_diario, 'txt', 'text/plain; charset=utf-8',                                             '.txt'),
+        'siscont': ('siscont', generar_asiento_siscont,  'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',     '.xlsx'),
     }
 
     if formato not in FORMATO_MAP:
@@ -483,18 +488,70 @@ def exportar_contable(request, formato):
 
     nombre_fmt, generador, ext, content_type, sufijo = FORMATO_MAP[formato]
 
+    # Multi-tenant: ?empresa_id=<pk> filtra a una sola empresa.
+    # ?por_empresa=1 genera un ZIP con un archivo por cada empresa activa.
+    empresa_id  = request.GET.get('empresa_id') or request.POST.get('empresa_id')
+    por_empresa = (request.GET.get('por_empresa') or request.POST.get('por_empresa')) == '1'
+
+    periodo_str = f'{periodo.anio}{periodo.mes:02d}'
+
+    if por_empresa:
+        # ZIP con un archivo por empresa activa
+        import zipfile
+        empresas_qs = Empresa.objects.filter(activa=True).order_by('razon_social')
+        zip_buffer  = io.BytesIO()
+        total_count = 0
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for emp in empresas_qs:
+                try:
+                    contenido_emp, count_emp = generador(periodo, empresa=emp)
+                except Exception as e:
+                    continue  # saltar empresa con error pero seguir con las demás
+                fname_emp = (
+                    f'Asiento_{nombre_fmt.upper()}_'
+                    f'{(emp.subdominio or emp.ruc or str(emp.pk))[:11]}_'
+                    f'{periodo_str}{sufijo}'
+                )
+                if isinstance(contenido_emp, str):
+                    contenido_emp = contenido_emp.encode('utf-8-sig' if 'csv' in content_type else 'utf-8')
+                zf.writestr(fname_emp, contenido_emp)
+                total_count += count_emp
+
+        nombre_archivo = f'Asientos_{nombre_fmt.upper()}_PorEmpresa_{periodo_str}.zip'
+        LogExportacion.objects.create(
+            tipo={'concar': 'CONCAR', 'sigo': 'SIGO', 'sap': 'SAP_EXCEL',
+                  'sire': 'SIRE_PLE', 'siscont': 'SISCONT'}.get(formato, 'OTRO'),
+            periodo=f'{periodo.anio}-{periodo.mes:02d}',
+            estado='OK',
+            registros=total_count,
+            nombre_archivo=nombre_archivo,
+            generado_por=request.user,
+        )
+        response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+        return response
+
+    # Caso normal (consolidado o filtrado por una sola empresa)
+    empresa = None
+    if empresa_id:
+        try:
+            empresa = Empresa.objects.get(pk=int(empresa_id), activa=True)
+        except (Empresa.DoesNotExist, ValueError, TypeError):
+            empresa = None
+
     try:
-        contenido, count = generador(periodo)
+        contenido, count = generador(periodo, empresa=empresa) if empresa else generador(periodo)
     except Exception as e:
         messages.error(request, f'Error generando asiento {formato.upper()}: {e}')
         return redirect('integraciones_panel')
 
-    periodo_str    = f'{periodo.anio}{periodo.mes:02d}'
-    nombre_archivo = f'Asiento_{nombre_fmt.upper()}_{periodo_str}{sufijo}'
+    emp_suf        = f'_{(empresa.subdominio or empresa.ruc or empresa.pk)[:11]}' if empresa else ''
+    nombre_archivo = f'Asiento_{nombre_fmt.upper()}{emp_suf}_{periodo_str}{sufijo}'
 
     TIPO_CONTABLE = {
         'concar': 'CONCAR', 'sigo': 'SIGO',
         'sap': 'SAP_EXCEL', 'sire': 'SIRE_PLE',
+        'siscont': 'SISCONT',
     }
     LogExportacion.objects.create(
         tipo=TIPO_CONTABLE.get(formato, 'OTRO'),
@@ -504,6 +561,14 @@ def exportar_contable(request, formato):
         nombre_archivo=nombre_archivo,
         generado_por=request.user,
     )
+
+    # Tracking de contabilización (audit fix 2026-05-20)
+    from django.utils import timezone as _tz
+    if not periodo.contabilizado:
+        periodo.contabilizado         = True
+        periodo.contabilizado_en      = _tz.now()
+        periodo.contabilizado_formato = TIPO_CONTABLE.get(formato, 'OTRO')
+        periodo.save(update_fields=['contabilizado', 'contabilizado_en', 'contabilizado_formato'])
 
     if isinstance(contenido, bytes):
         response = HttpResponse(contenido, content_type=content_type)

@@ -159,6 +159,20 @@ class PeriodoNomina(models.Model):
     aprobado_en  = models.DateTimeField(null=True, blank=True)
     observaciones = models.TextField(blank=True)
 
+    # ── Tracking de contabilización (audit perf 2026-05-20) ─────────────
+    # Indica si el período ya fue exportado al sistema contable. Evita
+    # doble-contabilización y permite filtrar "pendientes de contabilizar".
+    contabilizado    = models.BooleanField(
+        default=False,
+        verbose_name='Contabilizado',
+        help_text='Marcado al exportar el asiento a CONCAR/Siscont/SAP/SIRE.',
+    )
+    contabilizado_en = models.DateTimeField(null=True, blank=True)
+    contabilizado_formato = models.CharField(
+        max_length=20, blank=True,
+        help_text='Formato usado: CONCAR, SISCONT, SAP_EXCEL, SIRE_PLE, SIGO.',
+    )
+
     class Meta:
         verbose_name = 'Período de Nómina'
         verbose_name_plural = 'Períodos de Nómina'
