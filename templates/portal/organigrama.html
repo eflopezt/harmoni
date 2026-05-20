@@ -159,7 +159,8 @@
                     <span class="fw-semibold" style="font-size:.85rem">{{ subarea.nombre }}</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="count-badge">{{ subarea.personal_asignado.count }} persona{{ subarea.personal_asignado.count|pluralize:"s" }}</span>
+                    {# Perf audit fix: activos_count anotado en el queryset (no rompe el prefetch) #}
+                    <span class="count-badge">{{ subarea.activos_count|default:0 }} persona{{ subarea.activos_count|default:0|pluralize:"s" }}</span>
                     <i class="fas fa-chevron-right text-muted" style="font-size:.72rem" id="chevron-sub-{{ subarea.pk }}"></i>
                 </div>
             </div>

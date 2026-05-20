@@ -55,26 +55,59 @@ def filtrar_subareas(user):
     return SubArea.objects.none()
 
 
-def filtrar_personal(user):
-    """Filtra personal según el usuario."""
+def filtrar_personal(user, empresa=None):
+    """Filtra personal según el usuario.
+
+    Args:
+        user: el request.user a quien filtrar
+        empresa: opcional, instancia de Empresa o id. Si se pasa, el queryset
+                 se restringe a Personal de esa empresa (multi-tenant). Esto
+                 es lo recomendado para todos los flujos cuando hay
+                 request.empresa_actual disponible — limita la fuga de data
+                 entre RUCs y mejora performance al reducir el scope.
+
+    Audit perf+security 2026-05-20: antes el superuser veia todos los
+    trabajadores de todas las empresas sin filtro. Con 24 RUCs de EDO
+    eso es fuga de scope + queries pesadas. Pasando `empresa=request.empresa_actual`
+    el resultado se acota correctamente al RUC activo.
+    """
     if user.is_superuser:
-        return Personal.objects.all()
-    
-    # Si el usuario tiene un Personal vinculado, puede ver su propio registro
-    if hasattr(user, 'personal_data') and user.personal_data:
+        qs = Personal.objects.all()
+    elif hasattr(user, 'personal_data') and user.personal_data:
         # Si también es responsable, ve su área completa
         areas = get_areas_responsable(user)
         if areas.exists():
-            return Personal.objects.filter(subarea__area__in=areas)
-        # Si solo es personal regular, solo ve su propio registro
-        return Personal.objects.filter(id=user.personal_data.id)
-    
-    # Si es responsable sin Personal vinculado (caso legacy)
-    areas = get_areas_responsable(user)
-    if areas.exists():
-        return Personal.objects.filter(subarea__area__in=areas)
-    
-    return Personal.objects.none()
+            qs = Personal.objects.filter(subarea__area__in=areas)
+        else:
+            # Si solo es personal regular, solo ve su propio registro
+            qs = Personal.objects.filter(id=user.personal_data.id)
+    else:
+        # Si es responsable sin Personal vinculado (caso legacy)
+        areas = get_areas_responsable(user)
+        if areas.exists():
+            qs = Personal.objects.filter(subarea__area__in=areas)
+        else:
+            qs = Personal.objects.none()
+
+    # Filtro multi-tenant opcional
+    if empresa is not None:
+        empresa_id = empresa.pk if hasattr(empresa, 'pk') else empresa
+        try:
+            qs = qs.filter(empresa_id=int(empresa_id))
+        except (ValueError, TypeError):
+            pass  # empresa invalida, ignorar (preserva comportamiento previo)
+    return qs
+
+
+def filtrar_personal_por_request(request):
+    """Atajo: filtra personal usando user + request.empresa_actual (si existe).
+
+    Uso recomendado en vistas multi-tenant:
+        personal = filtrar_personal_por_request(request)
+        # equivalente a filtrar_personal(request.user, getattr(request, 'empresa_actual', None))
+    """
+    empresa = getattr(request, 'empresa_actual', None)
+    return filtrar_personal(request.user, empresa=empresa)
 
 
 def puede_editar_personal(user, personal):

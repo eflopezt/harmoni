@@ -465,17 +465,43 @@ def mi_roster(request):
 
 @login_required
 def organigrama(request):
-    """Organigrama jerárquico: Área → SubÁrea → Personas."""
-    areas = Area.objects.filter(activa=True).prefetch_related(
-        'responsables',
-        'subareas',
-        'subareas__personal_asignado',
-    ).order_by('nombre')
+    """Organigrama jerárquico: Área → SubÁrea → Personas.
+
+    Perf audit fix 2026-05-20: antes el template hacia subarea.personal_asignado.count
+    (rompia el prefetch -> 1 COUNT extra por subárea, ~240 queries con 24 RUCs)
+    y el prefetch incluía Personal cesado (data inutil).
+    Fix: Prefetch tipado con queryset que (1) filtra solo Activos y (2) anota
+    activos_count para usar en el template.
+    """
+    from django.db.models import Count, Prefetch, Q
+
+    subareas_qs = SubArea.objects.annotate(
+        activos_count=Count(
+            'personal_asignado',
+            filter=Q(personal_asignado__estado='Activo'),
+        )
+    ).prefetch_related(
+        Prefetch(
+            'personal_asignado',
+            queryset=Personal.objects.filter(estado='Activo').only(
+                'id', 'apellidos_nombres', 'cargo'
+            ),
+        )
+    )
+
+    areas = (
+        Area.objects.filter(activa=True)
+        .prefetch_related(
+            'responsables',
+            Prefetch('subareas', queryset=subareas_qs),
+        )
+        .order_by('nombre')
+    )
 
     # Personas sin subárea asignada (directas al área o sin área)
     sin_area = Personal.objects.filter(
         estado='Activo', subarea__isnull=True,
-    ).order_by('apellidos_nombres')
+    ).only('id', 'apellidos_nombres', 'cargo').order_by('apellidos_nombres')
 
     total_colaboradores = Personal.objects.filter(estado='Activo').count()
 

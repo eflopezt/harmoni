@@ -37,10 +37,15 @@ if cors_origins:
     CORS_ALLOWED_ORIGINS = [origin for origin in cors_origins.split(',') if origin]
 
 # Security settings
+# Audit security 2026-05-20: SESSION_COOKIE_SECURE y CSRF_COOKIE_SECURE
+# eran derivados de SECURE_SSL_REDIRECT. Cuando el deploy ponia
+# SECURE_SSL_REDIRECT=False (nginx hacia el redirect), las cookies se
+# emitian sin flag Secure y viajaban potencialmente por HTTP. Fix:
+# default independiente a True (override solo en dev con SESSION_COOKIE_SECURE=False).
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'True') == 'True'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = SECURE_SSL_REDIRECT
-CSRF_COOKIE_SECURE = SECURE_SSL_REDIRECT
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True') == 'True'
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'True') == 'True'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = True

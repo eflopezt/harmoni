@@ -14,7 +14,7 @@ from datetime import datetime, date
 from ..models import SubArea, Personal, Roster
 from ..forms import PersonalForm, ImportExcelForm
 from ..permissions import (
-    filtrar_personal, filtrar_subareas,
+    filtrar_personal, filtrar_personal_por_request, filtrar_subareas,
     puede_editar_personal, get_context_usuario, es_responsable_area
 )
 
@@ -22,8 +22,10 @@ from ..permissions import (
 @login_required
 def personal_list(request):
     """Lista de personal."""
-    # Aplicar filtros según usuario
-    personal = filtrar_personal(request.user).select_related(
+    # Aplicar filtros según usuario + tenant actual (multi-tenant)
+    # Audit perf 2026-05-20: filtrar por empresa reduce el scope a ~33 filas
+    # promedio en escenario EDO (24 RUCs) vs 800 sin filtro.
+    personal = filtrar_personal_por_request(request).select_related(
         'subarea', 'subarea__area', 'empresa'
     ).order_by('apellidos_nombres')
 
