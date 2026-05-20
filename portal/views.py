@@ -1153,13 +1153,12 @@ def mi_nomina(request):
                     ytd_acumulado += (r.neto_a_pagar or Decimal('0'))
 
         # ¿IA disponible para explicar boleta?
+        # Consulta el mismo servicio que ejecuta la explicación (ConfiguracionSistema),
+        # así si el admin activa IA por panel, el botón aparece sin redeploy.
         ia_explicador_activo = False
         try:
-            import os
-            ia_explicador_activo = bool(
-                os.environ.get('GEMINI_API_KEY') or os.environ.get('OPENAI_API_KEY')
-                or os.environ.get('DEEPSEEK_API_KEY')
-            )
+            from asistencia.services.ai_service import get_service
+            ia_explicador_activo = get_service() is not None
         except Exception:
             pass
 
