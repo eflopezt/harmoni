@@ -254,15 +254,25 @@ def generar_boleta_pdf(registro):
     except Exception: mes_nombre = ""; anio = ""; tipo_display = ""
 
     empresa_nombre = "Empresa"; empresa_ruc = ""; empresa_dir = ""
-    try:
-        from core.context_processors import _get_config
-        cfg = _get_config()
-        if cfg:
-            empresa_nombre = cfg.empresa_nombre or "Empresa"
-            empresa_ruc    = cfg.empresa_ruc    or ""
-            empresa_dir    = getattr(cfg, "empresa_direccion", "") or ""
-    except Exception as exc:
-        logger.warning('Error loading empresa config for boleta PDF: %s', exc)
+    # Prioridad 1: empresa del trabajador (multi-tenant)
+    emp = getattr(registro.personal, 'empresa', None)
+    if emp is not None:
+        empresa_nombre = (getattr(emp, 'razon_social', None) or
+                          getattr(emp, 'nombre_comercial', None) or
+                          empresa_nombre)
+        empresa_ruc    = getattr(emp, 'ruc', '') or ''
+        empresa_dir    = getattr(emp, 'direccion', '') or ''
+    # Prioridad 2: ConfiguracionSistema global (fallback si Personal no tiene empresa)
+    if empresa_nombre == "Empresa":
+        try:
+            from core.context_processors import _get_config
+            cfg = _get_config()
+            if cfg:
+                empresa_nombre = cfg.empresa_nombre or "Empresa"
+                empresa_ruc    = empresa_ruc or (cfg.empresa_ruc or "")
+                empresa_dir    = empresa_dir or (getattr(cfg, "empresa_direccion", "") or "")
+        except Exception as exc:
+            logger.warning('Error loading empresa config for boleta PDF: %s', exc)
 
     he_parts = []
     if registro.horas_extra_25:  he_parts.append(f"25%: {registro.horas_extra_25}h")
