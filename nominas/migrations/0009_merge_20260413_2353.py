@@ -6,7 +6,10 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('nominas', '0006_recargaalimentacion'),
+        # Antes referenciaba '0006_recargaalimentacion' (node inexistente). El modelo
+        # RecargaAlimentacion vive en '0007_recargaalimentacion'. Fix: apuntar al nombre real
+        # para que el migration graph sea consistente y `migrate` no falle.
+        ('nominas', '0007_recargaalimentacion'),
         ('nominas', '0008_merge_20260413_2247'),
     ]
 
