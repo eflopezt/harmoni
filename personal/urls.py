@@ -9,8 +9,8 @@ urlpatterns = [
     # Home
     path('', views.home, name='home'),
     
-    # Auth
-    path('login/', auth_views.LoginView.as_view(), name='login'),
+    # Auth — login con rate limit (security audit fix 2026-05-20)
+    path('login/', views.RateLimitedLoginView.as_view(), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('cuenta/cambiar-password/',
          auth_views.PasswordChangeView.as_view(

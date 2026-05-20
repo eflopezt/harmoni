@@ -32,7 +32,8 @@
 
 <!-- Comunicado body -->
 <div style="font-size:15px;color:#374151;line-height:1.7;">
-    {{ cuerpo|safe }}
+    {# Security audit fix: escape HTML para prevenir XSS en emails. #}
+    {{ cuerpo|linebreaks }}
 </div>
 
 {% if requiere_confirmacion %}

@@ -5,7 +5,7 @@ Este paquete re-exporta todas las vistas para mantener compatibilidad
 con las URLs existentes (personal.views.funcion).
 """
 
-from .home import home, logout_view, cmd_search, alertas_dia, hr_ask
+from .home import home, logout_view, cmd_search, alertas_dia, hr_ask, RateLimitedLoginView
 
 from .areas import (
     area_list, area_create, area_detail, area_update, area_toggle, area_delete,

@@ -719,6 +719,70 @@ def logout_view(request):
     return redirect('login')
 
 
+# ── Rate limit login (security audit fix) ───────────────────────────────────
+from django.contrib.auth.views import LoginView as DjangoLoginView
+from django.core.cache import cache as _login_cache
+
+
+class RateLimitedLoginView(DjangoLoginView):
+    """LoginView con rate limiting basico para mitigar brute-force.
+
+    Estrategia: trackeo por IP + por username separadamente. Tras 5 intentos
+    fallidos en 5 minutos, bloquea con HTTP 429 durante 15 minutos.
+    Login exitoso resetea el contador. Usa el cache de Django (Redis en prod).
+    """
+
+    MAX_FALLOS = 5
+    VENTANA_INTENTOS = 5 * 60      # 5 min
+    BLOQUEO_SEGUNDOS = 15 * 60     # 15 min
+
+    @staticmethod
+    def _client_ip(request):
+        xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if xff:
+            return xff.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR', 'unknown')
+
+    def _key_ip(self, request):
+        return f'login_rl:ip:{self._client_ip(request)}'
+
+    def _key_user(self, username):
+        return f'login_rl:user:{(username or "").lower()}'
+
+    def _esta_bloqueado(self, request, username):
+        for k in (self._key_ip(request), self._key_user(username)):
+            if _login_cache.get(f'{k}:blocked'):
+                return True
+        return False
+
+    def _registrar_fallo(self, request, username):
+        for k in (self._key_ip(request), self._key_user(username)):
+            n = (_login_cache.get(k) or 0) + 1
+            _login_cache.set(k, n, timeout=self.VENTANA_INTENTOS)
+            if n >= self.MAX_FALLOS:
+                _login_cache.set(f'{k}:blocked', True, timeout=self.BLOQUEO_SEGUNDOS)
+
+    def _resetear(self, request, username):
+        for k in (self._key_ip(request), self._key_user(username)):
+            _login_cache.delete(k)
+            _login_cache.delete(f'{k}:blocked')
+
+    def post(self, request, *args, **kwargs):
+        username = request.POST.get('username', '')
+        if self._esta_bloqueado(request, username):
+            from django.http import HttpResponse
+            return HttpResponse(
+                'Demasiados intentos de login. Espera 15 minutos e intenta de nuevo.',
+                status=429,
+            )
+        response = super().post(request, *args, **kwargs)
+        if request.user.is_authenticated:
+            self._resetear(request, username)
+        else:
+            self._registrar_fallo(request, username)
+        return response
+
+
 # ── Command Palette — búsqueda global ──────────────────────────────────────────
 
 @login_required
