@@ -4,7 +4,8 @@
 {% block title %}Mis Vacaciones{% endblock %}
 
 {% block content %}
-<h2 class="mb-3"><i class="fas fa-umbrella-beach text-secondary me-2"></i>{{ titulo }}</h2>
+<h2><i class="fas fa-umbrella-beach"></i>{{ titulo }}</h2>
+<p class="page-subtitle">Consulta tus saldos vacacionales y gestiona tus solicitudes de descanso.</p>
 
 {% if not empleado %}
 <div class="alert alert-info">No tienes un perfil de empleado vinculado a tu usuario.</div>
@@ -98,7 +99,10 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">No tienes solicitudes de vacaciones.</td></tr>
+                <tr><td colspan="6" class="text-center text-muted py-5">
+                    <i class="fas fa-umbrella-beach fa-2x d-block mb-2 opacity-25"></i>
+                    Aún no has solicitado vacaciones este año.
+                </td></tr>
                 {% endfor %}
             </tbody>
         </table>

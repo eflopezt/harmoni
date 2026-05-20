@@ -473,6 +473,36 @@ a:hover {
     display: block;
 }
 
+/* ---- Sub-header within a collapsible section (Mi Portal etc.) ---- */
+.nav-subheader {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1.5rem 0.2rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--sidebar-section-title);
+    opacity: 0.55;
+    user-select: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    margin-top: 0.35rem;
+}
+
+.nav-subheader:first-child {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0.35rem;
+}
+
+.nav-subheader i {
+    font-size: 0.6rem;
+    width: 12px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
 /* ---- Nav items ---- */
 .nav-item {
     display: flex;

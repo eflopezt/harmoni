@@ -1,0 +1,281 @@
+/* =============================================================================
+   HARMONI — Portal Polish
+   Visual refinements for worker portal pages. Loaded after harmoni.css.
+   Targets common Bootstrap patterns used in /mi-portal/, /vacaciones/mis/,
+   /prestamos/mis/, /capacitaciones/mis/, etc.
+   ============================================================================= */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. Page header pattern
+     <h2><i class="fas fa-X"></i>Titulo</h2>
+     <p class="text-muted small">Subtítulo</p>
+   ────────────────────────────────────────────────────────────────────────── */
+main h2 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #0f2926;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.25rem;
+}
+
+main h2 > i {
+    color: var(--primary, #0f766e);
+    font-size: 1.1rem;
+    vertical-align: middle;
+    margin-right: 0.55rem;
+    opacity: 0.85;
+}
+
+main h5 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #134e4a;
+    letter-spacing: -0.005em;
+}
+
+main h5 > i {
+    color: #0f766e;
+    opacity: 0.7;
+    margin-right: 0.4rem;
+}
+
+main h6 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #0f2926;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. Cards — softer shadows + hover lift
+   ────────────────────────────────────────────────────────────────────────── */
+main .card.shadow-sm {
+    border: 1px solid rgba(15, 118, 110, 0.07);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(15, 41, 38, 0.04),
+                0 1px 2px rgba(15, 41, 38, 0.06) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+main .card.shadow-sm:hover {
+    transform: translateY(-1px);
+    border-color: rgba(15, 118, 110, 0.14);
+    box-shadow: 0 4px 12px rgba(15, 41, 38, 0.08),
+                0 2px 4px rgba(15, 41, 38, 0.06) !important;
+}
+
+main .card .card-body {
+    padding: 1.1rem 1.15rem;
+}
+
+/* Inline progress bars — Harmoni teal palette */
+main .progress {
+    background-color: #ecfdf5;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+main .progress-bar.bg-success { background-color: #10b981 !important; }
+main .progress-bar.bg-info    { background-color: #14b8a6 !important; }
+main .progress-bar.bg-warning { background-color: #f59e0b !important; }
+main .progress-bar.bg-danger  { background-color: #ef4444 !important; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. Badges — Refined palette (less Bootstrap saturated)
+   ────────────────────────────────────────────────────────────────────────── */
+main .badge {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0.32em 0.65em;
+    border-radius: 6px;
+    font-size: 0.7rem;
+}
+
+main .badge.bg-success {
+    background-color: #d1fae5 !important;
+    color: #065f46 !important;
+}
+
+main .badge.bg-warning {
+    background-color: #fef3c7 !important;
+    color: #92400e !important;
+}
+
+main .badge.bg-danger {
+    background-color: #fee2e2 !important;
+    color: #991b1b !important;
+}
+
+main .badge.bg-info {
+    background-color: #cffafe !important;
+    color: #155e75 !important;
+}
+
+main .badge.bg-secondary {
+    background-color: #e2e8f0 !important;
+    color: #475569 !important;
+}
+
+main .badge.bg-primary {
+    background-color: #d1fae5 !important;
+    color: #064e3b !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. Tables — refined inside cards
+   ────────────────────────────────────────────────────────────────────────── */
+main .card .table {
+    margin-bottom: 0;
+}
+
+main .card .table thead th {
+    background-color: #f0fafa;
+    color: #134e4a;
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #cbf6ed;
+    padding: 0.65rem 0.85rem;
+}
+
+main .card .table tbody td {
+    padding: 0.65rem 0.85rem;
+    vertical-align: middle;
+    border-color: #f1f5f9;
+}
+
+main .card .table-hover tbody tr {
+    transition: background-color 0.12s ease;
+}
+
+main .card .table-hover tbody tr:hover {
+    background-color: #f0fafa;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. Empty states — replace bare alerts
+   ────────────────────────────────────────────────────────────────────────── */
+main .alert-secondary,
+main .alert-info {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    color: #64748b;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+}
+
+main .alert-secondary i,
+main .alert-info i {
+    color: #94a3b8;
+    margin-right: 0.5rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   6. Buttons — slightly tightened
+   ────────────────────────────────────────────────────────────────────────── */
+main .btn-primary {
+    background-color: #0f766e;
+    border-color: #0f766e;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    box-shadow: 0 1px 2px rgba(15, 118, 110, 0.15);
+}
+
+main .btn-primary:hover,
+main .btn-primary:focus {
+    background-color: #115e59;
+    border-color: #115e59;
+    box-shadow: 0 2px 4px rgba(15, 118, 110, 0.25);
+}
+
+main .btn-outline-primary {
+    color: #0f766e;
+    border-color: #99f6e4;
+    font-weight: 600;
+}
+
+main .btn-outline-primary:hover {
+    background-color: #0f766e;
+    border-color: #0f766e;
+    color: #fff;
+}
+
+main .btn-sm {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 7px;
+}
+
+main .btn-xs {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 5px;
+    line-height: 1.4;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   7. KPI numbers (stats cards in headers)
+   ────────────────────────────────────────────────────────────────────────── */
+main .fw-bold.text-primary,
+main .fw-bold.text-success,
+main .fw-bold.text-info,
+main .fw-bold.text-danger {
+    font-size: 1.35rem;
+    font-weight: 800 !important;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+}
+
+main .text-primary { color: #0f766e !important; }
+main .text-info    { color: #0e7490 !important; }
+main .text-success { color: #047857 !important; }
+main .text-danger  { color: #b91c1c !important; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   8. Section dividers and spacing
+   ────────────────────────────────────────────────────────────────────────── */
+main {
+    padding-top: 0.75rem;
+    padding-bottom: 2.5rem;
+}
+
+main hr {
+    margin: 1.5rem 0;
+    border-color: #e2e8f0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   9. Worker portal: top page subtitle pattern
+   ────────────────────────────────────────────────────────────────────────── */
+.page-subtitle {
+    color: #64748b;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+    margin-top: -0.15rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   10. Mobile (≤ 768px) – tighter spacing
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    main h2 {
+        font-size: 1.2rem;
+    }
+
+    main .card .card-body {
+        padding: 0.85rem 0.85rem;
+    }
+
+    main .fw-bold.text-primary,
+    main .fw-bold.text-success,
+    main .fw-bold.text-info,
+    main .fw-bold.text-danger {
+        font-size: 1.15rem;
+    }
+
+    main .card .table thead th,
+    main .card .table tbody td {
+        padding: 0.5rem 0.55rem;
+        font-size: 0.78rem;
+    }
+}
