@@ -79,7 +79,25 @@ def harmoni_context(request):
     extra_badges = _get_extra_badges(user, area_ids)
     base.update(extra_badges)
 
+    # ¿Este usuario tiene un Personal vinculado? Usado por el sidebar para ocultar
+    # "Mi Portal" en cuentas administrativas sin empleado (ej. admin, demo).
+    base['tiene_empleado'] = _get_tiene_empleado(user)
+
     return base
+
+
+def _get_tiene_empleado(user) -> bool:
+    """True si el usuario tiene un Personal activo vinculado. Cached 5 min por usuario."""
+    cache_key = f'harmoni_tiene_empleado_{user.pk}_v1'
+    val = cache.get(cache_key)
+    if val is None:
+        try:
+            from personal.models import Personal
+            val = Personal.objects.filter(usuario=user).exists()
+        except Exception:
+            val = False
+        cache.set(cache_key, val, _TTL_PERFIL)
+    return val
 
 
 def _get_empresas_disponibles() -> list:

@@ -72,11 +72,19 @@ def offline_view(request):
     """Offline fallback page for PWA."""
     return render(request, 'offline.html')
 
+
+def portal_alias(request):
+    """Alias /portal/ → /mi-portal/. Útil cuando el cliente teclea la URL corta."""
+    from django.shortcuts import redirect
+    return redirect('portal_home', permanent=False)
+
+
 urlpatterns = [
     path('offline/', offline_view, name='offline'),
     path('health/', health_check, name='health_check'),
     path('robots.txt', robots_txt, name='robots_txt'),
     path('sitemap.xml', sitemap_xml, name='sitemap_xml'),
+    path('portal/', portal_alias, name='portal_alias'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
