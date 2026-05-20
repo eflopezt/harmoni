@@ -880,27 +880,16 @@ def concepto_eliminar(request, pk):
 
 @login_required
 def mis_recibos(request):
-    """Portal del trabajador: historial de recibos de nómina."""
-    from personal.models import Personal
-    try:
-        empleado = Personal.objects.get(usuario=request.user)
-    except Personal.DoesNotExist:
-        empleado = None
+    """Redirige al portal unificado de recibos (template rediseñado con
+    comparativa contra mes anterior, explicador IA y look mobile-first).
 
-    registros = []
-    if empleado:
-        registros = (
-            RegistroNomina.objects
-            .filter(personal=empleado, periodo__estado__in=['APROBADO', 'CERRADO'])
-            .select_related('periodo')
-            .order_by('-periodo__anio', '-periodo__mes')
-        )
-
-    return render(request, 'nominas/mis_recibos.html', {
-        'titulo': 'Mis Recibos de Nómina',
-        'empleado': empleado,
-        'registros': registros,
-    })
+    La vista canónica vive en ``portal.views.mi_nomina`` y renderiza
+    ``templates/portal/mi_nomina.html``. Esta función se conserva como
+    redirect para preservar la URL ``/nominas/mis-recibos/`` y el nombre
+    ``mis_recibos`` que pueden estar en bookmarks o links externos.
+    """
+    from django.shortcuts import redirect
+    return redirect('portal_mi_nomina')
 
 
 # ─── Resumen estadístico AJAX ──────────────────────────────────────────────────
