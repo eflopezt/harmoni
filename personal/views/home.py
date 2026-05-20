@@ -621,8 +621,10 @@ def home(request):
             altas_mes = Personal.objects.filter(
                 fecha_alta__gte=inicio_mes, fecha_alta__lte=hoy
             ).count()
+            # NOTA: el campo correcto es fecha_cese (Personal no tiene fecha_baja).
+            # Sin este fix la metrica era siempre 0 y el except la silenciaba.
             bajas_mes = Personal.objects.filter(
-                fecha_baja__gte=inicio_mes, fecha_baja__lte=hoy
+                fecha_cese__gte=inicio_mes, fecha_cese__lte=hoy
             ).count()
             context['headcount_tendencia'] = {
                 'altas': altas_mes,
@@ -1272,9 +1274,14 @@ def hr_ask(request):
     if kw('planilla', 'nómina', 'nomina', 'sueldo', 'sueldos', 'costo laboral', 'masa salarial'):
         try:
             from personal.models import Personal as P
-            activos = P.objects.filter(estado='Activo', sueldo_base__isnull=False)
-            total_planilla = sum(float(e.sueldo_base) for e in activos)
-            promedio = total_planilla / activos.count() if activos.count() else 0
+            from django.db.models import Sum, Count
+            # Quick win perf audit: agregar en DB en vez de materializar 800 objects en memoria.
+            agg = P.objects.filter(estado='Activo', sueldo_base__isnull=False).aggregate(
+                total=Sum('sueldo_base'), n=Count('id')
+            )
+            total_planilla = float(agg['total'] or 0)
+            n_activos = agg['n'] or 0
+            promedio = total_planilla / n_activos if n_activos else 0
             resp = (
                 f'La masa salarial mensual es de **S/ {total_planilla:,.2f}** '
                 f'(promedio: S/ {promedio:,.2f} por colaborador).'

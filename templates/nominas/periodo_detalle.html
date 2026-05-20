@@ -596,7 +596,7 @@
       <tbody id="tbody-nomina">
         {% for r in registros %}
         <tr data-nombre="{{ r.personal.apellidos_nombres|lower }}"
-            data-dni="{{ r.personal.numero_documento|lower }}"
+            data-dni="{{ r.personal.nro_doc|lower }}"
             data-base="{{ r.sueldo_base|floatformat:2 }}"
             data-ing="{{ r.total_ingresos|floatformat:2 }}"
             data-desc="{{ r.total_descuentos|floatformat:2 }}"
@@ -616,7 +616,7 @@
           {# DNI #}
           <td>
             <span style="font-size:.78rem;color:#6b7280;font-variant-numeric:tabular-nums;">
-              {{ r.personal.numero_documento }}
+              {{ r.personal.nro_doc }}
             </span>
           </td>
 
