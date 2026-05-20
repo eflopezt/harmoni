@@ -11,6 +11,11 @@ urlpatterns = [
     # Migración legacy (Spring u otro sistema)
     path('importar-legacy/', views_legacy_import.importar_legacy, name='nominas_importar_legacy'),
 
+    # Constancia de Entrega y Recepción (DS 009-2011-TR) — trail completo del trabajador
+    path('registros/<int:pk>/constancia.pdf',
+         views.constancia_recepcion_pdf,
+         name='nominas_constancia_recepcion'),
+
     # Conceptos remunerativos
     path('conceptos/', views.conceptos_panel, name='nominas_conceptos'),
     path('conceptos/crear/', views.concepto_crear, name='nominas_concepto_crear'),

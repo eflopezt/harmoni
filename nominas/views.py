@@ -1094,8 +1094,67 @@ def _registrar_lectura_boleta(request, registro):
 
         if update_fields:
             boleta.save(update_fields=list(set(update_fields)))
+
+        # Adicionalmente, registrar en LogActividadTrabajador (SmartBoletas-style).
+        # Esto es independiente del BoletaPago para tener un trail temporal completo
+        # (varias descargas del mismo trabajador, vista web, login previo, etc.).
+        try:
+            from documentos.models import LogActividadTrabajador
+            LogActividadTrabajador.registrar(
+                personal=registro.personal,
+                tipo='DOWNLOAD_BOLETA',
+                request=request,
+                objeto=boleta,
+                metadata={
+                    'periodo': f'{registro.periodo.anio}-{registro.periodo.mes:02d}',
+                    'registro_id': registro.pk,
+                    'hash_integridad': getattr(registro, 'hash_integridad', '') or '',
+                },
+            )
+        except Exception as exc:
+            logger.warning('Error registrando log actividad descarga boleta: %s', exc)
     except Exception as exc:
         logger.warning('Error registrando lectura boleta: %s', exc)
+
+
+@login_required
+def constancia_recepcion_pdf(request, pk):
+    """Constancia de Entrega y Recepción de Boleta — cumplimiento DS 009-2011-TR.
+
+    Genera el PDF auditable con el trail completo de actividad del trabajador
+    (login + visualización + descarga + confirmación) más datos del empleador,
+    trabajador, boleta y hash criptográfico de integridad.
+
+    Acceso:
+      - Superuser/staff: cualquier constancia.
+      - Trabajador propio: solo la suya.
+    """
+    registro = get_object_or_404(
+        RegistroNomina.objects.select_related('personal', 'periodo'),
+        pk=pk,
+    )
+
+    # Control acceso (mismo patrón que boleta_pdf)
+    if not (request.user.is_superuser or request.user.is_staff):
+        user_personal = getattr(request.user, 'personal_data', None)
+        if user_personal is None or user_personal != registro.personal:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden('No tienes permiso para ver esta constancia.')
+
+    try:
+        from .constancia import generar_constancia_recepcion_pdf
+        pdf_bytes = generar_constancia_recepcion_pdf(registro)
+    except Exception as e:
+        messages.error(request, f'Error generando constancia: {e}')
+        return redirect('nominas_registro_detalle', pk=pk)
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    filename = (
+        f"Constancia_Recepcion_{registro.personal.nro_doc}_"
+        f"{registro.periodo.anio}{registro.periodo.mes:02d}.pdf"
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 @login_required

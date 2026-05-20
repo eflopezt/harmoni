@@ -1056,7 +1056,20 @@ def mi_nomina(request):
     empleado = _get_empleado(request.user)
     context = {'empleado': empleado}
 
+    # SmartBoletas compliance: registrar la VISTA del listado de boletas.
+    # Esto cuenta como acuse de visualización aunque no descargue el PDF.
     if empleado:
+        try:
+            from documentos.models import LogActividadTrabajador
+            LogActividadTrabajador.registrar(
+                personal=empleado,
+                tipo='VIEW_BOLETA',
+                request=request,
+                metadata={'vista': 'listado_mi_nomina'},
+            )
+        except Exception:
+            pass  # no rompemos el render por un log
+
         registros = list(
             RegistroNomina.objects.filter(personal=empleado)
             .select_related('periodo')

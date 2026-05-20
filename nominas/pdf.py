@@ -183,12 +183,14 @@ def generar_boleta_pdf(registro):
     fr_st    = sty("fr",      fontSize=7.5, textColor=C_GRAY_B, alignment=TA_RIGHT)
 
     # Clasificar lineas
-    lineas_ingresos   = []
-    lineas_descuentos = []
-    lineas_aportes    = []
-    total_ingresos    = Decimal("0")
-    total_descuentos  = Decimal("0")
-    total_aportes     = Decimal("0")
+    lineas_ingresos    = []
+    lineas_descuentos  = []
+    lineas_aportes     = []
+    lineas_provisiones = []
+    total_ingresos     = Decimal("0")
+    total_descuentos   = Decimal("0")
+    total_aportes      = Decimal("0")
+    total_provisiones  = Decimal("0")
 
     for linea in registro.lineas.select_related("concepto").order_by(
             "concepto__tipo", "concepto__orden"):
@@ -196,7 +198,18 @@ def generar_boleta_pdf(registro):
                  "monto": linea.monto or Decimal("0"),
                  "monto_str": _monto(linea.monto),
                  "obs": linea.observacion or ""}
-        if linea.concepto.tipo == "INGRESO":
+        # Provisiones (CTS, gratif) son INGRESO con subtipo PROVISION en el catalogo.
+        # NO son ingresos cobrados este mes, se acumulan en cuentas de pasivo del
+        # empleador. La boleta debe mostrarlas como INFORMATIVO separado para que
+        # el trabajador entienda que NO se le restan ni se le suman al neto del mes.
+        es_provision = (
+            getattr(linea.concepto, 'subtipo', '') == 'PROVISION'
+            or linea.concepto.formula in ('GRATIFICACION', 'CTS')
+        )
+        if es_provision and linea.concepto.tipo == "INGRESO":
+            lineas_provisiones.append(entry)
+            total_provisiones += linea.monto or Decimal("0")
+        elif linea.concepto.tipo == "INGRESO":
             lineas_ingresos.append(entry)
             total_ingresos += linea.monto or Decimal("0")
         elif linea.concepto.tipo == "DESCUENTO":
@@ -221,8 +234,8 @@ def generar_boleta_pdf(registro):
     personal = registro.personal
     try:
         fi = personal.fecha_ingreso
-        fecha_ingreso_str = fi.strftime("%d/%m/%Y") if fi else "S/D"
-    except Exception: fecha_ingreso_str = "S/D"
+        fecha_ingreso_str = fi.strftime("%d/%m/%Y") if fi else "—"
+    except Exception: fecha_ingreso_str = "—"
     try:
         ff = personal.fecha_fin_contrato
         fecha_fin_str = ff.strftime("%d/%m/%Y") if ff else "Indefinido"
@@ -278,7 +291,7 @@ def generar_boleta_pdf(registro):
     if registro.horas_extra_25:  he_parts.append(f"25%: {registro.horas_extra_25}h")
     if registro.horas_extra_35:  he_parts.append(f"35%: {registro.horas_extra_35}h")
     if registro.horas_extra_100: he_parts.append(f"100%: {registro.horas_extra_100}h")
-    he_str = "  ".join(he_parts) if he_parts else "S/D"
+    he_str = "  ".join(he_parts) if he_parts else "—"
 
     dias_str = f"{registro.dias_trabajados} / {dias_periodo}"
     if registro.dias_falta and registro.dias_falta > 0:
@@ -411,7 +424,7 @@ def generar_boleta_pdf(registro):
              _p("Area:",lbl), _p(area_nombre,val),
              _p("Sueldo Base:",lbl), _p(f"S/ {_monto(registro.sueldo_base)}",bold)],
             [_p("Regimen:",lbl), _p(regimen_str,val),
-             _p("CUSPP:",lbl), _p(cuspp or "S/D",val),
+             _p("CUSPP:",lbl), _p(cuspp or "—",val),
              _p("Ingreso:",lbl), _p(fecha_ingreso_str,val)],
             [_p("Dias Trab.:",lbl), _p(dias_str,val),
              _p("HE:",lbl), _p(he_str,val),
@@ -435,7 +448,7 @@ def generar_boleta_pdf(registro):
         ciw = int(USABLE_W * 0.36) - gap
         cdw = int(USABLE_W * 0.34) - gap
         caw = int(USABLE_W - ciw - cdw - gap * 2)
-        ci = make_col(lineas_ingresos,   "Remuneraciones",   C_TEAL,
+        ci = make_col(lineas_ingresos,   "Ingresos del mes",  C_TEAL,
                       C_SUBTOT, C_SUBTOT2, _monto(total_ingresos),   ciw)
         cd = make_col(lineas_descuentos, "Descuentos",        C_RED_H,
                       C_RED_L,  C_RED_E,   _monto(total_descuentos), cdw)
@@ -490,6 +503,37 @@ def generar_boleta_pdf(registro):
         ]))
         story.append(nt)
         story.append(Spacer(1, 4))
+
+        # --- PROVISIONES (INFORMATIVO) ---
+        # Las provisiones de CTS/gratificación NO se cobran este mes —
+        # son acumuladas por el empleador en cuentas de pasivo y se pagan
+        # en las fechas legales (mayo/nov CTS, jul/dic gratif).
+        # Mostradas como informativo para que el trabajador conozca el
+        # saldo acumulado a su favor.
+        if lineas_provisiones:
+            prov_rows = [
+                [_p("Provisiones acumuladas a tu favor (informativo, no se pagan este mes):", lbl)],
+            ]
+            for lp in lineas_provisiones:
+                prov_rows.append([_p(
+                    f"&nbsp;&nbsp;&middot; {lp['nombre']}: S/ {lp['monto_str']}",
+                    sm,
+                )])
+            prov_rows.append([_p(
+                f"&nbsp;&nbsp;<b>Total provisionado este mes: S/ {_monto(total_provisiones)}</b>",
+                base,
+            )])
+            pvt = Table(prov_rows, colWidths=[USABLE_W])
+            pvt.setStyle(TableStyle([
+                ("BACKGROUND",    (0,0),(-1,-1), colors.HexColor("#fef9c3")),  # amarillo pálido
+                ("BOX",           (0,0),(-1,-1), 0.5, colors.HexColor("#fde047")),
+                ("LEFTPADDING",   (0,0),(-1,-1), 10),
+                ("RIGHTPADDING",  (0,0),(-1,-1), 10),
+                ("TOPPADDING",    (0,0),(-1,-1), 3),
+                ("BOTTOMPADDING", (0,0),(-1,-1), 3),
+            ]))
+            story.append(pvt)
+            story.append(Spacer(1, 4))
 
         # --- COSTO EMPRESA ---
         costo = registro.costo_total_empresa

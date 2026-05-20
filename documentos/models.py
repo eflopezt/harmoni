@@ -1321,3 +1321,114 @@ class ArchivoHR(models.Model):
         if ext in ('zip', 'rar', '7z'):
             return 'fa-file-zipper text-warning'
         return 'fa-file text-muted'
+
+
+# ═══════════════════════════════════════════════════════════════
+# LOG DE ACTIVIDAD DEL TRABAJADOR (cumplimiento DS 009-2011-TR)
+# Inspirado en SmartBoletas: trail completo de cuándo el trabajador
+# accedió al sistema, vio sus boletas, las descargó, las confirmó.
+# Sirve como prueba ante SUNAFIL de entrega y recepción efectiva.
+# ═══════════════════════════════════════════════════════════════
+
+class LogActividadTrabajador(models.Model):
+    """Eventos auditables de la actividad del trabajador en el portal.
+
+    Genera un trail completo: login, vista de boleta, descarga PDF,
+    confirmación de lectura, cambios de contraseña, etc.
+
+    Para una constancia formal de entrega/recepción de boleta, se filtra
+    por personal + tipo VIEW_BOLETA/DOWNLOAD_BOLETA/CONFIRM_BOLETA.
+    """
+
+    TIPO_CHOICES = [
+        ('LOGIN',           'Inicio de sesión'),
+        ('LOGOUT',          'Cierre de sesión'),
+        ('LOGIN_FAILED',    'Intento fallido de login'),
+        ('VIEW_BOLETA',     'Visualización de boleta'),
+        ('DOWNLOAD_BOLETA', 'Descarga de boleta PDF'),
+        ('CONFIRM_BOLETA',  'Confirmación de recepción de boleta'),
+        ('VIEW_BANCO_HORAS','Vista del banco de horas'),
+        ('VIEW_VACACIONES', 'Vista de saldo de vacaciones'),
+        ('CHANGE_PASSWORD', 'Cambio de contraseña'),
+        ('UPDATE_PROFILE',  'Actualización de perfil'),
+        ('OTRO',            'Otro evento'),
+    ]
+
+    personal = models.ForeignKey(
+        'personal.Personal',
+        on_delete=models.CASCADE,
+        related_name='actividad_log',
+        verbose_name='Trabajador',
+    )
+    # Usuario asociado (puede ser distinto si por alguna razón se desvincula).
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+    )
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, db_index=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True, default='')
+
+    # Referencia opcional al recurso accedido (ej: BoletaPago.pk, periodo, etc.)
+    objeto_id   = models.CharField(max_length=50, blank=True, default='')
+    objeto_tipo = models.CharField(max_length=30, blank=True, default='',
+                                   help_text='Modelo del objeto referenciado (ej: BoletaPago, RegistroNomina).')
+
+    # Metadata adicional (período, hash de boleta, etc.)
+    metadata = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Log de actividad'
+        verbose_name_plural = 'Logs de actividad'
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['personal', '-timestamp']),
+            models.Index(fields=['personal', 'tipo', '-timestamp']),
+            models.Index(fields=['tipo', '-timestamp']),
+        ]
+
+    def __str__(self):
+        return f'[{self.tipo}] {self.personal} @ {self.timestamp:%Y-%m-%d %H:%M}'
+
+    @classmethod
+    def registrar(cls, *, personal, tipo, request=None, objeto=None, metadata=None):
+        """Helper para crear un log desde cualquier vista de forma simple.
+
+        Uso:
+            LogActividadTrabajador.registrar(
+                personal=request.user.personal_data,
+                tipo='VIEW_BOLETA',
+                request=request,
+                objeto=boleta_pago,
+                metadata={'periodo': '2026-05'},
+            )
+        """
+        if personal is None:
+            return None
+        ip = None
+        ua = ''
+        usuario = None
+        if request is not None:
+            xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+            ip = xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR')
+            ua = (request.META.get('HTTP_USER_AGENT') or '')[:500]
+            if getattr(request, 'user', None) and request.user.is_authenticated:
+                usuario = request.user
+        objeto_id = ''
+        objeto_tipo = ''
+        if objeto is not None:
+            objeto_id = str(getattr(objeto, 'pk', ''))
+            objeto_tipo = objeto.__class__.__name__
+        return cls.objects.create(
+            personal=personal,
+            usuario=usuario,
+            tipo=tipo,
+            ip=ip,
+            user_agent=ua,
+            objeto_id=objeto_id,
+            objeto_tipo=objeto_tipo,
+            metadata=metadata,
+        )
