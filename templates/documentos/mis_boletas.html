@@ -173,12 +173,21 @@
             {% if b.neto_pagar %}S/ {{ b.neto_pagar|floatformat:2|intcomma }}{% else %}—{% endif %}
         </div>
         <div class="boleta-acciones">
+            {% if b.archivo %}
             <a href="{{ b.archivo.url }}" target="_blank" rel="noopener"
                class="btn btn-outline-primary"
                title="Descargar boleta PDF">
                 <i class="fas fa-download"></i>
                 <span class="d-none d-md-inline ms-1">PDF</span>
             </a>
+            {% elif b.registro_id %}
+            <a href="{% url 'nominas_boleta_pdf' b.registro_id %}" target="_blank" rel="noopener"
+               class="btn btn-outline-primary"
+               title="Generar boleta PDF">
+                <i class="fas fa-download"></i>
+                <span class="d-none d-md-inline ms-1">PDF</span>
+            </a>
+            {% endif %}
             {% if b.estado == 'PUBLICADA' %}
             <button class="btn btn-success" onclick="confirmar({{ b.pk }})"
                     title="Confirmar lectura">
