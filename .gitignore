@@ -68,4 +68,28 @@ celerybeat.pid
 # Misc
 *.bak
 *.tmp
+*.backup
 backups/
+
+# Runtime
+.server_pid
+
+# Cotizaciones / credenciales (NUNCA committear — datos cliente o sensibles)
+Cotizacion_*.pdf
+Cotizacion_*.xlsx
+credenciales_*.xlsx
+credenciales_*.csv
+
+# Scripts one-off de exploración / fixes en raíz (no son parte del producto)
+/analyze_*.py
+/capture_*.py
+/crear_excel_*.py
+/create_excel_*.py
+/extract_*.py
+/fix_*.py
+/import_*.py
+/populate_*.py
+/rebuild_*.py
+
+# Capturas fuente para regenerar el manual (la salida .pdf/.docx sí se versiona)
+docs/manual_capturas/
