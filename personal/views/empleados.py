@@ -23,13 +23,16 @@ from ..permissions import (
 def personal_list(request):
     """Lista de personal."""
     # Aplicar filtros según usuario
-    personal = filtrar_personal(request.user).select_related('subarea', 'subarea__area').order_by('apellidos_nombres')
+    personal = filtrar_personal(request.user).select_related(
+        'subarea', 'subarea__area', 'empresa'
+    ).order_by('apellidos_nombres')
 
     # Filtros
     estado      = request.GET.get('estado', '')
     subarea_id  = request.GET.get('area', '')
     grupo_tareo = request.GET.get('grupo_tareo', '')
-    buscar      = request.GET.get('buscar', '')
+    buscar      = request.GET.get('buscar', '') or request.GET.get('q', '')  # alias 'q'
+    empresa_id  = request.GET.get('empresa', '')
 
     if estado:
         personal = personal.filter(estado=estado)
@@ -37,6 +40,11 @@ def personal_list(request):
         personal = personal.filter(subarea_id=subarea_id)
     if grupo_tareo:
         personal = personal.filter(grupo_tareo=grupo_tareo)
+    if empresa_id:
+        try:
+            personal = personal.filter(empresa_id=int(empresa_id))
+        except (ValueError, TypeError):
+            pass  # ignorar valor invalido
     if buscar:
         personal = personal.filter(
             Q(apellidos_nombres__icontains=buscar) |
@@ -56,12 +64,18 @@ def personal_list(request):
 
     subareas = SubArea.objects.filter(activa=True).select_related('area')
 
+    # Empresas activas para el filtro (multi-tenant)
+    from empresas.models import Empresa
+    empresas = Empresa.objects.filter(activa=True).order_by('razon_social')
+
     return render(request, 'personal/personal_list.html', {
         'page_obj': page_obj,
         'areas': subareas,
+        'empresas': empresas,
         'estado': estado,
         'area_id': subarea_id,
         'grupo_tareo': grupo_tareo,
+        'empresa_id': empresa_id,
         'buscar': buscar,
         'total_activos': total_activos,
         'total_staff': total_staff,
