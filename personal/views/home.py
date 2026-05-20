@@ -205,7 +205,6 @@ def home(request):
         es_subdominio_cliente = bool(getattr(request, 'empresa_subdomain', None))
         es_demo = os.environ.get('DEMO_MODE', 'False').lower() in ('true', '1', 'yes')
         if es_subdominio_cliente or es_demo:
-            from django.shortcuts import redirect
             return redirect('login')
         return render(request, 'landing.html')
 
