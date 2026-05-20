@@ -64,7 +64,7 @@ echo  ║   Local:    http://127.0.0.1:8000                    ║
 echo  ║   Red LAN:  http://%LOCAL_IP%:8000                  ║
 echo  ║                                                      ║
 echo  ║   Usuario: admin                                     ║
-echo  ║   Clave:   Harmoni2026!                              ║
+echo  ║   Clave:   (ver claves.md local, fuera del repo)     ║
 echo  ║                                                      ║
 echo  ║   [Ctrl+C] para detener el servidor                  ║
 echo  ╚══════════════════════════════════════════════════════╝
