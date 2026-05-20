@@ -37,8 +37,10 @@ EXEMPT_URL_PATTERNS = [
     r'^/documentos/laborales/mis/',
     r'^/vacaciones/mis',
     r'^/nominas/mis-recibos',                 # boletas calculadas (autoservicio)
-    r'^/nominas/registros/\d+/boleta\.pdf',   # descarga PDF de su propia boleta
-    r'^/nominas/registros/\d+/explicar/',     # explicador IA de su boleta
+    r'^/nominas/registros/\d+/boleta\.pdf',     # descarga PDF de su propia boleta
+    r'^/nominas/registros/\d+/explicar/',       # explicador IA de su boleta
+    r'^/nominas/registros/\d+/constancia\.pdf', # constancia recepción (DS 009-2011-TR)
+    r'^/nominas/verificar/',                    # verificación pública QR (sin auth)
     r'^/prestamos/mis',                       # mis préstamos
     r'^/capacitaciones/mis',                  # mis capacitaciones
     r'^/evaluaciones/mis',                    # mis evaluaciones / OKRs
