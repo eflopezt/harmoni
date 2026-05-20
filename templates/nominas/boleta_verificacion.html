@@ -1,0 +1,213 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificación de Boleta - Harmoni ERP</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <style>
+    :root {
+      --color-dark: #0d2b27;
+      --color-teal: #0f766e;
+      --color-accent: #5eead4;
+      --color-green-l: #ecfdf5;
+      --color-green-b: #065f46;
+      --color-red-h: #b91c1c;
+      --color-red-l: #fef2f2;
+      --color-gray: #4b5563;
+      --color-gray-l: #f8fafc;
+      --color-gray-e: #e5e7eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--color-dark);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header img { height: 32px; width: auto; }
+    header .brand-name {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--color-accent);
+    }
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(13, 43, 39, 0.08),
+                  0 2px 6px rgba(13, 43, 39, 0.04);
+      max-width: 480px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-gray-e);
+    }
+    .card-header.ok {
+      background: var(--color-green-l);
+      border-bottom-color: #a7f3d0;
+    }
+    .card-header.err {
+      background: var(--color-red-l);
+      border-bottom-color: #fca5a5;
+    }
+    .status-icon {
+      font-size: 32px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .status-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-green-b);
+    }
+    .err .status-title { color: var(--color-red-h); }
+    .status-sub {
+      font-size: 13px;
+      color: var(--color-gray);
+      margin-top: 4px;
+    }
+    .card-body {
+      padding: 20px 24px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 10px 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 14px;
+      gap: 12px;
+    }
+    .row:last-child { border-bottom: none; }
+    .row .label {
+      color: var(--color-gray);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+    .row .value {
+      font-weight: 500;
+      text-align: right;
+      word-break: break-word;
+    }
+    .row .value.amount {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      color: var(--color-teal);
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .card-footer {
+      padding: 16px 24px;
+      background: var(--color-gray-l);
+      font-size: 12px;
+      color: var(--color-gray);
+      line-height: 1.5;
+      text-align: center;
+    }
+    .card-footer strong { color: var(--color-green-b); }
+    footer {
+      padding: 20px 16px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--color-gray);
+    }
+    footer a {
+      color: var(--color-teal);
+      text-decoration: none;
+    }
+    @media (max-width: 480px) {
+      .card-header, .card-body, .card-footer { padding-left: 16px; padding-right: 16px; }
+      header { padding: 12px 16px; }
+      .row { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .row .value { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="{% static 'images/logo-horizontal.svg' %}" alt="Harmoni ERP">
+  </header>
+  <main>
+    <div class="card">
+      {% if encontrado %}
+        <div class="card-header ok">
+          <div class="status-icon">&#10004;</div>
+          <div class="status-title">Boleta verificada</div>
+          <div class="status-sub">Documento auténtico emitido por Harmoni ERP</div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <span class="label">Trabajador</span>
+            <span class="value">{{ nombre }}</span>
+          </div>
+          <div class="row">
+            <span class="label">DNI</span>
+            <span class="value">{{ dni_mask }}</span>
+          </div>
+          <div class="row">
+            <span class="label">Empresa</span>
+            <span class="value">{{ empresa }}</span>
+          </div>
+          <div class="row">
+            <span class="label">Período</span>
+            <span class="value">{{ periodo }}</span>
+          </div>
+          <div class="row">
+            <span class="label">Neto a pagar</span>
+            <span class="value amount">S/ {{ neto }}</span>
+          </div>
+          {% if hash_integridad %}
+            <div class="row">
+              <span class="label">Integridad</span>
+              <span class="value" style="font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px;">{{ hash_integridad }}</span>
+            </div>
+          {% endif %}
+        </div>
+        <div class="card-footer">
+          Esta boleta fue emitida por <strong>Harmoni ERP</strong>
+          {% if fecha_emision %}el <strong>{{ fecha_emision }}</strong>{% endif %}.
+          Documento válido.
+        </div>
+      {% else %}
+        <div class="card-header err">
+          <div class="status-icon">&#9888;</div>
+          <div class="status-title">No se pudo verificar</div>
+          <div class="status-sub">{{ mensaje|default:"Boleta no encontrada o token inválido." }}</div>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 14px; color: var(--color-gray); line-height: 1.5;">
+            El token contenido en el código QR no corresponde a ninguna boleta
+            emitida por este sistema. Verifique que el código fue escaneado
+            correctamente o contacte al área de Recursos Humanos.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+  </main>
+  <footer>
+    Verificación oficial de boletas de pago &middot; <a href="https://harmoni.pe">Harmoni ERP</a>
+  </footer>
+</body>
+</html>

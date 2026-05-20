@@ -31,6 +31,9 @@ urlpatterns = [
     # Boleta PDF
     path('registros/<int:pk>/boleta.pdf', views.boleta_pdf, name='nominas_boleta_pdf'),
 
+    # Verificación pública de boleta (QR) — sin login
+    path('verificar/<str:token>/', views.verificar_boleta, name='verificar_boleta'),
+
     # Gratificaciones y períodos especiales
     path('gratificaciones/', views.gratificacion_panel, name='nominas_gratificaciones'),
     path('periodos/especial/crear/', views.crear_periodo_especial, name='nominas_crear_especial'),

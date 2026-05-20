@@ -689,9 +689,27 @@ def explicar_boleta_ia(request, pk):
     )
 
     # Seguridad: solo admin o el propio trabajador
+    # NOTA: Personal.usuario tiene related_name='personal_data', no 'personal'
     if not request.user.is_staff:
-        if not hasattr(request.user, 'personal') or request.user.personal != reg.personal:
+        user_personal = getattr(request.user, 'personal_data', None)
+        if user_personal is None or user_personal != reg.personal:
             return JsonResponse({'ok': False, 'error': 'Sin permiso'}, status=403)
+
+    # Rate limit: 5 calls/hora/usuario. Superuser exento.
+    if not request.user.is_superuser:
+        from django.core.cache import cache
+        cache_key = f"ia_boleta_explainer:{request.user.id}"
+        count = cache.get(cache_key, 0)
+        if count >= 5:
+            return JsonResponse(
+                {
+                    'ok': False,
+                    'error': 'Has usado tu cuota de 5 explicaciones por hora. '
+                             'Probá más tarde.',
+                },
+                status=429,
+            )
+        cache.set(cache_key, count + 1, timeout=3600)
 
     from asistencia.services.ai_service import get_service
     svc = get_service()
@@ -1012,21 +1030,99 @@ def periodo_boletas_zip(request, pk):
 
 # ─── Boleta PDF ────────────────────────────────────────────────────────────────
 
+def _client_ip(request):
+    """Devuelve la IP real del cliente teniendo en cuenta proxies."""
+    xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
+def _registrar_lectura_boleta(request, registro):
+    """
+    Registra/actualiza el BoletaPago asociado a `registro` con datos de
+    constancia de recepción (DS 009-2011-TR) cuando es el propio trabajador
+    quien descarga su boleta.
+    """
+    try:
+        from documentos.models import BoletaPago
+        from datetime import date as _date
+
+        # El BoletaPago usa periodo = primer día del mes.
+        periodo_first = _date(registro.periodo.anio, registro.periodo.mes, 1)
+
+        # Mapear el tipo de período de Nomina a tipo BoletaPago
+        tipo_periodo = getattr(registro.periodo, 'tipo', 'MENSUAL') or 'MENSUAL'
+        tipo_boleta = tipo_periodo if tipo_periodo in dict(BoletaPago.TIPO_CHOICES) else 'MENSUAL'
+
+        boleta, _created = BoletaPago.objects.get_or_create(
+            personal=registro.personal,
+            periodo=periodo_first,
+            tipo=tipo_boleta,
+            defaults={
+                'remuneracion_bruta': registro.total_ingresos,
+                'descuentos': registro.total_descuentos,
+                'neto_pagar': registro.neto_a_pagar,
+                'estado': 'PUBLICADA',
+                'fecha_publicacion': timezone.now(),
+            },
+        )
+
+        now = timezone.now()
+        ip = _client_ip(request)
+        ua = (request.META.get('HTTP_USER_AGENT') or '')[:500]
+
+        update_fields = []
+        if not boleta.fecha_lectura:
+            boleta.fecha_lectura = now
+            update_fields.append('fecha_lectura')
+        if ip and boleta.ip_lectura != ip:
+            boleta.ip_lectura = ip
+            update_fields.append('ip_lectura')
+        if ua:
+            boleta.user_agent = ua
+            update_fields.append('user_agent')
+        boleta.metodo_acceso = 'PDF_DESCARGA'
+        update_fields.append('metodo_acceso')
+        if not boleta.confirmada:
+            boleta.confirmada = True
+            boleta.fecha_confirmacion = now
+            update_fields.extend(['confirmada', 'fecha_confirmacion'])
+        if boleta.estado in ('BORRADOR', 'PUBLICADA'):
+            boleta.estado = 'LEIDA'
+            update_fields.append('estado')
+
+        if update_fields:
+            boleta.save(update_fields=list(set(update_fields)))
+    except Exception as exc:
+        logger.warning('Error registrando lectura boleta: %s', exc)
+
+
 @login_required
 def boleta_pdf(request, pk):
     """
     Descarga la boleta de pago en PDF para un RegistroNomina.
     - Superusers/staff pueden ver cualquier boleta.
     - Trabajadores solo pueden ver sus propias boletas (via portal).
+    Cuando es el propio trabajador, se marca el BoletaPago asociado como
+    confirmado (DS 009-2011-TR).
     """
     registro = get_object_or_404(
         RegistroNomina.objects.select_related('personal', 'periodo'),
         pk=pk,
     )
 
+    # Determinar si es el propio trabajador (para tracking)
+    user_personal = getattr(request.user, 'personal_data', None)
+    es_trabajador_propio = (
+        not (request.user.is_superuser or request.user.is_staff)
+        and user_personal is not None
+        and user_personal == registro.personal
+    )
+
     # Control acceso: solo admin o el propio trabajador
     if not (request.user.is_superuser or request.user.is_staff):
-        if not hasattr(request.user, 'personal') or request.user.personal != registro.personal:
+        if user_personal is None or user_personal != registro.personal:
             from django.http import HttpResponseForbidden
             return HttpResponseForbidden('No tienes permiso para ver esta boleta.')
 
@@ -1037,6 +1133,10 @@ def boleta_pdf(request, pk):
         messages.error(request, f'Error generando PDF: {e}')
         return redirect('nominas_registro_detalle', pk=pk)
 
+    # Tracking de lectura para trabajador propio (constancia DS 009-2011-TR)
+    if es_trabajador_propio:
+        _registrar_lectura_boleta(request, registro)
+
     nombre = (
         f'Boleta_{registro.personal.nro_doc}_'
         f'{registro.periodo.anio}{registro.periodo.mes:02d}.pdf'
@@ -1044,6 +1144,95 @@ def boleta_pdf(request, pk):
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="{nombre}"'
     return response
+
+
+# ─── Verificación pública de boleta (QR) ──────────────────────────────────────
+
+def verificar_boleta(request, token):
+    """
+    Vista pública (sin login) para verificar la validez de una boleta a partir
+    del token contenido en el QR del PDF.
+    """
+    from .pdf import generar_token_verificacion
+
+    if not token or len(token) != 32:
+        return render(request, 'nominas/boleta_verificacion.html',
+                      {'encontrado': False, 'mensaje': 'Token inválido.'},
+                      status=404)
+
+    # No tenemos índice del token (es derivado). En la práctica son pocas
+    # boletas por trabajador, pero para el verificador iteramos sobre los
+    # registros recientes y comparamos en memoria. Optimización: limitar
+    # a los últimos 24 meses.
+    from datetime import timedelta
+    desde = timezone.now().date() - timedelta(days=730)
+    qs = (
+        RegistroNomina.objects
+        .select_related('personal', 'periodo')
+        .filter(periodo__fecha_fin__gte=desde)
+    )
+
+    match = None
+    for reg in qs.iterator():
+        try:
+            if generar_token_verificacion(reg) == token:
+                match = reg
+                break
+        except Exception:
+            continue
+
+    if not match:
+        return render(request, 'nominas/boleta_verificacion.html',
+                      {'encontrado': False,
+                       'mensaje': 'Boleta no encontrada o token inválido.'},
+                      status=404)
+
+    # Datos públicos enmascarados
+    dni = str(match.personal.nro_doc or '')
+    if len(dni) >= 6:
+        dni_mask = f"{dni[:2]}***{dni[-4:]}"
+    else:
+        dni_mask = "***"
+
+    nombres_completos = str(match.personal.apellidos_nombres or '').strip()
+    # Primer apellido + primer nombre. apellidos_nombres suele venir "APELLIDOS, NOMBRES".
+    if ',' in nombres_completos:
+        apellidos_part, nombres_part = nombres_completos.split(',', 1)
+        primer_apellido = apellidos_part.strip().split(' ')[0] if apellidos_part.strip() else ''
+        primer_nombre = nombres_part.strip().split(' ')[0] if nombres_part.strip() else ''
+    else:
+        partes = nombres_completos.split()
+        primer_apellido = partes[0] if partes else ''
+        primer_nombre = partes[-1] if len(partes) > 1 else ''
+    nombre_publico = f"{primer_nombre} {primer_apellido}".strip() or 'Trabajador'
+
+    # Empresa
+    empresa_nombre = 'Empresa'
+    try:
+        from core.context_processors import _get_config
+        cfg = _get_config()
+        if cfg:
+            empresa_nombre = cfg.empresa_nombre or 'Empresa'
+    except Exception:
+        pass
+
+    periodo = match.periodo
+    periodo_str = f"{periodo.mes_nombre} {periodo.anio}" if periodo else ''
+    fecha_emision = (
+        periodo.fecha_fin.strftime('%d/%m/%Y')
+        if periodo and periodo.fecha_fin else ''
+    )
+
+    return render(request, 'nominas/boleta_verificacion.html', {
+        'encontrado': True,
+        'dni_mask': dni_mask,
+        'nombre': nombre_publico,
+        'empresa': empresa_nombre,
+        'periodo': periodo_str,
+        'neto': match.neto_a_pagar,
+        'fecha_emision': fecha_emision,
+        'hash_integridad': getattr(match, 'hash_integridad', '') or '',
+    })
 
 
 # ─── Gratificaciones Panel ─────────────────────────────────────────────────────

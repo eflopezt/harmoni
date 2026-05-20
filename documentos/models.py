@@ -319,6 +319,19 @@ class BoletaPago(models.Model):
     # Constancia de lectura (DS 009-2011-TR)
     fecha_lectura = models.DateTimeField(null=True, blank=True)
     ip_lectura = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(
+        max_length=500, blank=True, null=True,
+        help_text="User-Agent del navegador al momento de la lectura"
+    )
+    METODO_ACCESO_CHOICES = [
+        ('PORTAL_WEB', 'Portal Web'),
+        ('EMAIL', 'Email'),
+        ('PDF_DESCARGA', 'Descarga PDF'),
+    ]
+    metodo_acceso = models.CharField(
+        max_length=15, choices=METODO_ACCESO_CHOICES, default='PORTAL_WEB',
+        help_text="Canal por el que el trabajador accedió a la boleta"
+    )
     confirmada = models.BooleanField(
         default=False,
         help_text="Trabajador confirmó recepción de la boleta"

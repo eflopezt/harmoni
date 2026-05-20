@@ -4,6 +4,7 @@ Nominas - Generador de Boletas de Pago PDF.
 Usa ReportLab (dep de xhtml2pdf). Migrado desde xhtml2pdf para evitar
 el bug TypeError NoneType>NoneType (negative availWidth en tablas anidadas).
 """
+import hashlib
 import io
 import logging
 from decimal import Decimal
@@ -12,12 +13,15 @@ logger = logging.getLogger('nominas.pdf')
 
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable,
+    Image as RLImage,
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+
+from django.conf import settings
 
 
 # Paleta Harmoni
@@ -59,6 +63,77 @@ def _p(text, style):
     return Paragraph(text, style)
 
 
+def _truncate(text, n):
+    """Trunca con ellipsis si supera n chars."""
+    if text is None:
+        return ""
+    s = str(text)
+    return s if len(s) <= n else s[: max(1, n - 1)] + "..."
+
+
+def generar_token_verificacion(registro):
+    """
+    Token de verificación pública (32 chars). Estable mientras no cambien:
+    id, DNI, neto, fecha_fin del periodo, y SECRET_KEY.
+    """
+    try:
+        personal = registro.personal
+        periodo = registro.periodo
+        neto = registro.neto_a_pagar or Decimal("0")
+        fecha_fin = periodo.fecha_fin if periodo and periodo.fecha_fin else ""
+        secret = getattr(settings, "SECRET_KEY", "")
+        raw = f"{registro.id}|{personal.nro_doc}|{neto}|{fecha_fin}|{secret}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+    except Exception as exc:
+        logger.warning("Error generando token verificacion: %s", exc)
+        return ""
+
+
+def calcular_hash_integridad(registro):
+    """
+    Hash interno (16 chars) del snapshot inmutable del registro.
+    No depende del SECRET_KEY: dos sistemas con los mismos datos generan el mismo hash.
+    """
+    try:
+        personal = registro.personal
+        periodo = registro.periodo
+        neto = registro.neto_a_pagar or Decimal("0")
+        fecha_fin = periodo.fecha_fin if periodo and periodo.fecha_fin else ""
+        raw = f"{neto}|{fecha_fin}|{personal.nro_doc}|{periodo.id if periodo else ''}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+    except Exception as exc:
+        logger.warning("Error calculando hash integridad: %s", exc)
+        return ""
+
+
+def _build_qr_image(url, size_mm=20):
+    """
+    Genera un QR PNG en memoria para `url` y devuelve un reportlab.platypus.Image
+    o None si la librería qrcode no está disponible.
+    """
+    try:
+        import qrcode  # opcional — no quiero forzar la dep en tiempo de import
+    except Exception:
+        return None
+    try:
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=2,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        return RLImage(buf, width=size_mm * mm, height=size_mm * mm)
+    except Exception as exc:
+        logger.warning("Error renderizando QR: %s", exc)
+        return None
+
+
 def generar_boleta_pdf(registro):
     """Genera la boleta de pago PDF para RegistroNomina. Returns bytes."""
     PAGE_W, PAGE_H = A4
@@ -93,6 +168,8 @@ def generar_boleta_pdf(registro):
     net_fml  = sty("net_fml", fontSize=7.5, textColor=C_GREEN_E, alignment=TA_RIGHT)
     net_val  = sty("net_val", fontName="Courier-Bold", fontSize=15, alignment=TA_RIGHT, textColor=C_WHITE)
     ft_note  = sty("ft_note", fontSize=7, textColor=C_GRAY_T, alignment=TA_CENTER)
+    ft_legal = sty("ft_legal",fontSize=7, textColor=C_GRAY_T, alignment=TA_CENTER, leading=8.5)
+    ft_hash  = sty("ft_hash", fontSize=6.5, textColor=C_GRAY_T, fontName="Courier")
     cut_st   = sty("cut_st",  fontSize=6.5, textColor=C_GRAY_T, alignment=TA_CENTER)
     badge_s  = sty("badge_s", fontSize=7, fontName="Helvetica-Bold", textColor=C_ACCENT)
     badge_r  = sty("badge_r", fontSize=7, fontName="Helvetica-Bold", textColor=C_PURP_L)
@@ -197,6 +274,20 @@ def generar_boleta_pdf(registro):
     if registro.dias_falta and registro.dias_falta > 0:
         plural = "s" if registro.dias_falta != 1 else ""
         dias_str += f"  ({registro.dias_falta} falta{plural})"
+
+    # Token de verificación pública y hash de integridad
+    token = generar_token_verificacion(registro)
+    hash_int = calcular_hash_integridad(registro)
+    # Persistir hash_integridad si cambió y el campo existe.
+    try:
+        if hash_int and hasattr(registro, "hash_integridad") and registro.hash_integridad != hash_int:
+            registro.hash_integridad = hash_int
+            registro.save(update_fields=["hash_integridad"])
+    except Exception as exc:
+        logger.warning("No se pudo persistir hash_integridad: %s", exc)
+
+    base_url = getattr(settings, "BOLETA_VERIFY_BASE_URL", "https://harmoni.pe")
+    verify_url = f"{base_url.rstrip('/')}/nominas/verificar/{token}/" if token else ""
 
     # PDF setup
     buf = io.BytesIO()
@@ -377,7 +468,7 @@ def generar_boleta_pdf(registro):
         if banco_nombre or cuenta_cci:
             pp = ["Forma de pago: Deposito bancario"]
             if banco_nombre: pp.append(f"Banco: {banco_nombre}")
-            if cuenta_cci:   pp.append(f"CCI: {cuenta_cci}")
+            if cuenta_cci:   pp.append(f"CCI: {_truncate(cuenta_cci, 30)}")
             pt = Table([[_p("     ".join(pp), pago_st)]], colWidths=[USABLE_W])
             pt.setStyle(TableStyle([
                 ("BACKGROUND",    (0,0),(-1,-1), colors.HexColor("#fafafa")),
@@ -412,10 +503,48 @@ def generar_boleta_pdf(registro):
         except Exception: estado_display = str(getattr(registro, "estado", ""))
         story.append(HRFlowable(width="100%", color=C_GRAY_E, thickness=0.5, dash=(2,2)))
         story.append(Spacer(1, 2))
-        story.append(_p(
+
+        # Bloque QR + meta (izquierda: QR, derecha: leyenda + meta)
+        qr_img = _build_qr_image(verify_url, size_mm=20) if verify_url else None
+        legal_txt = (
+            "RECIBIR Y FIRMAR LA PRESENTE BOLETA NO IMPLICA RENUNCIA AL DERECHO DE "
+            "RECLAMAR LOS PAGOS QUE EL TRABAJADOR CONSIDERE LE CORRESPONDEN "
+            "(DS 009-2011-TR)."
+        )
+        meta_lines = []
+        if token:
+            meta_lines.append(_p(f"Hash: {token[:16]}", ft_hash))
+        if hash_int:
+            meta_lines.append(_p(f"Integridad: {hash_int}", ft_hash))
+        meta_lines.append(_p(legal_txt, ft_legal))
+        meta_lines.append(_p(
             f"Generado por Harmoni ERP - {mes_nombre} {anio} - "
             f"Estado: {estado_display} - Documento informativo. Conserve este comprobante.",
             ft_note))
+
+        if qr_img is not None:
+            # Esquina inferior derecha: QR + hash truncado al costado.
+            # Layout: [leyenda + meta] [QR + hash]
+            qr_cell = [qr_img]
+            if token:
+                qr_cell.append(_p(f"Hash: {token[:16]}", ft_hash))
+            # Excluimos el "Hash:" de la columna izquierda porque va junto al QR.
+            left_lines = [m for m in meta_lines if "Hash:" not in str(getattr(m, "text", ""))]
+            qr_w = 25 * mm
+            ft = Table([[left_lines, qr_cell]],
+                       colWidths=[USABLE_W - qr_w, qr_w])
+            ft.setStyle(TableStyle([
+                ("VALIGN",        (0,0),(-1,-1), "TOP"),
+                ("ALIGN",         (1,0),(1,0),   "RIGHT"),
+                ("LEFTPADDING",   (0,0),(-1,-1), 2),
+                ("RIGHTPADDING",  (0,0),(-1,-1), 2),
+                ("TOPPADDING",    (0,0),(-1,-1), 2),
+                ("BOTTOMPADDING", (0,0),(-1,-1), 2),
+            ]))
+            story.append(ft)
+        else:
+            for line in meta_lines:
+                story.append(line)
 
         # --- SEPARADOR COPIAS ---
         if copia_idx == 0:

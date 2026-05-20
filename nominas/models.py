@@ -135,6 +135,22 @@ class PeriodoNomina(models.Model):
     total_costo_empresa  = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0'),
                                                help_text='Neto + EsSalud + SCTR empleador')
 
+    # ── Snapshot de parámetros legales al momento de crear el período ──
+    # Congela el RMV/UIT vigentes cuando se calcula el período, para que
+    # recálculos posteriores (si el admin cambia ConfiguracionSistema) usen
+    # ese mismo valor y no distorsionen boletas históricas.
+    rmv_snapshot = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal('1130.00'),
+        verbose_name='RMV congelada al período',
+        help_text='RMV vigente al generar el período. Usada en asignación familiar '
+                  'y otros cálculos derivados de la RMV.',
+    )
+    uit_snapshot = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('5500.00'),
+        verbose_name='UIT congelada al período',
+        help_text='UIT vigente al generar el período. Usada en IR 5ta categoría.',
+    )
+
     generado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name='+')
     generado_en  = models.DateTimeField(null=True, blank=True)
@@ -218,6 +234,15 @@ class RegistroNomina(models.Model):
 
     estado        = models.CharField(max_length=12, choices=ESTADO_CHOICES, default='CALCULADO')
     observaciones = models.TextField(blank=True)
+
+    # Hash de integridad: SHA-256 truncado del snapshot inmutable de la boleta.
+    # Permite que el verificador público y la propia boleta declaren la misma huella.
+    hash_integridad = models.CharField(
+        max_length=16,
+        blank=True,
+        db_index=True,
+        help_text='SHA-256 truncado de los datos críticos de la boleta (neto, fecha, DNI, periodo).'
+    )
 
     class Meta:
         verbose_name = 'Registro de Nómina'

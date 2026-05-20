@@ -38,6 +38,7 @@ xhtml2pdf>=0.2.16       # Generación constancias/documentos PDF
 pdfminer.six>=20221105  # Extracción texto PDF (bajas SUNAT, BLIQ liquidación S10)
 pdfplumber>=0.11.0      # Extracción tablas PDF (complemento PyMuPDF, Fase 4.4)
 PyMuPDF>=1.24.0         # Extracción texto PDF para upload IA (fitz)
+qrcode[pil]>=7.4.0      # QR verificación pública en boletas (DS 009-2011-TR)
 
 # ==========================================
 # AI PROVIDERS (Fase 4.4 — Multi-Provider)
