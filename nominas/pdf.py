@@ -511,17 +511,25 @@ def generar_boleta_pdf(registro):
         # Mostradas como informativo para que el trabajador conozca el
         # saldo acumulado a su favor.
         if lineas_provisiones:
+            # Estilos específicos para esta sección
+            prov_title = sty("prov_t", fontSize=8.5, fontName="Helvetica-Bold",
+                             textColor=colors.HexColor("#854d0e"))
+            prov_item  = sty("prov_i", fontSize=8, leading=11,
+                             textColor=colors.HexColor("#713f12"))
+            prov_total = sty("prov_T", fontSize=8.5, fontName="Helvetica-Bold",
+                             textColor=colors.HexColor("#713f12"))
             prov_rows = [
-                [_p("Provisiones acumuladas a tu favor (informativo, no se pagan este mes):", lbl)],
+                [_p("Provisiones acumuladas a tu favor — informativo, no se pagan este mes:",
+                    prov_title)],
             ]
             for lp in lineas_provisiones:
                 prov_rows.append([_p(
-                    f"&nbsp;&nbsp;&middot; {lp['nombre']}: S/ {lp['monto_str']}",
-                    sm,
+                    f"   • {lp['nombre']}: S/ {lp['monto_str']}",
+                    prov_item,
                 )])
             prov_rows.append([_p(
-                f"&nbsp;&nbsp;<b>Total provisionado este mes: S/ {_monto(total_provisiones)}</b>",
-                base,
+                f"   Total provisionado este mes: S/ {_monto(total_provisiones)}",
+                prov_total,
             )])
             pvt = Table(prov_rows, colWidths=[USABLE_W])
             pvt.setStyle(TableStyle([
