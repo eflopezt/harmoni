@@ -295,6 +295,56 @@ class Command(BaseCommand):
         self._crear_regimenes_turno()
         self._crear_conceptos_gastro()
         self._aplicar_propinas_ultima_planilla()
+        self._regenerar_planillas_existentes()
+
+    def _regenerar_planillas_existentes(self):
+        """Regenera todos los periodos REGULAR existentes para incluir los
+        nuevos trabajadores de gastronomía en la planilla. Idempotente: si
+        un periodo no existe (BD recién creada), simplemente se salta."""
+        from nominas.models import PeriodoNomina
+        from nominas.engine import generar_periodo
+        from datetime import date
+
+        # Garantizar que existe un período Mayo 2026 para que la demo tenga
+        # data en "este mes". Si los seeds previos no lo crearon, lo creamos.
+        try:
+            from nominas.models import PeriodoNomina as PN
+            PN.objects.get_or_create(
+                anio=2026, mes=5, tipo='REGULAR',
+                defaults={
+                    'fecha_inicio': date(2026, 5, 1),
+                    'fecha_fin': date(2026, 5, 31),
+                    'descripcion': 'Planilla Mayo 2026',
+                    'estado': 'CALCULADO',
+                },
+            )
+        except Exception as exc:
+            self.resumen['todos'].append(f'No se pudo crear/asegurar período Mayo 2026: {exc}')
+
+        regenerados = 0
+        for p in PeriodoNomina.objects.filter(tipo='REGULAR').order_by('-fecha_fin'):
+            estado_orig = p.estado
+            try:
+                # Si está APROBADO/CERRADO, bajar a CALCULADO para permitir regen
+                if estado_orig in ('APROBADO', 'CERRADO'):
+                    p.estado = 'CALCULADO'
+                    p.save(update_fields=['estado'])
+                generar_periodo(p)
+                # Restaurar estado original (mantiene el "look and feel" del demo)
+                if p.estado != estado_orig:
+                    p.estado = estado_orig
+                    p.save(update_fields=['estado'])
+                regenerados += 1
+            except Exception as exc:
+                self.resumen['todos'].append(
+                    f'No se pudo regenerar período {p.descripcion or p.pk}: {exc}'
+                )
+        if regenerados:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'  [+] Planillas regeneradas con todos los workers: {regenerados} períodos'
+                )
+            )
 
     # ─────────────────────────────────────────────────────────────────────
     # 1. Empresas multi-RUC
