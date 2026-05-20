@@ -1022,11 +1022,41 @@ def mi_nomina(request):
         lineas_ingresos = [l for l in lineas_reciente if l.concepto.tipo == 'INGRESO']
         lineas_descuentos = [l for l in lineas_reciente if l.concepto.tipo == 'DESCUENTO']
 
+        # Comparativa contra el período inmediato anterior (mismo tipo)
+        registro_anterior = None
+        variacion_neto = None
+        variacion_pct = None
+        if registro_reciente and len(registros) > 1:
+            for r in registros[1:]:
+                if r.periodo.tipo == registro_reciente.periodo.tipo:
+                    registro_anterior = r
+                    break
+            if registro_anterior and registro_anterior.neto_a_pagar:
+                from decimal import Decimal
+                variacion_neto = registro_reciente.neto_a_pagar - registro_anterior.neto_a_pagar
+                if registro_anterior.neto_a_pagar:
+                    variacion_pct = (variacion_neto / registro_anterior.neto_a_pagar) * Decimal('100')
+
+        # ¿IA disponible para explicar boleta?
+        ia_explicador_activo = False
+        try:
+            import os
+            ia_explicador_activo = bool(
+                os.environ.get('GEMINI_API_KEY') or os.environ.get('OPENAI_API_KEY')
+                or os.environ.get('DEEPSEEK_API_KEY')
+            )
+        except Exception:
+            pass
+
         context.update({
             'registros': registros,
             'registro_reciente': registro_reciente,
+            'registro_anterior': registro_anterior,
+            'variacion_neto': variacion_neto,
+            'variacion_pct': variacion_pct,
             'lineas_ingresos': lineas_ingresos,
             'lineas_descuentos': lineas_descuentos,
+            'ia_explicador_activo': ia_explicador_activo,
         })
 
     return render(request, 'portal/mi_nomina.html', context)

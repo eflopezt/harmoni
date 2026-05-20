@@ -1,98 +1,236 @@
-{% extends "base.html" %}
+{% extends 'portal/base_portal.html' %}
 {% load humanize %}
 
 {% block title %}Mis Boletas de Pago{% endblock %}
+{% block mobile_title %}Mis Boletas{% endblock %}
+{% block tab_boletas %}active{% endblock %}
 
-{% block content %}
-<h2 class="mb-3"><i class="fas fa-file-invoice-dollar text-secondary me-2"></i>{{ titulo }}</h2>
+{% block page_title %}
+<h1 class="topbar-h1"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Mis Boletas de Pago</h1>
+{% endblock %}
+
+{% block portal_extra_css %}
+<style>
+.boletas-header {
+    background: linear-gradient(135deg, #0d2b27 0%, #134e4a 100%);
+    border-radius: 12px;
+    padding: 20px 24px;
+    color: #fff;
+    margin-bottom: 20px;
+}
+.boletas-kpi {
+    text-align: center;
+    padding: 12px 8px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.16);
+}
+.boletas-kpi-num { font-size: 1.5rem; font-weight: 700; line-height: 1.05; color: #5eead4; }
+.boletas-kpi-lbl { font-size: .7rem; color: rgba(255,255,255,.7); margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; }
+
+.boleta-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: #fff;
+    transition: box-shadow .15s, transform .12s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.boleta-card:hover { box-shadow: 0 6px 18px rgba(15,118,110,.10); transform: translateY(-1px); }
+.boleta-icon {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: #f0fdfa;
+    color: #0f766e;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+.boleta-meta { flex: 1; min-width: 0; }
+.boleta-titulo { font-weight: 600; color: #0f172a; font-size: .92rem; margin-bottom: 2px; }
+.boleta-sub { font-size: .76rem; color: #64748b; }
+.boleta-monto { font-weight: 700; color: #0f766e; font-variant-numeric: tabular-nums; font-size: .98rem; }
+.boleta-acciones { display: flex; gap: 6px; flex-shrink: 0; }
+.boleta-acciones .btn { padding: 4px 10px; font-size: .76rem; border-radius: 6px; }
+
+.boleta-pending {
+    border-left: 3px solid #f59e0b;
+    background: linear-gradient(to right, #fffbeb 0%, #fff 30%);
+}
+.boleta-read { border-left: 3px solid #10b981; }
+.boleta-old { opacity: .85; }
+
+.year-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #f0fdfa;
+    color: #0f766e;
+    border: 1px solid #99f6e4;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.year-pill.active { background: #0f766e; color: #fff; border-color: #0f766e; }
+
+.legal-note {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: .76rem;
+    color: #64748b;
+    margin-top: 14px;
+    line-height: 1.5;
+}
+</style>
+{% endblock %}
+
+{% block portal_content %}
 
 {% if not empleado %}
-<div class="alert alert-info">No tienes un perfil de empleado vinculado a tu usuario.</div>
+<div class="alert alert-warning d-flex align-items-center gap-3">
+    <i class="fas fa-exclamation-triangle fa-lg flex-shrink-0"></i>
+    <div>
+        <strong>Cuenta no vinculada.</strong>
+        Tu usuario no está vinculado a un registro de empleado.
+        Contacta a RRHH o TI.
+    </div>
+</div>
 {% else %}
 
-<!-- Stats -->
-<div class="row g-3 mb-3">
-    <div class="col-4">
-        <div class="stat-card"><div class="stat-value text-primary">{{ stats.total }}</div><div class="stat-label">Total {{ anio_filtro }}</div></div>
-    </div>
-    <div class="col-4">
-        <div class="stat-card"><div class="stat-value text-success">{{ stats.leidas }}</div><div class="stat-label">Leídas</div></div>
-    </div>
-    <div class="col-4">
-        <div class="stat-card"><div class="stat-value text-warning">{{ stats.pendientes }}</div><div class="stat-label">Pendientes</div></div>
+<!-- Encabezado con stats -->
+<div class="boletas-header">
+    <div class="row align-items-center g-3">
+        <div class="col">
+            <div style="font-size:.72rem;opacity:.75;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">
+                Trabajador
+            </div>
+            <h2 class="mb-0 fw-bold" style="font-size:1.1rem">{{ empleado.apellidos_nombres }}</h2>
+            <p class="mb-0 mt-1" style="font-size:.8rem;opacity:.8">
+                Año <strong>{{ anio_filtro }}</strong> · {{ stats.total }} boleta{{ stats.total|pluralize }}
+            </p>
+        </div>
+        <div class="col-auto">
+            <div class="row g-2">
+                <div class="col-4 col-md-auto" style="min-width:78px">
+                    <div class="boletas-kpi">
+                        <div class="boletas-kpi-num">{{ stats.total }}</div>
+                        <div class="boletas-kpi-lbl">Total</div>
+                    </div>
+                </div>
+                <div class="col-4 col-md-auto" style="min-width:78px">
+                    <div class="boletas-kpi">
+                        <div class="boletas-kpi-num" style="color:#86efac">{{ stats.leidas }}</div>
+                        <div class="boletas-kpi-lbl">Leídas</div>
+                    </div>
+                </div>
+                <div class="col-4 col-md-auto" style="min-width:78px">
+                    <div class="boletas-kpi">
+                        <div class="boletas-kpi-num" style="color:#fbbf24">{{ stats.pendientes }}</div>
+                        <div class="boletas-kpi-lbl">Por leer</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Filtro año -->
-<div class="mb-3">
-    <form method="get" class="d-flex gap-2 align-items-center">
-        <label class="form-label mb-0 small">Año:</label>
-        <select name="anio" class="form-select form-select-sm" style="width:100px" onchange="this.form.submit()">
-            {% for y in "2024 2025 2026 2027"|make_list %}{% endfor %}
-            <option value="{{ anio_actual|add:"-2" }}" {% if anio_filtro == anio_actual|add:"-2"|stringformat:"d" %}selected{% endif %}>{{ anio_actual|add:"-2" }}</option>
-            <option value="{{ anio_actual|add:"-1" }}" {% if anio_filtro == anio_actual|add:"-1"|stringformat:"d" %}selected{% endif %}>{{ anio_actual|add:"-1" }}</option>
-            <option value="{{ anio_actual }}" {% if anio_filtro == anio_actual|stringformat:"d" %}selected{% endif %}>{{ anio_actual }}</option>
-        </select>
-    </form>
-</div>
+<!-- Selector año (pills) -->
+<form method="get" id="form-anio" class="d-flex flex-wrap gap-2 mb-3" style="align-items:center">
+    <span class="text-muted small me-1">Año:</span>
+    {% for y_opt in anios_disponibles %}
+        <button type="submit" name="anio" value="{{ y_opt }}"
+                class="year-pill{% if anio_filtro|stringformat:'d' == y_opt|stringformat:'d' %} active{% endif %}">
+            {{ y_opt }}
+        </button>
+    {% endfor %}
+</form>
 
 <!-- Lista de boletas -->
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0" style="font-size:.85rem;">
-            <thead>
-                <tr>
-                    <th>Período</th>
-                    <th>Tipo</th>
-                    <th class="text-end">Neto a Pagar</th>
-                    <th class="text-center">Estado</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for b in boletas %}
-                <tr>
-                    <td class="fw-semibold">{{ b.periodo|date:"F Y" }}</td>
-                    <td>{{ b.get_tipo_display }}</td>
-                    <td class="text-end fw-semibold">{% if b.neto_pagar %}S/ {{ b.neto_pagar|floatformat:2|intcomma }}{% else %}—{% endif %}</td>
-                    <td class="text-center">
-                        {% if b.estado == 'LEIDA' %}<span class="badge bg-success"><i class="fas fa-check me-1"></i>Leída</span>
-                        {% else %}<span class="badge bg-primary">Nueva</span>{% endif %}
-                    </td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <a href="{{ b.archivo.url }}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2"><i class="fas fa-download me-1"></i>PDF</a>
-                            {% if b.estado == 'PUBLICADA' %}
-                            <button class="btn btn-xs btn-outline-success py-0 px-2" onclick="confirmar({{ b.pk }})"><i class="fas fa-check me-1"></i>Confirmar</button>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="text-center text-muted py-4">No hay boletas disponibles para este año.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{% if boletas %}
+<div>
+    {% for b in boletas %}
+    <div class="boleta-card {% if b.estado == 'PUBLICADA' %}boleta-pending{% elif b.estado == 'LEIDA' %}boleta-read{% else %}boleta-old{% endif %}">
+        <div class="boleta-icon">
+            <i class="fas fa-file-invoice-dollar"></i>
+        </div>
+        <div class="boleta-meta">
+            <div class="boleta-titulo">{{ b.periodo|date:"F Y"|capfirst }}</div>
+            <div class="boleta-sub">
+                {{ b.get_tipo_display }}
+                {% if b.estado == 'PUBLICADA' %}
+                    · <span style="color:#b45309;font-weight:600"><i class="fas fa-circle fa-xs"></i> Nueva</span>
+                {% elif b.estado == 'LEIDA' %}
+                    · <span style="color:#059669"><i class="fas fa-check fa-xs"></i> Leída {{ b.fecha_lectura|date:"d/m/Y"|default:"" }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="d-none d-sm-block boleta-monto">
+            {% if b.neto_pagar %}S/ {{ b.neto_pagar|floatformat:2|intcomma }}{% else %}—{% endif %}
+        </div>
+        <div class="boleta-acciones">
+            <a href="{{ b.archivo.url }}" target="_blank" rel="noopener"
+               class="btn btn-outline-primary"
+               title="Descargar boleta PDF">
+                <i class="fas fa-download"></i>
+                <span class="d-none d-md-inline ms-1">PDF</span>
+            </a>
+            {% if b.estado == 'PUBLICADA' %}
+            <button class="btn btn-success" onclick="confirmar({{ b.pk }})"
+                    title="Confirmar lectura">
+                <i class="fas fa-check"></i>
+                <span class="d-none d-md-inline ms-1">Confirmar</span>
+            </button>
+            {% endif %}
+        </div>
     </div>
+    {% endfor %}
 </div>
 
-<div class="mt-2">
-    <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Al confirmar la lectura, se genera constancia de recepción según DS 009-2011-TR.</small>
+<div class="legal-note">
+    <i class="fas fa-info-circle me-1 text-primary"></i>
+    Al <strong>confirmar la lectura</strong> de una boleta, el sistema genera una constancia
+    de recepción con fecha y hora — válida según <strong>DS 009-2011-TR</strong>.
 </div>
+
+{% else %}
+<!-- Estado vacío -->
+<div class="card shadow-sm border-0">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-file-invoice-dollar fa-3x mb-3" style="color:#cbd5e1"></i>
+        <h5 class="text-muted fw-semibold">Sin boletas para {{ anio_filtro }}</h5>
+        <p class="text-muted small mb-0">
+            No hay boletas publicadas para este año.<br>
+            Las boletas se publican mensualmente al cierre de planilla.
+        </p>
+    </div>
+</div>
+{% endif %}
+
 {% endif %}
 {% endblock %}
 
-{% block extra_js %}
+{% block portal_extra_js %}
 <script>
 function confirmar(pk) {
-    if(!confirm('¿Confirmar recepción de esta boleta?')) return;
+    if (!confirm('¿Confirmar que recibiste y leíste esta boleta?\n\nSe generará constancia de recepción según DS 009-2011-TR.')) return;
     fetch(`/documentos/boletas/${pk}/confirmar/`, {
-        method:'POST',
-        headers:{'X-CSRFToken':'{{ csrf_token }}'}
-    }).then(r=>r.json()).then(d=>{
-        if(d.ok) location.reload();
-        else alert(d.error || 'Error al confirmar');
-    });
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            location.reload();
+        } else {
+            alert(d.error || 'No se pudo confirmar. Intenta nuevamente.');
+        }
+    })
+    .catch(() => alert('Error de conexión. Intenta nuevamente.'));
 }
 </script>
 {% endblock %}

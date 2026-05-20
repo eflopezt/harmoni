@@ -1178,15 +1178,35 @@ def mis_boletas(request):
     boletas = []
     stats = {}
 
+    anio_actual = date.today().year
+    anio_filtro = int(request.GET.get('anio', anio_actual))
+    anios_disponibles = []
+
     if empleado:
+        # Años disponibles según boletas que tiene el empleado (para pills)
+        anios_disponibles = list(
+            BoletaPago.objects.filter(
+                personal=empleado,
+                estado__in=['PUBLICADA', 'LEIDA'],
+            ).dates('periodo', 'year', order='DESC').values_list('periodo__year', flat=True)
+        ) if False else []
+        # dates() devuelve datetime; usamos distinct anios via values_list
+        anios_set = set(
+            BoletaPago.objects.filter(
+                personal=empleado,
+                estado__in=['PUBLICADA', 'LEIDA'],
+            ).values_list('periodo__year', flat=True)
+        )
+        # Garantizar que el año actual y el filtrado siempre estén en la lista
+        anios_set.add(anio_actual)
+        anios_set.add(anio_filtro)
+        anios_disponibles = sorted(anios_set, reverse=True)
+
         qs = BoletaPago.objects.filter(
             personal=empleado,
             estado__in=['PUBLICADA', 'LEIDA'],
+            periodo__year=anio_filtro,
         ).order_by('-periodo')
-
-        anio = request.GET.get('anio', str(date.today().year))
-        if anio:
-            qs = qs.filter(periodo__year=int(anio))
 
         boletas = qs
         stats = {
@@ -1194,14 +1214,17 @@ def mis_boletas(request):
             'leidas': qs.filter(estado='LEIDA').count(),
             'pendientes': qs.filter(estado='PUBLICADA').count(),
         }
+    else:
+        anios_disponibles = [anio_actual]
 
     context = {
         'titulo': 'Mis Boletas de Pago',
         'empleado': empleado,
         'boletas': boletas,
         'stats': stats,
-        'anio_actual': date.today().year,
-        'anio_filtro': request.GET.get('anio', str(date.today().year)),
+        'anio_actual': anio_actual,
+        'anio_filtro': anio_filtro,
+        'anios_disponibles': anios_disponibles,
     }
     return render(request, 'documentos/mis_boletas.html', context)
 
