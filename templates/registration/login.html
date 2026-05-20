@@ -77,6 +77,27 @@
         </div>
         {% endif %}
 
+        {% if DEMO_MODE %}
+        <div class="alert mb-4" role="status"
+             style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1px solid #fdba74;border-radius:10px;padding:14px 16px;font-size:.85rem">
+            <div style="font-weight:700;color:#9a3412;margin-bottom:6px">
+                <i class="fas fa-bullseye-arrow me-1"></i> MODO DEMO — Credenciales de prueba
+            </div>
+            <div style="color:#7c2d12;line-height:1.55">
+                <strong>Administrador RR.HH.:</strong>
+                <code style="background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px">demo</code>
+                /
+                <code style="background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px">demo</code>
+                <br>
+                <strong>Trabajador (cualquiera):</strong>
+                su <strong>DNI</strong> (ej.
+                <code style="background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px">71445678</code>)
+                /
+                <code style="background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px">demo123</code>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Formulario -->
         <form method="post" action="{% url 'login' %}" class="auth-form">
             {% csrf_token %}

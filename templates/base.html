@@ -1481,6 +1481,19 @@
 <script src="{% static 'js/harmoni-ai-chat.js' %}?v=6"></script>
 {% endif %}
 
+{# Sistema de toast global — disponible en TODAS las páginas, autenticado o no #}
+<script src="{% static 'js/harmoni-toast.js' %}?v=1"></script>
+
+{# Auto-pickup de Django messages framework → toasts #}
+{% if messages %}
+<div style="display:none">
+    {% for m in messages %}
+    <span class="django-messages-toast"
+          data-type="{% if m.tags == 'error' %}error{% elif m.tags == 'warning' %}warning{% elif m.tags == 'info' or m.tags == 'debug' %}info{% else %}success{% endif %}">{{ m|escape }}</span>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% block extra_js %}{% endblock %}
 
 <!-- Fix Bootstrap modals: move to <body> to avoid stacking context issues

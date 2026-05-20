@@ -121,6 +121,33 @@ def portal_home(request):
         except Exception:
             pass
 
+        # ── Último recibo calculado ────────────────────────────
+        ultimo_recibo = None
+        try:
+            from nominas.models import RegistroNomina
+            ultimo_recibo = (
+                RegistroNomina.objects
+                .filter(personal=empleado)
+                .select_related('periodo')
+                .order_by('-periodo__anio', '-periodo__mes')
+                .first()
+            )
+        except Exception:
+            pass
+
+        # ── Préstamo activo (en curso con cuotas pendientes) ──
+        prestamo_activo = None
+        try:
+            from prestamos.models import Prestamo
+            prestamo_activo = (
+                Prestamo.objects
+                .filter(personal=empleado, estado='EN_CURSO')
+                .order_by('-fecha_aprobacion')
+                .first()
+            )
+        except Exception:
+            pass
+
         # ── Notificaciones recientes no leídas ────────────────
         notif_recientes = []
         try:
@@ -199,6 +226,8 @@ def portal_home(request):
             'vac_proxima': vac_proxima,
             'caps_proximas': caps_proximas,
             'notif_recientes': notif_recientes,
+            'ultimo_recibo': ultimo_recibo,
+            'prestamo_activo': prestamo_activo,
             'antiguedad': antiguedad,
             'es_mi_aniversario': es_mi_aniversario,
             'mi_aniversario_anios': mi_aniversario_anios,

@@ -225,12 +225,13 @@ function confirmar(pk) {
     .then(r => r.json())
     .then(d => {
         if (d.ok) {
-            location.reload();
+            harmoniToast('Boleta confirmada ✓ — Constancia generada.', 'success');
+            setTimeout(() => location.reload(), 900);
         } else {
-            alert(d.error || 'No se pudo confirmar. Intenta nuevamente.');
+            harmoniToast(d.error || 'No se pudo confirmar. Intenta nuevamente.', 'error');
         }
     })
-    .catch(() => alert('Error de conexión. Intenta nuevamente.'));
+    .catch(() => harmoniToast('Error de conexión. Intenta nuevamente.', 'error'));
 }
 </script>
 {% endblock %}

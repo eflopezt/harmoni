@@ -186,6 +186,32 @@
         </a>
     </div>
     {% endif %}
+    {% if ultimo_recibo %}
+    <div class="col-6 col-md-3">
+        <a href="{% url 'portal_mi_nomina' %}" class="text-decoration-none">
+        <div class="portal-kpi" style="padding:10px;border-color:#5eead4;background:#f0fdfa;">
+            <div class="portal-kpi-icon" style="font-size:.8rem;margin-bottom:3px;color:#0f766e;"><i class="fas fa-receipt"></i></div>
+            <div class="portal-kpi-num" style="font-size:.95rem;color:#0f766e;">
+                S/ {{ ultimo_recibo.neto_a_pagar|floatformat:0 }}
+            </div>
+            <div class="portal-kpi-lbl">Último neto ({{ ultimo_recibo.periodo.mes_nombre|truncatechars:5 }})</div>
+        </div>
+        </a>
+    </div>
+    {% endif %}
+    {% if prestamo_activo %}
+    <div class="col-6 col-md-3">
+        <a href="{% url 'mis_prestamos' %}" class="text-decoration-none">
+        <div class="portal-kpi" style="padding:10px;border-color:#fda4af;background:#fff1f2;">
+            <div class="portal-kpi-icon" style="font-size:.8rem;margin-bottom:3px;color:#be123c;"><i class="fas fa-hand-holding-usd"></i></div>
+            <div class="portal-kpi-num" style="font-size:.95rem;color:#be123c;">
+                S/ {{ prestamo_activo.saldo_pendiente|floatformat:0 }}
+            </div>
+            <div class="portal-kpi-lbl">Préstamo activo ({{ prestamo_activo.cuotas_pagadas }}/{{ prestamo_activo.num_cuotas }})</div>
+        </div>
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Main grid -->
