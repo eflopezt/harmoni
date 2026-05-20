@@ -57,14 +57,24 @@ SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
-# Content Security Policy (via middleware)
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com")
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com")
-CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com")
-CSP_IMG_SRC = ("'self'", "data:", "https:")
-CSP_CONNECT_SRC = ("'self'",)
-CSP_FRAME_ANCESTORS = ("'self'",)
+# Content Security Policy — django-csp 4.x API (dict)
+# Audit security fix 2026-05-20: antes usaba constantes CSP_* (django-csp 3.x)
+# que ya no aplican en la version 4 instalada. Migrado al formato dict.
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src":     ["'self'"],
+        "script-src":      ["'self'", "'unsafe-inline'", "'unsafe-eval'",
+                             "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+        "style-src":       ["'self'", "'unsafe-inline'",
+                             "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com",
+                             "https://fonts.googleapis.com"],
+        "font-src":        ["'self'", "https://fonts.gstatic.com",
+                             "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+        "img-src":         ["'self'", "data:", "https:"],
+        "connect-src":     ["'self'"],
+        "frame-ancestors": ["'self'"],
+    },
+}
 
 # Database - PostgreSQL for production
 DATABASE_URL = os.environ.get('DATABASE_URL')
