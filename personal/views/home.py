@@ -829,15 +829,26 @@ def alertas_dia(request):
         })
 
     # ── 2. Cumpleaños esta semana (próximos 7 días, excl. hoy) ─────────
+    # Perf audit fix: antes hacia 7 queries en loop. Ahora 1 sola con Q | Q.
+    from django.db.models import Q as _Q
     cump_semana = []
-    for delta in range(1, 8):
-        dia = hoy + timedelta(days=delta)
-        ps = personal_activo.filter(
-            fecha_nacimiento__month=dia.month,
-            fecha_nacimiento__day=dia.day,
-        ).values('pk', 'apellidos_nombres', 'cargo', 'fecha_nacimiento')
-        for p in ps:
-            cump_semana.append((dia, p))
+    dias_semana = [hoy + timedelta(days=delta) for delta in range(1, 8)]
+    q_semana = _Q()
+    for d in dias_semana:
+        q_semana |= _Q(fecha_nacimiento__month=d.month, fecha_nacimiento__day=d.day)
+    if dias_semana:
+        ps_all = list(personal_activo.filter(q_semana).values(
+            'pk', 'apellidos_nombres', 'cargo', 'fecha_nacimiento'
+        ))
+        # Reagrupo por dia en Python
+        for p in ps_all:
+            fn = p['fecha_nacimiento']
+            if not fn:
+                continue
+            for d in dias_semana:
+                if fn.month == d.month and fn.day == d.day:
+                    cump_semana.append((d, p))
+                    break
 
     if cump_semana:
         nombres = ', '.join(p['apellidos_nombres'].split(',')[0] for _, p in cump_semana[:3])
@@ -853,24 +864,28 @@ def alertas_dia(request):
         })
 
     # ── 3. Aniversarios de ingreso notables (hoy) ──────────────────────
-    for anios in [20, 15, 10, 5, 1]:
-        anio_ingreso = hoy.year - anios
-        aniv = personal_activo.filter(
-            fecha_alta__year=anio_ingreso,
-            fecha_alta__month=hoy.month,
-            fecha_alta__day=hoy.day,
-        ).values('pk', 'apellidos_nombres', 'cargo')
-        for p in aniv:
-            emoji = '🏆' if anios >= 10 else '🎖️' if anios >= 5 else '🌟'
-            alertas.append({
-                'tipo':    'aniversario',
-                'icono':   'fa-medal',
-                'color':   '#f59e0b',
-                'titulo':  f'{emoji} {anios} año{"s" if anios>1 else ""} en la empresa',
-                'detalle': f'{p["apellidos_nombres"]}',
-                'url':     f'/personal/{p["pk"]}/',
-                'prioridad': 9,
-            })
+    # Perf audit fix: antes hacia 5 queries en loop. Ahora 1 sola con __in.
+    anios_hito = [20, 15, 10, 5, 1]
+    anios_set = {hoy.year - n for n in anios_hito}
+    anivs = personal_activo.filter(
+        fecha_alta__year__in=anios_set,
+        fecha_alta__month=hoy.month,
+        fecha_alta__day=hoy.day,
+    ).values('pk', 'apellidos_nombres', 'cargo', 'fecha_alta')
+    for p in anivs:
+        anios = hoy.year - p['fecha_alta'].year if p['fecha_alta'] else 0
+        if anios not in anios_hito:
+            continue
+        emoji = '🏆' if anios >= 10 else '🎖️' if anios >= 5 else '🌟'
+        alertas.append({
+            'tipo':    'aniversario',
+            'icono':   'fa-medal',
+            'color':   '#f59e0b',
+            'titulo':  f'{emoji} {anios} año{"s" if anios>1 else ""} en la empresa',
+            'detalle': f'{p["apellidos_nombres"]}',
+            'url':     f'/personal/{p["pk"]}/',
+            'prioridad': 9,
+        })
 
     # ── 4. Contratos vencen esta semana ────────────────────────────────
     try:

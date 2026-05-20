@@ -174,6 +174,9 @@ def _handle_cambio_condicion(personal, condicion_anterior):
     )
 
     fixed = 0
+    # Perf audit fix: antes hacia r.save() en loop (N saves sincronos).
+    # Ahora junto las modificaciones y hago bulk_update al final (1 query).
+    para_update = []
     for r in regs:
         total_h = r.horas_normales + r.he_25 + r.he_35 + r.he_100
         if total_h == CERO:
@@ -211,8 +214,16 @@ def _handle_cambio_condicion(personal, condicion_anterior):
             r.he_35 = max(CERO, exceso - Decimal('2'))
             r.he_100 = CERO
 
-        r.save(update_fields=['horas_normales', 'he_25', 'he_35', 'he_100', 'codigo_dia'])
+        para_update.append(r)
         fixed += 1
+
+    if para_update:
+        from asistencia.models import RegistroTareo as _RT
+        _RT.objects.bulk_update(
+            para_update,
+            ['horas_normales', 'he_25', 'he_35', 'he_100', 'codigo_dia'],
+            batch_size=500,
+        )
 
     logger.info(
         '[Signal Condicion] %s: %d registros reprocesados (%s → %s)',
