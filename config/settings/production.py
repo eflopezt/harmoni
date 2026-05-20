@@ -56,6 +56,12 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# Session timeout — audit security recomendaba reducir el default 2 semanas
+# para ERP con datos sensibles. 8h cubre una jornada completa + buffer.
+SESSION_COOKIE_AGE = 60 * 60 * 8  # 8 horas
+SESSION_SAVE_EVERY_REQUEST = True  # extiende la sesión en cada request activo
 
 # Content Security Policy — django-csp 4.x API (dict)
 # Audit security fix 2026-05-20: antes usaba constantes CSP_* (django-csp 3.x)
