@@ -1026,6 +1026,7 @@ def mis_documentos(request):
 @login_required
 def mi_nomina(request):
     """El trabajador ve su historial de recibos de sueldo."""
+    from decimal import Decimal
     from nominas.models import RegistroNomina, LineaNomina
 
     empleado = _get_empleado(request.user)
@@ -1038,6 +1039,30 @@ def mi_nomina(request):
             .order_by('-periodo__anio', '-periodo__mes')
         )
 
+        # ── Vincular BoletaPago (lectura/confirmación) por período ─────
+        # BoletaPago.periodo es DateField (primer día del mes).
+        # Mapa: (anio, mes, tipo_boleta) → BoletaPago
+        boletas_map = {}
+        try:
+            from documentos.models import BoletaPago
+            # Map PeriodoNomina.tipo → BoletaPago.tipo
+            _tipo_map = {
+                'REGULAR':       'MENSUAL',
+                'GRATIFICACION': 'GRATIFICACION',
+                'CTS':           'CTS',
+                'LIQUIDACION':   'LIQUIDACION',
+                'UTILIDADES':    'UTILIDADES',
+            }
+            for b in BoletaPago.objects.filter(personal=empleado).exclude(estado='ANULADA'):
+                boletas_map[(b.periodo.year, b.periodo.month, b.tipo)] = b
+            # Adjuntar la boleta a cada registro para uso simple en el template
+            for r in registros:
+                key = (r.periodo.anio, r.periodo.mes, _tipo_map.get(r.periodo.tipo, 'MENSUAL'))
+                r.boleta_pago = boletas_map.get(key)
+        except Exception:
+            for r in registros:
+                r.boleta_pago = None
+
         # Líneas del período más reciente para mostrar el detalle completo
         lineas_reciente = []
         registro_reciente = registros[0] if registros else None
@@ -1048,8 +1073,25 @@ def mi_nomina(request):
                 .order_by('concepto__tipo', 'concepto__orden')
             )
 
-        lineas_ingresos = [l for l in lineas_reciente if l.concepto.tipo == 'INGRESO']
-        lineas_descuentos = [l for l in lineas_reciente if l.concepto.tipo == 'DESCUENTO']
+        # ── Agrupar líneas por categoría para tabs del modal ───────────
+        # INGRESO / DESCUENTO los conocemos por concepto.tipo.
+        # APORTE_EMPLEADOR también es concepto.tipo.
+        # PROVISION es concepto.subtipo (gratificación/cts provisión).
+        lineas_ingresos = []
+        lineas_descuentos = []
+        lineas_aportes = []      # APORTE_EMPLEADOR no PROVISION (ESSALUD, SCTR)
+        lineas_provisiones = []  # subtipo PROVISION (CTS, Gratif provisionados)
+        for l in lineas_reciente:
+            c = l.concepto
+            subtipo = getattr(c, 'subtipo', '') or ''
+            if subtipo == 'PROVISION':
+                lineas_provisiones.append(l)
+            elif c.tipo == 'INGRESO':
+                lineas_ingresos.append(l)
+            elif c.tipo == 'DESCUENTO':
+                lineas_descuentos.append(l)
+            elif c.tipo == 'APORTE_EMPLEADOR':
+                lineas_aportes.append(l)
 
         # Comparativa contra el período inmediato anterior (mismo tipo)
         registro_anterior = None
@@ -1061,10 +1103,17 @@ def mi_nomina(request):
                     registro_anterior = r
                     break
             if registro_anterior and registro_anterior.neto_a_pagar:
-                from decimal import Decimal
                 variacion_neto = registro_reciente.neto_a_pagar - registro_anterior.neto_a_pagar
                 if registro_anterior.neto_a_pagar:
                     variacion_pct = (variacion_neto / registro_anterior.neto_a_pagar) * Decimal('100')
+
+        # ── YTD acumulado (netos del año del último período) ──────────
+        ytd_acumulado = Decimal('0')
+        if registro_reciente:
+            anio_ytd = registro_reciente.periodo.anio
+            for r in registros:
+                if r.periodo.anio == anio_ytd:
+                    ytd_acumulado += (r.neto_a_pagar or Decimal('0'))
 
         # ¿IA disponible para explicar boleta?
         ia_explicador_activo = False
@@ -1083,8 +1132,11 @@ def mi_nomina(request):
             'registro_anterior': registro_anterior,
             'variacion_neto': variacion_neto,
             'variacion_pct': variacion_pct,
+            'ytd_acumulado': ytd_acumulado,
             'lineas_ingresos': lineas_ingresos,
             'lineas_descuentos': lineas_descuentos,
+            'lineas_aportes': lineas_aportes,
+            'lineas_provisiones': lineas_provisiones,
             'ia_explicador_activo': ia_explicador_activo,
         })
 

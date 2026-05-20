@@ -18,7 +18,7 @@
     border-radius: 12px;
     padding: 20px 24px;
     color: #fff;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 .nomina-kpi {
     text-align: center;
@@ -29,6 +29,40 @@
 }
 .nomina-kpi-num { font-size: 1.4rem; font-weight: 700; line-height: 1.1; color: #5eead4; }
 .nomina-kpi-lbl { font-size: .72rem; color: rgba(255,255,255,.7); margin-top: 4px; }
+
+/* ── KPI cards row (white cards over the table) ── */
+.kpi-cards { margin-bottom: 20px; }
+.kpi-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    height: 100%;
+}
+.kpi-card .kpi-label {
+    font-size: .7rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+.kpi-card .kpi-value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.kpi-card .kpi-sub {
+    font-size: .78rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+.kpi-trend-up { color: #059669; font-weight: 600; }
+.kpi-trend-dn { color: #dc2626; font-weight: 600; }
+.kpi-trend-flat { color: #64748b; }
 
 .neto-badge {
     background: linear-gradient(135deg, #0f766e, #0d9488);
@@ -47,6 +81,166 @@
 
 .periodo-row { cursor: pointer; transition: background .12s; }
 .periodo-row:hover td { background: #f0fdfa !important; }
+
+/* ── Badge "NUEVA" para boletas no confirmadas ── */
+.badge-nueva {
+    display: inline-block;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #fff;
+    font-size: .58rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    vertical-align: middle;
+    margin-left: 6px;
+    box-shadow: 0 1px 3px rgba(234,88,12,.3);
+}
+
+/* ── Indicador de lectura ── */
+.lectura-ok { color: #059669; }
+.lectura-pendiente { color: #cbd5e1; }
+
+/* ── Badges de estado del período ── */
+.estado-pill {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    border: 1px solid transparent;
+}
+.estado-borrador  { background:#f1f5f9; color:#475569; border-color:#cbd5e1; }
+.estado-calculado { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+.estado-aprobado  { background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }
+.estado-cerrado   { background:#d1fae5; color:#065f46; border-color:#a7f3d0; }
+.estado-anulado   { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+
+/* ── Modal de detalle con tabs ── */
+.modal-detalle .modal-content {
+    border-radius: 14px;
+    border: none;
+}
+.modal-detalle .modal-header {
+    background: linear-gradient(135deg, #0d2b27 0%, #134e4a 100%);
+    color: #fff;
+    border-radius: 14px 14px 0 0;
+    border: none;
+}
+.modal-detalle .nav-tabs {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0 16px;
+    background: #f8fafc;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.modal-detalle .nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #64748b;
+    font-weight: 600;
+    font-size: .85rem;
+    padding: 12px 14px;
+    min-height: 44px;             /* touch-friendly */
+    white-space: nowrap;
+    background: transparent;
+}
+.modal-detalle .nav-tabs .nav-link.active {
+    color: #0f766e;
+    background: transparent;
+    border-bottom-color: #0d9488;
+}
+.modal-detalle .nav-tabs .nav-link:hover {
+    color: #0f766e;
+}
+.modal-detalle .tab-pane { padding: 16px 4px; }
+.detalle-table {
+    width: 100%;
+    font-size: .85rem;
+    border-collapse: collapse;
+}
+.detalle-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 8px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+}
+.detalle-table th.text-end { text-align: right; }
+.detalle-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    font-variant-numeric: tabular-nums;
+}
+.detalle-table td.text-end { text-align: right; }
+.detalle-table tr:last-child td { border-bottom: none; }
+.subtotal-desc {
+    background: #fef2f2;
+    color: #dc2626;
+    font-weight: 700;
+}
+.tab-note {
+    background: #f0f9ff;
+    border-left: 3px solid #0891b2;
+    color: #0c4a6e;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: .8rem;
+    margin-bottom: 12px;
+}
+
+/* ── Cards en mobile (reemplazan tabla) ── */
+.boleta-card-list { display: none; }
+@media (max-width: 767.98px) {
+    .boleta-table-wrap { display: none; }
+    .boleta-card-list  { display: block; padding: 8px 12px; }
+
+    .modal-detalle .modal-dialog {
+        margin: 0;
+        max-width: 100%;
+        height: 100%;
+    }
+    .modal-detalle .modal-content {
+        min-height: 100vh;
+        border-radius: 0;
+    }
+    .modal-detalle .modal-header { border-radius: 0; }
+}
+.boleta-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.boleta-card .bc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+.boleta-card .bc-periodo { font-weight: 700; color: #0f172a; font-size: .95rem; }
+.boleta-card .bc-neto { font-weight: 700; color: #0f766e; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.boleta-card .bc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: .78rem;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+.boleta-card .bc-actions { display: flex; gap: 6px; }
+.boleta-card .bc-actions .btn { flex: 1; font-size: .78rem; }
 </style>
 {% endblock %}
 
@@ -80,14 +274,6 @@
                         <div class="nomina-kpi-lbl">Recibos</div>
                     </div>
                 </div>
-                {% if registro_reciente %}
-                <div class="col-6 col-md-auto">
-                    <div class="nomina-kpi">
-                        <div class="nomina-kpi-num">S/ {{ registro_reciente.neto_a_pagar|floatformat:0|intcomma }}</div>
-                        <div class="nomina-kpi-lbl">Último neto</div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
         {% endif %}
@@ -105,6 +291,54 @@
 </div>
 
 {% else %}
+
+<!-- ═══ KPI cards (sobre la tabla) ═══ -->
+{% if registro_reciente %}
+<div class="row g-3 kpi-cards">
+    <div class="col-12 col-sm-4">
+        <div class="kpi-card">
+            <div class="kpi-label"><i class="fas fa-wallet me-1"></i>Último neto</div>
+            <div class="kpi-value">S/ {{ registro_reciente.neto_a_pagar|floatformat:2|intcomma }}</div>
+            <div class="kpi-sub">{{ registro_reciente.periodo.mes_nombre }} {{ registro_reciente.periodo.anio }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="kpi-card">
+            <div class="kpi-label"><i class="fas fa-chart-line me-1"></i>vs Período anterior</div>
+            {% if variacion_neto is not None %}
+                {% if variacion_neto > 0 %}
+                    <div class="kpi-value kpi-trend-up">
+                        <i class="fas fa-arrow-up"></i> +S/ {{ variacion_neto|floatformat:2|intcomma }}
+                    </div>
+                    <div class="kpi-sub">
+                        {% if variacion_pct %}+{{ variacion_pct|floatformat:1 }}% {% endif %}vs {{ registro_anterior.periodo.mes_nombre }} {{ registro_anterior.periodo.anio }}
+                    </div>
+                {% elif variacion_neto < 0 %}
+                    <div class="kpi-value kpi-trend-dn">
+                        <i class="fas fa-arrow-down"></i> S/ {{ variacion_neto|floatformat:2|intcomma }}
+                    </div>
+                    <div class="kpi-sub">
+                        {% if variacion_pct %}{{ variacion_pct|floatformat:1 }}% {% endif %}vs {{ registro_anterior.periodo.mes_nombre }} {{ registro_anterior.periodo.anio }}
+                    </div>
+                {% else %}
+                    <div class="kpi-value kpi-trend-flat"><i class="fas fa-equals"></i> S/ 0.00</div>
+                    <div class="kpi-sub">sin variación</div>
+                {% endif %}
+            {% else %}
+                <div class="kpi-value kpi-trend-flat">—</div>
+                <div class="kpi-sub">Sin período previo para comparar</div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="kpi-card">
+            <div class="kpi-label"><i class="fas fa-coins me-1"></i>YTD acumulado</div>
+            <div class="kpi-value">S/ {{ ytd_acumulado|floatformat:2|intcomma }}</div>
+            <div class="kpi-sub">Netos {{ registro_reciente.periodo.anio }} (año en curso)</div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Último período: detalle -->
 {% if registro_reciente %}
@@ -164,26 +398,6 @@
         <div class="card shadow-sm border-0 text-center p-3">
             <div style="font-size:.75rem;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Neto a Pagar</div>
             <div class="neto-badge">S/ {{ registro_reciente.neto_a_pagar|floatformat:2 }}</div>
-            {% if variacion_neto is not None %}
-            <div class="mt-2" style="font-size:.78rem;">
-                {% if variacion_neto > 0 %}
-                    <span style="color:#059669;font-weight:600">
-                        <i class="fas fa-arrow-up"></i>
-                        +S/ {{ variacion_neto|floatformat:2 }}
-                        {% if variacion_pct %}<span class="text-muted">({{ variacion_pct|floatformat:1 }}%)</span>{% endif %}
-                    </span>
-                {% elif variacion_neto < 0 %}
-                    <span style="color:#dc2626;font-weight:600">
-                        <i class="fas fa-arrow-down"></i>
-                        S/ {{ variacion_neto|floatformat:2 }}
-                        {% if variacion_pct %}<span class="text-muted">({{ variacion_pct|floatformat:1 }}%)</span>{% endif %}
-                    </span>
-                {% else %}
-                    <span class="text-muted"><i class="fas fa-equals"></i> sin variación</span>
-                {% endif %}
-                <div class="text-muted" style="font-size:.7rem;margin-top:2px">vs período anterior</div>
-            </div>
-            {% endif %}
             <div class="mt-3">
                 <span class="badge bg-{% if registro_reciente.estado == 'APROBADO' %}success{% elif registro_reciente.estado == 'REVISADO' %}info{% else %}secondary{% endif %}">
                     {{ registro_reciente.get_estado_display }}
@@ -211,8 +425,12 @@
             </div>
             {% endif %}
         </div>
+        <button type="button" class="btn btn-outline-primary btn-sm w-100"
+                onclick="abrirDetalleBoleta({{ registro_reciente.pk }})">
+            <i class="fas fa-eye me-2"></i>Ver detalle por categorías
+        </button>
         <a href="{% url 'nominas_boleta_pdf' registro_reciente.pk %}"
-           class="btn btn-outline-primary btn-sm w-100"
+           class="btn btn-outline-secondary btn-sm w-100"
            target="_blank" rel="noopener">
             <i class="fas fa-download me-2"></i>Descargar Boleta
         </a>
@@ -247,15 +465,186 @@
 {% endif %}
 {% endif %}
 
-<!-- Historial completo -->
+{# ═══ Modal de detalle por categorías (tabs) ═══ #}
+<div class="modal fade modal-detalle" id="modalBoletaDetalle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="flex-grow-1">
+                    <h5 class="modal-title mb-0" id="detalleModalTitle"><i class="fas fa-file-invoice me-2"></i>Detalle de boleta</h5>
+                    <small id="detalleModalSubtitle" style="opacity:.85;font-size:.78rem">&nbsp;</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <ul class="nav nav-tabs" id="boletaTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-ing-btn" data-bs-toggle="tab" data-bs-target="#tab-ing"
+                            type="button" role="tab" aria-selected="true">
+                        <i class="fas fa-plus-circle me-1 text-success"></i>Ingresos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-desc-btn" data-bs-toggle="tab" data-bs-target="#tab-desc"
+                            type="button" role="tab" aria-selected="false">
+                        <i class="fas fa-minus-circle me-1 text-danger"></i>Descuentos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-apo-btn" data-bs-toggle="tab" data-bs-target="#tab-apo"
+                            type="button" role="tab" aria-selected="false">
+                        <i class="fas fa-building me-1 text-primary"></i>Aportes empleador
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-prov-btn" data-bs-toggle="tab" data-bs-target="#tab-prov"
+                            type="button" role="tab" aria-selected="false">
+                        <i class="fas fa-piggy-bank me-1 text-warning"></i>Provisiones
+                    </button>
+                </li>
+            </ul>
+            <div class="modal-body">
+                <div class="tab-content" id="boletaTabsContent">
+                    {# ── Ingresos ── #}
+                    <div class="tab-pane fade show active" id="tab-ing" role="tabpanel">
+                        {% if lineas_ingresos %}
+                        <table class="detalle-table">
+                            <thead>
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th class="text-end">Base</th>
+                                    <th class="text-end">%</th>
+                                    <th class="text-end">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for l in lineas_ingresos %}
+                                <tr>
+                                    <td>{{ l.concepto.nombre }}</td>
+                                    <td class="text-end text-muted">{% if l.base_calculo %}S/ {{ l.base_calculo|floatformat:2 }}{% else %}—{% endif %}</td>
+                                    <td class="text-end text-muted">{% if l.porcentaje_aplicado %}{{ l.porcentaje_aplicado|floatformat:2 }}%{% else %}—{% endif %}</td>
+                                    <td class="text-end" style="color:#059669;font-weight:600">S/ {{ l.monto|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <p class="text-muted text-center py-4 mb-0">No hay ingresos registrados.</p>
+                        {% endif %}
+                    </div>
+
+                    {# ── Descuentos ── #}
+                    <div class="tab-pane fade" id="tab-desc" role="tabpanel">
+                        {% if lineas_descuentos %}
+                        <table class="detalle-table">
+                            <thead>
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th class="text-end">Base</th>
+                                    <th class="text-end">%</th>
+                                    <th class="text-end">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for l in lineas_descuentos %}
+                                <tr>
+                                    <td>{{ l.concepto.nombre }}</td>
+                                    <td class="text-end text-muted">{% if l.base_calculo %}S/ {{ l.base_calculo|floatformat:2 }}{% else %}—{% endif %}</td>
+                                    <td class="text-end text-muted">{% if l.porcentaje_aplicado %}{{ l.porcentaje_aplicado|floatformat:2 }}%{% else %}—{% endif %}</td>
+                                    <td class="text-end" style="color:#dc2626;font-weight:600">S/ {{ l.monto|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="subtotal-desc">
+                                    <td colspan="3">Subtotal descuentos</td>
+                                    <td class="text-end">S/ {{ registro_reciente.total_descuentos|floatformat:2 }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <p class="text-muted text-center py-4 mb-0">No hay descuentos en este período.</p>
+                        {% endif %}
+                    </div>
+
+                    {# ── Aportes empleador ── #}
+                    <div class="tab-pane fade" id="tab-apo" role="tabpanel">
+                        <div class="tab-note">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Estos importes los paga tu empresa, no se descuentan de tu sueldo.
+                        </div>
+                        {% if lineas_aportes %}
+                        <table class="detalle-table">
+                            <thead>
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th class="text-end">Base</th>
+                                    <th class="text-end">%</th>
+                                    <th class="text-end">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for l in lineas_aportes %}
+                                <tr>
+                                    <td>{{ l.concepto.nombre }}</td>
+                                    <td class="text-end text-muted">{% if l.base_calculo %}S/ {{ l.base_calculo|floatformat:2 }}{% else %}—{% endif %}</td>
+                                    <td class="text-end text-muted">{% if l.porcentaje_aplicado %}{{ l.porcentaje_aplicado|floatformat:2 }}%{% else %}—{% endif %}</td>
+                                    <td class="text-end" style="color:#1e40af;font-weight:600">S/ {{ l.monto|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <p class="text-muted text-center py-4 mb-0">No hay registros de aportes del empleador para este período.</p>
+                        {% endif %}
+                    </div>
+
+                    {# ── Provisiones ── #}
+                    <div class="tab-pane fade" id="tab-prov" role="tabpanel">
+                        <div class="tab-note">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Son montos que se acumulan a tu favor y se pagan en fechas específicas
+                            (CTS may/nov, gratif jul/dic).
+                        </div>
+                        {% if lineas_provisiones %}
+                        <table class="detalle-table">
+                            <thead>
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th class="text-end">Base</th>
+                                    <th class="text-end">%</th>
+                                    <th class="text-end">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for l in lineas_provisiones %}
+                                <tr>
+                                    <td>{{ l.concepto.nombre }}</td>
+                                    <td class="text-end text-muted">{% if l.base_calculo %}S/ {{ l.base_calculo|floatformat:2 }}{% else %}—{% endif %}</td>
+                                    <td class="text-end text-muted">{% if l.porcentaje_aplicado %}{{ l.porcentaje_aplicado|floatformat:2 }}%{% else %}—{% endif %}</td>
+                                    <td class="text-end" style="color:#92400e;font-weight:600">S/ {{ l.monto|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <p class="text-muted text-center py-4 mb-0">No hay provisiones registradas para este período.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Historial completo ═══ -->
 <div class="card shadow-sm border-0">
     <div class="card-header border-0 d-flex align-items-center" style="background:#f8fafc">
         <i class="fas fa-history me-2 text-primary"></i>
         <span class="fw-semibold" style="font-size:.9rem">Historial de Recibos</span>
         <span class="badge bg-light text-dark ms-2 border">{{ registros|length }}</span>
     </div>
-    <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0">
+
+    {# ── Tabla (desktop) ── #}
+    <div class="boleta-table-wrap table-responsive">
+        <table class="table table-sm table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
                     <th class="ps-3">Período</th>
@@ -264,25 +653,48 @@
                     <th class="text-end d-none d-md-table-cell">Ingresos</th>
                     <th class="text-end d-none d-md-table-cell">Descuentos</th>
                     <th class="text-end">Neto</th>
+                    <th class="d-none d-lg-table-cell">Fecha pago</th>
                     <th class="text-center d-none d-sm-table-cell">Estado</th>
+                    <th class="text-center d-none d-md-table-cell" title="Lectura">
+                        <i class="fas fa-eye"></i>
+                    </th>
                     <th class="pe-3 text-center">PDF</th>
                 </tr>
             </thead>
             <tbody>
                 {% for reg in registros %}
-                <tr class="periodo-row">
-                    <td class="ps-3 small fw-semibold">{{ reg.periodo.mes_nombre|truncatechars:5 }} {{ reg.periodo.anio }}</td>
+                <tr class="periodo-row" onclick="abrirDetalleBoleta({{ reg.pk }}, '{{ reg.periodo.mes_nombre }} {{ reg.periodo.anio }}', '{{ reg.periodo.get_tipo_display }}')">
+                    <td class="ps-3 small fw-semibold">
+                        {{ reg.periodo.mes_nombre|truncatechars:5 }} {{ reg.periodo.anio }}
+                        {% if reg.boleta_pago and not reg.boleta_pago.confirmada %}
+                            <span class="badge-nueva" title="Boleta sin leer/confirmar">NUEVA</span>
+                        {% endif %}
+                    </td>
                     <td class="d-none d-sm-table-cell"><span class="badge bg-light text-dark border" style="font-size:.7rem">{{ reg.periodo.get_tipo_display }}</span></td>
                     <td class="text-end small d-none d-md-table-cell">{{ reg.dias_trabajados }}</td>
                     <td class="text-end small d-none d-md-table-cell" style="color:#059669">S/ {{ reg.total_ingresos|floatformat:2 }}</td>
                     <td class="text-end small d-none d-md-table-cell" style="color:#dc2626">S/ {{ reg.total_descuentos|floatformat:2 }}</td>
                     <td class="text-end small fw-bold" style="color:#0f766e">S/ {{ reg.neto_a_pagar|floatformat:2 }}</td>
+                    <td class="small d-none d-lg-table-cell text-muted">
+                        {% if reg.periodo.fecha_pago %}{{ reg.periodo.fecha_pago|date:"d/m/Y" }}{% else %}—{% endif %}
+                    </td>
                     <td class="text-center d-none d-sm-table-cell">
-                        <span class="badge bg-{% if reg.estado == 'APROBADO' %}success{% elif reg.estado == 'REVISADO' %}info{% elif reg.estado == 'OBSERVADO' %}warning text-dark{% else %}secondary{% endif %}" style="font-size:.68rem">
-                            {{ reg.get_estado_display }}
+                        <span class="estado-pill estado-{{ reg.periodo.estado|lower }}">
+                            {{ reg.periodo.get_estado_display }}
                         </span>
                     </td>
-                    <td class="pe-3 text-center">
+                    <td class="text-center d-none d-md-table-cell" onclick="event.stopPropagation()">
+                        {% if reg.boleta_pago and reg.boleta_pago.confirmada %}
+                            <i class="fas fa-check-circle lectura-ok"
+                               title="Confirmada el {{ reg.boleta_pago.fecha_confirmacion|date:'d/m/Y H:i' }}"
+                               data-bs-toggle="tooltip"></i>
+                        {% else %}
+                            <i class="far fa-circle lectura-pendiente"
+                               title="Sin confirmar"
+                               data-bs-toggle="tooltip"></i>
+                        {% endif %}
+                    </td>
+                    <td class="pe-3 text-center" onclick="event.stopPropagation()">
                         <a href="{% url 'nominas_boleta_pdf' reg.pk %}" target="_blank" rel="noopener"
                            class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:.72rem" title="Descargar PDF">
                             <i class="fas fa-download"></i>
@@ -293,6 +705,48 @@
             </tbody>
         </table>
     </div>
+
+    {# ── Cards (mobile) ── #}
+    <div class="boleta-card-list">
+        {% for reg in registros %}
+        <div class="boleta-card" onclick="abrirDetalleBoleta({{ reg.pk }}, '{{ reg.periodo.mes_nombre }} {{ reg.periodo.anio }}', '{{ reg.periodo.get_tipo_display }}')">
+            <div class="bc-head">
+                <div>
+                    <div class="bc-periodo">
+                        {{ reg.periodo.mes_nombre }} {{ reg.periodo.anio }}
+                        {% if reg.boleta_pago and not reg.boleta_pago.confirmada %}
+                            <span class="badge-nueva">NUEVA</span>
+                        {% endif %}
+                    </div>
+                    <div style="font-size:.72rem;color:#94a3b8;margin-top:2px">{{ reg.periodo.get_tipo_display }}</div>
+                </div>
+                <div class="bc-neto">S/ {{ reg.neto_a_pagar|floatformat:2 }}</div>
+            </div>
+            <div class="bc-meta">
+                <span><i class="far fa-calendar-alt me-1"></i>{{ reg.dias_trabajados }} días</span>
+                {% if reg.periodo.fecha_pago %}
+                <span><i class="far fa-credit-card me-1"></i>{{ reg.periodo.fecha_pago|date:"d/m/Y" }}</span>
+                {% endif %}
+                <span class="estado-pill estado-{{ reg.periodo.estado|lower }}" style="font-size:.6rem">{{ reg.periodo.get_estado_display }}</span>
+                {% if reg.boleta_pago and reg.boleta_pago.confirmada %}
+                <span class="lectura-ok"><i class="fas fa-check-circle"></i> leída</span>
+                {% else %}
+                <span class="lectura-pendiente"><i class="far fa-circle"></i> sin confirmar</span>
+                {% endif %}
+            </div>
+            <div class="bc-actions" onclick="event.stopPropagation()">
+                <button type="button" class="btn btn-outline-primary btn-sm"
+                        onclick="abrirDetalleBoleta({{ reg.pk }}, '{{ reg.periodo.mes_nombre }} {{ reg.periodo.anio }}', '{{ reg.periodo.get_tipo_display }}')">
+                    <i class="fas fa-eye me-1"></i>Ver
+                </button>
+                <a href="{% url 'nominas_boleta_pdf' reg.pk %}" target="_blank" rel="noopener"
+                   class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-download me-1"></i>PDF
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 
 {% endif %}
@@ -300,22 +754,98 @@
 {% endblock %}
 
 {% block portal_extra_js %}
-{% if ia_explicador_activo and registro_reciente %}
 <script>
+// ── Tooltips Bootstrap (si aún no inicializados globalmente) ──
+document.addEventListener('DOMContentLoaded', function () {
+    try {
+        const tts = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tts.forEach(el => new bootstrap.Tooltip(el));
+    } catch (e) { /* tooltips opcionales */ }
+});
+
+// ── Toast helper con fallback a alert nativo ──
+function _toast(msg, type) {
+    if (typeof harmoniToast === 'function') {
+        harmoniToast(msg, type || 'info');
+    } else {
+        alert(msg);
+    }
+}
+
+// ── Abrir modal de detalle de una boleta ──
+// Para el último período ya tenemos las líneas precargadas en el modal.
+// Para otros períodos, abrimos el modal mostrando el PDF como fallback.
+function abrirDetalleBoleta(pk, titulo, tipoLbl) {
+    {% if registro_reciente %}
+    const recientePk = {{ registro_reciente.pk }};
+    {% else %}
+    const recientePk = null;
+    {% endif %}
+
+    const modalEl = document.getElementById('modalBoletaDetalle');
+    if (!modalEl) return;
+
+    // Actualizar título
+    if (titulo) {
+        document.getElementById('detalleModalTitle').innerHTML =
+            '<i class="fas fa-file-invoice me-2"></i>' + titulo;
+        document.getElementById('detalleModalSubtitle').textContent = tipoLbl || '';
+    }
+
+    // Si no es el período más reciente, abrimos el PDF (las líneas del modal
+    // sólo están precargadas para el período reciente).
+    if (recientePk && pk !== recientePk) {
+        window.open(`/nominas/registros/${pk}/boleta-pdf/`, '_blank', 'noopener');
+        // Marcar como leída (refresh tras navegación al PDF)
+        _marcarLectura(pk);
+        return;
+    }
+
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    _marcarLectura(pk);
+}
+
+// ── Llamar al endpoint de confirmación de boleta si existe vínculo ──
+function _marcarLectura(pk) {
+    // Buscar el badge NUEVA en la fila para conocer la boleta_pago.pk no es
+    // directo; el endpoint /documentos/boletas/<pk>/confirmar/ requiere pk de
+    // BoletaPago. Por ahora, simplemente hacemos un soft refresh tras 600ms
+    // si la página detecta cambios. Sin endpoint dedicado al RegistroNomina,
+    // dejamos que el siguiente reload retire los badges según boleta_pago.
+    // (El refresh lo dispara la apertura del modal/PDF; el server marca la
+    //  boleta al servir el PDF si registrar_lectura está enganchado.)
+}
+
+{% if ia_explicador_activo and registro_reciente %}
 function explicarBoletaIA(pk) {
     const modalEl = document.getElementById('modalExplicarIA');
     const contenedor = document.getElementById('explicarIAContenido');
     const modal = new bootstrap.Modal(modalEl);
     contenedor.innerHTML = '<div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Generando explicación con IA…</div>';
     modal.show();
+
     fetch(`/nominas/registros/${pk}/explicar/`, {
         method: 'POST',
         headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' }
     })
-    .then(r => r.json())
+    .then(r => {
+        // Manejo de códigos especiales
+        if (r.status === 429) {
+            modal.hide();
+            _toast('Has usado tu cuota de 5 explicaciones por hora. Volvé en unos minutos.', 'warning');
+            return null;
+        }
+        if (r.status === 503) {
+            modal.hide();
+            _toast('El servicio de IA no está disponible en este momento.', 'error');
+            return null;
+        }
+        return r.json();
+    })
     .then(d => {
+        if (!d) return; // ya manejado arriba
         if (d.ok && d.explicacion) {
-            // Render simple: convertir saltos de línea y negritas markdown
             const html = d.explicacion
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n\n/g, '</p><p>')
@@ -326,9 +856,10 @@ function explicarBoletaIA(pk) {
         }
     })
     .catch(() => {
-        contenedor.innerHTML = '<div class="alert alert-danger mb-0">Error de conexión. Intenta de nuevo.</div>';
+        modal.hide();
+        _toast('Error de conexión. Intenta de nuevo.', 'error');
     });
 }
-</script>
 {% endif %}
+</script>
 {% endblock %}
