@@ -95,3 +95,4 @@ credenciales_*.csv
 
 # Capturas fuente para regenerar el manual (la salida .pdf/.docx sí se versiona)
 docs/manual_capturas/
+.claude/scheduled_tasks.lock
