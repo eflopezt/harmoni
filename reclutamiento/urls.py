@@ -13,6 +13,8 @@ urlpatterns = [
 
     # ── Admin: Postulaciones ──
     path('<int:vacante_pk>/postulacion/nueva/', views.postulacion_crear, name='postulacion_crear'),
+    path('cv/express/', views.subir_cv_express, name='subir_cv_express'),
+    path('<int:vacante_pk>/cv/express/', views.subir_cv_express, name='subir_cv_express_vacante'),
     path('postulacion/<int:pk>/', views.postulacion_detalle, name='postulacion_detalle'),
     path('postulacion/<int:pk>/mover/', views.postulacion_mover_etapa, name='postulacion_mover_etapa'),
     path('postulacion/<int:pk>/descartar/', views.postulacion_descartar, name='postulacion_descartar'),

@@ -5,6 +5,7 @@ Incluye vistas admin (solo_admin) y vistas publicas (portal empleo).
 """
 import io
 import json
+import os
 from datetime import date, timedelta
 
 from django.contrib import messages
@@ -1863,3 +1864,136 @@ def api_generar_descripcion(request):
 
     except Exception as e:
         return JsonResponse({'ok': False, 'error': f'Error IA: {str(e)[:200]}'})
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  CV PARSER — Importado de NexoTalent
+# ═══════════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def subir_cv_express(request, vacante_pk=None):
+    """Sube CV, parsea automáticamente y crea Postulacion pre-poblada.
+
+    Pipeline (importado de NexoTalent apps/ia/pdf_extractor.py):
+      1. Recibe archivo (PDF/DOCX/TXT)
+      2. Extrae texto vía PyMuPDF → pdfplumber → python-docx
+      3. Parsea entidades: email, teléfono, skills, años exp, idiomas
+      4. Calcula score de matching contra la vacante
+      5. Crea Postulacion con campos auto-poblados
+    """
+    from .cv_parser import parse_cv_from_file, EXTENSIONES_SOPORTADAS
+    import tempfile
+
+    vacante = None
+    if vacante_pk:
+        vacante = get_object_or_404(Vacante, pk=vacante_pk)
+
+    if request.method == 'POST':
+        archivo = request.FILES.get('cv')
+        if not archivo:
+            messages.error(request, 'Selecciona un archivo CV.')
+            return redirect(request.path)
+
+        ext = os.path.splitext(archivo.name)[1].lower()
+        if ext not in EXTENSIONES_SOPORTADAS:
+            messages.error(
+                request,
+                f'Formato no soportado. Acepta: {", ".join(sorted(EXTENSIONES_SOPORTADAS))}'
+            )
+            return redirect(request.path)
+
+        # Guardar a tempfile y parsear
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            for chunk in archivo.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        try:
+            parsed = parse_cv_from_file(tmp_path)
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+        vacante_id = request.POST.get('vacante_id', '') or (str(vacante.pk) if vacante else '')
+
+        # Si vacante elegida → crea Postulacion
+        if vacante_id:
+            try:
+                vac = Vacante.objects.get(pk=int(vacante_id))
+            except (Vacante.DoesNotExist, ValueError, TypeError):
+                messages.error(request, 'Vacante inválida.')
+                return redirect(request.path)
+
+            nombre = parsed.get('nombre_completo') or 'Candidato sin nombre'
+
+            etapa_ini = (EtapaPipeline.objects
+                .filter(es_etapa_inicial=True).first()
+                or EtapaPipeline.objects.order_by('orden').first())
+
+            archivo.seek(0)
+            post = Postulacion.objects.create(
+                vacante=vac,
+                etapa=etapa_ini,
+                nombre_completo=nombre[:250],
+                email=parsed.get('email', '')[:254],
+                telefono=parsed.get('telefono', '')[:30],
+                cv=archivo,
+                experiencia_anos=parsed.get('anios_experiencia', 0),
+                cv_texto_extraido=parsed.get('texto_extraido', '')[:50000],
+                cv_skills=parsed.get('skills', []),
+                cv_idiomas=parsed.get('idiomas', []),
+                cv_parsed_at=timezone.now(),
+                cv_score=_calcular_score_matching(parsed, vac),
+                fuente=request.POST.get('fuente', 'PORTAL'),
+                notas=f'Postulación creada vía CV Parser Express. Archivo: {archivo.name}',
+            )
+
+            messages.success(
+                request,
+                f'✓ CV procesado. Postulación de {nombre} creada para "{vac.titulo}". '
+                f'Score: {post.cv_score}/100. '
+                f'Skills detectados: {len(parsed.get("skills", []))}.'
+            )
+            return redirect('postulacion_detalle', pk=post.pk)
+
+        # Sin vacante → mostrar preview con datos extraídos
+        return render(request, 'reclutamiento/cv_preview.html', {
+            'parsed':         parsed,
+            'nombre_archivo': archivo.name,
+            'vacantes': Vacante.objects.filter(
+                estado__in=['PUBLICADA', 'ACTIVA']
+            ).order_by('-creado_en'),
+        })
+
+    # GET → form
+    vacantes = Vacante.objects.filter(
+        estado__in=['PUBLICADA', 'ACTIVA']
+    ).order_by('-creado_en')
+
+    return render(request, 'reclutamiento/cv_subir_express.html', {
+        'vacante':  vacante,
+        'vacantes': vacantes,
+    })
+
+
+def _calcular_score_matching(parsed: dict, vacante) -> int:
+    """Score 0-100 de matching CV vs vacante. Heurística simple."""
+    score = 0
+    anios_cv = parsed.get('anios_experiencia', 0)
+    anios_req = getattr(vacante, 'experiencia_minima_anos', 0) or 0
+    if anios_cv >= anios_req:
+        score += 30
+    elif anios_cv >= max(0, anios_req - 2):
+        score += 15
+
+    if parsed.get('email'):    score += 10
+    if parsed.get('telefono'): score += 10
+    if parsed.get('tiene_experiencia'): score += 10
+    if parsed.get('tiene_educacion'):   score += 10
+
+    skills_count = len(parsed.get('skills', []))
+    score += min(skills_count * 3, 30)
+    return min(score, 100)

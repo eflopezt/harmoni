@@ -306,6 +306,31 @@ class Postulacion(models.Model):
         help_text="Vinculo al registro de Personal si fue contratado"
     )
 
+    # ─── CV Parser (importado de NexoTalent) ─────────────────────
+    cv_texto_extraido = models.TextField(
+        blank=True, default='',
+        verbose_name="Texto extraído del CV",
+        help_text="Texto plano extraído del PDF/DOCX vía pipeline NexoTalent (PyMuPDF/pdfplumber/python-docx).",
+    )
+    cv_skills = models.JSONField(
+        default=list, blank=True,
+        verbose_name="Skills detectados",
+        help_text="Lista de skills (JSON array) detectados en el CV.",
+    )
+    cv_idiomas = models.JSONField(
+        default=list, blank=True,
+        verbose_name="Idiomas detectados",
+    )
+    cv_parsed_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Fecha de parseo",
+    )
+    cv_score = models.IntegerField(
+        default=0,
+        verbose_name="Score de matching",
+        help_text="Puntaje 0-100 de match con la vacante (calculado).",
+    )
+
     class Meta:
         verbose_name = "Postulacion"
         verbose_name_plural = "Postulaciones"

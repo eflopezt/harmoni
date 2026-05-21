@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}CV Express — Reclutamiento{% endblock %}
+
+{% block extra_css %}
+<style>
+.cv-hero {
+    background: linear-gradient(135deg, #4338ca, #7c3aed);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.5rem;
+}
+.cv-hero h2 { color: #fff; font-size: 1.4rem; margin: 0 0 .25rem; }
+.cv-hero p { color: #ddd6fe; margin: 0; font-size: .9rem; }
+
+.cv-dropzone {
+    background: #fff;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all .2s;
+}
+.cv-dropzone:hover, .cv-dropzone.is-dragover {
+    border-color: #7c3aed;
+    background: #faf5ff;
+}
+.cv-dropzone-icon {
+    font-size: 3.5rem;
+    color: #94a3b8;
+    margin-bottom: 1rem;
+}
+.cv-dropzone:hover .cv-dropzone-icon { color: #7c3aed; }
+.cv-dropzone h5 {
+    font-size: 1.05rem;
+    color: #0d2b27;
+    margin-bottom: .25rem;
+}
+.cv-dropzone .lbl-format {
+    font-size: .78rem;
+    color: #64748b;
+}
+
+.cv-info-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+}
+
+.cv-bullet {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    padding: .45rem 0;
+}
+.cv-bullet i {
+    color: #7c3aed;
+    margin-top: .15rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cv-hero">
+    <h2><i class="fas fa-file-pdf me-2"></i>CV Parser Express</h2>
+    <p>
+        Sube un CV en PDF, DOCX o TXT. Harmoni extrae el texto y
+        crea la postulación pre-poblada automáticamente.
+    </p>
+</div>
+
+{% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" enctype="multipart/form-data" id="cvForm">
+            {% csrf_token %}
+
+            {# Vacante opcional — si vino con pk, ya está fijada #}
+            {% if vacante %}
+            <input type="hidden" name="vacante_id" value="{{ vacante.pk }}">
+            <div class="alert alert-light border" style="font-size:.85rem;">
+                <i class="fas fa-briefcase me-1 text-primary"></i>
+                <strong>Vacante:</strong> {{ vacante.titulo }} ·
+                <small class="text-muted">{{ vacante.area.nombre|default:"" }}</small>
+            </div>
+            {% else %}
+            <div class="mb-3">
+                <label class="form-label fw-bold">Vacante destino <small class="text-muted">(opcional — sin elegir → preview)</small></label>
+                <select name="vacante_id" class="form-select">
+                    <option value="">— Solo preview (sin crear postulación) —</option>
+                    {% for v in vacantes %}
+                    <option value="{{ v.pk }}">{{ v.titulo }}{% if v.area %} · {{ v.area.nombre }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <label class="form-label fw-bold">Archivo CV</label>
+            <label class="cv-dropzone d-block" for="cv-input" id="cvDropzone">
+                <div class="cv-dropzone-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h5>Arrastra el CV aquí o haz click para seleccionar</h5>
+                <p class="lbl-format mb-0">Formatos soportados: PDF, DOCX, DOC, TXT, RTF</p>
+                <p class="text-success small mt-2 mb-0" id="cvFilename" style="display:none;">
+                    <i class="fas fa-check-circle"></i> <span></span>
+                </p>
+                <input type="file" name="cv" id="cv-input" required
+                       accept=".pdf,.docx,.doc,.txt,.rtf"
+                       style="display:none;">
+            </label>
+
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <label class="form-label small">Fuente</label>
+                    <select name="fuente" class="form-select form-select-sm">
+                        <option value="PORTAL">Portal de Empleo</option>
+                        <option value="LINKEDIN">LinkedIn</option>
+                        <option value="REFERIDO">Referido</option>
+                        <option value="HEADHUNTER">Headhunter</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'vacantes_panel' %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-bolt me-1"></i>Procesar CV
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="cv-info-card">
+            <h6 class="mb-2"><i class="fas fa-magic me-1 text-primary"></i>¿Qué extrae Harmoni?</h6>
+            <div class="cv-bullet">
+                <i class="fas fa-envelope"></i>
+                <small>Email (regex)</small>
+            </div>
+            <div class="cv-bullet">
+                <i class="fas fa-phone"></i>
+                <small>Teléfono peruano (móvil/fijo)</small>
+            </div>
+            <div class="cv-bullet">
+                <i class="fas fa-id-card"></i>
+                <small>DNI (8 dígitos)</small>
+            </div>
+            <div class="cv-bullet">
+                <i class="fas fa-user"></i>
+                <small>Nombre completo (heurística)</small>
+            </div>
+            <div class="cv-bullet">
+                <i class="fas fa-briefcase"></i>
+                <small>Años de experiencia (calculados de fechas)</small>
+            </div>
+            <div class="cv-bullet">
+                <i class="fas fa-cogs"></i>
+                <small>Skills (catalog gastronómico + tech + admin)</small>
+            </div>
+            <div class="cv-bullet">
+                <i class="fas fa-language"></i>
+                <small>Idiomas (inglés, portugués, francés, ...)</small>
+            </div>
+            <div class="cv-bullet">
+                <i class="fas fa-star"></i>
+                <small>Score de matching 0-100 (si elegiste vacante)</small>
+            </div>
+
+            <hr>
+            <p class="small text-muted mb-0">
+                <i class="fas fa-shield-alt me-1"></i>
+                Procesamiento <strong>local</strong>: PyMuPDF + pdfplumber + python-docx.
+                Sin servicios externos. El CV nunca sale del servidor.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const dz = document.getElementById('cvDropzone');
+    const inp = document.getElementById('cv-input');
+    const fn = document.getElementById('cvFilename');
+
+    inp.addEventListener('change', () => {
+        if (inp.files.length) {
+            fn.style.display = 'block';
+            fn.querySelector('span').textContent = inp.files[0].name;
+        }
+    });
+
+    ['dragenter', 'dragover'].forEach(ev => {
+        dz.addEventListener(ev, e => {
+            e.preventDefault(); e.stopPropagation();
+            dz.classList.add('is-dragover');
+        });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+        dz.addEventListener(ev, e => {
+            e.preventDefault(); e.stopPropagation();
+            dz.classList.remove('is-dragover');
+        });
+    });
+    dz.addEventListener('drop', e => {
+        const files = e.dataTransfer.files;
+        if (files.length) {
+            inp.files = files;
+            fn.style.display = 'block';
+            fn.querySelector('span').textContent = files[0].name;
+        }
+    });
+})();
+</script>
+
+{% endblock %}

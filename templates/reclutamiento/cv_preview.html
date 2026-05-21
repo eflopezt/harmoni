@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}CV Parser — Preview{% endblock %}
+
+{% block extra_css %}
+<style>
+.pv-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+}
+.pv-field {
+    display: flex;
+    justify-content: space-between;
+    padding: .5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.pv-field:last-child { border-bottom: none; }
+.pv-field .lbl {
+    font-size: .82rem;
+    color: #64748b;
+}
+.pv-field .val {
+    font-size: .9rem;
+    color: #0d2b27;
+    font-weight: 600;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+}
+.pv-field .val.empty { color: #cbd5e1; font-weight: normal; font-style: italic; }
+
+.pv-skills {
+    display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem;
+}
+.pv-skill {
+    background: #e0f2fe;
+    color: #075985;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+}
+.pv-skill.idioma {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.pv-texto {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    max-height: 350px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: .75rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    color: #334155;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-eye"></i>Preview CV Parser</h2>
+        <p class="page-subtitle">
+            Archivo: <strong>{{ nombre_archivo }}</strong> ·
+            {{ parsed.longitud_texto|default:0 }} caracteres extraídos
+        </p>
+    </div>
+    <a href="{% url 'subir_cv_express' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Subir otro
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="pv-card">
+            <h5 class="mb-3"><i class="fas fa-user me-1 text-primary"></i>Datos detectados</h5>
+
+            <div class="pv-field">
+                <span class="lbl">Nombre completo</span>
+                <span class="val {% if not parsed.nombre_completo %}empty{% endif %}">
+                    {{ parsed.nombre_completo|default:"(no detectado)" }}
+                </span>
+            </div>
+            <div class="pv-field">
+                <span class="lbl">Email</span>
+                <span class="val {% if not parsed.email %}empty{% endif %}">
+                    {{ parsed.email|default:"(no detectado)" }}
+                </span>
+            </div>
+            <div class="pv-field">
+                <span class="lbl">Teléfono</span>
+                <span class="val {% if not parsed.telefono %}empty{% endif %}">
+                    {{ parsed.telefono|default:"(no detectado)" }}
+                </span>
+            </div>
+            <div class="pv-field">
+                <span class="lbl">DNI</span>
+                <span class="val {% if not parsed.dni %}empty{% endif %}">
+                    {{ parsed.dni|default:"(no detectado)" }}
+                </span>
+            </div>
+            <div class="pv-field">
+                <span class="lbl">Años de experiencia (calculados)</span>
+                <span class="val">{{ parsed.anios_experiencia }}</span>
+            </div>
+            <div class="pv-field">
+                <span class="lbl">Rango de fechas</span>
+                <span class="val {% if not parsed.fecha_min %}empty{% endif %}">
+                    {% if parsed.fecha_min %}
+                    {{ parsed.fecha_min }} → {{ parsed.fecha_max }}
+                    {% else %}(sin fechas){% endif %}
+                </span>
+            </div>
+            <div class="pv-field">
+                <span class="lbl">Secciones detectadas</span>
+                <span class="val">
+                    {% if parsed.tiene_experiencia %}✓ Experiencia{% endif %}
+                    {% if parsed.tiene_educacion %} ✓ Educación{% endif %}
+                    {% if not parsed.tiene_experiencia and not parsed.tiene_educacion %}<span class="empty">—</span>{% endif %}
+                </span>
+            </div>
+        </div>
+
+        {% if parsed.skills %}
+        <div class="pv-card">
+            <h5 class="mb-2"><i class="fas fa-cogs me-1 text-info"></i>Skills detectados ({{ parsed.skills|length }})</h5>
+            <div class="pv-skills">
+                {% for s in parsed.skills %}
+                <span class="pv-skill {% if s in parsed.idiomas %}idioma{% endif %}">
+                    {{ s }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# Crear postulación con vacante #}
+        <div class="pv-card" style="border-color:#10b981;">
+            <h5 class="mb-2"><i class="fas fa-plus-circle me-1 text-success"></i>Crear postulación</h5>
+            <p class="text-muted small mb-2">
+                Para guardar este candidato, elige una vacante y vuelve a subir el CV:
+            </p>
+            <form method="post" action="{% url 'subir_cv_express' %}" enctype="multipart/form-data"
+                  class="d-flex flex-column gap-2">
+                {% csrf_token %}
+                <select name="vacante_id" class="form-select form-select-sm" required>
+                    <option value="">— Selecciona vacante —</option>
+                    {% for v in vacantes %}
+                    <option value="{{ v.pk }}">{{ v.titulo }}</option>
+                    {% endfor %}
+                </select>
+                <input type="file" name="cv" class="form-control form-control-sm" required
+                       accept=".pdf,.docx,.doc,.txt,.rtf">
+                <button type="submit" class="btn btn-success btn-sm">
+                    <i class="fas fa-check me-1"></i>Crear postulación
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="pv-card">
+            <h5 class="mb-2"><i class="fas fa-file-alt me-1 text-muted"></i>Texto extraído</h5>
+            <div class="pv-texto">{{ parsed.texto_extraido|default:"(sin texto extraído)"|truncatechars:4000 }}</div>
+            {% if parsed.longitud_texto > 4000 %}
+            <small class="text-muted d-block mt-2">
+                Mostrando primeros 4000 chars de {{ parsed.longitud_texto }} totales.
+            </small>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
