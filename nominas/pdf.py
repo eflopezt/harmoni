@@ -343,12 +343,18 @@ def generar_boleta_pdf(registro):
                             topMargin=MARGIN, bottomMargin=MARGIN)
     story = []
 
-    def make_col(lineas, titulo, total_str, col_w):
+    def make_col(lineas, titulo, total_str, col_w, target_rows=None):
         """
         Tabla de 2 columnas (descripción | monto). Estilo S10:
         - Header con fondo gris claro y borde
         - Filas con borde inferior fino
         - Fila TOTAL con borde superior
+
+        Args:
+            target_rows: número objetivo de filas de datos (sin header ni TOTAL).
+                         Si es None usa min_rows=4. Si se pasa, rellena con
+                         filas vacías hasta alcanzar target_rows — útil para
+                         que 3 columnas terminen a la misma altura.
         """
         nw = col_w * 0.66
         aw = col_w * 0.34
@@ -357,9 +363,9 @@ def generar_boleta_pdf(registro):
         if lineas:
             for l in lineas:
                 rows.append([_p(l["nombre"], ct_nm), _p(l["monto_str"], ct_amt)])
-        # Filas en blanco para que la columna tenga altura mínima si hay pocos items
-        min_rows = 4
-        while len(rows) - 1 < min_rows:
+        # Rellena con filas vacías para que las 3 columnas tengan misma altura
+        objetivo = target_rows if target_rows is not None else 4
+        while len(rows) - 1 < objetivo:
             rows.append([_p("", ct_nm), _p("", ct_amt)])
         # TOTAL
         rows.append([_p("TOTAL", ct_sub_l), _p(total_str, ct_sub_r)])
@@ -389,7 +395,16 @@ def generar_boleta_pdf(registro):
             # Línea vertical separadora
             ("LINEAFTER",     (0,0),(0,-1),   0.3, C_LINE_S),
         ]
-        t = Table(rows, colWidths=[nw, aw])
+        # rowHeights uniformes para filas de datos (no header ni TOTAL):
+        # garantiza que las 3 columnas terminen a la misma altura aunque
+        # un concepto haga wrap a 2 líneas (ej. "AFP — Aporte Obligatorio 10%").
+        # Altura suficiente para 2 líneas de texto a 8pt + padding.
+        DATA_ROW_HEIGHT = 22  # puntos — cubre wrap de 2 líneas cómodamente
+        n = len(rows)
+        rh = [None]  # header altura natural
+        rh += [DATA_ROW_HEIGHT] * (n - 2)  # filas de datos uniformes
+        rh.append(None)  # TOTAL altura natural
+        t = Table(rows, colWidths=[nw, aw], rowHeights=rh)
         t.setStyle(TableStyle(cmds))
         return t
 
@@ -521,23 +536,82 @@ def generar_boleta_pdf(registro):
 
     # ════════════════════════════════════════════════════════════════
     # 3 COLUMNAS — Remuneraciones | Descuentos | Aportaciones
+    # UNA sola tabla con 6 columnas (3 pares concepto/monto) en lugar de
+    # 3 tablas separadas. Garantiza que el TOTAL de las 3 termine en la
+    # MISMA fila (misma altura visual) aunque un concepto haga wrap a
+    # 2 líneas — todas las celdas de la misma fila comparten altura.
     # ════════════════════════════════════════════════════════════════
     col_w = USABLE_W / 3
-    ci = make_col(lineas_ingresos,   "Remuneraciones",
-                  _monto(total_ingresos),   col_w)
-    cd = make_col(lineas_descuentos, "Descuentos del trabajador",
-                  _monto(total_descuentos), col_w)
-    ca = make_col(lineas_aportes,    "Aportaciones del empleador",
-                  _monto(total_aportes),    col_w)
-    tc = Table([[ci, cd, ca]], colWidths=[col_w, col_w, col_w])
-    tc.setStyle(TableStyle([
-        ("VALIGN",        (0,0),(-1,-1), "TOP"),
-        ("LEFTPADDING",   (0,0),(-1,-1), 0),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
-        ("TOPPADDING",    (0,0),(-1,-1), 0),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 0),
+    nw = col_w * 0.66  # ancho columna nombre
+    aw = col_w * 0.34  # ancho columna monto
+
+    max_filas = max(
+        len(lineas_ingresos),
+        len(lineas_descuentos),
+        len(lineas_aportes),
+        4,  # mínimo razonable para presencia visual
+    )
+
+    # Header row con 3 títulos
+    grid_rows = [[
+        _p("Remuneraciones", ct_hdr), _p("Monto (S/)", ct_sub),
+        _p("Descuentos del trabajador", ct_hdr), _p("Monto (S/)", ct_sub),
+        _p("Aportaciones del empleador", ct_hdr), _p("Monto (S/)", ct_sub),
+    ]]
+
+    # Filas de datos: cada fila tiene 6 celdas (2 por columna conceptual)
+    def _get(lineas, i):
+        """Devuelve (nombre, monto_str) o ('', '') si no hay item en ese index."""
+        if i < len(lineas):
+            return lineas[i]["nombre"], lineas[i]["monto_str"]
+        return "", ""
+
+    for i in range(max_filas):
+        n_ing, m_ing = _get(lineas_ingresos, i)
+        n_desc, m_desc = _get(lineas_descuentos, i)
+        n_apo, m_apo = _get(lineas_aportes, i)
+        grid_rows.append([
+            _p(n_ing, ct_nm),  _p(m_ing, ct_amt),
+            _p(n_desc, ct_nm), _p(m_desc, ct_amt),
+            _p(n_apo, ct_nm),  _p(m_apo, ct_amt),
+        ])
+
+    # Fila TOTAL: las 3 columnas mostrarán TOTAL en la MISMA fila
+    grid_rows.append([
+        _p("TOTAL", ct_sub_l), _p(_monto(total_ingresos), ct_sub_r),
+        _p("TOTAL", ct_sub_l), _p(_monto(total_descuentos), ct_sub_r),
+        _p("TOTAL", ct_sub_l), _p(_monto(total_aportes), ct_sub_r),
+    ])
+
+    n_rows = len(grid_rows)
+    grid = Table(
+        grid_rows,
+        colWidths=[nw, aw, nw, aw, nw, aw],
+    )
+    grid.setStyle(TableStyle([
+        # Header: fondo gris, línea inferior
+        ("BACKGROUND",    (0, 0), (-1, 0), C_HEADER_BG),
+        ("LINEBELOW",     (0, 0), (-1, 0), 0.5, C_BORDER),
+        ("TOPPADDING",    (0, 0), (-1, 0), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
+        # Filas de datos
+        ("TOPPADDING",    (0, 1), (-1, -2), 2),
+        ("BOTTOMPADDING", (0, 1), (-1, -2), 2),
+        # Fila TOTAL: línea superior
+        ("LINEABOVE",     (0, -1), (-1, -1), 0.5, C_BORDER),
+        ("TOPPADDING",    (0, -1), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, -1), (-1, -1), 3),
+        # Padding lateral uniforme
+        ("LEFTPADDING",   (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 5),
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        # Borde exterior
+        ("BOX",           (0, 0), (-1, -1), 0.5, C_BORDER),
+        # Líneas verticales separadoras entre las 3 columnas conceptuales
+        ("LINEAFTER",     (1, 0), (1, -1), 0.5, C_BORDER),
+        ("LINEAFTER",     (3, 0), (3, -1), 0.5, C_BORDER),
     ]))
-    story.append(tc)
+    story.append(grid)
     story.append(Spacer(1, 8))
 
     # ════════════════════════════════════════════════════════════════
