@@ -138,33 +138,44 @@
     </div>
 </div>
 
-<!-- Filtro por vacante -->
+<!-- Filtros: vacante + score min + fuente -->
 <div class="card shadow-sm mb-3">
     <div class="card-body py-2">
         <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
             <div>
-                <label class="form-label small mb-0 fw-semibold">Filtrar por Vacante</label>
-                <select name="vacante" class="form-select form-select-sm" style="width:320px">
-                    <option value="">Todas las vacantes activas</option>
+                <label class="form-label small mb-0 fw-semibold">Vacante</label>
+                <select name="vacante" class="form-select form-select-sm" style="min-width:240px">
+                    <option value="">Todas</option>
                     {% for v in vacantes_activas %}
-                    <option value="{{ v.pk }}" {% if filtro_vacante == v.pk|stringformat:"d" %}selected{% endif %}>{{ v.titulo }}</option>
+                    <option value="{{ v.pk }}" {% if filtro_vacante == v.pk|stringformat:"d" %}selected{% endif %}>{{ v.titulo|truncatechars:42 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Score min</label>
+                <select name="score_min" class="form-select form-select-sm" style="width:110px">
+                    <option value="">—</option>
+                    <option value="50" {% if filtro_score_min == '50' %}selected{% endif %}>≥ 50</option>
+                    <option value="60" {% if filtro_score_min == '60' %}selected{% endif %}>≥ 60</option>
+                    <option value="70" {% if filtro_score_min == '70' %}selected{% endif %}>≥ 70</option>
+                    <option value="80" {% if filtro_score_min == '80' %}selected{% endif %}>≥ 80</option>
+                    <option value="90" {% if filtro_score_min == '90' %}selected{% endif %}>≥ 90</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Fuente</label>
+                <select name="fuente" class="form-select form-select-sm" style="width:140px">
+                    <option value="">Todas</option>
+                    {% for code, label in fuentes_choices %}
+                    <option value="{{ code }}" {% if filtro_fuente == code %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
             <button class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i>Filtrar</button>
-            {% if filtro_vacante %}
+            {% if filtro_vacante or filtro_score_min or filtro_fuente %}
             <a href="{% url 'pipeline_panel' %}" class="btn btn-sm btn-outline-secondary">
                 <i class="fas fa-times me-1"></i>Limpiar
             </a>
-            {% if vacantes_activas %}
-            {% for v in vacantes_activas %}
-            {% if v.pk|stringformat:"d" == filtro_vacante %}
-            <a href="{% url 'reclutamiento_scoring' v.pk %}" class="btn btn-sm btn-outline-warning">
-                <i class="fas fa-star-half-alt me-1"></i>Scoring de esta Vacante
-            </a>
-            {% endif %}
-            {% endfor %}
-            {% endif %}
             {% endif %}
         </form>
     </div>
@@ -205,9 +216,18 @@
                     <i class="fas fa-briefcase me-1"></i>{{ p.vacante.titulo|truncatechars:32 }}
                 </div>
 
-                <!-- Meta: fuente + dias en etapa -->
+                <!-- Meta: fuente + dias en etapa + score -->
                 <div class="card-meta d-flex align-items-center gap-1 flex-wrap mb-1">
                     <span class="badge bg-light text-dark border">{{ p.get_fuente_display }}</span>
+
+                    {% if p.cv_score %}
+                    <a href="{% url 'postulacion_score_detalle' p.pk %}"
+                       class="dias-badge text-decoration-none"
+                       style="background:{% if p.cv_score >= 80 %}#10b981{% elif p.cv_score >= 60 %}#f59e0b{% else %}#94a3b8{% endif %};color:#fff;"
+                       title="Score CV {{ p.cv_score }}/100">
+                        <i class="fas fa-star"></i> {{ p.cv_score }}
+                    </a>
+                    {% endif %}
 
                     {% if p.dias_en_etapa > 14 %}
                         <span class="dias-badge" style="background:#dc2626;color:#fff;" title="{{ p.dias_en_etapa }} dias en esta etapa">

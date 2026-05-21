@@ -493,6 +493,8 @@ def pipeline_panel(request):
     """Vista kanban cross-vacante con todas las postulaciones activas."""
     etapas = EtapaPipeline.objects.filter(activa=True)
     vacante_id = request.GET.get('vacante', '')
+    score_min = request.GET.get('score_min', '')
+    fuente_filtro = request.GET.get('fuente', '')
 
     postulaciones = Postulacion.objects.filter(
         estado='ACTIVA',
@@ -500,6 +502,13 @@ def pipeline_panel(request):
 
     if vacante_id:
         postulaciones = postulaciones.filter(vacante_id=vacante_id)
+    if score_min:
+        try:
+            postulaciones = postulaciones.filter(cv_score__gte=int(score_min))
+        except ValueError:
+            pass
+    if fuente_filtro:
+        postulaciones = postulaciones.filter(fuente=fuente_filtro)
 
     # Calcular dias_en_etapa para pipeline global
     hoy_dt_pl = timezone.now().date()
@@ -539,6 +548,9 @@ def pipeline_panel(request):
         'etapas': etapas,
         'vacantes_activas': vacantes_activas,
         'filtro_vacante': vacante_id,
+        'filtro_score_min': score_min,
+        'filtro_fuente':    fuente_filtro,
+        'fuentes_choices':  Postulacion.FUENTE_CHOICES,
     }
     return render(request, 'reclutamiento/pipeline_panel.html', context)
 
