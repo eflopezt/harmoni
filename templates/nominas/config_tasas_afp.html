@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Configuración Tasas AFP{% endblock %}
+
+{% block extra_css %}
+<style>
+.afp-config-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 1px 3px rgba(13,41,38,.04);
+}
+.afp-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.afp-row:last-child { border-bottom: none; }
+.afp-name {
+    font-weight: 700;
+    color: #0d2b27;
+    font-size: .95rem;
+}
+.afp-input {
+    position: relative;
+}
+.afp-input input {
+    width: 100%;
+    padding: 6px 30px 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: .9rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+.afp-input input:focus {
+    outline: 2px solid #0f766e;
+    border-color: #0f766e;
+}
+.afp-input::after {
+    content: "%";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    font-weight: 600;
+    pointer-events: none;
+}
+.field-label {
+    font-size: .68rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 4px;
+    display: block;
+}
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .72rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+}
+.status-pill.override {
+    background: #fef3c7;
+    color: #92400e;
+}
+.status-pill.default {
+    background: #d1fae5;
+    color: #064e3b;
+}
+.info-box {
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: .85rem;
+    color: #134e4a;
+    line-height: 1.55;
+}
+.info-box i {
+    color: #0f766e;
+    margin-right: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h2><i class="fas fa-percentage"></i>Configuración Tasas AFP</h2>
+<p class="page-subtitle">
+    Edita las tasas AFP (comisión por flujo, prima de seguro) y el tope RMA
+    cuando la SBS publica nuevos valores cuatrimestralmente.
+</p>
+
+<div class="info-box">
+    <i class="fas fa-info-circle"></i>
+    <strong>SBS</strong> actualiza estas tasas cada 4 meses (Q1, Q2, Q3, Q4).
+    Los valores aquí ingresados se usan en todos los cálculos AFP (descuento
+    al trabajador + reporte AFPnet). El cambio NO recalcula planillas ya
+    calculadas — debes regenerarlas desde el período correspondiente.
+    <br><br>
+    <strong>Vigencia actual:</strong>
+    {% if usando_override %}
+        <span class="status-pill override">
+            <i class="fas fa-edit"></i> Override personalizado · {{ vigencia }}
+        </span>
+    {% else %}
+        <span class="status-pill default">
+            <i class="fas fa-check-circle"></i> Default Q2 2026 (engine)
+        </span>
+    {% endif %}
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="afp-config-card">
+        <div class="afp-row" style="border-bottom:2px solid #e2e8f0;padding-bottom:8px">
+            <div class="field-label" style="margin:0">AFP</div>
+            <div class="field-label" style="margin:0;text-align:center">Comisión por Flujo</div>
+            <div class="field-label" style="margin:0;text-align:center">Prima de Seguro</div>
+        </div>
+
+        {% for afp in afps %}
+        <div class="afp-row">
+            <div class="afp-name">{{ afp }}</div>
+            <div class="afp-input">
+                <input type="number" step="0.01" min="0.50" max="3.00"
+                       name="{{ afp }}_comision"
+                       value="{{ tasas_activas|default_if_none:''|dictsort:0 }}{{ tasas_activas|stringformat:'s' }}"
+                       required>
+            </div>
+            <div class="afp-input">
+                <input type="number" step="0.01" min="1.00" max="2.50"
+                       name="{{ afp }}_seguro"
+                       value=""
+                       required>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# Initial values JS hack — set defaults from server data #}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const data = {{ tasas_activas|safe }};
+        Object.keys(data).forEach(function(afp) {
+            const tasas = data[afp];
+            const cInput = document.querySelector(`input[name="${afp}_comision"]`);
+            const sInput = document.querySelector(`input[name="${afp}_seguro"]`);
+            if (cInput) cInput.value = tasas.comision_flujo || tasas['comision_flujo'];
+            if (sInput) sInput.value = tasas.seguro;
+        });
+    });
+    </script>
+
+    <div class="afp-config-card mt-3">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="field-label">Tope RMA — Prima de Seguro (S/)</label>
+                <input type="number" step="0.01" min="5000" max="30000"
+                       name="tope_rma"
+                       class="form-control"
+                       value="{{ tope_activo }}" required
+                       style="font-variant-numeric:tabular-nums">
+                <small class="text-muted" style="font-size:.72rem">
+                    Remuneración Máxima Asegurable. La prima de seguro AFP
+                    se calcula hasta este monto. Aporte (10%) y comisión
+                    siguen sin tope.
+                </small>
+            </div>
+            <div class="col-md-6">
+                <label class="field-label">Vigencia (etiqueta)</label>
+                <input type="text" name="vigencia"
+                       class="form-control"
+                       value="{{ vigencia }}"
+                       placeholder="ej. Q3-2026 o 2026-08 a 2026-11"
+                       maxlength="20">
+                <small class="text-muted" style="font-size:.72rem">
+                    Útil para trazabilidad. No afecta cálculos.
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3 justify-content-between flex-wrap">
+        <button type="submit" name="action" value="reset"
+                class="btn btn-outline-secondary"
+                onclick="return confirm('¿Volver a tasas predeterminadas Q2 2026? Se borrará el override actual.');">
+            <i class="fas fa-undo me-1"></i> Restaurar default Q2 2026
+        </button>
+        <div class="d-flex gap-2">
+            <a href="{% url 'nominas_panel' %}" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" name="action" value="save"
+                    class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Guardar tasas
+            </button>
+        </div>
+    </div>
+</form>
+
+<div class="info-box mt-4" style="background:#fef3c7;border-color:#fde68a;color:#78350f">
+    <i class="fas fa-lightbulb" style="color:#92400e"></i>
+    <strong>Referencia rápida — Vigentes Q2 2026:</strong>
+    Habitat 1.47% / 1.74% · Integra 1.55% / 1.74% ·
+    Prima 1.60% / 1.74% · Profuturo 1.69% / 1.74% ·
+    Tope RMA S/ 12,131.49
+</div>
+{% endblock %}

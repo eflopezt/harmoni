@@ -51,6 +51,9 @@ urlpatterns = [
     # Panel de Emisión y Entrega de Boletas (con tracking SmartBoletas)
     path('boletas/', views.emision_boletas_panel, name='nominas_emision_boletas'),
 
+    # Configuración tasas AFP (admin)
+    path('config/tasas-afp/', views.config_tasas_afp, name='config_tasas_afp'),
+
     # Verificación pública de boleta (QR) — sin login
     path('verificar/<str:token>/', views.verificar_boleta, name='verificar_boleta'),
 

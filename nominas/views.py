@@ -2625,3 +2625,121 @@ def confirmar_recibo_boleta(request, pk):
         'fecha': acuse.fecha_confirmacion.strftime('%d/%m/%Y %H:%M'),
         'acuse_id': acuse.pk,
     })
+
+
+# ═════════════════════════════════════════════════════════════════
+# UI ADMIN — Configuración de tasas AFP (sin CLI)
+# ═════════════════════════════════════════════════════════════════
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+def config_tasas_afp(request):
+    """
+    Panel admin para editar tasas AFP (comisión + prima seguro + tope RMA)
+    cuando SBS publica nuevas tasas cuatrimestralmente.
+
+    Guarda en ConfiguracionSistema.afp_tasas_override + afp_tope_rma +
+    afp_tasas_vigencia. Si el campo override está vacío, el engine usa
+    los valores hardcoded del módulo (defaults Q2 2026).
+    """
+    from asistencia.models import ConfiguracionSistema
+    from .engine import AFP_TASAS, AFP_TOPE_REM_ASEGURABLE
+
+    config = ConfiguracionSistema.get()
+
+    # Tasas actualmente activas (override o hardcoded)
+    if config.afp_tasas_override:
+        tasas_activas = config.afp_tasas_override
+        usando_override = True
+    else:
+        tasas_activas = {
+            k: {'comision_flujo': str(v['comision_flujo']),
+                'seguro': str(v['seguro'])}
+            for k, v in AFP_TASAS.items()
+        }
+        usando_override = False
+
+    tope_activo = config.afp_tope_rma or AFP_TOPE_REM_ASEGURABLE
+    vigencia = config.afp_tasas_vigencia or 'Q2-2026 (default)'
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'save')
+
+        if action == 'reset':
+            config.afp_tasas_override = None
+            config.afp_tope_rma = None
+            config.afp_tasas_vigencia = ''
+            config.save(update_fields=[
+                'afp_tasas_override', 'afp_tope_rma', 'afp_tasas_vigencia',
+            ])
+            messages.success(
+                request,
+                'Override AFP eliminado. El engine usa los valores '
+                'predeterminados Q2 2026.'
+            )
+            return redirect('config_tasas_afp')
+
+        # Save: construir override desde el form
+        new_tasas = {}
+        errores = []
+        for afp_name in ['Habitat', 'Integra', 'Prima', 'Profuturo']:
+            try:
+                comision = Decimal(request.POST.get(f'{afp_name}_comision', '0'))
+                seguro = Decimal(request.POST.get(f'{afp_name}_seguro', '0'))
+                if not (Decimal('0.50') <= comision <= Decimal('3.00')):
+                    errores.append(
+                        f'{afp_name}: comisión {comision}% fuera de rango '
+                        '(0.50% - 3.00%)'
+                    )
+                if not (Decimal('1.00') <= seguro <= Decimal('2.50')):
+                    errores.append(
+                        f'{afp_name}: prima {seguro}% fuera de rango '
+                        '(1.00% - 2.50%)'
+                    )
+                new_tasas[afp_name] = {
+                    'comision_flujo': str(comision),
+                    'seguro': str(seguro),
+                }
+            except Exception as e:
+                errores.append(f'{afp_name}: error parseando valores ({e})')
+
+        try:
+            new_tope = Decimal(request.POST.get('tope_rma', '12131.49'))
+            if not (Decimal('5000') <= new_tope <= Decimal('30000')):
+                errores.append(
+                    f'Tope RMA S/ {new_tope} fuera de rango razonable '
+                    '(S/ 5,000 - S/ 30,000)'
+                )
+        except Exception:
+            errores.append('Tope RMA inválido')
+            new_tope = AFP_TOPE_REM_ASEGURABLE
+
+        new_vigencia = request.POST.get('vigencia', '').strip()
+
+        if errores:
+            for e in errores:
+                messages.error(request, e)
+        else:
+            config.afp_tasas_override = new_tasas
+            config.afp_tope_rma = new_tope
+            config.afp_tasas_vigencia = new_vigencia
+            config.save(update_fields=[
+                'afp_tasas_override', 'afp_tope_rma', 'afp_tasas_vigencia',
+            ])
+            messages.success(
+                request,
+                f'Tasas AFP actualizadas. Vigencia: {new_vigencia or "—"}. '
+                'Para aplicar a planillas YA calculadas, regenéralas desde '
+                'el período correspondiente.'
+            )
+            return redirect('config_tasas_afp')
+
+    return render(request, 'nominas/config_tasas_afp.html', {
+        'titulo': 'Configuración Tasas AFP',
+        'tasas_activas': tasas_activas,
+        'tope_activo': tope_activo,
+        'vigencia': vigencia,
+        'usando_override': usando_override,
+        'tope_default': AFP_TOPE_REM_ASEGURABLE,
+        'afps': ['Habitat', 'Integra', 'Prima', 'Profuturo'],
+    })
