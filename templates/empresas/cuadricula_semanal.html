@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Cuadrícula Semanal — {{ empresa.nombre_comercial|default:empresa.razon_social }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.cs-hero {
+    background: linear-gradient(135deg, #0d2b27, #0f766e);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+}
+.cs-hero h2 { color: #fff; font-size: 1.3rem; margin: 0; }
+.cs-hero p  { color: #cffafe; margin: .2rem 0 0; font-size: .85rem; }
+
+.cs-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .65rem;
+    margin-bottom: 1rem;
+}
+@media (max-width:576px) { .cs-kpis { grid-template-columns: repeat(2, 1fr); } }
+.cs-kpi {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: .65rem .85rem;
+    text-align: center;
+}
+.cs-kpi .lbl { font-size: .62rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+.cs-kpi .val { font-size: 1.25rem; font-weight: 800; color: #0d2b27; line-height: 1.1; font-variant-numeric: tabular-nums; }
+
+.cs-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: .55rem .85rem;
+    margin-bottom: 1rem;
+}
+
+/* ── Cuadrícula ─────────────────────────────────────────────── */
+.cs-table-wrap {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+.cs-grid {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 720px;
+    font-size: .78rem;
+}
+.cs-grid thead th {
+    background: #f0fafa;
+    color: #134e4a;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: .68rem;
+    padding: .55rem .65rem;
+    text-align: center;
+    border-bottom: 1px solid #cbf6ed;
+    position: sticky;
+    top: 0;
+}
+.cs-grid thead th.worker { text-align: left; min-width: 200px; }
+.cs-grid thead th.today  { background: #0f766e; color: #fff; }
+.cs-grid thead th.weekend { background: #fef3c7; color: #92400e; }
+
+.cs-grid tbody td {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 64px;
+}
+.cs-grid tbody td.worker {
+    text-align: left;
+    padding: .55rem .75rem;
+    font-weight: 600;
+    color: #0d2b27;
+    background: #fafafa;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+}
+.cs-grid tbody tr:hover td.worker { background: #f0fafa; }
+.cs-grid tbody td .alerta {
+    display: inline-block;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 4px;
+    font-size: .55rem;
+    padding: .1rem .3rem;
+    margin-left: .25rem;
+}
+
+.cs-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    font-size: .82rem;
+    font-weight: 700;
+    border-radius: 4px;
+    margin: 2px;
+    transition: transform .1s;
+}
+.cs-cell:hover { transform: scale(1.05); cursor: default; }
+.cs-cell.manana    { background: #fef3c7; color: #92400e; }
+.cs-cell.tarde     { background: #dbeafe; color: #1e3a8a; }
+.cs-cell.noche     { background: #1e293b; color: #fff; }
+.cs-cell.quebrado  { background: #fce7f3; color: #831843; }
+.cs-cell.descanso  { background: #e2e8f0; color: #64748b; }
+.cs-cell.vacaciones { background: #d1fae5; color: #065f46; }
+.cs-cell.falta     { background: #fee2e2; color: #991b1b; border: 2px solid #ef4444; }
+.cs-cell.licencia  { background: #fef9c3; color: #713f12; }
+.cs-cell.otro      { background: #f3e8ff; color: #581c87; }
+.cs-cell.vacio     { background: #f8fafc; color: #cbd5e1; }
+.cs-cell.vacio::before { content: '·'; }
+
+.cs-grid tbody td.today-col { background: rgba(15,118,110,.04); }
+.cs-grid tbody td.weekend-col { background: rgba(254,243,199,.3); }
+
+.cs-stats-col {
+    background: #f8fafc;
+    font-size: .7rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* ── Leyenda ────────────────────────────────────────────────── */
+.cs-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: 1rem;
+    padding: .85rem 1rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: .75rem;
+}
+.cs-ley-item {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+.cs-ley-sq {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: inline-block;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cs-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <p class="mb-1" style="font-size:.7rem; color:#a7f3d0; text-transform:uppercase; letter-spacing:.06em;">
+                <a href="{% url 'pulse_local_detalle' empresa.pk %}" class="text-decoration-none" style="color:#a7f3d0;">
+                    <i class="fas fa-chevron-left me-1"></i>{{ empresa.nombre_comercial|default:empresa.razon_social }}
+                </a>
+            </p>
+            <h2><i class="fas fa-th me-2"></i>Cuadrícula Semanal</h2>
+            <p>
+                Brigade view — turnos asignados de la semana ·
+                <strong>{{ inicio_semana|date:"d M" }} → {{ fin_semana|date:"d M Y" }}</strong>
+                {% if semana_actual %}
+                <span class="badge bg-light text-dark ms-2">Semana actual</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="cs-kpis">
+    <div class="cs-kpi">
+        <div class="lbl">Trabajadores</div>
+        <div class="val">{{ total_trabajadores }}</div>
+    </div>
+    <div class="cs-kpi">
+        <div class="lbl">Asignados (celdas)</div>
+        <div class="val">{{ total_asignados }}</div>
+    </div>
+    <div class="cs-kpi">
+        <div class="lbl">Cobertura</div>
+        <div class="val" style="color:{% if cobertura_pct >= 80 %}#10b981{% elif cobertura_pct >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+            {{ cobertura_pct }}%
+        </div>
+    </div>
+    <div class="cs-kpi">
+        <div class="lbl">Alertas</div>
+        <div class="val" style="color:{% if alertas_count %}#ef4444{% else %}#10b981{% endif %};">
+            {{ alertas_count }}
+        </div>
+    </div>
+</div>
+
+<div class="cs-nav">
+    <a href="?fecha={{ semana_anterior }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-chevron-left me-1"></i>Semana anterior
+    </a>
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <input type="date" name="fecha" value="{{ inicio_semana|date:'Y-m-d' }}"
+               class="form-control form-control-sm" style="max-width:170px;">
+        <button type="submit" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-calendar me-1"></i>Ir
+        </button>
+        {% if not semana_actual %}
+        <a href="?" class="btn btn-sm btn-outline-success">
+            <i class="fas fa-home me-1"></i>Hoy
+        </a>
+        {% endif %}
+    </form>
+    <a href="?fecha={{ semana_siguiente }}" class="btn btn-sm btn-outline-secondary">
+        Semana siguiente<i class="fas fa-chevron-right ms-1"></i>
+    </a>
+</div>
+
+{# Cuadrícula #}
+<div class="cs-table-wrap">
+<table class="cs-grid">
+    <thead>
+        <tr>
+            <th class="worker">Trabajador</th>
+            {% for nombre, fecha in dias_semana %}
+            <th class="{% if fecha == hoy %}today{% endif %} {% if forloop.counter > 5 %}weekend{% endif %}">
+                {{ nombre }}<br>
+                <span style="font-weight:400; font-size:.85em;">{{ fecha|date:"d" }}</span>
+            </th>
+            {% endfor %}
+            <th class="text-center" style="min-width:55px;">Trab.</th>
+            <th class="text-center" style="min-width:55px;">Desc.</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for fila in filas %}
+        <tr>
+            <td class="worker">
+                {{ fila.personal.apellidos_nombres|truncatechars:32 }}
+                {% if fila.alerta_horas %}<span class="alerta" title=">6 días seguidos">+6D</span>{% endif %}
+                {% if fila.alerta_sin_descanso %}<span class="alerta" title="Sin descanso semanal">SD</span>{% endif %}
+                <br><small class="text-muted" style="font-weight:400; font-size:.66rem;">{{ fila.personal.cargo|default:""|truncatechars:30 }}</small>
+            </td>
+            {% for celda in fila.celdas %}
+            <td class="{% if celda.es_hoy %}today-col{% endif %} {% if forloop.counter > 5 %}weekend-col{% endif %}">
+                <div class="cs-cell {{ celda.color }}" title="{{ celda.fecha|date:'D d M' }}{% if celda.codigo %} · Código: {{ celda.codigo }}{% endif %}">
+                    {% if celda.tipo %}{{ celda.tipo }}{% endif %}
+                </div>
+            </td>
+            {% endfor %}
+            <td class="cs-stats-col">{{ fila.dias_trabajados }}</td>
+            <td class="cs-stats-col">{{ fila.dias_descanso }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="10" class="text-center text-muted py-4">
+                Sin trabajadores en este local.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<div class="cs-leyenda">
+    <strong style="margin-right:.5rem;">Leyenda:</strong>
+    <span class="cs-ley-item"><span class="cs-ley-sq" style="background:#fef3c7;"></span>M Mañana</span>
+    <span class="cs-ley-item"><span class="cs-ley-sq" style="background:#dbeafe;"></span>T Tarde</span>
+    <span class="cs-ley-item"><span class="cs-ley-sq" style="background:#1e293b;"></span>N Noche</span>
+    <span class="cs-ley-item"><span class="cs-ley-sq" style="background:#fce7f3;"></span>Q Quebrado</span>
+    <span class="cs-ley-item"><span class="cs-ley-sq" style="background:#e2e8f0;"></span>D Descanso</span>
+    <span class="cs-ley-item"><span class="cs-ley-sq" style="background:#d1fae5;"></span>V Vacaciones</span>
+    <span class="cs-ley-item"><span class="cs-ley-sq" style="background:#fee2e2; border:2px solid #ef4444;"></span>F Falta</span>
+    <span class="cs-ley-item"><span class="cs-ley-sq" style="background:#fef9c3;"></span>LSG Licencia</span>
+</div>
+
+<div class="alert alert-info small mt-3" style="font-size:.78rem;">
+    <i class="fas fa-info-circle me-1"></i>
+    <strong>Tip operativo:</strong>
+    Las alertas <span class="alerta" style="background:#fee2e2;color:#991b1b;border-radius:4px;padding:.05rem .35rem;font-size:.65rem;">+6D</span>
+    indican más de 6 días seguidos asignados (viola DS 003-97-TR Art. 1°).
+    <span class="alerta" style="background:#fee2e2;color:#991b1b;border-radius:4px;padding:.05rem .35rem;font-size:.65rem;">SD</span>
+    indica sin descanso semanal obligatorio.
+</div>
+
+{% endblock %}

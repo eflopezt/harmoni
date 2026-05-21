@@ -435,3 +435,137 @@ def pulse_local_detalle(request, pk):
         'workers_sample':       personal_qs[:20],
         'hoy':                  hoy,
     })
+
+
+@login_required
+@solo_admin
+def cuadricula_semanal_local(request, pk):
+    """Cuadrícula Semanal del Local — vista turnos de la semana.
+
+    Pantalla estilo brigade kitchen: eje X = 7 días (lun-dom), eje Y =
+    trabajadores activos del local, celdas = código de turno asignado
+    (M/T/N/Q/D/V/F) con color por tipo.
+
+    Lee del modelo Roster (turnos planificados) y RegistroTareo (turnos
+    reales si ya pasó el día). Permite seleccionar la semana a visualizar.
+    """
+    from datetime import date, timedelta
+    from empresas.models import Empresa
+    from personal.models import Personal, Roster
+
+    emp = get_object_or_404(Empresa, pk=pk)
+    hoy = date.today()
+
+    # Parámetro ?fecha=YYYY-MM-DD para elegir cualquier semana
+    fecha_str = request.GET.get('fecha', '')
+    if fecha_str:
+        try:
+            anio, mes, dia = fecha_str.split('-')
+            fecha_ref = date(int(anio), int(mes), int(dia))
+        except (ValueError, AttributeError):
+            fecha_ref = hoy
+    else:
+        fecha_ref = hoy
+
+    # Calcular lunes de esa semana (weekday 0 = lunes)
+    inicio_semana = fecha_ref - timedelta(days=fecha_ref.weekday())
+    fin_semana = inicio_semana + timedelta(days=6)
+    dias_semana = [inicio_semana + timedelta(days=i) for i in range(7)]
+    DIA_NOMBRES = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']
+
+    # Trabajadores del local
+    trabajadores = list(
+        Personal.objects.filter(empresa=emp, estado='Activo')
+        .order_by('apellidos_nombres')
+    )
+
+    # Roster de toda la semana para estos trabajadores
+    roster_qs = Roster.objects.filter(
+        personal__in=trabajadores,
+        fecha__gte=inicio_semana,
+        fecha__lte=fin_semana,
+    )
+    # Indexar por (personal_id, fecha) → código
+    roster_map = {(r.personal_id, r.fecha): r.codigo for r in roster_qs}
+
+    # Construir filas de la cuadrícula
+    filas = []
+    for t in trabajadores:
+        celdas = []
+        total_dias_trabajados = 0
+        total_descansos = 0
+        for d in dias_semana:
+            codigo = roster_map.get((t.id, d), '')
+            # Normalizar código a categoría
+            cod_upper = (codigo or '').strip().upper()
+            if cod_upper in ('M',):
+                tipo = 'M'; color = 'manana'
+            elif cod_upper in ('T', 'TR', 'NOR'):
+                tipo = 'T'; color = 'tarde'
+            elif cod_upper in ('N',):
+                tipo = 'N'; color = 'noche'
+            elif cod_upper in ('Q',):
+                tipo = 'Q'; color = 'quebrado'
+            elif cod_upper in ('D', 'DSO'):
+                tipo = 'D'; color = 'descanso'; total_descansos += 1
+            elif cod_upper in ('V',):
+                tipo = 'V'; color = 'vacaciones'
+            elif cod_upper in ('FA', 'F'):
+                tipo = 'F'; color = 'falta'
+            elif cod_upper in ('LSG',):
+                tipo = 'LSG'; color = 'licencia'
+            elif cod_upper:
+                tipo = cod_upper[:3]; color = 'otro'
+            else:
+                tipo = ''; color = 'vacio'
+
+            if color not in ('vacio', 'descanso', 'falta', 'licencia', 'vacaciones'):
+                total_dias_trabajados += 1
+
+            celdas.append({
+                'fecha':  d,
+                'codigo': codigo,
+                'tipo':   tipo,
+                'color':  color,
+                'es_hoy': (d == hoy),
+            })
+
+        # Alertas por trabajador
+        alerta_horas = total_dias_trabajados > 6  # más de 6 días seguidos
+        alerta_sin_descanso = total_descansos == 0 and total_dias_trabajados > 0
+
+        filas.append({
+            'personal':          t,
+            'celdas':            celdas,
+            'dias_trabajados':   total_dias_trabajados,
+            'dias_descanso':     total_descansos,
+            'alerta_horas':      alerta_horas,
+            'alerta_sin_descanso': alerta_sin_descanso,
+        })
+
+    # Stats globales
+    total_asignados = sum(1 for f in filas for c in f['celdas'] if c['color'] not in ('vacio',))
+    total_celdas = len(filas) * 7
+    cobertura_pct = round(total_asignados / total_celdas * 100, 1) if total_celdas else 0
+    alertas_count = sum(1 for f in filas if f['alerta_horas'] or f['alerta_sin_descanso'])
+
+    # Navegación entre semanas
+    semana_anterior = (inicio_semana - timedelta(days=7)).isoformat()
+    semana_siguiente = (inicio_semana + timedelta(days=7)).isoformat()
+    semana_actual = inicio_semana <= hoy <= fin_semana
+
+    return render(request, 'empresas/cuadricula_semanal.html', {
+        'empresa':         emp,
+        'inicio_semana':   inicio_semana,
+        'fin_semana':      fin_semana,
+        'dias_semana':     list(zip(DIA_NOMBRES, dias_semana)),
+        'hoy':             hoy,
+        'filas':           filas,
+        'total_trabajadores': len(trabajadores),
+        'total_asignados': total_asignados,
+        'cobertura_pct':   cobertura_pct,
+        'alertas_count':   alertas_count,
+        'semana_anterior': semana_anterior,
+        'semana_siguiente': semana_siguiente,
+        'semana_actual':   semana_actual,
+    })

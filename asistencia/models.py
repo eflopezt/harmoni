@@ -2424,6 +2424,57 @@ class BriefingServicio(models.Model):
         self.publicado_por = user
         self.publicado_en = timezone.now()
         self.save(update_fields=['estado', 'publicado_por', 'publicado_en', 'actualizado_en'])
+        # Crear notificaciones in-app para los trabajadores del local
+        self._crear_notificaciones_trabajadores()
+
+    def _crear_notificaciones_trabajadores(self):
+        """Crea Notificacion in-app por cada trabajador activo del local."""
+        try:
+            from comunicaciones.models import Notificacion
+            from personal.models import Personal
+            workers = Personal.objects.filter(
+                empresa=self.empresa, estado='Activo',
+            )
+            asunto = (
+                f"Briefing del Día — {self.get_servicio_display()} "
+                f"({self.fecha.strftime('%d/%m')})"
+            )
+            covers = (f"<p><strong>{self.covers_esperados} covers esperados.</strong></p>"
+                      if self.covers_esperados else "")
+            cuerpo = (
+                f"<p>El jefe de local publicó el briefing del {self.get_servicio_display().lower()}.</p>"
+                f"{covers}"
+                f"<p><a href='/mi-portal/'>Ver briefing en mi portal</a></p>"
+            )
+            created = 0
+            for w in workers:
+                # Una sola notif por (briefing, trabajador): usar metadata para idempotencia
+                if Notificacion.objects.filter(
+                    destinatario=w,
+                    metadata__briefing_id=self.pk,
+                ).exists():
+                    continue
+                Notificacion.objects.create(
+                    destinatario=w,
+                    asunto=asunto,
+                    cuerpo=cuerpo,
+                    tipo='IN_APP',
+                    estado='ENVIADA',
+                    metadata={
+                        'briefing_id': self.pk,
+                        'empresa_id':  self.empresa_id,
+                        'fecha':       self.fecha.isoformat(),
+                        'servicio':    self.servicio,
+                    },
+                )
+                created += 1
+            return created
+        except Exception as e:
+            import logging
+            logging.getLogger('briefing').warning(
+                'Error creando notif briefing %s: %s', self.pk, e
+            )
+            return 0
 
 
 class BriefingLectura(models.Model):
