@@ -2508,3 +2508,111 @@ def emision_boletas_panel(request):
         'anio_filtro': anio_filtro,
         'estado_filtro': estado_filtro,
     })
+
+
+# ═════════════════════════════════════════════════════════════════
+# CONSENTIMIENTO + ACUSE DE RECIBO (DS 009-2011-TR)
+# ═════════════════════════════════════════════════════════════════
+
+@login_required
+def aceptar_consentimiento_boleta(request):
+    """
+    Trabajador acepta recibir boletas por medio electrónico.
+    DS 009-2011-TR exige consentimiento previo escrito.
+    """
+    from documentos.models import ConsentimientoBoletaElectronica, LogActividadTrabajador
+    empleado = getattr(request.user, 'personal_data', None)
+    if not empleado:
+        messages.warning(request, 'Tu usuario no está vinculado a un empleado.')
+        return redirect('portal_home')
+
+    if request.method == 'POST':
+        if not request.POST.get('acepto'):
+            messages.error(request, 'Debes marcar la casilla de aceptación.')
+            return redirect('aceptar_consentimiento_boleta')
+
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+        if ip and ',' in ip:
+            ip = ip.split(',')[0].strip()
+        consent, _ = ConsentimientoBoletaElectronica.objects.update_or_create(
+            personal=empleado,
+            defaults=dict(
+                aceptado=True,
+                fecha_aceptacion=timezone.now(),
+                ip_aceptacion=ip,
+                user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:500],
+                aviso_version=ConsentimientoBoletaElectronica.AVISO_VERSION_ACTUAL,
+                revocado=False,
+                fecha_revocacion=None,
+            ),
+        )
+        try:
+            LogActividadTrabajador.registrar(
+                personal=empleado, tipo='LOGIN', request=request,
+                metadata={'consentimiento_boleta_aceptado': True,
+                          'aviso_version': consent.aviso_version},
+            )
+        except Exception:
+            pass
+        messages.success(
+            request,
+            'Consentimiento registrado. Tus boletas estarán disponibles en el portal.',
+        )
+        return redirect(request.GET.get('next') or 'portal_home')
+
+    # Estado actual
+    consent = ConsentimientoBoletaElectronica.objects.filter(personal=empleado).first()
+    return render(request, 'nominas/consentimiento_boleta.html', {
+        'empleado': empleado,
+        'consentimiento': consent,
+    })
+
+
+@login_required
+@require_POST
+def confirmar_recibo_boleta(request, pk):
+    """
+    Trabajador firma electrónicamente la recepción de su boleta.
+    DS 009-2011-TR Art. 18-A — equivale a firma manual en boleta física.
+    """
+    from documentos.models import AcuseReciboBoleta, LogActividadTrabajador
+
+    registro = get_object_or_404(RegistroNomina, pk=pk)
+    empleado = getattr(request.user, 'personal_data', None)
+    if not empleado or empleado != registro.personal:
+        return JsonResponse({'ok': False, 'error': 'No autorizado.'}, status=403)
+
+    # Si ya existe acuse, no duplicar (es OneToOne)
+    if hasattr(registro, 'acuse_recibo') and registro.acuse_recibo:
+        return JsonResponse({
+            'ok': True,
+            'mensaje': 'Recepción ya confirmada anteriormente.',
+            'fecha': registro.acuse_recibo.fecha_confirmacion.strftime('%d/%m/%Y %H:%M'),
+        })
+
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+    if ip and ',' in ip:
+        ip = ip.split(',')[0].strip()
+
+    acuse = AcuseReciboBoleta.objects.create(
+        registro_nomina=registro,
+        personal=empleado,
+        ip=ip,
+        user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:500],
+        hash_boleta=(registro.hash_integridad or '')[:32],
+    )
+    try:
+        LogActividadTrabajador.registrar(
+            personal=empleado, tipo='CONFIRM_BOLETA', request=request,
+            objeto=registro,
+            metadata={'acuse_id': acuse.pk, 'periodo': str(registro.periodo)},
+        )
+    except Exception:
+        pass
+
+    return JsonResponse({
+        'ok': True,
+        'mensaje': 'Recepción confirmada.',
+        'fecha': acuse.fecha_confirmacion.strftime('%d/%m/%Y %H:%M'),
+        'acuse_id': acuse.pk,
+    })

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Consentimiento Boleta Electrónica{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:720px">
+    <h2><i class="fas fa-file-signature"></i>Boleta de Pago Electrónica</h2>
+    <p class="page-subtitle">Tu consentimiento previo nos permite enviarte la boleta digitalmente (DS 009-2011-TR).</p>
+
+    {% if consentimiento and consentimiento.vigente %}
+    <div class="card shadow-sm border-success">
+        <div class="card-body">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <i class="fas fa-check-circle fa-2x text-success"></i>
+                <div>
+                    <h5 class="mb-0">Consentimiento vigente</h5>
+                    <small class="text-muted">Aceptado el {{ consentimiento.fecha_aceptacion|date:"d/m/Y H:i" }}</small>
+                </div>
+            </div>
+            <p class="mb-2">
+                Estás recibiendo tus boletas de pago electrónicamente. Puedes consultarlas y
+                descargarlas en cualquier momento desde <a href="{% url 'portal_mi_nomina' %}">Mis Recibos</a>.
+            </p>
+            <small class="text-muted d-block">
+                Aviso versión: {{ consentimiento.aviso_version }} ·
+                IP: {{ consentimiento.ip_aceptacion|default:"—" }}
+            </small>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5>Aviso de consentimiento — Boleta Electrónica</h5>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;margin:1rem 0;font-size:.88rem;line-height:1.55;">
+                <p>De conformidad con el <strong>Decreto Supremo N° 009-2011-TR</strong> que modifica el
+                D.S. 001-98-TR sobre planillas y boletas de pago, manifiesto mi consentimiento para
+                que mi empleador me entregue mi boleta de pago mensual a través de
+                <strong>medios electrónicos</strong>, en lugar de la entrega física.</p>
+
+                <p>Comprendo y acepto que:</p>
+                <ul class="mb-2">
+                    <li>Mis boletas estarán disponibles en este portal del trabajador desde
+                        el día de cierre de cada planilla.</li>
+                    <li>Podré <strong>descargarlas e imprimirlas en cualquier momento</strong>,
+                        sin costo, mientras dure mi vínculo laboral y por los <strong>5 años</strong>
+                        posteriores a mi cese (D.L. 25988).</li>
+                    <li>El empleador conservará el registro electrónico con el sello de
+                        tiempo (timestamp), mi dirección IP de aceptación y el hash de
+                        integridad de cada boleta entregada.</li>
+                    <li>Al ingresar a ver mi boleta, podré <strong>confirmar la recepción</strong>
+                        mediante el botón correspondiente — esto equivale a la firma manual.</li>
+                    <li><strong>Puedo revocar este consentimiento en cualquier momento</strong>
+                        y solicitar volver a la entrega física, sin que ello afecte el resto
+                        de mis derechos laborales.</li>
+                </ul>
+
+                <p class="mb-0">El aviso aceptado corresponde a la versión <code>2026-05-v1</code>.</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" name="acepto" id="acepto" required>
+                    <label class="form-check-label" for="acepto">
+                        He leído el aviso y <strong>acepto recibir mi boleta de pago
+                        por medio electrónico</strong> en este portal.
+                    </label>
+                </div>
+
+                <div class="d-flex gap-2 mt-4 justify-content-end">
+                    <a href="{% url 'portal_home' %}" class="btn btn-outline-secondary">
+                        Más tarde
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check me-1"></i>Aceptar y continuar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

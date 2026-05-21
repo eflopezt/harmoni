@@ -40,6 +40,14 @@ urlpatterns = [
     # Boleta PDF
     path('registros/<int:pk>/boleta.pdf', views.boleta_pdf, name='nominas_boleta_pdf'),
 
+    # Acuse de recibo (firma electrónica DS 009-2011-TR Art. 18-A)
+    path('registros/<int:pk>/confirmar-recibo/', views.confirmar_recibo_boleta,
+         name='nominas_confirmar_recibo'),
+
+    # Consentimiento previo para boleta electrónica (DS 009-2011-TR)
+    path('consentimiento-boleta/', views.aceptar_consentimiento_boleta,
+         name='aceptar_consentimiento_boleta'),
+
     # Panel de Emisión y Entrega de Boletas (con tracking SmartBoletas)
     path('boletas/', views.emision_boletas_panel, name='nominas_emision_boletas'),
 

@@ -195,12 +195,18 @@ def generar_boleta_pdf(registro):
     # que se pagan en las fechas legales (mayo/nov CTS, jul/dic gratif).
     # No aparecen como "provisión" en una boleta digital formal — solo los
     # conceptos efectivamente cobrados/descontados del mes.
+    #
+    # DS 001-98-TR Art. 19 inc. f) — debemos discriminar conceptos
+    # remunerativos (afectos) de los no remunerativos (asignación familiar,
+    # viáticos, refrigerio, etc.) para que el trabajador conozca la base
+    # de cálculo de sus aportes y CTS.
     lineas_ingresos    = []
     lineas_descuentos  = []
     lineas_aportes     = []
     total_ingresos     = Decimal("0")
     total_descuentos   = Decimal("0")
     total_aportes      = Decimal("0")
+    remuneracion_computable = Decimal("0")  # solo conceptos REMUNERATIVOS
 
     for linea in registro.lineas.select_related("concepto").order_by(
             "concepto__tipo", "concepto__orden"):
@@ -211,19 +217,31 @@ def generar_boleta_pdf(registro):
         )
         if es_provision and linea.concepto.tipo == "INGRESO":
             continue
-        entry = {"nombre": linea.concepto.nombre,
+        subtipo = getattr(linea.concepto, 'subtipo', 'REMUNERATIVO') or 'REMUNERATIVO'
+        es_no_remunerativo = (subtipo == 'NO_REMUNERATIVO')
+        # Marcar nombre con asterisco si es no remunerativo (legend al pie)
+        nombre_display = linea.concepto.nombre
+        if es_no_remunerativo:
+            nombre_display = f"{nombre_display} *"
+        entry = {"nombre": nombre_display,
                  "monto": linea.monto or Decimal("0"),
                  "monto_str": _monto(linea.monto),
+                 "no_remun": es_no_remunerativo,
                  "obs": linea.observacion or ""}
         if linea.concepto.tipo == "INGRESO":
             lineas_ingresos.append(entry)
             total_ingresos += linea.monto or Decimal("0")
+            if not es_no_remunerativo:
+                remuneracion_computable += linea.monto or Decimal("0")
         elif linea.concepto.tipo == "DESCUENTO":
             lineas_descuentos.append(entry)
             total_descuentos += linea.monto or Decimal("0")
         else:
             lineas_aportes.append(entry)
             total_aportes += linea.monto or Decimal("0")
+
+    # Indicador: ¿hay conceptos no remunerativos en la boleta?
+    hay_no_remun = any(l.get('no_remun') for l in lineas_ingresos)
 
     essalud = registro.aporte_essalud or Decimal("0")
     essalud_en_lineas = any(
@@ -438,6 +456,17 @@ def generar_boleta_pdf(registro):
         fecha_nac_str = fn.strftime("%d/%m/%Y") if fn else "—"
     except Exception: pass
 
+    # Modalidad de contrato (DS 001-98-TR Art. 19 inc. e)
+    modalidad_str = "Plazo Indeterminado"
+    try:
+        if personal.tipo_contrato:
+            modalidad_str = personal.get_tipo_contrato_display()
+            # Si tiene fecha de fin definida, agregar vigencia
+            if personal.fecha_fin_contrato:
+                modalidad_str += f" (hasta {personal.fecha_fin_contrato.strftime('%d/%m/%Y')})"
+    except Exception:
+        pass
+
     # Filas tipo formulario: [label, value, label, value, label, value]
     cat_str = "Empleado"
     try:
@@ -462,7 +491,7 @@ def generar_boleta_pdf(registro):
          _p("F.Ing.", lbl), _p(fecha_ingreso_str, val)],
         [_p("Código", lbl), _p(str(personal.nro_doc), val),
          _p("Ocupación", lbl), _p(cargo_str, val),
-         _p("F.Cese", lbl), _p(fecha_fin_str, val)],
+         _p("Modalidad", lbl), _p(modalidad_str, val)],
         [_p("F.Nac.", lbl), _p(fecha_nac_str, val),
          _p("Categoría", lbl), _p(cat_str, val),
          _p("Grupo", lbl), _p(grupo or "—", val)],
@@ -529,7 +558,32 @@ def generar_boleta_pdf(registro):
         ("BOTTOMPADDING", (0,0),(-1,-1), 6),
     ]))
     story.append(nt)
-    story.append(Spacer(1, 16))
+    story.append(Spacer(1, 6))
+
+    # ════════════════════════════════════════════════════════════════
+    # BASE DE CÁLCULO + LEYENDA NO REMUNERATIVO (DS 001-98-TR Art. 19)
+    # ════════════════════════════════════════════════════════════════
+    base_lines = [
+        f"Remuneración computable del mes (base aportes y CTS): S/ {_monto(remuneracion_computable)}"
+    ]
+    if hay_no_remun:
+        base_lines.append(
+            "(*) Concepto NO remunerativo. No forma parte de la base de cálculo "
+            "para aportes ni beneficios sociales (Art. 7 D.S. 003-97-TR)."
+        )
+    base_st = sty("base_st", fontSize=7, textColor=C_MUTED, leading=9)
+    base_tbl = Table(
+        [[_p(line, base_st)] for line in base_lines],
+        colWidths=[USABLE_W],
+    )
+    base_tbl.setStyle(TableStyle([
+        ("LEFTPADDING",   (0,0),(-1,-1), 2),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 2),
+        ("TOPPADDING",    (0,0),(-1,-1), 1),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 1),
+    ]))
+    story.append(base_tbl)
+    story.append(Spacer(1, 10))
 
     # ════════════════════════════════════════════════════════════════
     # FIRMAS — Empleador (izq) y Trabajador (der)

@@ -1432,3 +1432,101 @@ class LogActividadTrabajador(models.Model):
             objeto_tipo=objeto_tipo,
             metadata=metadata,
         )
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# CONSENTIMIENTO DE BOLETA ELECTRÓNICA (DS 009-2011-TR)
+# ═════════════════════════════════════════════════════════════════════════
+
+class ConsentimientoBoletaElectronica(models.Model):
+    """
+    Registro del consentimiento previo del trabajador para recibir su
+    boleta de pago por medio electrónico (DS 009-2011-TR).
+
+    El trabajador debe aceptar — al iniciar sesión por primera vez en
+    el portal — que sus boletas le serán entregadas por este medio.
+    Sin este consentimiento, la empresa debe entregar boleta física.
+
+    Quedan registrados:
+    - Fecha y hora de la aceptación
+    - IP y user-agent (auditoría)
+    - Versión del aviso aceptado (para trazabilidad si cambian las
+      políticas)
+    - Revocación opcional (puede pedir volver a física en cualquier
+      momento)
+    """
+    AVISO_VERSION_ACTUAL = '2026-05-v1'
+
+    personal = models.OneToOneField(
+        'personal.Personal',
+        on_delete=models.CASCADE,
+        related_name='consentimiento_boleta_electronica',
+    )
+    aceptado = models.BooleanField(default=False)
+    fecha_aceptacion = models.DateTimeField(null=True, blank=True)
+    ip_aceptacion = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    aviso_version = models.CharField(
+        max_length=20, blank=True,
+        help_text='Versión del texto de aviso aceptado',
+    )
+
+    # Revocación opcional — trabajador puede volver a solicitar boleta física
+    revocado = models.BooleanField(default=False)
+    fecha_revocacion = models.DateTimeField(null=True, blank=True)
+    motivo_revocacion = models.TextField(blank=True)
+
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Consentimiento Boleta Electrónica'
+        verbose_name_plural = 'Consentimientos Boleta Electrónica'
+
+    def __str__(self):
+        estado = 'aceptado' if self.aceptado and not self.revocado else 'pendiente/revocado'
+        return f'{self.personal} — {estado}'
+
+    @property
+    def vigente(self):
+        return self.aceptado and not self.revocado
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# ACUSE DE RECEPCIÓN POR BOLETA (firma electrónica del trabajador)
+# ═════════════════════════════════════════════════════════════════════════
+
+class AcuseReciboBoleta(models.Model):
+    """
+    Constancia de que el trabajador confirmó haber recibido su boleta
+    de un período específico (DS 009-2011-TR Art. 18-A).
+
+    Equivale a la firma manual en boleta física. El trabajador hace
+    click en "Confirmar recepción" en el portal y se registra con
+    timestamp + IP. Inmutable después de creado.
+    """
+    registro_nomina = models.OneToOneField(
+        'nominas.RegistroNomina',
+        on_delete=models.CASCADE,
+        related_name='acuse_recibo',
+    )
+    personal = models.ForeignKey(
+        'personal.Personal',
+        on_delete=models.CASCADE,
+        related_name='acuses_recibo',
+    )
+    fecha_confirmacion = models.DateTimeField(auto_now_add=True, db_index=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    hash_boleta = models.CharField(
+        max_length=32, blank=True,
+        help_text='Hash de integridad de la boleta al momento de confirmar',
+    )
+
+    class Meta:
+        verbose_name = 'Acuse de Recibo de Boleta'
+        verbose_name_plural = 'Acuses de Recibo de Boleta'
+        ordering = ['-fecha_confirmacion']
+
+    def __str__(self):
+        return f'Acuse {self.registro_nomina} — {self.fecha_confirmacion:%d/%m/%Y %H:%M}'

@@ -434,6 +434,29 @@
            target="_blank" rel="noopener">
             <i class="fas fa-download me-2"></i>Descargar Boleta
         </a>
+
+        {# Acuse de recibo — DS 009-2011-TR Art. 18-A #}
+        {% if registro_reciente.acuse_recibo %}
+        <div class="btn btn-success btn-sm w-100" disabled
+             style="background:#d1fae5;color:#064e3b;border-color:#a7f3d0;cursor:default">
+            <i class="fas fa-check-circle me-2"></i>
+            Recepción confirmada
+            <small class="d-block" style="font-size:.65rem;opacity:.7">
+                {{ registro_reciente.acuse_recibo.fecha_confirmacion|date:"d/m/Y H:i" }}
+            </small>
+        </div>
+        {% else %}
+        <button type="button" id="btnConfirmarRecibo"
+                class="btn btn-sm w-100"
+                style="background:#0f766e;color:#fff;border:none"
+                onclick="confirmarReciboBoleta({{ registro_reciente.pk }})">
+            <i class="fas fa-file-signature me-2"></i>Confirmar recepción de boleta
+        </button>
+        <small class="text-muted d-block text-center" style="font-size:.7rem;margin-top:-4px">
+            Firma electrónica — DS 009-2011-TR
+        </small>
+        {% endif %}
+
         {% if ia_explicador_activo %}
         <button type="button" class="btn btn-sm w-100"
                 style="background:linear-gradient(135deg,#7c3aed,#0d9488);color:#fff;border:none"
@@ -815,6 +838,36 @@ function _marcarLectura(pk) {
     // dejamos que el siguiente reload retire los badges según boleta_pago.
     // (El refresh lo dispara la apertura del modal/PDF; el server marca la
     //  boleta al servir el PDF si registrar_lectura está enganchado.)
+}
+
+// Acuse de recibo — DS 009-2011-TR Art. 18-A
+function confirmarReciboBoleta(pk) {
+    if (!confirm('¿Confirmas haber recibido y revisado tu boleta de pago? Esta acción equivale a la firma manual (DS 009-2011-TR).')) {
+        return;
+    }
+    const btn = document.getElementById('btnConfirmarRecibo');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Confirmando…';
+    }
+    fetch(`/nominas/registros/${pk}/confirmar-recibo/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            alert('✓ Recepción registrada el ' + data.fecha + '\n\nGracias. Esta confirmación queda en tu legajo como acuse de recibo (DS 009-2011-TR).');
+            location.reload();
+        } else {
+            alert('No se pudo registrar la recepción: ' + (data.error || 'error desconocido'));
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-signature me-2"></i>Confirmar recepción de boleta'; }
+        }
+    })
+    .catch(err => {
+        alert('Error de red: ' + err);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-signature me-2"></i>Confirmar recepción de boleta'; }
+    });
 }
 
 {% if ia_explicador_activo and registro_reciente %}

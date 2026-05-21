@@ -41,6 +41,8 @@ EXEMPT_URL_PATTERNS = [
     r'^/nominas/registros/\d+/explicar/',       # explicador IA de su boleta
     r'^/nominas/registros/\d+/constancia\.pdf', # constancia recepción (DS 009-2011-TR)
     r'^/nominas/verificar/',                    # verificación pública QR (sin auth)
+    r'^/nominas/consentimiento-boleta/',        # consentimiento previo trabajador
+    r'^/nominas/registros/\d+/confirmar-recibo/',  # acuse recibo trabajador
     r'^/prestamos/mis',                       # mis préstamos
     r'^/descuentos/mis',                      # mis descuentos por planilla
     r'^/capacitaciones/mis',                  # mis capacitaciones
