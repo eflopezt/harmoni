@@ -565,6 +565,15 @@ def cuadricula_semanal_local(request, pk):
     semana_siguiente = (inicio_semana + timedelta(days=7)).isoformat()
     semana_actual = inicio_semana <= hoy <= fin_semana
 
+    # ── Export Excel (?format=xlsx) ──────────────────────────────────────
+    if request.GET.get('format') == 'xlsx':
+        return _exportar_cuadricula_excel(emp, dias_semana, DIA_NOMBRES, filas,
+                                          inicio_semana, fin_semana,
+                                          total_trabajadores=len(trabajadores),
+                                          total_asignados=total_asignados,
+                                          cobertura_pct=cobertura_pct,
+                                          alertas_count=alertas_count)
+
     return render(request, 'empresas/cuadricula_semanal.html', {
         'empresa':         emp,
         'inicio_semana':   inicio_semana,
@@ -580,3 +589,134 @@ def cuadricula_semanal_local(request, pk):
         'semana_siguiente': semana_siguiente,
         'semana_actual':   semana_actual,
     })
+
+
+def _exportar_cuadricula_excel(emp, dias_semana, DIA_NOMBRES, filas,
+                                inicio_semana, fin_semana,
+                                total_trabajadores, total_asignados,
+                                cobertura_pct, alertas_count):
+    """Genera xlsx de la cuadrícula semanal lista para imprimir."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    from django.http import HttpResponse
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Cuadricula Semanal'
+
+    TEAL = 'FF0D2B27'
+    TEAL_LIGHT = 'FFCFFAFE'
+    HDR_FONT = Font(color='FFFFFFFF', bold=True, size=10)
+    HDR_FILL = PatternFill(fill_type='solid', fgColor=TEAL)
+    DAY_FILL = PatternFill(fill_type='solid', fgColor=TEAL_LIGHT)
+    THIN = Side(border_style='thin', color='FFE2E8F0')
+    BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
+
+    # Colors por tipo de turno
+    TURNO_COLORS = {
+        'manana':    'FFFEF3C7',
+        'tarde':     'FFDBEAFE',
+        'noche':     'FF1E293B',
+        'quebrado':  'FFFCE7F3',
+        'descanso':  'FFE2E8F0',
+        'vacaciones':'FFD1FAE5',
+        'falta':     'FFFEE2E2',
+        'licencia':  'FFFEF9C3',
+        'otro':      'FFF3E8FF',
+    }
+    TURNO_FONT_LIGHT = Font(color='FFFFFFFF', bold=True, size=10)
+    TURNO_FONT_DARK = Font(color='FF1F2937', bold=True, size=10)
+
+    # ── Título ──────────────────────────────────────────────────
+    ws['A1'] = f'Cuadricula Semanal — {emp.nombre_comercial or emp.razon_social}'
+    ws['A1'].font = Font(bold=True, size=14, color=TEAL)
+    ws.merge_cells('A1:J1')
+    ws['A2'] = (
+        f'Semana: {inicio_semana.strftime("%d/%m/%Y")} a {fin_semana.strftime("%d/%m/%Y")}  '
+        f'| {total_trabajadores} trabajadores  | Cobertura: {cobertura_pct}%  '
+        f'| Alertas: {alertas_count}'
+    )
+    ws['A2'].font = Font(size=10, italic=True, color='FF64748B')
+    ws.merge_cells('A2:J2')
+
+    # ── Encabezados ─────────────────────────────────────────────
+    HEADER_ROW = 4
+    ws.cell(row=HEADER_ROW, column=1, value='TRABAJADOR').font = HDR_FONT
+    ws.cell(row=HEADER_ROW, column=1).fill = HDR_FILL
+    ws.cell(row=HEADER_ROW, column=1).alignment = Alignment(horizontal='center', vertical='center')
+    for i, (nombre, fecha) in enumerate(zip(DIA_NOMBRES, dias_semana), start=2):
+        c = ws.cell(row=HEADER_ROW, column=i, value=f'{nombre}\n{fecha.strftime("%d/%m")}')
+        c.font = HDR_FONT
+        c.fill = HDR_FILL
+        c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    ws.cell(row=HEADER_ROW, column=9, value='TRAB').font = HDR_FONT
+    ws.cell(row=HEADER_ROW, column=9).fill = HDR_FILL
+    ws.cell(row=HEADER_ROW, column=9).alignment = Alignment(horizontal='center')
+    ws.cell(row=HEADER_ROW, column=10, value='DESC').font = HDR_FONT
+    ws.cell(row=HEADER_ROW, column=10).fill = HDR_FILL
+    ws.cell(row=HEADER_ROW, column=10).alignment = Alignment(horizontal='center')
+
+    # ── Filas ───────────────────────────────────────────────────
+    for r, fila in enumerate(filas, start=HEADER_ROW + 1):
+        nombre = fila['personal'].apellidos_nombres
+        alertas = []
+        if fila['alerta_horas']: alertas.append('+6D')
+        if fila['alerta_sin_descanso']: alertas.append('SD')
+        if alertas:
+            nombre += f"  [{','.join(alertas)}]"
+        ws.cell(row=r, column=1, value=nombre).font = Font(bold=True, size=9)
+        ws.cell(row=r, column=1).border = BORDER
+
+        for c, celda in enumerate(fila['celdas'], start=2):
+            cell = ws.cell(row=r, column=c, value=celda['tipo'] or '·')
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = BORDER
+            color = TURNO_COLORS.get(celda['color'])
+            if color:
+                cell.fill = PatternFill(fill_type='solid', fgColor=color)
+                cell.font = TURNO_FONT_LIGHT if celda['color'] == 'noche' else TURNO_FONT_DARK
+
+        ws.cell(row=r, column=9, value=fila['dias_trabajados']).alignment = Alignment(horizontal='center')
+        ws.cell(row=r, column=9).font = Font(bold=True, size=9)
+        ws.cell(row=r, column=10, value=fila['dias_descanso']).alignment = Alignment(horizontal='center')
+        ws.cell(row=r, column=10).font = Font(bold=True, size=9)
+
+    # ── Leyenda ─────────────────────────────────────────────────
+    leyenda_row = HEADER_ROW + len(filas) + 3
+    ws.cell(row=leyenda_row, column=1, value='LEYENDA:').font = Font(bold=True, size=9)
+    leyenda_items = [
+        ('M', 'manana', 'Mañana'),
+        ('T', 'tarde', 'Tarde'),
+        ('N', 'noche', 'Noche'),
+        ('Q', 'quebrado', 'Quebrado'),
+        ('D', 'descanso', 'Descanso'),
+        ('V', 'vacaciones', 'Vacaciones'),
+        ('F', 'falta', 'Falta'),
+        ('LSG', 'licencia', 'Lic. s/goce'),
+    ]
+    for i, (cod, color, label) in enumerate(leyenda_items, start=2):
+        cell = ws.cell(row=leyenda_row, column=i, value=f'{cod}')
+        cell.fill = PatternFill(fill_type='solid', fgColor=TURNO_COLORS.get(color, 'FFFFFFFF'))
+        cell.font = TURNO_FONT_LIGHT if color == 'noche' else TURNO_FONT_DARK
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = BORDER
+    ws.cell(row=leyenda_row + 1, column=1,
+            value='+6D = más de 6 días seguidos (viola DS 003-97-TR Art. 1°)  ·  SD = sin descanso semanal').font = Font(size=8, italic=True, color='FF64748B')
+
+    # Anchos de columna
+    ws.column_dimensions['A'].width = 38
+    for col in 'BCDEFGHI':
+        ws.column_dimensions[col].width = 10
+    ws.column_dimensions['J'].width = 10
+    ws.row_dimensions[HEADER_ROW].height = 30
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    fname = f'Cuadricula_{emp.subdominio or emp.pk}_{inicio_semana.strftime("%Y%m%d")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response

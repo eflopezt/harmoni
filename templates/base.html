@@ -337,6 +337,9 @@
                     <a href="{% url 'personal_list' %}" class="nav-item" data-match="/personal/">
                         <i class="fas fa-users"></i><span>Empleados</span>
                     </a>
+                    <a href="{% url 'personal_create_express' %}" class="nav-item" data-match="/personal/express">
+                        <i class="fas fa-bolt"></i><span>Contratar Express</span>
+                    </a>
                     {% if user.is_superuser %}
                     <a href="{% url 'contratos_panel' %}" class="nav-item" data-match="/contratos">
                         <i class="fas fa-file-contract"></i><span>Contratos</span>

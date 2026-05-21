@@ -101,4 +101,5 @@ from asistencia.views.briefing import (  # noqa: F401
     briefing_crear,
     briefing_detalle,
     briefing_marcar_leido,
+    briefing_pdf,
 )

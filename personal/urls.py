@@ -74,6 +74,8 @@ urlpatterns = [
     # Aliases populares
     path('empleados/', views.personal_list, name='empleados_list_alias'),
     path('personal/crear/', views.personal_create, name='personal_create'),
+    path('personal/express/', views.personal_create_express, name='personal_create_express'),
+    path('personal/express/exito/<int:pk>/', views.personal_express_exito, name='personal_express_exito'),
     path('personal/<int:pk>/', views.personal_detail, name='personal_detail'),
     path('personal/empleado/<int:pk>/', views.personal_detail, name='personal_detail_alias'),
     path('personal/<int:pk>/timeline/', views.timeline_empleado, name='timeline_empleado'),

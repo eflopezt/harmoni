@@ -207,6 +207,15 @@
     </div>
 </div>
 
+<div class="d-flex gap-2 align-items-center mb-3 flex-wrap">
+    <a href="?fecha={{ inicio_semana|date:'Y-m-d' }}&format=xlsx" class="btn btn-sm btn-success">
+        <i class="fas fa-file-excel me-1"></i>Exportar Excel
+    </a>
+    <a href="javascript:window.print()" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-print me-1"></i>Imprimir
+    </a>
+</div>
+
 <div class="cs-nav">
     <a href="?fecha={{ semana_anterior }}" class="btn btn-sm btn-outline-secondary">
         <i class="fas fa-chevron-left me-1"></i>Semana anterior

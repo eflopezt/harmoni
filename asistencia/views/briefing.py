@@ -179,6 +179,145 @@ def briefing_detalle(request, pk):
 
 
 @login_required
+@solo_admin_o_jefe
+def briefing_pdf(request, pk):
+    """Genera PDF imprimible del briefing (tipo ticket largo para cocina)."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable,
+    )
+    from django.http import HttpResponse
+
+    b = get_object_or_404(
+        BriefingServicio.objects.select_related('empresa', 'publicado_por'),
+        pk=pk,
+    )
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        topMargin=15*mm, bottomMargin=15*mm,
+        leftMargin=15*mm, rightMargin=15*mm,
+    )
+
+    TEAL_DARK = colors.HexColor('#0d2b27')
+    TEAL = colors.HexColor('#0f766e')
+    AMBER = colors.HexColor('#92400e')
+    GREEN = colors.HexColor('#065f46')
+    RED = colors.HexColor('#991b1b')
+    GRAY = colors.HexColor('#475569')
+
+    styles = getSampleStyleSheet()
+    st_title = ParagraphStyle(
+        'T', parent=styles['Heading1'],
+        fontName='Helvetica-Bold', fontSize=18, textColor=TEAL_DARK,
+        alignment=TA_CENTER, leading=22, spaceAfter=6,
+    )
+    st_sub = ParagraphStyle(
+        'S', parent=styles['Normal'], fontName='Helvetica', fontSize=11,
+        textColor=GRAY, alignment=TA_CENTER, spaceAfter=12,
+    )
+    st_section_title = ParagraphStyle(
+        'ST', parent=styles['Heading2'], fontName='Helvetica-Bold',
+        fontSize=11, textColor=TEAL, leading=14, spaceAfter=4,
+        spaceBefore=10, alignment=TA_LEFT,
+    )
+    st_body = ParagraphStyle(
+        'B', parent=styles['Normal'], fontName='Helvetica', fontSize=10,
+        textColor=colors.HexColor('#1f2937'), leading=14,
+    )
+    st_warn = ParagraphStyle(
+        'W', parent=st_body, fontName='Helvetica-Bold', textColor=RED,
+    )
+
+    story = []
+    story.append(Paragraph(
+        f"BRIEFING DEL DÍA — {b.get_servicio_display().upper()}",
+        st_title,
+    ))
+    story.append(Paragraph(
+        f"{b.empresa.nombre_comercial or b.empresa.razon_social}  ·  {b.fecha.strftime('%A %d de %B %Y')}",
+        st_sub,
+    ))
+    story.append(HRFlowable(width="100%", thickness=2, color=TEAL,
+                            spaceBefore=0, spaceAfter=10))
+
+    # Header info
+    info_data = [
+        ['Servicio:', b.get_servicio_display(), 'Covers:', str(b.covers_esperados or '—')],
+        ['Estado:', b.get_estado_display(), 'Dress code:', b.dress_code or '—'],
+    ]
+    info_t = Table(info_data, colWidths=[25*mm, 60*mm, 25*mm, 60*mm])
+    info_t.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0, 0), (0, -1), GRAY),
+        ('TEXTCOLOR', (2, 0), (2, -1), GRAY),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(info_t)
+    story.append(Spacer(1, 6))
+
+    def add_section(title, body, color=TEAL_DARK):
+        story.append(Paragraph(title.upper(), ParagraphStyle(
+            'sectT', parent=st_section_title, textColor=color)))
+        # Reemplaza saltos de línea por <br/>
+        body_html = body.replace('\n', '<br/>').replace('\r', '')
+        story.append(Paragraph(body_html, st_body))
+
+    if b.notas_chef:
+        add_section('Notas del Chef', b.notas_chef, color=colors.HexColor('#06b6d4'))
+
+    if b.especiales:
+        add_section('Especiales del día', b.especiales, color=GREEN)
+
+    if b.items_86:
+        add_section("Items 86'd (NO disponibles)", b.items_86, color=RED)
+        story.append(Paragraph(
+            '⚠ Comunicar al salón ANTES de tomar pedidos.',
+            st_warn,
+        ))
+
+    if b.vips_alergias:
+        add_section('VIPs · Alergias · Cumpleaños', b.vips_alergias, color=AMBER)
+
+    if b.notas_operativas:
+        add_section('Notas operativas', b.notas_operativas, color=GRAY)
+
+    # Footer
+    story.append(Spacer(1, 14))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'),
+                            spaceBefore=0, spaceAfter=6))
+    footer_lines = []
+    if b.publicado_en:
+        footer_lines.append(
+            f"Publicado por {b.publicado_por.username if b.publicado_por else '—'} "
+            f"el {b.publicado_en.strftime('%d/%m %H:%M')}"
+        )
+    footer_lines.append('Harmoni ERP · Briefing del Día · Imprimir y colgar en cocina')
+    for line in footer_lines:
+        story.append(Paragraph(line, ParagraphStyle(
+            'foot', parent=st_body, fontSize=8, textColor=GRAY, alignment=TA_CENTER)))
+
+    doc.build(story)
+    pdf = buf.getvalue()
+    buf.close()
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    fname = f'briefing_{b.empresa.subdominio or b.empresa.pk}_{b.fecha.strftime("%Y%m%d")}_{b.servicio}.pdf'
+    response['Content-Disposition'] = f'inline; filename="{fname}"'
+    return response
+
+
+@login_required
 def briefing_marcar_leido(request, pk):
     """Endpoint AJAX para que un trabajador marque que leyó el briefing."""
     if request.method != 'POST':

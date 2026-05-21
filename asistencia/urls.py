@@ -124,6 +124,7 @@ urlpatterns = [
     path('briefing/crear/', views.briefing_crear, name='briefing_crear'),
     path('briefing/<int:pk>/', views.briefing_detalle, name='briefing_detalle'),
     path('briefing/<int:pk>/leido/', views.briefing_marcar_leido, name='briefing_marcar_leido'),
+    path('briefing/<int:pk>/pdf/', views.briefing_pdf, name='briefing_pdf'),
 
     # Reportes por Área
     path('reportes/areas/', panel_reportes_area, name='asistencia_reportes_areas'),

@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Onboarding Express — Nuevo Trabajador{% endblock %}
+
+{% block extra_css %}
+<style>
+.exp-hero {
+    background: linear-gradient(135deg, #134e4a, #0f766e);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+}
+.exp-hero h2 { color: #fff; font-size: 1.3rem; margin: 0; }
+.exp-hero p { color: #cffafe; margin: .2rem 0 0; font-size: .85rem; }
+
+.exp-form-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+.exp-form-card .section-title {
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #134e4a;
+    font-weight: 700;
+    margin-top: .85rem;
+    margin-bottom: .55rem;
+    padding-bottom: .25rem;
+    border-bottom: 2px solid #99f6e4;
+}
+.exp-form-card .form-label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: .25rem;
+}
+.exp-form-card .form-control,
+.exp-form-card .form-select {
+    border-radius: 8px;
+    border-color: #cbd5e1;
+}
+.exp-form-card .form-control:focus,
+.exp-form-card .form-select:focus {
+    border-color: #0f766e;
+    box-shadow: 0 0 0 .2rem rgba(15,118,110,.15);
+}
+.exp-required::after {
+    content: ' *';
+    color: #ef4444;
+}
+
+.exp-timer {
+    background: rgba(255,255,255,.15);
+    border-radius: 999px;
+    padding: .25rem .85rem;
+    font-weight: 700;
+    font-size: .8rem;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.3);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="exp-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h2><i class="fas fa-bolt me-2"></i>Onboarding Express</h2>
+            <p>
+                Contrata a un trabajador en <strong>menos de 45 segundos</strong>.
+                Crea Personal, usuario portal, credenciales y propaga todo el ciclo.
+            </p>
+        </div>
+        <span class="exp-timer">
+            <i class="fas fa-stopwatch me-1"></i>45 seg.
+        </span>
+    </div>
+</div>
+
+{% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<form method="post" class="exp-form-card">
+    {% csrf_token %}
+
+    <div class="section-title">Datos personales</div>
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label exp-required">DNI</label>
+            <input type="text" name="nro_doc" required minlength="8" maxlength="11"
+                   class="form-control" placeholder="71234567"
+                   pattern="[0-9]+">
+        </div>
+        <div class="col-md-9">
+            <label class="form-label exp-required">Apellidos y Nombres</label>
+            <input type="text" name="apellidos_nombres" required maxlength="100"
+                   class="form-control" placeholder="QUISPE LOPEZ, MARIA ELENA">
+            <small class="text-muted">Formato: APELLIDOS, NOMBRES (en mayúsculas)</small>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Email corporativo</label>
+            <input type="email" name="email" class="form-control"
+                   placeholder="maria.quispe@empresa.com.pe">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Fecha de alta</label>
+            <input type="date" name="fecha_alta" class="form-control"
+                   value="{{ hoy|date:'Y-m-d' }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Password inicial</label>
+            <input type="text" name="password_inicial" class="form-control"
+                   placeholder="(autogenerado)">
+            <small class="text-muted">Vacío → autogenerado.</small>
+        </div>
+    </div>
+
+    <div class="section-title">Puesto y Asignación</div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label exp-required">Cargo</label>
+            <input type="text" name="cargo" required maxlength="100"
+                   class="form-control" placeholder="Mesera Senior · Chef de partie · Sommelier">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Tipo trabajador</label>
+            <select name="tipo_trab" class="form-select">
+                <option value="Empleado">Empleado</option>
+                <option value="Obrero">Obrero</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Grupo</label>
+            <select name="grupo_tareo" class="form-select">
+                <option value="STAFF">STAFF</option>
+                <option value="RCO">RCO</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label exp-required">Local / Empresa</label>
+            <select name="empresa_id" class="form-select" required>
+                <option value="">— Seleccionar —</option>
+                {% for e in empresas %}
+                <option value="{{ e.pk }}">{{ e.nombre_comercial|default:e.razon_social }} ({{ e.ruc }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Sub-área</label>
+            <select name="subarea_id" class="form-select">
+                <option value="">— Sin asignar —</option>
+                {% for s in subareas %}
+                <option value="{{ s.pk }}">{{ s.area.nombre }} / {{ s.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="section-title">Datos económicos y legales</div>
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Sueldo base (S/)</label>
+            <input type="number" name="sueldo_base" step="0.01" min="0"
+                   class="form-control" value="1500" placeholder="1500">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Tipo contrato</label>
+            <select name="tipo_contrato" class="form-select">
+                <option value="plazo_fijo">Plazo Fijo</option>
+                <option value="indeterminado">Indeterminado</option>
+                <option value="intermitente">Intermitente</option>
+                <option value="temporada">Temporada</option>
+                <option value="part_time">Part-time</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Régimen pensión</label>
+            <select name="regimen_pension" class="form-select">
+                <option value="ONP">ONP</option>
+                <option value="AFP">AFP</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+        <a href="{% url 'personal_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-bolt me-1"></i>Crear trabajador (45 seg)
+        </button>
+    </div>
+</form>
+
+<div class="alert alert-info small" style="font-size:.78rem;">
+    <i class="fas fa-info-circle me-1"></i>
+    <strong>¿Qué hace este wizard?</strong> Al guardar, Harmoni:
+    <ul class="mb-0 mt-1">
+        <li>Crea registro <strong>Personal</strong> en la empresa/local seleccionado</li>
+        <li>Crea <strong>Usuario</strong> Django con DNI como username</li>
+        <li>Genera <strong>credenciales del portal</strong> (DNI + password)</li>
+        <li>Inicializa <strong>SaldoApertura</strong> en cero (apertura ya completada)</li>
+        <li>El trabajador queda <strong>listo para procesar planilla</strong></li>
+    </ul>
+</div>
+
+{% endblock %}

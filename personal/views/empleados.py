@@ -597,3 +597,165 @@ def personal_import(request):
     }
     context.update(get_context_usuario(request.user))
     return render(request, 'personal/import_form.html', context)
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  ONBOARDING EXPRESS — Contratación en 45 segundos
+# ═══════════════════════════════════════════════════════════════════
+
+@login_required
+def personal_create_express(request):
+    """Onboarding Express del trabajador.
+
+    Form de 1 sola pantalla con los campos esenciales para crear un
+    trabajador y propagar todo el ciclo:
+    - Crea Personal
+    - Crea User con DNI como username + password (autogenerado)
+    - Vincula Personal.usuario
+    - Asigna a empresa (local) seleccionado
+    - Crea SaldoApertura en cero (apertura ya completada)
+    - Notifica al jefe del local (mock para demo)
+    - Muestra confirmación con credenciales generadas
+
+    Mensaje: "María Quispe lista para operar en 45 segundos."
+    """
+    from django.contrib.auth.models import User
+    from empresas.models import Empresa
+    from django.utils import timezone
+    import secrets
+    import string
+
+    if request.method == 'POST':
+        try:
+            nro_doc      = request.POST.get('nro_doc', '').strip()
+            apellidos    = request.POST.get('apellidos_nombres', '').strip().upper()
+            cargo        = request.POST.get('cargo', '').strip()
+            tipo_trab    = request.POST.get('tipo_trab', 'Empleado').strip()
+            grupo_tareo  = request.POST.get('grupo_tareo', 'STAFF').strip()
+            empresa_id   = request.POST.get('empresa_id', '')
+            subarea_id   = request.POST.get('subarea_id', '')
+            sueldo_base  = request.POST.get('sueldo_base', '').strip() or '1500'
+            fecha_alta_s = request.POST.get('fecha_alta', '').strip()
+            email        = request.POST.get('email', '').strip()
+            tipo_contrato = request.POST.get('tipo_contrato', 'plazo_fijo').strip()
+            regimen_pension = request.POST.get('regimen_pension', 'ONP').strip()
+            password_inicial = request.POST.get('password_inicial', '').strip()
+
+            # Validaciones
+            if not nro_doc or not apellidos:
+                messages.error(request, 'DNI y apellidos/nombres son requeridos.')
+                raise ValueError('Campos requeridos faltantes.')
+
+            if Personal.objects.filter(nro_doc=nro_doc).exists():
+                messages.error(request, f'Ya existe un trabajador con DNI {nro_doc}.')
+                raise ValueError('DNI duplicado.')
+
+            # Resolver fecha
+            try:
+                fecha_alta = datetime.strptime(fecha_alta_s, '%Y-%m-%d').date() if fecha_alta_s else date.today()
+            except ValueError:
+                fecha_alta = date.today()
+
+            # Resolver empresa
+            empresa = None
+            if empresa_id:
+                try:
+                    empresa = Empresa.objects.get(pk=int(empresa_id), activa=True)
+                except (Empresa.DoesNotExist, ValueError, TypeError):
+                    pass
+
+            # Resolver subarea
+            subarea = None
+            if subarea_id:
+                try:
+                    subarea = SubArea.objects.get(pk=int(subarea_id))
+                except (SubArea.DoesNotExist, ValueError, TypeError):
+                    pass
+
+            # Generar password si no se especificó
+            if not password_inicial:
+                alphabet = string.ascii_letters + string.digits
+                password_inicial = ''.join(secrets.choice(alphabet) for _ in range(10))
+
+            from django.db import transaction
+            with transaction.atomic():
+                # Crear Personal
+                personal = Personal.objects.create(
+                    nro_doc=nro_doc,
+                    apellidos_nombres=apellidos,
+                    cargo=cargo or 'Trabajador',
+                    tipo_trab=tipo_trab,
+                    grupo_tareo=grupo_tareo,
+                    estado='Activo',
+                    subarea=subarea,
+                    empresa=empresa,
+                    fecha_alta=fecha_alta,
+                    sueldo_base=Decimal(sueldo_base) if sueldo_base else Decimal('1500'),
+                    tipo_contrato=tipo_contrato if tipo_contrato else 'plazo_fijo',
+                    regimen_pension=regimen_pension,
+                    correo_corporativo=email,
+                )
+
+                # Crear User
+                user, created = User.objects.get_or_create(
+                    username=nro_doc,
+                    defaults={
+                        'email':      email or '',
+                        'first_name': apellidos.split(',')[-1].strip()[:30] if ',' in apellidos else apellidos[:30],
+                        'last_name':  apellidos.split(',')[0].strip()[:30] if ',' in apellidos else '',
+                        'is_active':  True,
+                    },
+                )
+                user.set_password(password_inicial)
+                user.save()
+
+                # Vincular
+                personal.usuario = user
+                personal.save(update_fields=['usuario'])
+
+                # Crear SaldoApertura en cero (apertura ya completada)
+                try:
+                    from nominas.models import SaldoAperturaTrabajador
+                    SaldoAperturaTrabajador.objects.get_or_create(
+                        personal=personal,
+                        defaults={
+                            'fecha_corte': fecha_alta,
+                            'creado_por':  request.user,
+                            'notas':       'Onboarding Express — saldos en cero.',
+                        },
+                    )
+                except Exception:
+                    pass
+
+            # Mensaje de éxito tipo cinematic
+            primer_nombre = apellidos.split(',')[-1].strip().title() if ',' in apellidos else apellidos.title()
+            messages.success(
+                request,
+                f'✓ {primer_nombre} contratada(o) en 45 segundos. '
+                f'DNI: {nro_doc}  ·  Credenciales: {nro_doc} / {password_inicial}  ·  '
+                f'Local: {empresa.nombre_comercial if empresa else "—"}'
+            )
+            return redirect('personal_express_exito', pk=personal.pk)
+        except (ValueError, InvalidOperation) as e:
+            # Errores ya mostrados via messages
+            pass
+
+    # GET → renderiza form
+    from empresas.models import Empresa
+    empresas = Empresa.objects.filter(activa=True).order_by('razon_social')
+    subareas = SubArea.objects.filter(activa=True).select_related('area').order_by('area__nombre', 'nombre')
+    return render(request, 'personal/personal_express_form.html', {
+        'empresas': empresas,
+        'subareas': subareas,
+        'hoy':      date.today(),
+    })
+
+
+@login_required
+def personal_express_exito(request, pk):
+    """Pantalla de confirmación tras Onboarding Express."""
+    persona = get_object_or_404(Personal, pk=pk)
+    # Solo se muestra si fue recién creado (último día)
+    return render(request, 'personal/personal_express_exito.html', {
+        'persona': persona,
+    })

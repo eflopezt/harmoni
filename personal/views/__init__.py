@@ -17,6 +17,7 @@ from .areas import (
 from .empleados import (
     personal_list, personal_create, personal_update, personal_detail,
     personal_export, personal_import,
+    personal_create_express, personal_express_exito,
 )
 
 from .roster import (

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}✓ {{ persona.apellidos_nombres }} contratado(a) — Harmoni{% endblock %}
+
+{% block extra_css %}
+<style>
+.exito-card {
+    background: linear-gradient(135deg, #065f46, #10b981);
+    color: #fff;
+    border-radius: 14px;
+    padding: 2rem 1.75rem;
+    text-align: center;
+    margin: 2rem 0;
+    box-shadow: 0 4px 20px rgba(16,185,129,.3);
+}
+.exito-card h2 { color: #fff; font-size: 1.5rem; margin: 0; }
+.exito-card .badge-time {
+    display: inline-block;
+    background: rgba(255,255,255,.25);
+    border-radius: 999px;
+    padding: .35rem 1.1rem;
+    font-weight: 700;
+    font-size: .8rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255,255,255,.4);
+}
+.exito-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+}
+
+.proximos-pasos {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+.proximos-pasos h5 {
+    font-size: .95rem;
+    color: #134e4a;
+    margin-bottom: 1rem;
+}
+.paso-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .65rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.paso-item:last-child { border-bottom: none; }
+.paso-numero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    background: #ecfdf5;
+    color: #10b981;
+    border-radius: 50%;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="exito-card">
+    <div class="exito-icon">
+        <i class="fas fa-check"></i>
+    </div>
+    <span class="badge-time">
+        <i class="fas fa-stopwatch me-1"></i>45 segundos
+    </span>
+    <h2>{{ persona.apellidos_nombres }} contratado(a) ✓</h2>
+    <p style="font-size:.95rem; color:#d1fae5; margin-top:.5rem;">
+        DNI <strong>{{ persona.nro_doc }}</strong>
+        {% if persona.empresa %}
+        · Local <strong>{{ persona.empresa.nombre_comercial|default:persona.empresa.razon_social }}</strong>
+        {% endif %}
+        {% if persona.cargo %}
+        · {{ persona.cargo }}
+        {% endif %}
+    </p>
+</div>
+
+<div class="proximos-pasos">
+    <h5><i class="fas fa-list-check text-success me-1"></i>Listo para operar</h5>
+
+    <div class="paso-item">
+        <span class="paso-numero">1</span>
+        <div>
+            <strong>Personal creado</strong> en el sistema · DNI {{ persona.nro_doc }}
+            {% if persona.empresa %}
+            <br><small class="text-muted">Asignado a {{ persona.empresa.nombre_comercial|default:persona.empresa.razon_social }}</small>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="paso-item">
+        <span class="paso-numero">2</span>
+        <div>
+            <strong>Usuario portal generado</strong>
+            <br><small class="text-muted">Username: <code>{{ persona.nro_doc }}</code> · Password en el mensaje arriba</small>
+        </div>
+    </div>
+
+    <div class="paso-item">
+        <span class="paso-numero">3</span>
+        <div>
+            <strong>SaldoApertura inicializado</strong> en cero
+            <br><small class="text-muted">Provisiones CTS/Gratif/Vac arrancan acumulando desde hoy</small>
+        </div>
+    </div>
+
+    <div class="paso-item">
+        <span class="paso-numero">4</span>
+        <div>
+            <strong>Próximo período de planilla</strong> incluirá a este trabajador
+            <br><small class="text-muted">Sueldo base S/ {{ persona.sueldo_base|floatformat:2 }}</small>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex gap-2 mt-3 flex-wrap">
+    <a href="{% url 'personal_detail' persona.pk %}" class="btn btn-primary">
+        <i class="fas fa-user me-1"></i>Ver ficha completa
+    </a>
+    <a href="{% url 'personal_create_express' %}" class="btn btn-success">
+        <i class="fas fa-bolt me-1"></i>Crear otro trabajador
+    </a>
+    {% if persona.empresa %}
+    <a href="{% url 'pulse_local_detalle' persona.empresa.pk %}" class="btn btn-outline-info">
+        <i class="fas fa-heartbeat me-1"></i>Ver Pulse del Local
+    </a>
+    {% endif %}
+    <a href="{% url 'personal_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-list me-1"></i>Lista de personal
+    </a>
+</div>
+
+{% endblock %}
