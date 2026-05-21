@@ -1208,7 +1208,28 @@ def mis_boletas(request):
             periodo__year=anio_filtro,
         ).order_by('-periodo')
 
-        boletas = qs
+        # Enlazar dinámicamente cada BoletaPago con su RegistroNomina
+        # por (personal + año/mes). Si BoletaPago no tiene archivo físico,
+        # podemos generar el PDF on-demand vía nominas_boleta_pdf con
+        # el registro_pk.
+        from nominas.models import RegistroNomina
+        registros_por_mes = {}
+        try:
+            for r in RegistroNomina.objects.filter(
+                personal=empleado,
+                periodo__anio=anio_filtro,
+            ).select_related('periodo'):
+                registros_por_mes[(r.periodo.anio, r.periodo.mes)] = r.pk
+        except Exception:
+            pass
+
+        # Agregar atributo dinámico `.registro_pk` a cada BoletaPago
+        boletas = list(qs)
+        for b in boletas:
+            b.registro_pk = registros_por_mes.get(
+                (b.periodo.year, b.periodo.month)
+            )
+
         stats = {
             'total': qs.count(),
             'leidas': qs.filter(estado='LEIDA').count(),

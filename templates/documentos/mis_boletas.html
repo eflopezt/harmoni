@@ -175,18 +175,28 @@
         <div class="boleta-acciones">
             {% if b.archivo %}
             <a href="{{ b.archivo.url }}" target="_blank" rel="noopener"
-               class="btn btn-outline-primary"
+               class="btn btn-primary"
                title="Descargar boleta PDF">
                 <i class="fas fa-download"></i>
-                <span class="d-none d-md-inline ms-1">PDF</span>
+                <span class="d-none d-md-inline ms-1">Descargar</span>
             </a>
-            {% elif b.registro_id %}
-            <a href="{% url 'nominas_boleta_pdf' b.registro_id %}" target="_blank" rel="noopener"
-               class="btn btn-outline-primary"
-               title="Generar boleta PDF">
+            {% elif b.registro_pk %}
+            <a href="{% url 'nominas_boleta_pdf' b.registro_pk %}" target="_blank" rel="noopener"
+               class="btn btn-primary"
+               title="Generar y descargar boleta PDF">
                 <i class="fas fa-download"></i>
-                <span class="d-none d-md-inline ms-1">PDF</span>
+                <span class="d-none d-md-inline ms-1">Descargar</span>
             </a>
+            <a href="{% url 'nominas_constancia_recepcion' b.registro_pk %}" target="_blank" rel="noopener"
+               class="btn btn-outline-secondary"
+               title="Descargar constancia de recepción (DS 009-2011-TR)">
+                <i class="fas fa-file-signature"></i>
+                <span class="d-none d-md-inline ms-1">Constancia</span>
+            </a>
+            {% else %}
+            <span class="text-muted small" style="font-size:.72rem;">
+                <i class="fas fa-clock"></i> Procesando
+            </span>
             {% endif %}
             {% if b.estado == 'PUBLICADA' %}
             <button class="btn btn-success" onclick="confirmar({{ b.pk }})"
