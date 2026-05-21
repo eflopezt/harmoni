@@ -495,6 +495,7 @@ def pipeline_panel(request):
     vacante_id = request.GET.get('vacante', '')
     score_min = request.GET.get('score_min', '')
     fuente_filtro = request.GET.get('fuente', '')
+    tag_filtro = request.GET.get('tag', '')
 
     postulaciones = Postulacion.objects.filter(
         estado='ACTIVA',
@@ -509,6 +510,9 @@ def pipeline_panel(request):
             pass
     if fuente_filtro:
         postulaciones = postulaciones.filter(fuente=fuente_filtro)
+    if tag_filtro:
+        # JSONField contains: el candidato debe tener este tag en la lista
+        postulaciones = postulaciones.filter(tags__contains=[tag_filtro])
 
     # Calcular dias_en_etapa para pipeline global
     hoy_dt_pl = timezone.now().date()
@@ -550,9 +554,116 @@ def pipeline_panel(request):
         'filtro_vacante': vacante_id,
         'filtro_score_min': score_min,
         'filtro_fuente':    fuente_filtro,
+        'filtro_tag':       tag_filtro,
         'fuentes_choices':  Postulacion.FUENTE_CHOICES,
+        'tags_choices':     Postulacion.TAG_CHOICES,
     }
     return render(request, 'reclutamiento/pipeline_panel.html', context)
+
+
+# ══════════════════════════════════════════════════════════════
+# ADMIN — TAGS + BULK ACTIONS PIPELINE
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+@require_POST
+def postulacion_toggle_tag(request, pk):
+    """Toggle de tag en un candidato (AJAX). Body: tag=<code>."""
+    from django.http import JsonResponse
+    try:
+        postulacion = Postulacion.objects.get(pk=pk)
+    except Postulacion.DoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'no_existe'}, status=404)
+    code = request.POST.get('tag', '').strip()
+    valid = {c for c, _ in Postulacion.TAG_CHOICES}
+    if code not in valid:
+        return JsonResponse({'ok': False, 'error': 'tag_invalido'}, status=400)
+    nuevos = postulacion.toggle_tag(code)
+    return JsonResponse({
+        'ok': True,
+        'tags': nuevos,
+        'has_tag': code in nuevos,
+    })
+
+
+@login_required
+@solo_admin
+@require_POST
+def pipeline_bulk_action(request):
+    """Acciones masivas desde el Kanban.
+
+    Body:
+      ids: lista de IDs separados por coma
+      accion: 'mover' | 'descartar' | 'tag_add' | 'tag_remove'
+      etapa_id: requerido si accion=mover
+      tag: requerido si accion=tag_*
+      motivo: opcional para descartar
+    """
+    from django.http import JsonResponse
+    ids_raw = request.POST.get('ids', '')
+    ids = [int(x) for x in ids_raw.split(',') if x.strip().isdigit()]
+    if not ids:
+        return JsonResponse({'ok': False, 'error': 'sin_ids'}, status=400)
+
+    accion = request.POST.get('accion', '').strip()
+    qs = Postulacion.objects.filter(pk__in=ids, estado='ACTIVA')
+    count = 0
+
+    if accion == 'mover':
+        try:
+            etapa_id = int(request.POST.get('etapa_id', '0'))
+            etapa_destino = EtapaPipeline.objects.get(pk=etapa_id, activa=True)
+        except (ValueError, EtapaPipeline.DoesNotExist):
+            return JsonResponse({'ok': False, 'error': 'etapa_invalida'}, status=400)
+        for p in qs:
+            etapa_anterior = p.etapa
+            p.etapa = etapa_destino
+            p.save(update_fields=['etapa'])
+            # Crear nota historica
+            try:
+                NotaPostulacion.objects.create(
+                    postulacion=p,
+                    autor=request.user,
+                    tipo='NOTA',
+                    texto=f"[BULK] Movido de {etapa_anterior.nombre} a {etapa_destino.nombre}.",
+                )
+            except Exception:
+                pass
+            count += 1
+        return JsonResponse({'ok': True, 'count': count, 'accion': accion})
+
+    if accion == 'descartar':
+        motivo = (request.POST.get('motivo', '') or 'Descartado en bulk action').strip()
+        for p in qs:
+            p.estado = 'DESCARTADA'
+            p.save(update_fields=['estado'])
+            try:
+                NotaPostulacion.objects.create(
+                    postulacion=p,
+                    autor=request.user,
+                    tipo='NOTA',
+                    texto=f"[BULK DESCARTE] {motivo}",
+                )
+            except Exception:
+                pass
+            count += 1
+        return JsonResponse({'ok': True, 'count': count, 'accion': accion})
+
+    if accion in ('tag_add', 'tag_remove'):
+        code = request.POST.get('tag', '').strip()
+        valid = {c for c, _ in Postulacion.TAG_CHOICES}
+        if code not in valid:
+            return JsonResponse({'ok': False, 'error': 'tag_invalido'}, status=400)
+        for p in qs:
+            if accion == 'tag_add':
+                p.add_tag(code)
+            else:
+                p.remove_tag(code)
+            count += 1
+        return JsonResponse({'ok': True, 'count': count, 'accion': accion, 'tag': code})
+
+    return JsonResponse({'ok': False, 'error': 'accion_invalida'}, status=400)
 
 
 # ══════════════════════════════════════════════════════════════

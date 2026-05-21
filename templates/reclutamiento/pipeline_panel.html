@@ -116,6 +116,61 @@
     margin-top: 6px;
     flex-wrap: wrap;
 }
+/* ── Card selection (bulk) ──────────────────────────── */
+.kanban-card.selected {
+    box-shadow: 0 0 0 2px #0ea5e9;
+    background: #f0f9ff;
+}
+.bulk-checkbox {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    cursor: pointer;
+    transform: scale(1.1);
+}
+/* ── Tag pills ──────────────────────────────────────── */
+.tag-pill {
+    font-size: .65rem;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin: 2px 2px 0 0;
+    display: inline-block;
+}
+.tag-top_talent  { background:#fef3c7; color:#92400e; }
+.tag-prioritario { background:#fee2e2; color:#991b1b; }
+.tag-referido    { background:#e0e7ff; color:#3730a3; }
+.tag-no_show     { background:#e5e7eb; color:#374151; }
+.tag-reubicar    { background:#fef9c3; color:#854d0e; }
+.tag-en_espera   { background:#dbeafe; color:#1e3a8a; }
+.tag-seguimiento { background:#dcfce7; color:#166534; }
+/* ── Bulk toolbar flotante ──────────────────────────── */
+.bulk-toolbar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    display: none;
+    gap: 8px;
+    align-items: center;
+    z-index: 1050;
+    flex-wrap: wrap;
+}
+.bulk-toolbar.visible { display: flex; }
+.bulk-toolbar .count {
+    background: #5eead4;
+    color: #0d2b27;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: .85rem;
+}
 </style>
 {% endblock %}
 
@@ -171,8 +226,17 @@
                     {% endfor %}
                 </select>
             </div>
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Etiqueta</label>
+                <select name="tag" class="form-select form-select-sm" style="width:160px">
+                    <option value="">Todas</option>
+                    {% for code, label in tags_choices %}
+                    <option value="{{ code }}" {% if filtro_tag == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <button class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i>Filtrar</button>
-            {% if filtro_vacante or filtro_score_min or filtro_fuente %}
+            {% if filtro_vacante or filtro_score_min or filtro_fuente or filtro_tag %}
             <a href="{% url 'pipeline_panel' %}" class="btn btn-sm btn-outline-secondary">
                 <i class="fas fa-times me-1"></i>Limpiar
             </a>
@@ -199,13 +263,21 @@
             {% for p in col.postulaciones %}
             <div class="kanban-card"
                  id="card-{{ p.pk }}"
+                 data-postulacion-id="{{ p.pk }}"
                  draggable="true"
                  style="border-left-color:{{ col.etapa.color }}"
                  ondragstart="onDragStart(event, {{ p.pk }})"
                  ondragend="onDragEnd(event)">
 
+                <!-- Checkbox bulk -->
+                <input type="checkbox" class="bulk-checkbox"
+                       data-postulacion-id="{{ p.pk }}"
+                       onchange="onCardCheckChange(event, {{ p.pk }})"
+                       onclick="event.stopPropagation()"
+                       title="Seleccionar para acción masiva">
+
                 <!-- Nombre -->
-                <div class="card-name">
+                <div class="card-name" style="padding-right:22px">
                     <a href="{% url 'postulacion_detalle' p.pk %}" class="text-decoration-none text-dark">
                         {{ p.nombre_completo }}
                     </a>
@@ -215,6 +287,15 @@
                 <div class="card-vacante" title="{{ p.vacante.titulo }}">
                     <i class="fas fa-briefcase me-1"></i>{{ p.vacante.titulo|truncatechars:32 }}
                 </div>
+
+                <!-- Tags -->
+                {% if p.tags %}
+                <div class="card-tags mb-1">
+                    {% for code, label in p.tags_display %}
+                    <span class="tag-pill tag-{{ code }}" title="{{ label }}">{{ label }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
 
                 <!-- Meta: fuente + dias en etapa + score -->
                 <div class="card-meta d-flex align-items-center gap-1 flex-wrap mb-1">
@@ -292,6 +373,27 @@
                        title="Ver scoring de la vacante">
                         <i class="fas fa-star-half-alt"></i>
                     </a>
+
+                    <!-- Tag toggle dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm py-0 px-1 dropdown-toggle"
+                                style="font-size:.68rem;background:#fef3c7;color:#92400e"
+                                data-bs-toggle="dropdown"
+                                title="Etiquetas">
+                            <i class="fas fa-tags"></i>
+                        </button>
+                        <ul class="dropdown-menu" style="font-size:.78rem">
+                            {% for code, label in tags_choices %}
+                            <li>
+                                <a class="dropdown-item" href="#"
+                                   onclick="toggleTag({{ p.pk }}, '{{ code }}'); return false;">
+                                    <i class="fas fa-{% if code in p.tags %}check-square text-success{% else %}square text-muted{% endif %} me-2"></i>
+                                    {{ label }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
             </div>
             {% empty %}
@@ -303,6 +405,53 @@
         </div>
     </div>
     {% endfor %}
+</div>
+
+<!-- Bulk actions toolbar (aparece al seleccionar candidatos) -->
+<div id="bulkToolbar" class="bulk-toolbar">
+    <span class="count" id="bulkCount">0</span>
+    <span class="small">candidato(s) seleccionado(s)</span>
+
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-exchange-alt me-1"></i>Mover a etapa
+        </button>
+        <ul class="dropdown-menu">
+            {% for e in etapas %}
+            <li><a class="dropdown-item" href="#" onclick="bulkMover({{ e.pk }}); return false;">
+                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ e.color }};margin-right:6px"></span>
+                {{ e.nombre }}
+            </a></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="dropdown">
+        <button class="btn btn-sm btn-warning dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-tag me-1"></i>Etiquetar
+        </button>
+        <ul class="dropdown-menu">
+            {% for code, label in tags_choices %}
+            <li><a class="dropdown-item" href="#" onclick="bulkTag('{{ code }}', 'add'); return false;">
+                <i class="fas fa-plus me-1 text-success"></i>{{ label }}
+            </a></li>
+            {% endfor %}
+            <li><hr class="dropdown-divider"></li>
+            {% for code, label in tags_choices %}
+            <li><a class="dropdown-item" href="#" onclick="bulkTag('{{ code }}', 'remove'); return false;">
+                <i class="fas fa-minus me-1 text-danger"></i>Quitar {{ label }}
+            </a></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <button class="btn btn-sm btn-danger" onclick="bulkDescartar()">
+        <i class="fas fa-times me-1"></i>Descartar
+    </button>
+
+    <button class="btn btn-sm btn-outline-light" onclick="bulkClear()">
+        <i class="fas fa-times-circle"></i>
+    </button>
 </div>
 {% endblock %}
 
@@ -361,6 +510,95 @@ function moverEtapa(postulacionId, etapaId) {
         }
     })
     .catch(() => alert('Error de conexion'));
+}
+
+// ───── Tag toggle (individual) ─────
+function toggleTag(postulacionId, code) {
+    fetch(`/reclutamiento/postulacion/${postulacionId}/tag/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `tag=${encodeURIComponent(code)}`,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error al actualizar etiqueta');
+        }
+    })
+    .catch(() => alert('Error de conexion'));
+}
+
+// ───── Bulk selection / actions ─────
+const selectedIds = new Set();
+
+function onCardCheckChange(event, postulacionId) {
+    const card = document.getElementById(`card-${postulacionId}`);
+    if (event.target.checked) {
+        selectedIds.add(postulacionId);
+        card?.classList.add('selected');
+    } else {
+        selectedIds.delete(postulacionId);
+        card?.classList.remove('selected');
+    }
+    updateBulkToolbar();
+}
+
+function updateBulkToolbar() {
+    const bar = document.getElementById('bulkToolbar');
+    const cnt = document.getElementById('bulkCount');
+    cnt.textContent = selectedIds.size;
+    if (selectedIds.size > 0) {
+        bar.classList.add('visible');
+    } else {
+        bar.classList.remove('visible');
+    }
+}
+
+function bulkClear() {
+    selectedIds.clear();
+    document.querySelectorAll('.bulk-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.kanban-card.selected').forEach(c => c.classList.remove('selected'));
+    updateBulkToolbar();
+}
+
+function bulkPost(extra) {
+    const ids = Array.from(selectedIds).join(',');
+    const params = new URLSearchParams({ ids, ...extra });
+    return fetch(`/reclutamiento/pipeline/bulk/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+    }).then(r => r.json());
+}
+
+function bulkMover(etapaId) {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Mover ${selectedIds.size} candidato(s) a esta etapa?`)) return;
+    bulkPost({ accion: 'mover', etapa_id: etapaId })
+        .then(d => d.ok ? location.reload() : alert(d.error || 'Error'));
+}
+
+function bulkDescartar() {
+    if (selectedIds.size === 0) return;
+    const motivo = prompt(`Descartar ${selectedIds.size} candidato(s). Motivo:`, 'Bulk descarte desde Pipeline');
+    if (motivo === null) return;
+    bulkPost({ accion: 'descartar', motivo: motivo })
+        .then(d => d.ok ? location.reload() : alert(d.error || 'Error'));
+}
+
+function bulkTag(code, action) {
+    if (selectedIds.size === 0) return;
+    const accion = action === 'add' ? 'tag_add' : 'tag_remove';
+    bulkPost({ accion, tag: code })
+        .then(d => d.ok ? location.reload() : alert(d.error || 'Error'));
 }
 </script>
 {% endblock %}

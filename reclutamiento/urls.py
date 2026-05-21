@@ -32,6 +32,8 @@ urlpatterns = [
 
     # ── Admin: Pipeline ──
     path('pipeline/', views.pipeline_panel, name='pipeline_panel'),
+    path('pipeline/bulk/', views.pipeline_bulk_action, name='pipeline_bulk_action'),
+    path('postulacion/<int:pk>/tag/', views.postulacion_toggle_tag, name='postulacion_toggle_tag'),
 
     # ── Admin: Exportar candidatos Excel ──
     path('<int:pk>/candidatos/exportar/', views.exportar_candidatos_excel, name='reclutamiento_exportar_candidatos'),

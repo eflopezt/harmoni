@@ -331,6 +331,22 @@ class Postulacion(models.Model):
         help_text="Puntaje 0-100 de match con la vacante (calculado).",
     )
 
+    # ─── Tags / Etiquetas (gestion power-user) ──────────────────
+    TAG_CHOICES = [
+        ('top_talent',   'Top Talent'),
+        ('prioritario',  'Prioritario'),
+        ('referido',     'Referido Interno'),
+        ('no_show',      'No Show'),
+        ('reubicar',     'Reubicar a otra vacante'),
+        ('en_espera',    'En espera'),
+        ('seguimiento',  'Seguimiento'),
+    ]
+    tags = models.JSONField(
+        default=list, blank=True,
+        verbose_name="Etiquetas",
+        help_text="Lista de etiquetas (TAG_CHOICES codes) asignadas al candidato.",
+    )
+
     class Meta:
         verbose_name = "Postulacion"
         verbose_name_plural = "Postulaciones"
@@ -349,6 +365,35 @@ class Postulacion(models.Model):
         from django.utils import timezone
         delta = timezone.now() - self.fecha_postulacion
         return delta.days
+
+    # ─── Tags helpers ───────────────────────────────────────
+    @property
+    def tags_display(self):
+        """Lista de tuplas (code, label) para iterar en template."""
+        d = dict(self.TAG_CHOICES)
+        return [(code, d.get(code, code)) for code in (self.tags or [])]
+
+    def has_tag(self, code):
+        return code in (self.tags or [])
+
+    def add_tag(self, code):
+        tags = list(self.tags or [])
+        if code not in tags:
+            tags.append(code)
+            self.tags = tags
+            self.save(update_fields=['tags'])
+        return tags
+
+    def remove_tag(self, code):
+        tags = [t for t in (self.tags or []) if t != code]
+        self.tags = tags
+        self.save(update_fields=['tags'])
+        return tags
+
+    def toggle_tag(self, code):
+        if self.has_tag(code):
+            return self.remove_tag(code)
+        return self.add_tag(code)
 
 
 # ══════════════════════════════════════════════════════════════
