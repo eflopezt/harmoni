@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Emisión de Boletas{% endblock %}
+
+{% block extra_css %}
+<style>
+.eb-period-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    transition: box-shadow .15s, transform .15s;
+    margin-bottom: 1rem;
+}
+.eb-period-card:hover {
+    box-shadow: 0 4px 12px rgba(15,41,38,.08);
+    transform: translateY(-1px);
+}
+.eb-period-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: .75rem;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+.eb-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0d2b27;
+}
+.eb-subtitle {
+    font-size: .78rem;
+    color: #64748b;
+}
+.eb-state-badge {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: .25rem .65rem;
+    border-radius: 999px;
+}
+.eb-state-CALCULADO { background: #fef3c7; color: #92400e; }
+.eb-state-APROBADO  { background: #d1fae5; color: #064e3b; }
+.eb-state-CERRADO   { background: #cffafe; color: #155e75; }
+.eb-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .75rem;
+    margin-bottom: .85rem;
+}
+@media (max-width: 576px) { .eb-metrics { grid-template-columns: repeat(2, 1fr); } }
+.eb-metric {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: .65rem .75rem;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+.eb-metric-num {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #0d2b27;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.eb-metric-lbl {
+    font-size: .65rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-top: .15rem;
+}
+.eb-progress {
+    background: #ecfdf5;
+    height: 6px;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: .5rem 0;
+}
+.eb-progress-bar {
+    background: linear-gradient(90deg, #0f766e, #14b8a6);
+    height: 100%;
+    border-radius: 999px;
+    transition: width .35s ease;
+}
+.eb-actions {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.eb-actions .btn { font-size: .78rem; }
+.eb-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #94a3b8;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-paper-plane"></i>Emisión de Boletas</h2>
+        <p class="page-subtitle">
+            Genera, descarga y entrega boletas de pago con tracking de recepción
+            (cumplimiento DS 009-2011-TR · SmartBoletas-style).
+        </p>
+    </div>
+</div>
+
+<!-- KPIs globales -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left:3px solid #0f766e;">
+            <div class="stat-value text-primary">{{ total_periodos }}</div>
+            <div class="stat-label">Períodos Emitibles</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left:3px solid #14b8a6;">
+            <div class="stat-value" style="color:#0d9488">{{ total_trabajadores|intcomma }}</div>
+            <div class="stat-label">Boletas Generadas</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left:3px solid #10b981;">
+            <div class="stat-value text-success">{{ total_descargadas|intcomma }}</div>
+            <div class="stat-label">Descargadas</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left:3px solid #f59e0b;">
+            <div class="stat-value text-warning">{{ total_pendientes|intcomma }}</div>
+            <div class="stat-label">Sin Ver Aún</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 flex-wrap align-items-end">
+            <div>
+                <label class="form-label small mb-1">Año</label>
+                <select name="anio" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    {% for a in anios_disp %}
+                    <option value="{{ a }}" {% if anio_filtro|add:0 == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-1">Estado</label>
+                <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    <option value="CALCULADO" {% if estado_filtro == 'CALCULADO' %}selected{% endif %}>Calculado</option>
+                    <option value="APROBADO" {% if estado_filtro == 'APROBADO' %}selected{% endif %}>Aprobado</option>
+                    <option value="CERRADO" {% if estado_filtro == 'CERRADO' %}selected{% endif %}>Cerrado</option>
+                </select>
+            </div>
+            {% if anio_filtro or estado_filtro %}
+            <a href="{% url 'nominas_emision_boletas' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times me-1"></i>Limpiar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Lista de períodos -->
+{% for item in periodos %}
+<div class="eb-period-card">
+    <div class="eb-period-header">
+        <div>
+            <div class="eb-title">
+                <i class="fas fa-calendar-alt me-1" style="color:#0f766e"></i>
+                {{ item.p }} · Planilla {{ item.p.get_tipo_display }}
+            </div>
+            <div class="eb-subtitle">
+                {{ item.p.fecha_inicio|date:"d/m/Y" }} — {{ item.p.fecha_fin|date:"d/m/Y" }}
+                {% if item.p.empresa %}· <strong>{{ item.p.empresa.razon_social }}</strong>{% endif %}
+            </div>
+        </div>
+        <span class="eb-state-badge eb-state-{{ item.p.estado }}">
+            {{ item.p.get_estado_display }}
+        </span>
+    </div>
+
+    <!-- Métricas de entrega -->
+    <div class="eb-metrics">
+        <div class="eb-metric">
+            <div class="eb-metric-num">{{ item.total }}</div>
+            <div class="eb-metric-lbl">Boletas</div>
+        </div>
+        <div class="eb-metric" style="background:#f0fdfa;">
+            <div class="eb-metric-num" style="color:#0d9488">{{ item.vistas }}</div>
+            <div class="eb-metric-lbl">Visualizadas</div>
+        </div>
+        <div class="eb-metric" style="background:#ecfdf5;">
+            <div class="eb-metric-num" style="color:#10b981">{{ item.descargadas }}</div>
+            <div class="eb-metric-lbl">Descargadas</div>
+        </div>
+        <div class="eb-metric" style="background:#fef3c7;">
+            <div class="eb-metric-num" style="color:#92400e">{{ item.sin_ver }}</div>
+            <div class="eb-metric-lbl">Sin Ver</div>
+        </div>
+    </div>
+
+    <!-- Progress bar entrega -->
+    <div class="d-flex justify-content-between align-items-center mb-1">
+        <small class="text-muted" style="font-size:.72rem">
+            <i class="fas fa-eye me-1"></i>Tasa de visualización
+        </small>
+        <small class="fw-bold" style="font-size:.78rem;color:#0d9488">{{ item.pct_entrega }}%</small>
+    </div>
+    <div class="eb-progress">
+        <div class="eb-progress-bar" style="width:{{ item.pct_entrega }}%"></div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="eb-actions mt-2">
+        <a href="{% url 'nominas_periodo_detalle' item.p.pk %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-list me-1"></i>Ver registros
+        </a>
+        <a href="{% url 'nominas_periodo_boletas_zip' item.p.pk %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-file-archive me-1"></i>Descargar todas (ZIP)
+        </a>
+        {% if item.p.estado == 'CALCULADO' %}
+        <form method="post" action="{% url 'nominas_periodo_aprobar' item.p.pk %}"
+              onsubmit="return confirm('¿Aprobar período {{ item.p }}? Una vez aprobadas, las boletas quedan disponibles para los trabajadores en su portal.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-sm">
+                <i class="fas fa-check me-1"></i>Aprobar y publicar
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'nominas_periodo_exportar' item.p.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-file-csv me-1"></i>CSV
+        </a>
+    </div>
+</div>
+{% empty %}
+<div class="card shadow-sm">
+    <div class="eb-empty">
+        <i class="fas fa-paper-plane fa-3x mb-3 opacity-25"></i>
+        <h5 class="text-muted mb-1">No hay períodos emitibles</h5>
+        <p class="text-muted small mb-0">
+            Crea un período en <a href="{% url 'nominas_panel' %}">Nóminas → Períodos</a>,
+            calcúlalo, y aquí aparecerán las boletas listas para emitir.
+        </p>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

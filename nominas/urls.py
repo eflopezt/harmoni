@@ -40,6 +40,9 @@ urlpatterns = [
     # Boleta PDF
     path('registros/<int:pk>/boleta.pdf', views.boleta_pdf, name='nominas_boleta_pdf'),
 
+    # Panel de Emisión y Entrega de Boletas (con tracking SmartBoletas)
+    path('boletas/', views.emision_boletas_panel, name='nominas_emision_boletas'),
+
     # Verificación pública de boleta (QR) — sin login
     path('verificar/<str:token>/', views.verificar_boleta, name='verificar_boleta'),
 

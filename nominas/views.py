@@ -2416,3 +2416,95 @@ def alimentacion_procesar(request):
 
     messages.success(request, f'{updated} recargas marcadas como procesadas.')
     return redirect(f'/nominas/alimentacion/?anio={anio}&mes={mes}')
+
+
+# ═════════════════════════════════════════════════════════════════
+# EMISIÓN DE BOLETAS — Panel dedicado
+# ═════════════════════════════════════════════════════════════════
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+def emision_boletas_panel(request):
+    """
+    Panel dedicado a emisión y entrega de boletas de pago.
+
+    Muestra todos los períodos en estado CALCULADO/APROBADO/CERRADO con:
+    - Total trabajadores en el período
+    - Boletas visualizadas (LogActividadTrabajador VIEW_BOLETA)
+    - Boletas descargadas (DOWNLOAD_BOLETA)
+    - Boletas confirmadas / firmadas
+    - % de entrega
+    - Acciones: descargar ZIP, ver listado, ir al detalle
+    """
+    from documentos.models import LogActividadTrabajador
+
+    anio_filtro = request.GET.get('anio')
+    estado_filtro = request.GET.get('estado', '')
+
+    qs = PeriodoNomina.objects.filter(
+        estado__in=['CALCULADO', 'APROBADO', 'CERRADO'],
+    ).order_by('-anio', '-mes', '-id')
+
+    if anio_filtro and anio_filtro.isdigit():
+        qs = qs.filter(anio=int(anio_filtro))
+    if estado_filtro:
+        qs = qs.filter(estado=estado_filtro)
+
+    periodos = []
+    for p in qs[:36]:
+        # Registros del período
+        registros = RegistroNomina.objects.filter(periodo=p)
+        total_registros = registros.count()
+        ids_registros = list(registros.values_list('pk', flat=True))
+
+        # Tracking de entrega vía LogActividadTrabajador
+        # objeto_tipo='RegistroNomina', objeto_id en ids_registros
+        ids_str = [str(i) for i in ids_registros]
+
+        try:
+            log_qs = LogActividadTrabajador.objects.filter(
+                objeto_tipo='RegistroNomina',
+                objeto_id__in=ids_str,
+            )
+            vistas = log_qs.filter(tipo='VIEW_BOLETA').values('personal').distinct().count()
+            descargadas = log_qs.filter(tipo='DOWNLOAD_BOLETA').values('personal').distinct().count()
+            confirmadas = log_qs.filter(tipo='CONFIRM_BOLETA').values('personal').distinct().count()
+        except Exception:
+            vistas = descargadas = confirmadas = 0
+
+        pct_entrega = round(vistas / total_registros * 100, 1) if total_registros else 0
+        pct_descarga = round(descargadas / total_registros * 100, 1) if total_registros else 0
+
+        periodos.append({
+            'p': p,
+            'total': total_registros,
+            'vistas': vistas,
+            'descargadas': descargadas,
+            'confirmadas': confirmadas,
+            'pct_entrega': pct_entrega,
+            'pct_descarga': pct_descarga,
+            'sin_ver': max(0, total_registros - vistas),
+        })
+
+    # Stats globales
+    total_periodos = qs.count()
+    total_pendientes = sum(p['sin_ver'] for p in periodos)
+    total_trabajadores = sum(p['total'] for p in periodos)
+    total_descargadas = sum(p['descargadas'] for p in periodos)
+
+    # Años disponibles para filtro
+    anios_disp = (
+        PeriodoNomina.objects.filter(estado__in=['CALCULADO', 'APROBADO', 'CERRADO'])
+        .values_list('anio', flat=True).distinct().order_by('-anio')
+    )
+
+    return render(request, 'nominas/emision_boletas_panel.html', {
+        'periodos': periodos,
+        'total_periodos': total_periodos,
+        'total_pendientes': total_pendientes,
+        'total_trabajadores': total_trabajadores,
+        'total_descargadas': total_descargadas,
+        'anios_disp': anios_disp,
+        'anio_filtro': anio_filtro,
+        'estado_filtro': estado_filtro,
+    })
