@@ -1929,9 +1929,7 @@ def subir_cv_express(request, vacante_pk=None):
 
             nombre = parsed.get('nombre_completo') or 'Candidato sin nombre'
 
-            etapa_ini = (EtapaPipeline.objects
-                .filter(es_etapa_inicial=True).first()
-                or EtapaPipeline.objects.order_by('orden').first())
+            etapa_ini = EtapaPipeline.objects.order_by('orden').first()
 
             archivo.seek(0)
             post = Postulacion.objects.create(
