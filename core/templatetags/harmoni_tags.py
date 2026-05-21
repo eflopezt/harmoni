@@ -7,6 +7,40 @@ register = template.Library()
 
 
 @register.filter
+def primer_nombre(apellidos_nombres):
+    """
+    Extrae el primer nombre desde "APELLIDOS, Nombre1 Nombre2 ..."
+
+    Ejemplos:
+        "BENAVIDES QUIROZ, Hans" -> "Hans"
+        "TORRES DÍAZ, Yessica Lucía" -> "Yessica"
+        "PEREZ" -> "PEREZ"  (fallback si no hay coma)
+        "" / None -> ""
+    """
+    if not apellidos_nombres:
+        return ""
+    text = str(apellidos_nombres)
+    if "," in text:
+        nombres = text.split(",", 1)[1].strip()
+        if nombres:
+            # Solo el primer nombre (hasta el primer espacio)
+            return nombres.split()[0].title() if nombres.split() else ""
+    return text.title()
+
+
+@register.filter
+def saludo_hora(_=None):
+    """Devuelve 'Buenos días', 'Buenas tardes' o 'Buenas noches' según hora local."""
+    from datetime import datetime
+    h = datetime.now().hour
+    if 5 <= h < 12:
+        return "Buenos días"
+    if 12 <= h < 19:
+        return "Buenas tardes"
+    return "Buenas noches"
+
+
+@register.filter
 def moneda_pen(value):
     """Formato moneda peruana: S/ 1,234.56"""
     try:

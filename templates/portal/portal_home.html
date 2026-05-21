@@ -65,11 +65,15 @@
 {% else %}
 
 <!-- Bienvenida -->
+{% load harmoni_tags %}
 <div class="d-flex align-items-center gap-3 mb-4">
     <div class="portal-avatar">
         {{ empleado.apellidos_nombres|slice:":1"|upper }}
     </div>
     <div style="flex:1">
+        <p class="text-muted mb-1" style="font-size:.74rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:#0f766e !important">
+            <i class="fas fa-sun me-1"></i>{{ None|saludo_hora }}, {{ empleado.apellidos_nombres|primer_nombre }}
+        </p>
         <h2 class="fw-semibold mb-0" style="font-size:1.2rem">{{ empleado.apellidos_nombres }}</h2>
         <p class="text-muted mb-0" style="font-size:.85rem">
             {{ empleado.cargo }}
