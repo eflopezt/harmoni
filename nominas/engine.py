@@ -28,16 +28,37 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-# ── Tasas AFP vigentes 2026 ──────────────────────────────────────────
+# ── Tasas AFP vigentes Q2 2026 (Circular SBS) ───────────────────────
+# Comisión por flujo y prima de seguro fijadas por SBS cada cuatrimestre.
+# La prima de seguro es **tope común** publicado por SBS y es igual para
+# las 4 AFP. Las comisiones por flujo varían por AFP.
+#
+# Vigencia: abril-julio 2026 (Resolución SBS).
+#   - Habitat:   1.47% comisión / 1.74% prima seguro
+#   - Integra:   1.55% comisión / 1.74% prima seguro
+#   - Prima:     1.60% comisión / 1.74% prima seguro
+#   - Profuturo: 1.69% comisión / 1.74% prima seguro
+#
+# El admin puede sobreescribir por período en ConfiguracionSistema si
+# la SBS publica nuevos valores antes del próximo release.
 AFP_TASAS = {
-    'Habitat':   {'comision_flujo': Decimal('1.55'), 'seguro': Decimal('1.74')},
-    'Integra':   {'comision_flujo': Decimal('1.55'), 'seguro': Decimal('1.84')},
-    'Prima':     {'comision_flujo': Decimal('1.60'), 'seguro': Decimal('1.84')},
-    'Profuturo': {'comision_flujo': Decimal('1.49'), 'seguro': Decimal('1.84')},
+    'Habitat':   {'comision_flujo': Decimal('1.47'), 'seguro': Decimal('1.74')},
+    'Integra':   {'comision_flujo': Decimal('1.55'), 'seguro': Decimal('1.74')},
+    'Prima':     {'comision_flujo': Decimal('1.60'), 'seguro': Decimal('1.74')},
+    'Profuturo': {'comision_flujo': Decimal('1.69'), 'seguro': Decimal('1.74')},
 }
-AFP_APORTE    = Decimal('10.00')   # % obligatorio
-ONP_TASA      = Decimal('13.00')   # %
+AFP_APORTE    = Decimal('10.00')   # % obligatorio sobre rem. asegurable
+ONP_TASA      = Decimal('13.00')   # % — DL 19990, sin tope
 ESSALUD_TASA  = Decimal('9.00')    # % aporte empleador
+
+# Tope de Remuneración Máxima Asegurable (RMA) — Q2 2026.
+# La prima de seguro AFP se calcula HASTA este monto. Si el trabajador
+# gana más, la prima se trunca al tope (la aseguradora no cubre por
+# encima de ese ingreso). El aporte obligatorio (10%) y la comisión por
+# flujo SÍ se cobran sobre la remuneración total, sin tope.
+# Referencia: SBS publica cuatrimestralmente.
+AFP_TOPE_REM_ASEGURABLE = Decimal('12131.49')
+
 UIT_2026      = Decimal('5500.00')   # DS 233-2025-EF (vigente 2026) — fallback
 RMV_2026      = Decimal('1130.00')   # DS 006-2024-TR vigente ene-2025 — fallback
 ASIG_FAM      = RMV_2026 * Decimal('0.10')   # S/ 113.00
@@ -344,10 +365,17 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
 
     if pension == 'AFP':
         tasas = AFP_TASAS.get(afp_nombre, AFP_TASAS['Prima'])
+        # Aporte obligatorio 10% — sin tope, sobre remuneración asegurable total
         afp_aporte   = _redondear(rem_computable * AFP_APORTE / Decimal('100'))
+        # Comisión por flujo — sin tope, sobre remuneración total
         afp_comision = _redondear(rem_computable * tasas['comision_flujo'] / Decimal('100'))
-        afp_seguro   = _redondear(rem_computable * tasas['seguro'] / Decimal('100'))
+        # Prima de seguro — CON tope de Remuneración Máxima Asegurable (RMA)
+        # publicado por SBS. Si gana más del tope, la prima se calcula
+        # solo sobre el tope (la aseguradora no cubre por encima).
+        base_seguro = min(rem_computable, AFP_TOPE_REM_ASEGURABLE)
+        afp_seguro   = _redondear(base_seguro * tasas['seguro'] / Decimal('100'))
     elif pension == 'ONP':
+        # ONP 13% — sin tope, sobre remuneración total (DL 19990)
         onp = _redondear(rem_computable * ONP_TASA / Decimal('100'))
 
     # ── 7. IR 5ta categoría ──

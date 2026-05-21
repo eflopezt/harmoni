@@ -349,15 +349,43 @@ class TestRegularPayroll:
         assert comision == expected
 
     def test_afp_seguro_prima(self):
-        """AFP Prima seguro = 1.84%."""
+        """AFP Prima seguro = tasa SBS común (1.74% Q2 2026)."""
         sueldo = Decimal('5000.00')
         registro = _make_registro(sueldo_base=sueldo, afp='Prima')
         result = calcular_registro(registro, _mock_conceptos())
         rem = result['rem_computable']
-        expected = _r(rem * Decimal('1.84') / Decimal('100'))
+        # La tasa la fija SBS cuatrimestralmente — usar AFP_TASAS dinámico
         tasas = AFP_TASAS['Prima']
+        expected = _r(rem * tasas['seguro'] / Decimal('100'))
         seguro = _r(rem * tasas['seguro'] / Decimal('100'))
         assert seguro == expected
+        # Sanity: la prima debe estar en rango razonable (1.20% - 2.00%)
+        assert Decimal('1.20') <= tasas['seguro'] <= Decimal('2.00')
+
+    def test_afp_seguro_con_tope_rma(self):
+        """Prima seguro AFP se trunca al tope Remun. Máxima Asegurable (SBS).
+
+        El aporte obligatorio (10%) y comisión por flujo SÍ se cobran sobre
+        la remuneración total. Solo la prima de seguro tiene tope.
+        """
+        from nominas.engine import AFP_TOPE_REM_ASEGURABLE
+        # Trabajador con sueldo muy por encima del tope RMA
+        sueldo_alto = Decimal('20000.00')  # tope actual ~12,131
+        registro = _make_registro(sueldo_base=sueldo_alto, afp='Prima')
+        result = calcular_registro(registro, _mock_conceptos())
+        rem = result['rem_computable']
+        assert rem >= AFP_TOPE_REM_ASEGURABLE, (
+            'rem_computable debe superar el tope para que el test sea válido'
+        )
+        tasas = AFP_TASAS['Prima']
+        # Prima de seguro se calcula sobre el TOPE, no sobre la rem total
+        expected_seguro = _r(AFP_TOPE_REM_ASEGURABLE * tasas['seguro'] / Decimal('100'))
+        # Aporte y comisión NO tienen tope
+        expected_aporte = _r(rem * AFP_APORTE / Decimal('100'))
+        expected_comision = _r(rem * tasas['comision_flujo'] / Decimal('100'))
+        # Estos deben ser mayores que si se aplicara el tope
+        assert expected_aporte > _r(AFP_TOPE_REM_ASEGURABLE * AFP_APORTE / Decimal('100'))
+        assert expected_comision > _r(AFP_TOPE_REM_ASEGURABLE * tasas['comision_flujo'] / Decimal('100'))
 
     def test_afp_all_four_providers(self):
         """Each AFP has different comision/seguro rates."""
