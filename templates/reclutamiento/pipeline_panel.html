@@ -121,6 +121,40 @@
     box-shadow: 0 0 0 2px #0ea5e9;
     background: #f0f9ff;
 }
+/* ── Card focus (keyboard nav) ──────────────────────── */
+.kanban-card.kb-focus {
+    outline: 3px solid #5eead4;
+    outline-offset: 2px;
+    scroll-margin: 80px;
+}
+/* ── Modal shortcuts ────────────────────────────────── */
+.kbd {
+    background: #1e293b;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: .78rem;
+    margin: 0 2px;
+}
+.shortcuts-help {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1040;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    cursor: pointer;
+    transition: transform .2s;
+}
+.shortcuts-help:hover { transform: scale(1.1); background:#f0fdf4; }
 .bulk-checkbox {
     position: absolute;
     top: 8px;
@@ -415,6 +449,38 @@
     {% endfor %}
 </div>
 
+<!-- Botón ayuda atajos -->
+<button class="shortcuts-help" title="Atajos de teclado" data-bs-toggle="modal" data-bs-target="#shortcutsModal" aria-label="Atajos">
+    <i class="fas fa-keyboard text-muted"></i>
+</button>
+
+<!-- Modal atajos -->
+<div class="modal fade" id="shortcutsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="fas fa-keyboard me-2"></i>Atajos de teclado</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body small">
+        <table class="table table-sm mb-0">
+          <tr><td><span class="kbd">J</span> / <span class="kbd">K</span></td><td>Siguiente / anterior candidato</td></tr>
+          <tr><td><span class="kbd">H</span> / <span class="kbd">L</span></td><td>Columna anterior / siguiente</td></tr>
+          <tr><td><span class="kbd">Enter</span></td><td>Abrir detalle del candidato</td></tr>
+          <tr><td><span class="kbd">Space</span></td><td>Marcar/desmarcar candidato (bulk)</td></tr>
+          <tr><td><span class="kbd">X</span></td><td>Marcar/desmarcar (alternativo)</td></tr>
+          <tr><td><span class="kbd">M</span></td><td>Mover candidato a otra etapa (menu)</td></tr>
+          <tr><td><span class="kbd">D</span></td><td>Descartar candidato</td></tr>
+          <tr><td><span class="kbd">P</span></td><td>Abrir PDF del candidato</td></tr>
+          <tr><td><span class="kbd">T</span></td><td>Marcar como Top Talent</td></tr>
+          <tr><td><span class="kbd">Esc</span></td><td>Limpiar selección bulk</td></tr>
+          <tr><td><span class="kbd">?</span></td><td>Mostrar/ocultar esta ayuda</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Bulk actions toolbar (aparece al seleccionar candidatos) -->
 <div id="bulkToolbar" class="bulk-toolbar">
     <span class="count" id="bulkCount">0</span>
@@ -608,5 +674,143 @@ function bulkTag(code, action) {
     bulkPost({ accion, tag: code })
         .then(d => d.ok ? location.reload() : alert(d.error || 'Error'));
 }
+
+// ───── Keyboard shortcuts ─────
+let kbFocusIdx = -1;
+let kbCards = [];
+
+function refreshKbCards() {
+    kbCards = Array.from(document.querySelectorAll('.kanban-card'));
+    if (kbFocusIdx >= kbCards.length) kbFocusIdx = kbCards.length - 1;
+}
+
+function setKbFocus(idx) {
+    document.querySelectorAll('.kanban-card.kb-focus').forEach(c => c.classList.remove('kb-focus'));
+    refreshKbCards();
+    if (idx < 0 || idx >= kbCards.length) return;
+    kbFocusIdx = idx;
+    const card = kbCards[idx];
+    card.classList.add('kb-focus');
+    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function focusedCard() {
+    refreshKbCards();
+    return kbFocusIdx >= 0 ? kbCards[kbFocusIdx] : null;
+}
+
+function focusedPostId() {
+    const c = focusedCard();
+    if (!c) return null;
+    return parseInt(c.dataset.postulacionId, 10);
+}
+
+function focusNextInDirection(direction) {
+    refreshKbCards();
+    if (kbCards.length === 0) return;
+    if (kbFocusIdx < 0) {
+        setKbFocus(0);
+        return;
+    }
+    // direction: 'next' | 'prev' | 'col-next' | 'col-prev'
+    if (direction === 'next' || direction === 'prev') {
+        const next = direction === 'next' ? kbFocusIdx + 1 : kbFocusIdx - 1;
+        if (next >= 0 && next < kbCards.length) setKbFocus(next);
+        return;
+    }
+    // Saltar a la siguiente/anterior columna
+    const cur = kbCards[kbFocusIdx];
+    const curCol = cur.closest('.kanban-col');
+    const allCols = Array.from(document.querySelectorAll('.kanban-col'));
+    const curIdx = allCols.indexOf(curCol);
+    const targetIdx = direction === 'col-next' ? curIdx + 1 : curIdx - 1;
+    if (targetIdx < 0 || targetIdx >= allCols.length) return;
+    const firstInTarget = allCols[targetIdx].querySelector('.kanban-card');
+    if (firstInTarget) {
+        const i = kbCards.indexOf(firstInTarget);
+        if (i >= 0) setKbFocus(i);
+    }
+}
+
+function kbToggleCheck() {
+    const pid = focusedPostId();
+    if (pid === null) return;
+    const cb = document.querySelector(`.bulk-checkbox[data-postulacion-id="${pid}"]`);
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    cb.dispatchEvent(new Event('change'));
+}
+
+function kbOpenDetalle() {
+    const pid = focusedPostId();
+    if (pid === null) return;
+    window.location.href = `/reclutamiento/postulacion/${pid}/`;
+}
+
+function kbOpenPdf() {
+    const pid = focusedPostId();
+    if (pid === null) return;
+    window.open(`/reclutamiento/postulacion/${pid}/pdf/`, '_blank');
+}
+
+function kbMoverMenu() {
+    const c = focusedCard();
+    if (!c) return;
+    const dropdown = c.querySelector('.dropdown-toggle');
+    if (dropdown) dropdown.click();
+}
+
+function kbDescartar() {
+    const pid = focusedPostId();
+    if (pid === null) return;
+    if (!confirm('Descartar este candidato?')) return;
+    fetch(`/reclutamiento/postulacion/${pid}/descartar/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'motivo=Descarte rapido teclado',
+    }).then(r => location.reload()).catch(() => alert('Error'));
+}
+
+function kbToggleTopTalent() {
+    const pid = focusedPostId();
+    if (pid === null) return;
+    toggleTag(pid, 'top_talent');
+}
+
+function kbClearSelection() {
+    bulkClear();
+}
+
+// Listener global
+document.addEventListener('keydown', function(ev) {
+    // No interceptar si user esta escribiendo
+    const tag = ev.target.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (ev.target.isContentEditable) return;
+
+    const k = ev.key.toLowerCase();
+    if (k === 'j')      { ev.preventDefault(); focusNextInDirection('next'); }
+    else if (k === 'k') { ev.preventDefault(); focusNextInDirection('prev'); }
+    else if (k === 'l') { ev.preventDefault(); focusNextInDirection('col-next'); }
+    else if (k === 'h') { ev.preventDefault(); focusNextInDirection('col-prev'); }
+    else if (k === 'enter') { ev.preventDefault(); kbOpenDetalle(); }
+    else if (k === ' ' || k === 'x') { ev.preventDefault(); kbToggleCheck(); }
+    else if (k === 'm') { ev.preventDefault(); kbMoverMenu(); }
+    else if (k === 'd') { ev.preventDefault(); kbDescartar(); }
+    else if (k === 'p') { ev.preventDefault(); kbOpenPdf(); }
+    else if (k === 't') { ev.preventDefault(); kbToggleTopTalent(); }
+    else if (k === 'escape') { ev.preventDefault(); kbClearSelection(); }
+    else if (ev.key === '?' || (ev.shiftKey && ev.key === '/')) {
+        ev.preventDefault();
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('shortcutsModal'));
+        modal.toggle();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', refreshKbCards);
 </script>
 {% endblock %}
