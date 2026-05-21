@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Onboarding Gastronomía{% endblock %}
+
+{% block extra_css %}
+<style>
+.gastro-hero {
+    background: linear-gradient(135deg, #0d2b27 0%, #0f766e 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+}
+.gastro-hero h2 { color: #fff; margin: 0; }
+.gastro-hero .lead { color: #5eead4; margin-top: .25rem; font-size: .9rem; }
+.gastro-stat {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-left: 4px solid #0f766e;
+    border-radius: 8px;
+    padding: 1rem;
+}
+.gastro-stat .num { font-size: 1.75rem; font-weight: 700; color: #0d2b27; line-height: 1; }
+.gastro-stat .lbl { font-size: .78rem; color: #6b7280; text-transform: uppercase; letter-spacing: .03em; }
+.gastro-stat.amber  { border-left-color: #f59e0b; }
+.gastro-stat.amber .num  { color: #b45309; }
+.gastro-stat.red    { border-left-color: #dc2626; }
+.gastro-stat.red .num    { color: #b91c1c; }
+.gastro-stat.green  { border-left-color: #10b981; }
+.gastro-stat.green .num  { color: #047857; }
+.progress-gastro { height: 8px; background: #f1f5f9; }
+.progress-gastro .progress-bar { background: linear-gradient(90deg, #0f766e, #5eead4); }
+.row-en-riesgo { background: #fff7ed; }
+.row-completado { background: #f0fdf4; }
+.badge-hito {
+    background: #e0f2fe;
+    color: #075985;
+    font-size: .72rem;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gastro-hero d-flex justify-content-between align-items-center flex-wrap">
+    <div>
+        <h2><i class="fas fa-utensils me-2"></i>{{ titulo }}</h2>
+        <div class="lead">Checklist gastronómico — documentos, certificaciones BPM/HACCP y evaluaciones 30/60/90</div>
+    </div>
+    <div class="d-flex gap-2 mt-2 mt-md-0">
+        <a href="{% url 'onboarding_panel' %}" class="btn btn-outline-light btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Onboarding general
+        </a>
+        <a href="{% url 'checklist_gastro_auto_crear' %}" class="btn btn-light btn-sm">
+            <i class="fas fa-magic me-1"></i>Auto-crear pendientes
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+        <div class="gastro-stat">
+            <div class="num">{{ stats.total }}</div>
+            <div class="lbl">Total</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="gastro-stat amber">
+            <div class="num">{{ stats.en_proceso }}</div>
+            <div class="lbl">En proceso</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="gastro-stat green">
+            <div class="num">{{ stats.completados }}</div>
+            <div class="lbl">Completados</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="gastro-stat red">
+            <div class="num">{{ stats.en_riesgo }}</div>
+            <div class="lbl">En riesgo</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+            <div>
+                <label class="form-label small mb-0">Estado</label>
+                <select name="estado" class="form-select form-select-sm" style="width:160px">
+                    <option value="">Todos</option>
+                    <option value="pendientes"  {% if filtro_estado == 'pendientes' %}selected{% endif %}>Pendientes</option>
+                    <option value="completados" {% if filtro_estado == 'completados' %}selected{% endif %}>Completados</option>
+                    <option value="en_riesgo"   {% if filtro_estado == 'en_riesgo' %}selected{% endif %}>En riesgo</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-0">Buscar</label>
+                <input type="text" name="q" value="{{ buscar }}"
+                       class="form-control form-control-sm" placeholder="Nombre o DNI..." style="width:220px">
+            </div>
+            <button class="btn btn-sm btn-primary"><i class="fas fa-search"></i></button>
+            <span class="ms-auto small text-muted">{{ total_mostrados }} resultado{{ total_mostrados|pluralize:"s" }}</span>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0" style="font-size:.85rem;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th>Trabajador</th>
+                    <th class="text-center">Días desde ingreso</th>
+                    <th>Avance</th>
+                    <th class="text-center">Items</th>
+                    <th>Próximo hito</th>
+                    <th class="text-center">Alertas</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in checklists %}
+                <tr class="{% if c.completado %}row-completado{% elif c.en_riesgo %}row-en-riesgo{% endif %}">
+                    <td>
+                        <a href="{% url 'checklist_gastro_detalle' pk=c.pk %}" class="text-decoration-none text-dark">
+                            <strong>{{ c.personal.apellidos_nombres }}</strong>
+                        </a>
+                        <br><small class="text-muted">{{ c.personal.nro_doc }}</small>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-light text-dark border">{{ c.dias_desde_ingreso }} d</span>
+                        <br><small class="text-muted">{{ c.fecha_ingreso|date:"d/m/Y" }}</small>
+                    </td>
+                    <td>
+                        <div class="progress progress-gastro" style="width:120px;">
+                            <div class="progress-bar" style="width:{{ c.porcentaje_completado }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ c.porcentaje_completado }}%</small>
+                    </td>
+                    <td class="text-center">
+                        {{ c.items_completados }}/{{ c.total_items }}
+                    </td>
+                    <td>
+                        <span class="badge badge-hito">{{ c.proximo_hito }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if c.alertas_vencidas %}
+                            <span class="badge bg-danger" title="Items vencidos">
+                                <i class="fas fa-exclamation-triangle"></i> {{ c.alertas_vencidas|length }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if c.completado %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Completado</span>
+                        {% else %}
+                            <span class="badge bg-primary">En proceso</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{% url 'checklist_gastro_detalle' pk=c.pk %}"
+                           class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                            <i class="fas fa-tasks"></i> Detalle
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">
+                    No hay checklists.
+                    <a href="{% url 'checklist_gastro_auto_crear' %}" class="btn btn-sm btn-link">
+                        Crear para personal nuevo
+                    </a>
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

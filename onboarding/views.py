@@ -19,6 +19,7 @@ from .models import (
     ProcesoOnboarding, PasoOnboarding,
     PlantillaOffboarding, PasoPlantillaOff,
     ProcesoOffboarding, PasoOffboarding,
+    ChecklistGastronomia,
 )
 
 solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
@@ -1039,3 +1040,231 @@ def plantilla_ajax(request, pk):
         'aplica_grupo': plantilla.aplica_grupo,
         'pasos': pasos,
     })
+
+
+# ══════════════════════════════════════════════════════════════
+# CHECKLIST GASTRONOMÍA — 30/60/90 días
+# ══════════════════════════════════════════════════════════════
+
+# Mapeo de campos toggle-ables: nombre_campo -> (label, icono, categoría)
+_CHECKLIST_GASTRO_ITEMS = [
+    ('contrato_firmado',       'Contrato firmado',          'fa-file-signature', 'Documentos'),
+    ('examen_medico',          'Examen médico ocupacional', 'fa-stethoscope',    'Documentos'),
+    ('uniforme_entregado',     'Uniforme entregado',        'fa-tshirt',         'Documentos'),
+    ('induccion_general',      'Inducción general',         'fa-chalkboard',     'Documentos'),
+    ('bpm_certificado',        'Certificación BPM',         'fa-hands-wash',     'Certificaciones'),
+    ('haccp_certificado',      'Certificación HACCP',       'fa-shield-virus',   'Certificaciones'),
+    ('manipulacion_alimentos', 'Manipulación de alimentos', 'fa-utensils',       'Certificaciones'),
+    ('carne_sanitario',        'Carné sanitario',           'fa-id-card',        'Certificaciones'),
+    ('evaluacion_30',          'Evaluación 30 días',        'fa-star',           'Evaluaciones'),
+    ('evaluacion_60',          'Evaluación 60 días',        'fa-star',           'Evaluaciones'),
+    ('evaluacion_90',          'Evaluación 90 días',        'fa-star',           'Evaluaciones'),
+]
+
+_TOGGLEABLE_FIELDS = {x[0] for x in _CHECKLIST_GASTRO_ITEMS}
+
+
+def _checklist_gastro_perm(u):
+    return u.is_authenticated and (u.is_superuser or u.is_staff)
+
+
+checklist_gastro_admin = user_passes_test(_checklist_gastro_perm, login_url='login')
+
+
+def _construir_items_view(checklist):
+    """Construye la lista de items para el detalle, agrupada por categoría."""
+    grupos = {}
+    for campo, label, icono, categoria in _CHECKLIST_GASTRO_ITEMS:
+        marcado = getattr(checklist, campo)
+        fecha = getattr(checklist, f'{campo}_fecha', None)
+        item = {
+            'campo': campo,
+            'label': label,
+            'icono': icono,
+            'marcado': marcado,
+            'fecha': fecha,
+        }
+        if campo.startswith('evaluacion_'):
+            item['calificacion'] = getattr(checklist, f'{campo}_calificacion', None)
+            item['notas'] = getattr(checklist, f'{campo}_notas', '')
+        grupos.setdefault(categoria, []).append(item)
+    return grupos
+
+
+@login_required
+@checklist_gastro_admin
+def checklist_gastro_panel(request):
+    """Panel principal de checklists de onboarding gastronomía."""
+    qs = ChecklistGastronomia.objects.select_related('personal', 'responsable').all()
+    estado = request.GET.get('estado', '')
+    buscar = request.GET.get('q', '')
+
+    if buscar:
+        qs = qs.filter(
+            Q(personal__apellidos_nombres__icontains=buscar) |
+            Q(personal__nro_doc__icontains=buscar)
+        )
+
+    # Materializar para poder filtrar por propiedades dinámicas (alertas)
+    items = list(qs)
+
+    if estado == 'pendientes':
+        items = [c for c in items if not c.completado]
+    elif estado == 'completados':
+        items = [c for c in items if c.completado]
+    elif estado == 'en_riesgo':
+        items = [c for c in items if c.en_riesgo]
+
+    # Stats globales
+    todos = list(ChecklistGastronomia.objects.select_related('personal').all())
+    total = len(todos)
+    completados = sum(1 for c in todos if c.completado)
+    en_proceso = sum(1 for c in todos if not c.completado)
+    en_riesgo = sum(1 for c in todos if c.en_riesgo)
+
+    context = {
+        'titulo': 'Onboarding Gastronomía — 30/60/90',
+        'checklists': items[:200],
+        'total_mostrados': len(items),
+        'filtro_estado': estado,
+        'buscar': buscar,
+        'stats': {
+            'total': total,
+            'en_proceso': en_proceso,
+            'completados': completados,
+            'en_riesgo': en_riesgo,
+        },
+    }
+    return render(request, 'onboarding/checklist_gastro_panel.html', context)
+
+
+@login_required
+@checklist_gastro_admin
+def checklist_gastro_detalle(request, pk):
+    """Detalle de un checklist con timeline visual."""
+    checklist = get_object_or_404(
+        ChecklistGastronomia.objects.select_related('personal', 'responsable'),
+        pk=pk,
+    )
+
+    if request.method == 'POST':
+        # Soporta updates desde el formulario completo (calificación + notas)
+        accion = request.POST.get('accion', '')
+        if accion in ('eval_30', 'eval_60', 'eval_90'):
+            n = accion.split('_')[1]
+            try:
+                cal_raw = (request.POST.get(f'evaluacion_{n}_calificacion') or '').strip()
+                cal = int(cal_raw) if cal_raw else None
+                if cal is not None and (cal < 1 or cal > 10):
+                    raise ValueError('Calificación fuera de rango (1-10).')
+            except (ValueError, TypeError) as e:
+                messages.error(request, f'Calificación inválida: {e}')
+                return redirect('checklist_gastro_detalle', pk=pk)
+            setattr(checklist, f'evaluacion_{n}', True)
+            setattr(checklist, f'evaluacion_{n}_fecha', timezone.now().date())
+            setattr(checklist, f'evaluacion_{n}_calificacion', cal)
+            setattr(checklist, f'evaluacion_{n}_notas', request.POST.get(f'evaluacion_{n}_notas', ''))
+            _recalcular_completado(checklist)
+            checklist.save()
+            log_update(request, checklist, cambios={f'evaluacion_{n}': {'old': False, 'new': True}})
+            messages.success(request, f'Evaluación {n} días registrada.')
+            return redirect('checklist_gastro_detalle', pk=pk)
+
+    grupos = _construir_items_view(checklist)
+    alertas = checklist.alertas_vencidas
+
+    context = {
+        'titulo': f'Checklist: {checklist.personal.apellidos_nombres}',
+        'checklist': checklist,
+        'grupos': grupos,
+        'alertas': alertas,
+    }
+    return render(request, 'onboarding/checklist_gastro_detalle.html', context)
+
+
+def _recalcular_completado(checklist):
+    """Marca completado=True si todos los items boolean están en True."""
+    completos = all(getattr(checklist, f) for f in checklist._ITEMS_CHECKLIST)
+    checklist.completado = completos
+
+
+@login_required
+@checklist_gastro_admin
+@require_POST
+def checklist_gastro_toggle(request, pk):
+    """Alterna un item del checklist (POST con CSRF). Devuelve JSON."""
+    checklist = get_object_or_404(ChecklistGastronomia, pk=pk)
+    campo = request.POST.get('campo', '')
+
+    if campo not in _TOGGLEABLE_FIELDS:
+        return JsonResponse({'ok': False, 'error': f'Campo no válido: {campo}'}, status=400)
+
+    valor_actual = bool(getattr(checklist, campo))
+    nuevo_valor = not valor_actual
+
+    setattr(checklist, campo, nuevo_valor)
+    fecha_field = f'{campo}_fecha'
+    if hasattr(checklist, fecha_field):
+        setattr(checklist, fecha_field, timezone.now().date() if nuevo_valor else None)
+
+    _recalcular_completado(checklist)
+    if checklist.responsable_id is None:
+        checklist.responsable = request.user
+    checklist.save()
+
+    log_update(request, checklist, cambios={campo: {'old': valor_actual, 'new': nuevo_valor}})
+
+    return JsonResponse({
+        'ok': True,
+        'campo': campo,
+        'nuevo_valor': nuevo_valor,
+        'porcentaje': checklist.porcentaje_completado,
+        'items_completados': checklist.items_completados,
+        'total_items': checklist.total_items,
+        'completado': checklist.completado,
+        'fecha': getattr(checklist, fecha_field).isoformat() if getattr(checklist, fecha_field, None) else None,
+    })
+
+
+def crear_checklist_para_personal_nuevo(personal, fecha_ingreso=None, responsable=None):
+    """Helper que crea (idempotente) un ChecklistGastronomia para un Personal.
+
+    Si ya existe, lo devuelve sin modificar.
+    """
+    if not personal or not personal.pk:
+        return None
+    existente = ChecklistGastronomia.objects.filter(personal=personal).first()
+    if existente:
+        return existente
+
+    fecha = fecha_ingreso or personal.fecha_alta or timezone.now().date()
+    checklist = ChecklistGastronomia.objects.create(
+        personal=personal,
+        fecha_ingreso=fecha,
+        responsable=responsable,
+    )
+    return checklist
+
+
+@login_required
+@checklist_gastro_admin
+def checklist_gastro_auto_crear(request):
+    """Crea checklists para los Personal activos con fecha_alta en los últimos 120 días
+    que aún no tengan un checklist asociado.
+    """
+    hoy = timezone.now().date()
+    desde = hoy - timedelta(days=120)
+    candidatos = (
+        Personal.objects
+        .filter(estado='Activo', fecha_alta__isnull=False, fecha_alta__gte=desde)
+        .filter(checklist_gastro__isnull=True)
+        .order_by('-fecha_alta')
+    )
+
+    creados = 0
+    for p in candidatos:
+        crear_checklist_para_personal_nuevo(p, responsable=request.user)
+        creados += 1
+
+    messages.success(request, f'Se crearon {creados} checklist(s) nuevos.')
+    return redirect('checklist_gastro_panel')
