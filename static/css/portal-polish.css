@@ -120,6 +120,14 @@ main .badge.bg-primary {
     color: #064e3b !important;
 }
 
+/* Naranja — usado en escala IR 5ta tramo 20% (entre warning y danger) */
+main .badge.bg-orange,
+.badge.bg-orange {
+    background-color: #fed7aa !important;
+    color: #9a3412 !important;
+    font-weight: 600;
+}
+
 /* ──────────────────────────────────────────────────────────────────────────
    4. Tables — refined inside cards
    ────────────────────────────────────────────────────────────────────────── */
