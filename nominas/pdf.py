@@ -13,7 +13,7 @@ logger = logging.getLogger('nominas.pdf')
 
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable,
-    Image as RLImage,
+    PageBreak, Image as RLImage,
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -643,12 +643,12 @@ def generar_boleta_pdf(registro):
                 story.append(line)
 
         # --- SEPARADOR COPIAS ---
+        # Cada copia (EMPLEADOR / TRABAJADOR) ocupa una página propia: evita
+        # cortes a mitad del documento cuando el contenido es extenso (muchos
+        # conceptos, varias provisiones, etc.). El usuario puede imprimir
+        # ambas o solo la que necesite firmar.
         if copia_idx == 0:
-            story.append(Spacer(1, 10))
-            story.append(HRFlowable(width="100%", color=C_GRAY_T, thickness=0.5, dash=(3,4)))
-            story.append(_p("- - - SEPARAR POR LA LINEA PUNTEADA - - -", cut_st))
-            story.append(HRFlowable(width="100%", color=C_GRAY_T, thickness=0.5, dash=(3,4)))
-            story.append(Spacer(1, 10))
+            story.append(PageBreak())
 
     doc.build(story)
     return buf.getvalue()
