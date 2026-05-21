@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Funnel de Reclutamiento{% endblock %}
+
+{% block extra_css %}
+<style>
+.fn-hero {
+    background: linear-gradient(135deg, #4338ca, #7c3aed);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1.4rem 1.75rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.fn-hero h2 { color: #fff; font-size: 1.4rem; margin: 0; }
+.fn-hero p { color: #ddd6fe; margin: .2rem 0 0; font-size: .85rem; }
+
+.fn-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 768px) { .fn-kpis { grid-template-columns: repeat(2, 1fr); } }
+.fn-kpi {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: .85rem 1rem;
+    text-align: center;
+}
+.fn-kpi .lbl { font-size: .65rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+.fn-kpi .val { font-size: 1.5rem; font-weight: 800; line-height: 1.1; color: #0d2b27; }
+
+.fn-funnel-bar {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: .55rem;
+    border-left: 4px solid #7c3aed;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .65rem;
+    transition: box-shadow .15s;
+}
+.fn-funnel-bar:hover { box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+.fn-funnel-name {
+    font-weight: 700;
+    color: #0d2b27;
+    flex: 1;
+    min-width: 120px;
+}
+.fn-funnel-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.fn-funnel-count {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #4338ca;
+    font-variant-numeric: tabular-nums;
+}
+.fn-funnel-conv {
+    padding: .25rem .65rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+}
+.fn-funnel-conv.high   { background: #d1fae5; color: #065f46; }
+.fn-funnel-conv.medium { background: #fef3c7; color: #92400e; }
+.fn-funnel-conv.low    { background: #fee2e2; color: #991b1b; }
+
+.fn-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.15rem 1.35rem;
+    margin-bottom: 1rem;
+}
+.fn-card h5 {
+    font-size: .9rem;
+    color: #134e4a;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: .85rem;
+}
+
+.fn-source-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .6rem .75rem;
+    border-radius: 8px;
+    margin-bottom: .35rem;
+    background: #f8fafc;
+}
+.fn-source-row .nombre { font-weight: 600; flex: 1; }
+.fn-source-row .stats { display: flex; gap: 1rem; font-variant-numeric: tabular-nums; }
+.fn-source-row .stats span { font-size: .82rem; color: #475569; }
+.fn-source-row .stats strong { color: #0d2b27; font-size: .9rem; }
+
+.score-bucket {
+    display: grid;
+    grid-template-columns: 80px 1fr 60px;
+    gap: .65rem;
+    align-items: center;
+    margin-bottom: .35rem;
+}
+.score-bucket-label {
+    font-size: .8rem;
+    color: #64748b;
+    font-weight: 600;
+}
+.score-bucket-bar {
+    background: #e2e8f0;
+    border-radius: 999px;
+    height: 18px;
+    overflow: hidden;
+}
+.score-bucket-fill {
+    background: linear-gradient(90deg, #7c3aed, #4338ca);
+    height: 100%;
+    border-radius: 999px;
+}
+.score-bucket-count {
+    font-weight: 700;
+    color: #0d2b27;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="fn-hero">
+    <div>
+        <h2><i class="fas fa-funnel-dollar me-2"></i>Funnel de Reclutamiento</h2>
+        <p>
+            Conversion por etapa, fuentes efectivas y matching · Últimos <strong>{{ periodo_dias }}</strong> días
+        </p>
+    </div>
+    <form method="get" class="d-flex gap-2">
+        <select name="periodo" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="30"  {% if periodo_dias == 30 %}selected{% endif %}>Últimos 30 días</option>
+            <option value="60"  {% if periodo_dias == 60 %}selected{% endif %}>Últimos 60 días</option>
+            <option value="90"  {% if periodo_dias == 90 %}selected{% endif %}>Últimos 90 días</option>
+            <option value="180" {% if periodo_dias == 180 %}selected{% endif %}>Últimos 6 meses</option>
+            <option value="365" {% if periodo_dias == 365 %}selected{% endif %}>Último año</option>
+        </select>
+    </form>
+</div>
+
+<div class="fn-kpis">
+    <div class="fn-kpi">
+        <div class="lbl">Postulaciones</div>
+        <div class="val">{{ total_periodo }}</div>
+    </div>
+    <div class="fn-kpi">
+        <div class="lbl">Activas</div>
+        <div class="val text-primary">{{ activas }}</div>
+    </div>
+    <div class="fn-kpi">
+        <div class="lbl">Descartadas</div>
+        <div class="val text-danger">{{ descartadas }}</div>
+    </div>
+    <div class="fn-kpi">
+        <div class="lbl">Contratados</div>
+        <div class="val text-success">{{ contratados }}</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        {# ── Funnel por etapa ─────────────────────────────── #}
+        <div class="fn-card">
+            <h5><i class="fas fa-stream me-1 text-primary"></i>Conversion por etapa</h5>
+            {% for f in funnel %}
+            <div class="fn-funnel-bar" style="border-left-color:{{ f.etapa.color|default:'#7c3aed' }};">
+                <div class="fn-funnel-name">
+                    {{ f.etapa.nombre }}
+                    <small class="text-muted d-block">{{ f.pct_del_total }}% del total</small>
+                </div>
+                <div class="fn-funnel-stats">
+                    <span class="fn-funnel-count">{{ f.count }}</span>
+                    <span class="fn-funnel-conv {% if f.conversion_pct >= 60 %}high{% elif f.conversion_pct >= 30 %}medium{% else %}low{% endif %}">
+                        {{ f.conversion_pct }}% conv.
+                    </span>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted small mb-0">Sin etapas configuradas.</p>
+            {% endfor %}
+        </div>
+
+        {# ── Distribución scores ───────────────────────────── #}
+        <div class="fn-card">
+            <h5><i class="fas fa-chart-bar me-1 text-info"></i>Distribución de scores</h5>
+            {% for label, count in score_buckets %}
+            <div class="score-bucket">
+                <span class="score-bucket-label">{{ label }}</span>
+                <div class="score-bucket-bar">
+                    <div class="score-bucket-fill" style="width:{% widthratio count max_bucket 100 %}%"></div>
+                </div>
+                <span class="score-bucket-count">{{ count }}</span>
+            </div>
+            {% endfor %}
+            <small class="text-muted mt-2 d-block">
+                Solo cuenta postulaciones con score parseado (CV procesado).
+            </small>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        {# ── Source effectiveness ──────────────────────────── #}
+        <div class="fn-card">
+            <h5><i class="fas fa-share-square me-1 text-success"></i>Fuentes más efectivas</h5>
+            {% for s in sources %}
+            <div class="fn-source-row">
+                <div class="nombre">{{ s.fuente }}</div>
+                <div class="stats">
+                    <span><strong>{{ s.total }}</strong> total</span>
+                    <span><strong>{{ s.contratados }}</strong> contrat.</span>
+                    <span><strong>{{ s.conversion }}%</strong></span>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted small mb-0">Sin postulaciones en el período.</p>
+            {% endfor %}
+        </div>
+
+        {# ── Top vacantes ──────────────────────────────────── #}
+        <div class="fn-card">
+            <h5><i class="fas fa-briefcase me-1 text-warning"></i>Top vacantes por flujo</h5>
+            {% for v in top_vacantes %}
+            <div class="fn-source-row">
+                <div class="nombre">
+                    <a href="{% url 'vacante_detalle' v.pk %}" class="text-decoration-none">
+                        {{ v.titulo|truncatechars:38 }}
+                    </a>
+                </div>
+                <div class="stats">
+                    <span><strong>{{ v.total_post }}</strong></span>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted small mb-0">Sin vacantes con postulaciones.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

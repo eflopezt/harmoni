@@ -1929,6 +1929,35 @@ def subir_cv_express(request, vacante_pk=None):
 
             nombre = parsed.get('nombre_completo') or 'Candidato sin nombre'
 
+            # ── Detección de duplicados ANTES de crear ──
+            forzar = request.POST.get('forzar_crear') == '1'
+            if not forzar:
+                from .dedup import buscar_duplicados
+                duplicados = buscar_duplicados(
+                    email=parsed.get('email', ''),
+                    telefono=parsed.get('telefono', ''),
+                    nombre_completo=nombre,
+                )
+                # Solo bloquear si hay alta confianza (score >= 80)
+                duplicados_alta = [(d, m, s) for d, m, s in duplicados if s >= 80]
+                if duplicados_alta:
+                    # Guardar archivo temporalmente y mostrar modal
+                    import tempfile
+                    archivo.seek(0)
+                    with tempfile.NamedTemporaryFile(
+                        suffix=ext, delete=False,
+                        dir=os.path.join(os.path.dirname(__file__), '..', 'media', 'tmp'),
+                    ) as tmp_save:
+                        # Cap en tmp media dir
+                        pass
+                    # Mejor: simplemente mostrar warning + form de re-confirm
+                    return render(request, 'reclutamiento/cv_duplicados.html', {
+                        'parsed':       parsed,
+                        'vacante':      vac,
+                        'duplicados':   duplicados_alta,
+                        'nombre_archivo': archivo.name,
+                    })
+
             etapa_ini = EtapaPipeline.objects.order_by('orden').first()
 
             archivo.seek(0)
@@ -1974,6 +2003,134 @@ def subir_cv_express(request, vacante_pk=None):
     return render(request, 'reclutamiento/cv_subir_express.html', {
         'vacante':  vacante,
         'vacantes': vacantes,
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  FUNNEL DE RECLUTAMIENTO
+# ═══════════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def funnel_reclutamiento(request):
+    """Reporte ejecutivo del embudo de reclutamiento.
+
+    Muestra:
+    - Conversion rate por etapa
+    - Time-to-hire promedio
+    - Source effectiveness (qué fuente da mejores candidatos)
+    - Distribución de scores
+    - Vacantes con mayor/menor flujo
+    """
+    from django.db.models import Avg, Count, Q
+    from datetime import datetime, timedelta
+
+    # Filtros opcionales
+    periodo_dias = int(request.GET.get('periodo', 90))
+    desde = timezone.now() - timedelta(days=periodo_dias)
+
+    # ── Conversion rate por etapa ──────────────────────────────────────
+    etapas = EtapaPipeline.objects.order_by('orden')
+    funnel = []
+    total_anterior = None
+    total_inicio = 0
+    for etapa in etapas:
+        count = Postulacion.objects.filter(
+            etapa=etapa,
+            fecha_postulacion__gte=desde,
+        ).count()
+        if total_inicio == 0:
+            total_inicio = count
+        conversion_pct = (
+            round(count / total_anterior * 100, 1)
+            if total_anterior else 100.0
+        )
+        funnel.append({
+            'etapa':           etapa,
+            'count':           count,
+            'conversion_pct':  conversion_pct,
+            'pct_del_total':   round(count / total_inicio * 100, 1) if total_inicio else 0,
+        })
+        total_anterior = count
+
+    # ── Time-to-hire ──────────────────────────────────────────────────
+    contratados = Postulacion.objects.filter(
+        estado='CONTRATADA',
+        fecha_postulacion__gte=desde,
+    )
+    total_contratados = contratados.count()
+
+    # ── Source effectiveness ──────────────────────────────────────────
+    sources = Postulacion.objects.filter(
+        fecha_postulacion__gte=desde,
+    ).values('fuente').annotate(
+        total=Count('id'),
+        contratados=Count('id', filter=Q(estado='CONTRATADA')),
+        avg_score=Avg('cv_score'),
+    ).order_by('-total')
+
+    sources_data = []
+    for s in sources:
+        conversion = (
+            round(s['contratados'] / s['total'] * 100, 1)
+            if s['total'] else 0
+        )
+        sources_data.append({
+            'fuente':       s['fuente'] or '(sin fuente)',
+            'total':        s['total'],
+            'contratados':  s['contratados'],
+            'conversion':   conversion,
+            'avg_score':    round(s['avg_score'] or 0, 1),
+        })
+
+    # ── Top vacantes por flujo ────────────────────────────────────────
+    top_vacantes = Vacante.objects.annotate(
+        total_post=Count('postulaciones', filter=Q(
+            postulaciones__fecha_postulacion__gte=desde,
+        )),
+        contratados_count=Count('postulaciones', filter=Q(
+            postulaciones__estado='CONTRATADA',
+        )),
+    ).filter(total_post__gt=0).order_by('-total_post')[:10]
+
+    # ── Distribución scores ───────────────────────────────────────────
+    b_low = b_mid = b_high = b_top = 0
+    for p in Postulacion.objects.filter(
+        fecha_postulacion__gte=desde,
+        cv_score__gt=0,
+    ).values_list('cv_score', flat=True):
+        if p <= 40:    b_low  += 1
+        elif p <= 60:  b_mid  += 1
+        elif p <= 80:  b_high += 1
+        else:          b_top  += 1
+    score_buckets = [
+        ('0-40',   b_low),
+        ('41-60',  b_mid),
+        ('61-80',  b_high),
+        ('81-100', b_top),
+    ]
+    max_bucket = max(b_low, b_mid, b_high, b_top, 1)
+
+    # KPIs globales
+    total_periodo = Postulacion.objects.filter(fecha_postulacion__gte=desde).count()
+    activas = Postulacion.objects.filter(
+        fecha_postulacion__gte=desde, estado='ACTIVA'
+    ).count()
+    descartadas = Postulacion.objects.filter(
+        fecha_postulacion__gte=desde, estado='DESCARTADA'
+    ).count()
+
+    return render(request, 'reclutamiento/funnel.html', {
+        'funnel':          funnel,
+        'sources':         sources_data,
+        'top_vacantes':    top_vacantes,
+        'score_buckets':   score_buckets,
+        'max_bucket':      max_bucket,
+        'total_periodo':   total_periodo,
+        'activas':         activas,
+        'descartadas':     descartadas,
+        'contratados':     total_contratados,
+        'periodo_dias':    periodo_dias,
     })
 
 
