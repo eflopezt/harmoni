@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.score-hero {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1.75rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+}
+.score-circle {
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+.score-circle .num {
+    font-size: 2.6rem; line-height: 1;
+}
+.score-circle .lbl {
+    font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; margin-top: .25rem;
+}
+.score-CRITICO { background: linear-gradient(135deg, #dc2626, #991b1b); }
+.score-ALTO    { background: linear-gradient(135deg, #f59e0b, #b45309); }
+.score-MEDIO   { background: linear-gradient(135deg, #eab308, #a16207); color: #1f2937; }
+.score-BAJO    { background: linear-gradient(135deg, #94a3b8, #64748b); }
+
+.factor-card {
+    background: #fff;
+    border-radius: .65rem;
+    padding: 1rem 1.15rem;
+    border-left: 4px solid #94a3b8;
+    margin-bottom: .65rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+}
+.factor-card.sev-alto  { border-left-color: #dc2626; }
+.factor-card.sev-medio { border-left-color: #f59e0b; }
+.factor-card.sev-bajo  { border-left-color: #94a3b8; }
+
+.factor-name { font-weight: 600; }
+.factor-detail { color: #6b7280; font-size: .85rem; }
+.factor-pts {
+    font-weight: 700; font-size: 1.1rem;
+    padding: .2rem .65rem;
+    border-radius: .375rem;
+    background: #f3f4f6;
+    color: #374151;
+}
+.sev-pill {
+    display: inline-block;
+    font-size: .65rem; font-weight: 700;
+    padding: .1rem .55rem;
+    border-radius: 999px;
+    margin-left: .5rem;
+    letter-spacing: .04em;
+}
+.sev-pill.sev-alto  { background: #fee2e2; color: #b91c1c; }
+.sev-pill.sev-medio { background: #fef3c7; color: #92400e; }
+.sev-pill.sev-bajo  { background: #f1f5f9; color: #475569; }
+
+.reco-item {
+    background: #f0fdfa;
+    border-left: 3px solid #14b8a6;
+    padding: .65rem .85rem;
+    border-radius: .375rem;
+    margin-bottom: .5rem;
+    font-size: .92rem;
+}
+.empty-state {
+    background: #fff; padding: 2rem; border-radius: .75rem;
+    text-align: center; color: #6b7280;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <div class="mb-3">
+        <a href="{% url 'predictor_rotacion_panel' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Volver al panel
+        </a>
+        <a href="{% url 'personal_detail' personal.pk %}" class="btn btn-sm btn-outline-primary">
+            <i class="fa-solid fa-id-card"></i> Ver ficha personal
+        </a>
+    </div>
+
+    <!-- Hero con score -->
+    <div class="score-hero mb-4">
+        <div class="score-circle score-{{ analisis.nivel }}">
+            <div class="num">{{ analisis.score }}</div>
+            <div class="lbl">{{ analisis.nivel }}</div>
+        </div>
+        <div class="flex-grow-1">
+            <h3 class="mb-1">{{ personal.apellidos_nombres }}</h3>
+            <div class="text-muted mb-2">
+                {{ personal.cargo|default:"Sin cargo" }}
+                {% if personal.subarea and personal.subarea.area %}
+                    · {{ personal.subarea.area.nombre }}
+                {% endif %}
+                · DNI {{ personal.nro_doc }}
+            </div>
+            <div class="small text-muted">
+                {% if personal.fecha_alta %}
+                    <i class="fa-solid fa-calendar-day"></i>
+                    Ingreso: {{ personal.fecha_alta|date:"d/m/Y" }}
+                {% endif %}
+                {% if personal.estado %}
+                    · Estado: <strong>{{ personal.get_estado_display }}</strong>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Factores -->
+        <div class="col-lg-7">
+            <h5 class="text-uppercase text-muted small mb-3">
+                <i class="fa-solid fa-triangle-exclamation"></i> Factores de riesgo
+                ({{ analisis.factores|length }})
+            </h5>
+            {% for f in analisis.factores %}
+                <div class="factor-card sev-{{ f.severidad }}">
+                    <div>
+                        <div class="factor-name">
+                            {{ f.nombre }}
+                            <span class="sev-pill sev-{{ f.severidad }}">{{ f.severidad|upper }}</span>
+                        </div>
+                        <div class="factor-detail">{{ f.detalle }}</div>
+                    </div>
+                    <div class="factor-pts">+{{ f.puntos }}</div>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-check-circle text-success fa-2x mb-2"></i>
+                    <p class="mb-0">Sin factores de riesgo detectados.</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Recomendaciones -->
+        <div class="col-lg-5">
+            <h5 class="text-uppercase text-muted small mb-3">
+                <i class="fa-solid fa-lightbulb"></i> Recomendaciones
+            </h5>
+            {% for reco in analisis.recomendaciones %}
+                <div class="reco-item">
+                    <i class="fa-solid fa-arrow-right text-teal me-1"></i>
+                    {{ reco }}
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <p class="mb-0">No hay acciones específicas requeridas.</p>
+                </div>
+            {% endfor %}
+
+            <div class="mt-3 p-3" style="background:#fffbeb; border-left:3px solid #f59e0b; border-radius:.375rem;">
+                <small class="text-muted">
+                    <i class="fa-solid fa-info-circle"></i>
+                    <strong>Niveles:</strong>
+                    CRÍTICO ≥70 · ALTO 50-69 · MEDIO 30-49 · BAJO &lt;30.
+                    Score acumulado de hasta 7 factores (máx 100).
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

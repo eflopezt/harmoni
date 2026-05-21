@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ titulo }} — Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── KPI Cards ── */
+.pr-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.pr-kpi {
+    background: #fff;
+    border-radius: .75rem;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+.pr-kpi .kpi-value {
+    font-size: 1.9rem; font-weight: 700; line-height: 1.1;
+}
+.pr-kpi .kpi-label {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+    color: #6b7280;
+}
+.pr-kpi.kpi-critico { border-left: 4px solid #dc2626; }
+.pr-kpi.kpi-alto    { border-left: 4px solid #f59e0b; }
+.pr-kpi.kpi-medio   { border-left: 4px solid #eab308; }
+.pr-kpi.kpi-bajo    { border-left: 4px solid #94a3b8; }
+
+/* ── Score Badge ── */
+.score-badge {
+    display: inline-block;
+    min-width: 3.2rem;
+    font-weight: 800;
+    font-size: 1rem;
+    padding: .35rem .65rem;
+    border-radius: .5rem;
+    text-align: center;
+    color: #fff;
+}
+.score-CRITICO { background: #dc2626; }
+.score-ALTO    { background: #f59e0b; }
+.score-MEDIO   { background: #eab308; color: #1f2937; }
+.score-BAJO    { background: #94a3b8; }
+
+.nivel-pill {
+    display: inline-block;
+    font-size: .68rem;
+    font-weight: 700;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    letter-spacing: .04em;
+}
+.nivel-CRITICO { background: #fee2e2; color: #b91c1c; }
+.nivel-ALTO    { background: #fef3c7; color: #b45309; }
+.nivel-MEDIO   { background: #fef9c3; color: #854d0e; }
+.nivel-BAJO    { background: #f1f5f9; color: #475569; }
+
+/* ── Factor Pills ── */
+.factor-pill {
+    display: inline-block;
+    font-size: .68rem;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #374151;
+    margin: .1rem .15rem 0 0;
+    white-space: nowrap;
+}
+.factor-pill.sev-alto  { background: #fee2e2; color: #b91c1c; }
+.factor-pill.sev-medio { background: #fef3c7; color: #92400e; }
+.factor-pill.sev-bajo  { background: #f1f5f9; color: #475569; }
+
+/* ── Table ── */
+.pr-table th {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6b7280;
+    background: #f9fafb;
+}
+.pr-table td { vertical-align: middle; }
+
+/* ── Sidebar filtros ── */
+.pr-filtros {
+    background: #fff;
+    border-radius: .75rem;
+    padding: 1.1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    position: sticky;
+    top: 1rem;
+}
+
+/* ── Top factores ── */
+.top-factor-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .4rem .55rem; border-radius: .375rem;
+    background: #f9fafb; margin-bottom: .35rem;
+}
+.top-factor-bar {
+    background: #e5e7eb;
+    height: 6px; border-radius: 3px; flex: 1; margin: 0 .65rem;
+    overflow: hidden;
+}
+.top-factor-bar > span {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, #0f766e, #14b8a6);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-1">
+                <i class="fa-solid fa-user-shield text-danger"></i>
+                Predictor de Rotación
+            </h2>
+            <p class="text-muted small mb-0">
+                Scoring rule-based explicable: identifica trabajadores con mayor probabilidad
+                de renunciar/cesar usando 7 señales del histórico.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'analytics_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="pr-kpi-grid">
+        <div class="pr-kpi">
+            <div class="kpi-label">Total en riesgo</div>
+            <div class="kpi-value">{{ total }}</div>
+        </div>
+        <div class="pr-kpi kpi-critico">
+            <div class="kpi-label">Crítico (≥70)</div>
+            <div class="kpi-value text-danger">{{ criticos }}</div>
+        </div>
+        <div class="pr-kpi kpi-alto">
+            <div class="kpi-label">Alto (50-69)</div>
+            <div class="kpi-value text-warning">{{ altos }}</div>
+        </div>
+        <div class="pr-kpi kpi-medio">
+            <div class="kpi-label">Medio (30-49)</div>
+            <div class="kpi-value" style="color:#a16207">{{ medios }}</div>
+        </div>
+        <div class="pr-kpi kpi-bajo">
+            <div class="kpi-label">Bajo (&lt;30)</div>
+            <div class="kpi-value text-muted">{{ bajos }}</div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Sidebar: filtros + top factores -->
+        <div class="col-lg-3">
+            <div class="pr-filtros">
+                <h6 class="text-uppercase text-muted small mb-3">
+                    <i class="fa-solid fa-filter"></i> Filtros
+                </h6>
+                <form method="get">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Nivel de riesgo</label>
+                        <select name="nivel" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="CRITICO" {% if filtro_nivel == 'CRITICO' %}selected{% endif %}>Crítico</option>
+                            <option value="ALTO" {% if filtro_nivel == 'ALTO' %}selected{% endif %}>Alto</option>
+                            <option value="MEDIO" {% if filtro_nivel == 'MEDIO' %}selected{% endif %}>Medio</option>
+                            <option value="BAJO" {% if filtro_nivel == 'BAJO' %}selected{% endif %}>Bajo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Área</label>
+                        <select name="area" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            {% for area in areas %}
+                                <option value="{{ area.id }}" {% if filtro_area == area.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ area.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="fa-solid fa-search"></i> Aplicar
+                    </button>
+                    {% if filtro_nivel or filtro_area %}
+                        <a href="{% url 'predictor_rotacion_panel' %}" class="btn btn-sm btn-link w-100 mt-1">
+                            Limpiar
+                        </a>
+                    {% endif %}
+                </form>
+            </div>
+
+            {% if top_factores %}
+            <div class="pr-filtros mt-3">
+                <h6 class="text-uppercase text-muted small mb-3">
+                    <i class="fa-solid fa-chart-bar"></i> Factores recurrentes
+                </h6>
+                {% with maxv=top_factores.0.1 %}
+                {% for nombre, count in top_factores %}
+                    <div class="top-factor-item">
+                        <span class="small text-truncate" style="max-width: 9rem;" title="{{ nombre }}">{{ nombre }}</span>
+                        <div class="top-factor-bar"><span style="width: {% widthratio count maxv 100 %}%"></span></div>
+                        <span class="badge bg-secondary">{{ count }}</span>
+                    </div>
+                {% endfor %}
+                {% endwith %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tabla principal -->
+        <div class="col-lg-9">
+            <div class="card border-0 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table pr-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Trabajador</th>
+                                <th>Área / Cargo</th>
+                                <th class="text-center">Score</th>
+                                <th>Nivel</th>
+                                <th>Factores principales</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in en_riesgo %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ r.personal.apellidos_nombres }}</div>
+                                    <div class="text-muted small">{{ r.personal.nro_doc }}</div>
+                                </td>
+                                <td>
+                                    <div class="small">
+                                        {% if r.personal.subarea and r.personal.subarea.area %}
+                                            {{ r.personal.subarea.area.nombre }}
+                                        {% else %}
+                                            <span class="text-muted">Sin área</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-muted small">{{ r.personal.cargo|default:"—" }}</div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="score-badge score-{{ r.analisis.nivel }}">{{ r.analisis.score }}</span>
+                                </td>
+                                <td>
+                                    <span class="nivel-pill nivel-{{ r.analisis.nivel }}">{{ r.analisis.nivel }}</span>
+                                </td>
+                                <td>
+                                    {% for f in r.analisis.factores|slice:":3" %}
+                                        <span class="factor-pill sev-{{ f.severidad }}" title="+{{ f.puntos }} pts · {{ f.detalle }}">
+                                            {{ f.nombre }}
+                                        </span>
+                                    {% endfor %}
+                                    {% if r.analisis.factores|length > 3 %}
+                                        <span class="factor-pill">+{{ r.analisis.factores|length|add:"-3" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'predictor_rotacion_detalle' r.personal.pk %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fa-solid fa-magnifying-glass"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <i class="fa-solid fa-check-circle fa-2x mb-2 text-success"></i>
+                                    <p class="mb-0">Sin trabajadores en riesgo con los filtros actuales.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
