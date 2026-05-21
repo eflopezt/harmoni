@@ -318,6 +318,19 @@ def pulse_del_grupo(request):
     except Exception:
         pass
 
+    # Export PDF (?format=pdf)
+    if request.GET.get('format') == 'pdf':
+        return _exportar_pulse_pdf(
+            locales=locales, hoy=hoy,
+            total_locales=total_locales, total_headcount=total_headcount,
+            total_planilla_neto=total_planilla_neto,
+            total_planilla_costo=total_planilla_costo,
+            total_alertas=total_alertas, briefings_hoy_count=briefings_hoy_count,
+            locales_verde=locales_verde, locales_amarillo=locales_amarillo,
+            locales_rojo=locales_rojo,
+            user=request.user,
+        )
+
     return render(request, 'empresas/pulse_grupo.html', {
         'locales':              locales,
         'total_locales':        total_locales,
@@ -331,6 +344,159 @@ def pulse_del_grupo(request):
         'locales_rojo':         locales_rojo,
         'hoy':                  hoy,
     })
+
+
+def _exportar_pulse_pdf(*, locales, hoy, total_locales, total_headcount,
+                        total_planilla_neto, total_planilla_costo,
+                        total_alertas, briefings_hoy_count,
+                        locales_verde, locales_amarillo, locales_rojo, user):
+    """Genera PDF ejecutivo del Pulse del Grupo (1 página)."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable,
+    )
+    from django.http import HttpResponse
+    from django.utils import timezone
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        topMargin=12*mm, bottomMargin=12*mm,
+        leftMargin=15*mm, rightMargin=15*mm,
+    )
+
+    TEAL_DARK = colors.HexColor('#0d2b27')
+    TEAL = colors.HexColor('#0f766e')
+    GREEN = colors.HexColor('#10b981')
+    AMBER = colors.HexColor('#f59e0b')
+    RED = colors.HexColor('#ef4444')
+    GRAY = colors.HexColor('#64748b')
+    LIGHT = colors.HexColor('#f0fafa')
+
+    styles = getSampleStyleSheet()
+    st_title = ParagraphStyle('T', parent=styles['Heading1'],
+        fontName='Helvetica-Bold', fontSize=18, textColor=TEAL_DARK, alignment=TA_LEFT,
+        leading=22, spaceAfter=2)
+    st_sub = ParagraphStyle('S', parent=styles['Normal'], fontName='Helvetica',
+        fontSize=10, textColor=GRAY, alignment=TA_LEFT, spaceAfter=10)
+    st_body = ParagraphStyle('B', parent=styles['Normal'], fontName='Helvetica',
+        fontSize=9, textColor=colors.HexColor('#1f2937'), leading=12)
+
+    story = []
+    story.append(Paragraph('Pulse del Grupo — Snapshot Ejecutivo', st_title))
+    story.append(Paragraph(
+        f"Generado el {timezone.now().strftime('%d/%m/%Y %H:%M')} · "
+        f"Usuario: {user.username}",
+        st_sub,
+    ))
+    story.append(HRFlowable(width="100%", thickness=2, color=TEAL,
+                            spaceBefore=0, spaceAfter=10))
+
+    # KPIs globales
+    kpis_data = [
+        ['Locales activos',  str(total_locales),  'Verde',   f'{locales_verde}'],
+        ['Headcount total',  f'{total_headcount:,}',  'Amarillo', f'{locales_amarillo}'],
+        ['Alertas activas',  str(total_alertas), 'Rojo',    f'{locales_rojo}'],
+        ['Briefings hoy',    str(briefings_hoy_count), 'Planilla', f'S/ {total_planilla_neto:,.0f}'],
+    ]
+    kpis = Table(kpis_data, colWidths=[35*mm, 25*mm, 35*mm, 35*mm])
+    kpis.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTSIZE', (1, 0), (1, -1), 11),
+        ('FONTSIZE', (3, 0), (3, -1), 11),
+        ('TEXTCOLOR', (0, 0), (0, -1), GRAY),
+        ('TEXTCOLOR', (2, 0), (2, -1), GRAY),
+        ('TEXTCOLOR', (1, 0), (1, 0), TEAL_DARK),
+        ('TEXTCOLOR', (3, 0), (3, 0), GREEN),
+        ('TEXTCOLOR', (3, 1), (3, 1), AMBER),
+        ('TEXTCOLOR', (3, 2), (3, 2), RED),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.3, colors.HexColor('#cbd5e1')),
+    ]))
+    story.append(kpis)
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph('Detalle por Local', ParagraphStyle('h2', parent=st_title,
+        fontSize=11, spaceAfter=4, textColor=TEAL)))
+
+    # Tabla de locales
+    locales_data = [
+        ['Local', 'RUC', 'HC', 'Estado', 'Planilla (S/)', 'Alertas']
+    ]
+    for l in locales:
+        emp = l['empresa']
+        color_text = {'verde': 'OK', 'amarillo': 'ATENCIÓN', 'rojo': 'CRÍTICO'}.get(l['color'], '—')
+        planilla = (
+            f"{l['planilla']['neto']:,.0f}" if l.get('planilla') else '—'
+        )
+        alertas_str = (', '.join(a.get('texto', '')[:30] for a in l['alertas'][:2])
+                       if l.get('alertas') else '—')
+        locales_data.append([
+            (emp.nombre_comercial or emp.razon_social)[:30],
+            emp.ruc or '—',
+            str(l['headcount']),
+            color_text,
+            planilla,
+            alertas_str[:50],
+        ])
+
+    locales_t = Table(
+        locales_data,
+        colWidths=[50*mm, 28*mm, 12*mm, 22*mm, 25*mm, 47*mm],
+        repeatRows=1,
+    )
+    style_cmds = [
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('BACKGROUND', (0, 0), (-1, 0), TEAL_DARK),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT]),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#cbd5e1')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+        ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
+    ]
+    # Colorear columna Estado según color del local
+    for idx, l in enumerate(locales, start=1):
+        color = {'verde': GREEN, 'amarillo': AMBER, 'rojo': RED}.get(l['color'])
+        if color:
+            style_cmds.append(('TEXTCOLOR', (3, idx), (3, idx), color))
+            style_cmds.append(('FONTNAME', (3, idx), (3, idx), 'Helvetica-Bold'))
+    locales_t.setStyle(TableStyle(style_cmds))
+    story.append(locales_t)
+
+    # Footer
+    story.append(Spacer(1, 14))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1'),
+                            spaceBefore=0, spaceAfter=4))
+    story.append(Paragraph(
+        f'Harmoni ERP · Pulse del Grupo · Reporte ejecutivo generado automáticamente · '
+        f'Costo empresa total: S/ {total_planilla_costo:,.0f}',
+        ParagraphStyle('foot', parent=st_body, fontSize=7, textColor=GRAY, alignment=TA_CENTER),
+    ))
+
+    doc.build(story)
+    pdf = buf.getvalue()
+    buf.close()
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = (
+        f'inline; filename="pulse_grupo_{hoy.strftime("%Y%m%d")}.pdf"'
+    )
+    return response
 
 
 @login_required
