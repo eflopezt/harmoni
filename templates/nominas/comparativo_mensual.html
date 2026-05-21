@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Comparativo Mensual de Planilla — Harmoni{% endblock %}
+
+{% block extra_css %}
+<style>
+.cm-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+.cm-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .8rem;
+}
+@media (max-width: 768px) { .cm-summary { grid-template-columns: repeat(2, 1fr); } }
+.cm-kpi {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: .85rem 1rem;
+    border-left: 3px solid #0f766e;
+}
+.cm-kpi .lbl {
+    font-size: .68rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-weight: 600;
+    margin-bottom: .2rem;
+}
+.cm-kpi .val {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #0d2b27;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.cm-kpi .sub {
+    font-size: .72rem;
+    color: #64748b;
+    margin-top: .15rem;
+}
+.cm-kpi.up   { border-left-color: #10b981; }
+.cm-kpi.down { border-left-color: #ef4444; }
+.cm-kpi.flat { border-left-color: #94a3b8; }
+
+.cm-table {
+    width: 100%;
+    font-size: .82rem;
+    border-collapse: collapse;
+}
+.cm-table thead th {
+    background: #f0fafa;
+    color: #134e4a;
+    font-weight: 700;
+    font-size: .72rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .6rem .8rem;
+    text-align: left;
+    border-bottom: 1px solid #cbf6ed;
+}
+.cm-table thead th.text-end { text-align: right; }
+.cm-table tbody td {
+    padding: .55rem .8rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-variant-numeric: tabular-nums;
+}
+.cm-table tbody td.text-end { text-align: right; }
+.cm-table tbody tr:hover { background: #f0fafa; }
+.cm-table tbody tr:last-child td { border-bottom: none; }
+
+.delta-pos { color: #047857; font-weight: 600; }
+.delta-neg { color: #b91c1c; font-weight: 600; }
+.delta-flat { color: #94a3b8; }
+
+.cm-state-CALCULADO { background: #fef3c7; color: #92400e; }
+.cm-state-APROBADO  { background: #d1fae5; color: #064e3b; }
+.cm-state-CERRADO   { background: #cffafe; color: #155e75; }
+.cm-state-badge {
+    display: inline-block;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+#cmChart { max-height: 320px; }
+.cm-empty { text-align: center; padding: 3rem 1rem; color: #94a3b8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-chart-line"></i>Comparativo Mensual de Planilla</h2>
+        <p class="page-subtitle">
+            Evolución de la planilla mes a mes — trabajadores, neto pagado y costo
+            empresa. Útil para gerencia y planificación presupuestaria.
+        </p>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-end">
+        <div>
+            <label class="form-label small mb-1">Ventana</label>
+            <select name="n" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="3"  {% if ventana == 3 %}selected{% endif %}>Últimos 3 meses</option>
+                <option value="6"  {% if ventana == 6 %}selected{% endif %}>Últimos 6 meses</option>
+                <option value="9"  {% if ventana == 9 %}selected{% endif %}>Últimos 9 meses</option>
+                <option value="12" {% if ventana == 12 %}selected{% endif %}>Últimos 12 meses</option>
+            </select>
+        </div>
+    </form>
+</div>
+
+{% if filas %}
+<!-- KPIs resumen ventana -->
+<div class="cm-summary mb-3">
+    <div class="cm-kpi">
+        <div class="lbl">Rango analizado</div>
+        <div class="val" style="font-size:.95rem;">{{ resumen.rango }}</div>
+        <div class="sub">{{ resumen.meses }} períodos REGULAR</div>
+    </div>
+    <div class="cm-kpi {% if resumen.delta_workers_total > 0 %}up{% elif resumen.delta_workers_total < 0 %}down{% else %}flat{% endif %}">
+        <div class="lbl">Δ Trabajadores</div>
+        <div class="val">
+            {% if resumen.delta_workers_total > 0 %}+{% endif %}{{ resumen.delta_workers_total }}
+        </div>
+        <div class="sub">Promedio: {{ resumen.workers_promedio }} / mes</div>
+    </div>
+    <div class="cm-kpi {% if resumen.delta_neto_pct_total > 0 %}up{% elif resumen.delta_neto_pct_total < 0 %}down{% else %}flat{% endif %}">
+        <div class="lbl">Δ Neto pagado</div>
+        <div class="val">
+            {% if resumen.delta_neto_pct_total %}
+                {% if resumen.delta_neto_pct_total > 0 %}+{% endif %}{{ resumen.delta_neto_pct_total }}%
+            {% else %}—{% endif %}
+        </div>
+        <div class="sub">Prom. S/ {{ resumen.neto_promedio|floatformat:0|intcomma }} / mes</div>
+    </div>
+    <div class="cm-kpi {% if resumen.delta_costo_pct_total > 0 %}down{% elif resumen.delta_costo_pct_total < 0 %}up{% else %}flat{% endif %}">
+        <div class="lbl">Δ Costo empresa</div>
+        <div class="val">
+            {% if resumen.delta_costo_pct_total %}
+                {% if resumen.delta_costo_pct_total > 0 %}+{% endif %}{{ resumen.delta_costo_pct_total }}%
+            {% else %}—{% endif %}
+        </div>
+        <div class="sub">Prom. S/ {{ resumen.costo_promedio|floatformat:0|intcomma }} / mes</div>
+    </div>
+</div>
+
+<!-- Gráfico -->
+<div class="cm-card">
+    <h5 class="mb-3"><i class="fas fa-chart-area"></i>Evolución (S/)</h5>
+    <canvas id="cmChart"></canvas>
+</div>
+
+<!-- Tabla detalle -->
+<div class="cm-card p-0" style="overflow:hidden;">
+    <div style="padding:1rem 1.25rem .5rem 1.25rem;">
+        <h5 class="mb-0"><i class="fas fa-table"></i>Detalle mensual</h5>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="cm-table">
+            <thead>
+                <tr>
+                    <th>Período</th>
+                    <th>Estado</th>
+                    <th class="text-end">Trabajadores</th>
+                    <th class="text-end">Δ</th>
+                    <th class="text-end">Bruto</th>
+                    <th class="text-end">Descuentos</th>
+                    <th class="text-end">Neto</th>
+                    <th class="text-end">Δ Neto %</th>
+                    <th class="text-end">Aporte Empresa</th>
+                    <th class="text-end">Costo Total</th>
+                    <th class="text-end">Δ Costo %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in filas %}
+                <tr>
+                    <td>
+                        <a href="{% url 'nominas_periodo_detalle' f.pk %}" class="text-decoration-none fw-semibold" style="color:#0f766e;">
+                            {{ f.label }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="cm-state-badge cm-state-{{ f.estado_raw }}">{{ f.estado }}</span>
+                    </td>
+                    <td class="text-end fw-bold">{{ f.trabajadores }}</td>
+                    <td class="text-end">
+                        {% if f.delta_workers is None %}
+                            <span class="delta-flat">—</span>
+                        {% elif f.delta_workers > 0 %}
+                            <span class="delta-pos">+{{ f.delta_workers }}</span>
+                        {% elif f.delta_workers < 0 %}
+                            <span class="delta-neg">{{ f.delta_workers }}</span>
+                        {% else %}
+                            <span class="delta-flat">0</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">S/ {{ f.bruto|floatformat:0|intcomma }}</td>
+                    <td class="text-end" style="color:#b91c1c;">S/ {{ f.descuentos|floatformat:0|intcomma }}</td>
+                    <td class="text-end fw-bold" style="color:#0d9488;">S/ {{ f.neto|floatformat:0|intcomma }}</td>
+                    <td class="text-end">
+                        {% if f.delta_neto_pct is None %}
+                            <span class="delta-flat">—</span>
+                        {% elif f.delta_neto_pct > 0 %}
+                            <span class="delta-pos">+{{ f.delta_neto_pct }}%</span>
+                        {% elif f.delta_neto_pct < 0 %}
+                            <span class="delta-neg">{{ f.delta_neto_pct }}%</span>
+                        {% else %}
+                            <span class="delta-flat">0%</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end" style="color:#7c3aed;">S/ {{ f.aporte_empresa|floatformat:0|intcomma }}</td>
+                    <td class="text-end fw-bold">S/ {{ f.costo_empresa|floatformat:0|intcomma }}</td>
+                    <td class="text-end">
+                        {% if f.delta_costo_pct is None %}
+                            <span class="delta-flat">—</span>
+                        {% elif f.delta_costo_pct > 0 %}
+                            <span class="delta-neg">+{{ f.delta_costo_pct }}%</span>
+                        {% elif f.delta_costo_pct < 0 %}
+                            <span class="delta-pos">{{ f.delta_costo_pct }}%</span>
+                        {% else %}
+                            <span class="delta-flat">0%</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="text-muted small mt-2" style="font-size:.75rem;">
+    <i class="fas fa-info-circle me-1"></i>
+    Aporte empresa = costo total − bruto (EsSalud 9%, SCTR, SENATI).
+    Excluye períodos en BORRADOR.
+</div>
+
+{% else %}
+<div class="cm-card">
+    <div class="cm-empty">
+        <i class="fas fa-chart-line fa-3x mb-3 opacity-25"></i>
+        <h5 class="text-muted mb-1">Aún no hay períodos comparables</h5>
+        <p class="text-muted small mb-0">
+            Se necesitan al menos 2 períodos REGULAR calculados/aprobados
+            para mostrar la comparativa.
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if filas %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const ctx = document.getElementById('cmChart');
+    if (!ctx) return;
+
+    const labels = {{ chart_labels|safe }};
+    const dataNeto = {{ chart_neto|safe }};
+    const dataCosto = {{ chart_costo|safe }};
+    const dataWorkers = {{ chart_workers|safe }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Neto pagado',
+                    data: dataNeto,
+                    borderColor: '#0d9488',
+                    backgroundColor: 'rgba(13,148,136,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    yAxisID: 'y',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2,
+                },
+                {
+                    label: 'Costo empresa',
+                    data: dataCosto,
+                    borderColor: '#7c3aed',
+                    backgroundColor: 'rgba(124,58,237,0.06)',
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                },
+                {
+                    label: 'Trabajadores',
+                    data: dataWorkers,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245,158,11,0.08)',
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'yWorkers',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 14, usePointStyle: true } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const v = ctx.parsed.y;
+                            if (ctx.dataset.label === 'Trabajadores') {
+                                return ctx.dataset.label + ': ' + v.toFixed(0);
+                            }
+                            return ctx.dataset.label + ': S/ ' + v.toLocaleString('es-PE', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    position: 'left',
+                    title: { display: true, text: 'S/ (soles)', font: { size: 11 } },
+                    ticks: {
+                        callback: function(v) {
+                            return 'S/ ' + (v/1000).toFixed(0) + 'k';
+                        }
+                    }
+                },
+                yWorkers: {
+                    position: 'right',
+                    title: { display: true, text: 'Trabajadores', font: { size: 11 } },
+                    grid: { drawOnChartArea: false },
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

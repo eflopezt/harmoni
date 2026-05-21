@@ -3133,3 +3133,116 @@ def reporte_periodo_pdf(request, pk):
     fname = f'reporte_planilla_{periodo.anio}_{periodo.mes:02d}_{periodo.tipo}.pdf'
     response['Content-Disposition'] = f'inline; filename="{fname}"'
     return response
+
+
+# ─── Comparativo Mensual de Planilla ───────────────────────────────────────────
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+def comparativo_mensual(request):
+    """Vista comparativa de los últimos N períodos REGULAR.
+
+    Útil para gerencia: ver evolución de trabajadores, neto, costo empresa,
+    aportes patronales y carga AFP/ONP mes a mes.
+    """
+    # Permite ajustar la ventana (default 6 últimos meses)
+    try:
+        ventana = max(2, min(int(request.GET.get('n', 6)), 12))
+    except (TypeError, ValueError):
+        ventana = 6
+
+    periodos = list(
+        PeriodoNomina.objects.filter(
+            tipo='REGULAR',
+            estado__in=['CALCULADO', 'APROBADO', 'CERRADO'],
+        ).order_by('-anio', '-mes')[:ventana]
+    )
+    periodos.reverse()  # cronológico ascendente
+
+    MES_NOMBRES = {
+        1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun',
+        7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic',
+    }
+
+    filas = []
+    for p in periodos:
+        # Aporte empresa (EsSalud + SCTR + senati) calculado desde costo - bruto
+        bruto = p.total_bruto or Decimal('0')
+        descuentos = p.total_descuentos or Decimal('0')
+        neto = p.total_neto or Decimal('0')
+        costo = p.total_costo_empresa or Decimal('0')
+        aporte_emp = max(costo - bruto, Decimal('0'))
+
+        filas.append({
+            'pk': p.pk,
+            'anio': p.anio,
+            'mes': p.mes,
+            'label': f'{MES_NOMBRES.get(p.mes, p.mes)} {p.anio}',
+            'estado': p.get_estado_display(),
+            'estado_raw': p.estado,
+            'trabajadores': p.total_trabajadores or 0,
+            'bruto': float(bruto),
+            'descuentos': float(descuentos),
+            'neto': float(neto),
+            'costo_empresa': float(costo),
+            'aporte_empresa': float(aporte_emp),
+            'fecha_pago': p.fecha_pago,
+        })
+
+    # ── Deltas (% vs período anterior) ─────────────────────────────────────
+    for i, f in enumerate(filas):
+        if i == 0:
+            f['delta_workers'] = None
+            f['delta_neto_pct'] = None
+            f['delta_costo_pct'] = None
+        else:
+            prev = filas[i - 1]
+            f['delta_workers'] = f['trabajadores'] - prev['trabajadores']
+            f['delta_neto_pct'] = (
+                round((f['neto'] - prev['neto']) / prev['neto'] * 100, 1)
+                if prev['neto'] else None
+            )
+            f['delta_costo_pct'] = (
+                round((f['costo_empresa'] - prev['costo_empresa']) / prev['costo_empresa'] * 100, 1)
+                if prev['costo_empresa'] else None
+            )
+
+    # ── Datos para Chart.js ────────────────────────────────────────────────
+    labels = [f['label'] for f in filas]
+    serie_neto = [f['neto'] for f in filas]
+    serie_costo = [f['costo_empresa'] for f in filas]
+    serie_workers = [f['trabajadores'] for f in filas]
+
+    # ── Resumen ventana completa ──────────────────────────────────────────
+    if filas:
+        primer = filas[0]
+        ultimo = filas[-1]
+        resumen = {
+            'rango': f'{primer["label"]} → {ultimo["label"]}',
+            'meses': len(filas),
+            'delta_workers_total': ultimo['trabajadores'] - primer['trabajadores'],
+            'delta_neto_pct_total': (
+                round((ultimo['neto'] - primer['neto']) / primer['neto'] * 100, 1)
+                if primer['neto'] else None
+            ),
+            'delta_costo_pct_total': (
+                round((ultimo['costo_empresa'] - primer['costo_empresa']) / primer['costo_empresa'] * 100, 1)
+                if primer['costo_empresa'] else None
+            ),
+            'neto_promedio': round(sum(serie_neto) / len(serie_neto), 2),
+            'costo_promedio': round(sum(serie_costo) / len(serie_costo), 2),
+            'workers_promedio': round(sum(serie_workers) / len(serie_workers), 1),
+        }
+    else:
+        resumen = None
+
+    context = {
+        'filas': filas,
+        'ventana': ventana,
+        'resumen': resumen,
+        'chart_labels': json.dumps(labels),
+        'chart_neto': json.dumps(serie_neto),
+        'chart_costo': json.dumps(serie_costo),
+        'chart_workers': json.dumps(serie_workers),
+    }
+    return render(request, 'nominas/comparativo_mensual.html', context)

@@ -57,6 +57,10 @@ urlpatterns = [
     path('periodos/<int:pk>/reporte.pdf', views.reporte_periodo_pdf,
          name='nominas_reporte_periodo_pdf'),
 
+    # Comparativo Mensual — evolución últimos N meses (gerencia)
+    path('comparativo/', views.comparativo_mensual,
+         name='nominas_comparativo_mensual'),
+
     # Configuración tasas AFP (admin)
     path('config/tasas-afp/', views.config_tasas_afp, name='config_tasas_afp'),
 

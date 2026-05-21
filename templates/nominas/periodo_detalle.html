@@ -489,6 +489,28 @@
   </div>
   {% endif %}
 
+  {# Reporte ejecutivo PDF (estado != BORRADOR) #}
+  {% if periodo.estado != 'BORRADOR' %}
+  <div class="action-bar-divider"></div>
+  <a href="{% url 'nominas_reporte_periodo_pdf' periodo.pk %}" target="_blank"
+     class="btn btn-outline-info btn-sm"
+     title="Reporte ejecutivo PDF — 1 página, gerencia">
+    <i class="fas fa-file-pdf me-1"></i>Reporte Ejecutivo
+  </a>
+  {% endif %}
+
+  {# Notificar trabajadores (estado APROBADO o CERRADO) #}
+  {% if periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}
+  <form method="post" action="{% url 'nominas_notificar_periodo_boletas' periodo.pk %}" class="d-inline"
+        onsubmit="return confirm('¿Enviar notificación in-app a los trabajadores avisando que sus boletas están disponibles?\n\nIdempotente: no duplica si ya se notificó.');">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-warning btn-sm"
+            title="Notifica a cada trabajador que su boleta está lista">
+      <i class="fas fa-bell me-1"></i>Notificar
+    </button>
+  </form>
+  {% endif %}
+
   {# Resumen estadístico #}
   <div class="action-bar-divider"></div>
   <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-resumen"
