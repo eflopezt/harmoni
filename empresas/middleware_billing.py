@@ -97,9 +97,21 @@ class BillingMiddleware:
         if not empresa:
             return self.get_response(request)
 
-        # No suscripcion = redirect to billing
+        # Detect "trabajador puro" — usuarios vinculados a Personal SIN privilegios
+        # admin/staff. Para ellos los issues de billing son responsabilidad del
+        # empleador — NO deben ser redirigidos a /empresas/billing/ (URL admin).
+        es_trabajador_puro = bool(getattr(request.user, 'personal_data', None))
+
+        # No suscripcion = redirect to billing (solo si NO es trabajador puro)
         if not suscripcion:
             request.billing_status = 'NO_SUBSCRIPTION'
+            if es_trabajador_puro:
+                # Trabajador no maneja facturación. Pasa transparente al portal.
+                request.billing_warning = (
+                    'La empresa tiene un tema pendiente con su suscripción. '
+                    'Contacta a RRHH si tienes consultas.'
+                )
+                return self.get_response(request)
             if not self._is_billing_url(path):
                 messages.warning(
                     request,

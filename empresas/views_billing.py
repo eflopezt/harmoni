@@ -1,18 +1,45 @@
 """
 Billing Views — Dashboard de facturación, pagos y cambio de plan.
 
-Para usuarios normales (no admin). Cada empresa ve su propia suscripción.
+Restricción de acceso: SOLO usuarios admin (is_superuser, is_staff o
+con perfil responsable). Los trabajadores normales NO ven facturación —
+es un asunto del empleador. Si llegan a estos URLs, son redirigidos
+al portal del trabajador.
 """
 from datetime import date, timedelta
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models_billing import HistorialPago, Plan, Suscripcion
 
 
+def _es_admin_billing(user):
+    """
+    Solo permite acceso a billing si el usuario es admin/staff o tiene
+    perfil de responsable. Los trabajadores no acceden a facturación.
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    # Permitir a responsables si existen
+    perfil = getattr(user, 'perfil_acceso', None)
+    if perfil and getattr(perfil, 'puede_aprobar', False):
+        return True
+    return False
+
+
+admin_billing_required = user_passes_test(
+    _es_admin_billing,
+    login_url='/mi-portal/',  # trabajadores son enviados a su portal
+    redirect_field_name=None,
+)
+
+
 @login_required
+@admin_billing_required
 def billing_dashboard(request):
     """
     Dashboard de billing para la empresa actual.
@@ -46,6 +73,7 @@ def billing_dashboard(request):
 
 
 @login_required
+@admin_billing_required
 def billing_upgrade(request):
     """
     Cambiar de plan / upgrade / downgrade.
@@ -116,6 +144,7 @@ def billing_upgrade(request):
 
 
 @login_required
+@admin_billing_required
 def billing_payment(request):
     """
     Registrar un pago manual (Yape, Plin, transferencia).
@@ -177,6 +206,7 @@ def billing_payment(request):
 
 
 @login_required
+@admin_billing_required
 def billing_invoice(request, pago_id):
     """
     Generar / ver comprobante de pago (boleta/factura).
