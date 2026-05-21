@@ -427,6 +427,101 @@ def requerimientos_panel(request):
 
 @login_required
 @solo_admin
+def certificaciones_gastro(request):
+    """
+    Panel de certificaciones obligatorias en gastronomía:
+    BPM, HACCP, Manipulación de Alimentos, Carné Sanitario.
+
+    Muestra estado por trabajador con alertas de vencimiento.
+    """
+    from datetime import date, timedelta
+    from personal.models import Personal
+
+    # Filtros
+    filtro_estado = (request.GET.get('estado') or '').strip()
+    q = (request.GET.get('q') or '').strip()
+
+    # Listar requerimientos gastro (matching por nombre o categoria)
+    reqs_gastro = list(
+        RequerimientoCapacitacion.objects
+        .filter(activo=True)
+        .filter(
+            Q(nombre__icontains='bpm') |
+            Q(nombre__icontains='haccp') |
+            Q(nombre__icontains='manipulaci') |
+            Q(nombre__icontains='sanitar') |
+            Q(categoria__nombre__icontains='aliment') |
+            Q(categoria__nombre__icontains='gastro')
+        ).distinct()
+    )
+
+    # Personal activo
+    personal_qs = Personal.objects.filter(estado='Activo').order_by('apellidos_nombres')
+    if q:
+        personal_qs = personal_qs.filter(
+            Q(apellidos_nombres__icontains=q) | Q(nro_doc__icontains=q)
+        )
+
+    # Construir matriz
+    hoy = date.today()
+    matriz = []
+    stats = {'vigente': 0, 'por_vencer': 0, 'vencida': 0, 'faltante': 0}
+
+    for emp in personal_qs[:500]:
+        certs_emp = {}
+        for req in reqs_gastro:
+            cert = CertificacionTrabajador.objects.filter(
+                personal=emp, requerimiento=req,
+            ).order_by('-fecha_obtencion').first()
+            if cert:
+                # Recalcular estado dinamicamente
+                if cert.fecha_vencimiento:
+                    if cert.fecha_vencimiento < hoy:
+                        estado_calc = 'vencida'
+                    elif cert.fecha_vencimiento <= hoy + timedelta(days=30):
+                        estado_calc = 'por_vencer'
+                    else:
+                        estado_calc = 'vigente'
+                else:
+                    estado_calc = 'vigente'
+                certs_emp[req.pk] = {
+                    'cert': cert,
+                    'estado': estado_calc,
+                    'dias_restantes': (cert.fecha_vencimiento - hoy).days if cert.fecha_vencimiento else None,
+                }
+                stats[estado_calc] += 1
+            else:
+                certs_emp[req.pk] = {
+                    'cert': None,
+                    'estado': 'faltante',
+                    'dias_restantes': None,
+                }
+                stats['faltante'] += 1
+
+        matriz.append({
+            'personal': emp,
+            'certs':    certs_emp,
+        })
+
+    # Filtrar por estado si se pidio
+    if filtro_estado:
+        matriz = [m for m in matriz if any(
+            c['estado'] == filtro_estado for c in m['certs'].values()
+        )]
+
+    context = {
+        'titulo':       'Certificaciones Gastronomía (BPM/HACCP)',
+        'reqs_gastro':  reqs_gastro,
+        'matriz':       matriz,
+        'stats':        stats,
+        'filtro_estado': filtro_estado,
+        'q':            q,
+    }
+    return render(request, 'capacitaciones/certificaciones_gastro.html', context)
+
+
+@login_required
+@solo_admin
 def incumplimientos_panel(request):
     """Reporte de incumplimientos: quién falta capacitarse."""
     reqs = RequerimientoCapacitacion.objects.filter(activo=True, obligatorio=True)

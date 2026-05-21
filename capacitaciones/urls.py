@@ -20,6 +20,7 @@ urlpatterns = [
     # Admin — Requerimientos y cumplimiento
     path('requerimientos/', views.requerimientos_panel, name='requerimientos_panel'),
     path('incumplimientos/', views.incumplimientos_panel, name='incumplimientos_panel'),
+    path('gastro/', views.certificaciones_gastro, name='certificaciones_gastro'),
 
     # Admin — Nuevas funcionalidades
     path('asignacion-masiva/', views.asignacion_masiva, name='capacitacion_asignacion'),

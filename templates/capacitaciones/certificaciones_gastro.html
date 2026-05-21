@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% load harmoni_tags %}
+
+{% block title %}Certificaciones Gastronomía{% endblock %}
+
+{% block extra_css %}
+<style>
+.gastro-stat {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    height: 100%;
+    cursor: pointer;
+    transition: transform .12s;
+}
+.gastro-stat:hover { transform: translateY(-2px); }
+.gastro-stat .number {
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.gastro-stat .label {
+    color: #64748b;
+    font-size: .78rem;
+    margin-top: 4px;
+}
+
+.cert-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: .72rem;
+    font-weight: 700;
+    min-width: 70px;
+    text-align: center;
+}
+.cert-vigente    { background:#dcfce7; color:#15803d; }
+.cert-por_vencer { background:#fef3c7; color:#92400e; }
+.cert-vencida    { background:#fee2e2; color:#991b1b; }
+.cert-faltante   { background:#f3f4f6; color:#6b7280; }
+
+.cert-dias {
+    font-size: .65rem;
+    color: #94a3b8;
+    margin-top: 1px;
+    display: block;
+}
+
+.matriz-table thead th {
+    position: sticky;
+    top: 60px;
+    background: #f8fafc;
+    z-index: 5;
+    font-size: .78rem;
+    padding: 8px 10px;
+    vertical-align: middle;
+}
+.matriz-table tbody td {
+    vertical-align: middle;
+    padding: 8px 10px;
+}
+
+.req-header-icon {
+    display: inline-block;
+    margin-bottom: 2px;
+    font-size: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">
+            <i class="fas fa-utensils text-secondary me-2"></i>{{ titulo }}
+        </h2>
+        <small class="text-muted">
+            Tracking de certificaciones obligatorias en gastronomía · alertas de vencimiento
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'capacitaciones_panel' %}" class="btn btn-sm btn-secondary">
+            <i class="fas fa-graduation-cap me-1"></i>Capacitaciones
+        </a>
+        <a href="{% url 'requerimientos_panel' %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-list-check me-1"></i>Requerimientos
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row mb-3">
+    <div class="col-md-3 col-6 mb-2">
+        <a href="?estado=vigente" class="text-decoration-none">
+            <div class="gastro-stat">
+                <div class="number text-success">{{ stats.vigente }}</div>
+                <div class="label">Vigentes</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <a href="?estado=por_vencer" class="text-decoration-none">
+            <div class="gastro-stat" style="border-left:4px solid #f59e0b">
+                <div class="number text-warning">{{ stats.por_vencer }}</div>
+                <div class="label">Por vencer (≤30 días)</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <a href="?estado=vencida" class="text-decoration-none">
+            <div class="gastro-stat" style="border-left:4px solid #dc2626">
+                <div class="number text-danger">{{ stats.vencida }}</div>
+                <div class="label">Vencidas</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <a href="?estado=faltante" class="text-decoration-none">
+            <div class="gastro-stat" style="border-left:4px solid #94a3b8">
+                <div class="number text-secondary">{{ stats.faltante }}</div>
+                <div class="label">Sin certificación</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Buscar trabajador</label>
+                <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" style="min-width:240px"
+                       placeholder="Nombre o DNI">
+            </div>
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Estado</label>
+                <select name="estado" class="form-select form-select-sm" style="width:150px">
+                    <option value="">Todos</option>
+                    <option value="vigente"     {% if filtro_estado == 'vigente' %}selected{% endif %}>Vigente</option>
+                    <option value="por_vencer"  {% if filtro_estado == 'por_vencer' %}selected{% endif %}>Por vencer</option>
+                    <option value="vencida"     {% if filtro_estado == 'vencida' %}selected{% endif %}>Vencida</option>
+                    <option value="faltante"    {% if filtro_estado == 'faltante' %}selected{% endif %}>Faltante</option>
+                </select>
+            </div>
+            <button class="btn btn-sm btn-primary">
+                <i class="fas fa-filter me-1"></i>Filtrar
+            </button>
+            {% if q or filtro_estado %}
+            <a href="{% url 'certificaciones_gastro' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Limpiar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Matriz -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        {% if matriz %}
+        <div class="table-responsive">
+            <table class="table matriz-table mb-0">
+                <thead>
+                    <tr>
+                        <th style="min-width:240px">Trabajador</th>
+                        {% for req in reqs_gastro %}
+                        <th class="text-center" style="min-width:140px">
+                            <div class="req-header-icon">
+                                {% if 'BPM' in req.nombre %}
+                                    <i class="fas fa-hands-wash text-primary"></i>
+                                {% elif 'HACCP' in req.nombre %}
+                                    <i class="fas fa-shield-virus text-warning"></i>
+                                {% elif 'Manipul' in req.nombre %}
+                                    <i class="fas fa-drumstick-bite text-danger"></i>
+                                {% elif 'Sanitar' in req.nombre %}
+                                    <i class="fas fa-id-card text-info"></i>
+                                {% else %}
+                                    <i class="fas fa-certificate text-secondary"></i>
+                                {% endif %}
+                            </div>
+                            <div style="font-size:.78rem">{{ req.nombre|truncatechars:24 }}</div>
+                            {% if req.vigencia_dias %}
+                            <small class="text-muted" style="font-size:.65rem">vigencia {{ req.vigencia_dias }}d</small>
+                            {% endif %}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in matriz %}
+                    <tr>
+                        <td>
+                            <strong>{{ fila.personal.apellidos_nombres }}</strong>
+                            <div class="small text-muted">{{ fila.personal.nro_doc }} · {{ fila.personal.cargo|default:"—" }}</div>
+                        </td>
+                        {% for req in reqs_gastro %}
+                        {% with c=fila.certs|get_item:req.pk %}
+                        <td class="text-center">
+                            <span class="cert-pill cert-{{ c.estado }}">
+                                {% if c.estado == 'vigente' %}✓ Vigente
+                                {% elif c.estado == 'por_vencer' %}⚠ Por vencer
+                                {% elif c.estado == 'vencida' %}✗ Vencida
+                                {% else %}— Faltante
+                                {% endif %}
+                            </span>
+                            {% if c.cert and c.cert.fecha_vencimiento %}
+                            <span class="cert-dias">
+                                {{ c.cert.fecha_vencimiento|date:"d/m/Y" }}
+                                {% if c.dias_restantes is not None %}
+                                · {% if c.dias_restantes < 0 %}vencida hace {{ c.dias_restantes|stringformat:"d"|cut:"-" }}d
+                                {% else %}{{ c.dias_restantes }}d restantes{% endif %}
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        {% endwith %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center">
+            <i class="fas fa-utensils" style="font-size:3rem; color:#cbd5e1;"></i>
+            <h5 class="mt-3 text-muted">Sin certificaciones gastro detectadas</h5>
+            <p class="small text-muted">
+                {% if reqs_gastro %}
+                Crea certificaciones desde el panel de capacitaciones.
+                {% else %}
+                No hay requerimientos definidos para BPM, HACCP, Manipulación de Alimentos o Carné Sanitario.
+                <a href="{% url 'requerimientos_panel' %}">Crear ahora</a>.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-3 small text-muted">
+    <i class="fas fa-info-circle me-1"></i>
+    Las certificaciones <strong>BPM</strong> (Buenas Prácticas de Manufactura),
+    <strong>HACCP</strong> (Análisis de Peligros y Puntos Críticos de Control),
+    <strong>Manipulación de Alimentos</strong> y <strong>Carné Sanitario</strong>
+    son obligatorias en gastronomía según DS 007-98-SA y Resolución Ministerial 591-2008/MINSA.
+</div>
+{% endblock %}

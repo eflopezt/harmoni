@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Stats Reclutadores{% endblock %}
+
+{% block extra_css %}
+<style>
+.stat-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    height: 100%;
+}
+.stat-card .number {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.stat-card .label {
+    color: #64748b;
+    font-size: .78rem;
+    margin-top: 4px;
+}
+.stat-card .sub {
+    color: #94a3b8;
+    font-size: .68rem;
+    margin-top: 2px;
+}
+
+.recl-row {
+    border-bottom: 1px solid #f1f5f9;
+}
+.recl-row:hover { background: #f8fafc; }
+.recl-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5eead4, #0f766e);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .9rem;
+}
+.metric-cell {
+    text-align: center;
+    padding: 10px;
+}
+.metric-cell .num {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0d2b27;
+    line-height: 1;
+}
+.metric-cell .lbl {
+    font-size: .65rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-top: 2px;
+}
+.progress-thin {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.progress-thin > div {
+    height: 100%;
+    background: linear-gradient(90deg, #5eead4, #0f766e);
+}
+.rank-medal {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #94a3b8;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .7rem;
+    font-weight: 700;
+}
+.rank-medal.gold   { background: #f59e0b; }
+.rank-medal.silver { background: #94a3b8; }
+.rank-medal.bronze { background: #b45309; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-chart-line text-secondary me-2"></i>{{ titulo }}</h2>
+        <small class="text-muted">Productividad del equipo de reclutamiento · últimos {{ dias }} días</small>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex gap-2">
+            <select name="periodo" class="form-select form-select-sm">
+                <option value="30"  {% if dias == 30  %}selected{% endif %}>Últimos 30 días</option>
+                <option value="60"  {% if dias == 60  %}selected{% endif %}>Últimos 60 días</option>
+                <option value="90"  {% if dias == 90  %}selected{% endif %}>Últimos 90 días</option>
+                <option value="180" {% if dias == 180 %}selected{% endif %}>Últimos 6 meses</option>
+                <option value="365" {% if dias == 365 %}selected{% endif %}>Último año</option>
+            </select>
+            <button class="btn btn-sm btn-primary">Aplicar</button>
+        </form>
+        <a href="{% url 'pipeline_panel' %}" class="btn btn-sm btn-secondary">
+            <i class="fas fa-columns me-1"></i>Pipeline
+        </a>
+    </div>
+</div>
+
+<!-- Stats globales -->
+<div class="row mb-3">
+    <div class="col-md-2 col-6 mb-2">
+        <div class="stat-card">
+            <div class="number text-primary">{{ total_postulaciones }}</div>
+            <div class="label">Postulaciones</div>
+            <div class="sub">del periodo</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-2">
+        <div class="stat-card">
+            <div class="number text-success">{{ total_contratados }}</div>
+            <div class="label">Contratados</div>
+            <div class="sub">{{ tasa_conversion }}% conversión</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-2">
+        <div class="stat-card">
+            <div class="number text-danger">{{ total_descartados }}</div>
+            <div class="label">Descartados</div>
+            <div class="sub">→ Banco de Talento</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-2">
+        <div class="stat-card">
+            <div class="number text-info">{{ total_entrevistas }}</div>
+            <div class="label">Entrevistas</div>
+            <div class="sub">programadas</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-2">
+        <div class="stat-card">
+            <div class="number text-warning">{{ tiempo_promedio_dias }}</div>
+            <div class="label">Días Avg</div>
+            <div class="sub">para contratar</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-2">
+        <div class="stat-card">
+            <div class="number text-secondary">{{ total_reclutadores }}</div>
+            <div class="label">Reclutadores</div>
+            <div class="sub">activos</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de reclutadores -->
+<div class="card shadow-sm">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-users me-1"></i>Ranking de reclutadores · últimos {{ dias }} días</h6>
+        <small class="text-muted">Ordenado por candidatos tocados</small>
+    </div>
+    <div class="card-body p-0">
+        {% if stats_por_reclutador %}
+        <table class="table mb-0">
+            <thead style="background:#f8fafc;font-size:.75rem">
+                <tr>
+                    <th style="width:50px">#</th>
+                    <th>Reclutador</th>
+                    <th class="text-center">Candidatos</th>
+                    <th class="text-center">Notas</th>
+                    <th class="text-center">Entrevistas</th>
+                    <th class="text-center">Aprobadas</th>
+                    <th class="text-center">Contrataciones</th>
+                    <th class="text-center">Calificación Avg</th>
+                    <th>Tasa aprob.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in stats_por_reclutador %}
+                <tr class="recl-row">
+                    <td>
+                        {% if forloop.counter == 1 %}
+                        <span class="rank-medal gold">🥇</span>
+                        {% elif forloop.counter == 2 %}
+                        <span class="rank-medal silver">🥈</span>
+                        {% elif forloop.counter == 3 %}
+                        <span class="rank-medal bronze">🥉</span>
+                        {% else %}
+                        <span class="rank-medal">{{ forloop.counter }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="recl-avatar">{{ r.nombre|slice:":1"|upper }}</div>
+                            <div>
+                                <strong>{{ r.nombre }}</strong>
+                                <div class="small text-muted">{{ r.user.email|default:"" }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="metric-cell">
+                        <div class="num">{{ r.candidatos_tocados }}</div>
+                        <div class="lbl">Tocados</div>
+                    </td>
+                    <td class="metric-cell">
+                        <div class="num">{{ r.notas_count }}</div>
+                    </td>
+                    <td class="metric-cell">
+                        <div class="num">{{ r.entrev_count }}</div>
+                    </td>
+                    <td class="metric-cell">
+                        <div class="num text-success">{{ r.entrev_aprobadas }}</div>
+                    </td>
+                    <td class="metric-cell">
+                        <div class="num text-primary">{{ r.contrataciones }}</div>
+                    </td>
+                    <td class="metric-cell">
+                        {% if r.avg_calificacion %}
+                        <div class="num">{{ r.avg_calificacion }}<small class="text-muted">/10</small></div>
+                        {% else %}
+                        <div class="text-muted small">—</div>
+                        {% endif %}
+                    </td>
+                    <td style="min-width:120px">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress-thin flex-grow-1">
+                                <div style="width:{{ r.tasa_aprobacion }}%"></div>
+                            </div>
+                            <small class="fw-bold" style="min-width:36px">{{ r.tasa_aprobacion }}%</small>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center">
+            <i class="fas fa-chart-line" style="font-size:3rem; color:#cbd5e1;"></i>
+            <h5 class="mt-3 text-muted">Sin actividad de reclutadores</h5>
+            <p class="small text-muted">No hay notas, entrevistas o contrataciones en los últimos {{ dias }} días.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Fuentes exitosas -->
+{% if fuentes_exito %}
+<div class="card shadow-sm mt-3">
+    <div class="card-header py-2">
+        <h6 class="mb-0"><i class="fas fa-trophy me-1"></i>Fuentes con mejor conversión a contratación</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for f in fuentes_exito %}
+            <div class="col-md-3 col-6 mb-2">
+                <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                    <div>
+                        <strong>{{ f.fuente }}</strong>
+                    </div>
+                    <span class="badge bg-success">{{ f.count }} contratado{{ f.count|pluralize }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
