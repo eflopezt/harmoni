@@ -3236,6 +3236,53 @@ def comparativo_mensual(request):
     else:
         resumen = None
 
+    # ── Export CSV (gerencia → Excel) ──────────────────────────────────────
+    if request.GET.get('format') == 'csv':
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            f'attachment; filename="comparativo_planilla_{ventana}m.csv"'
+        )
+        # BOM para que Excel respete UTF-8 con tildes (un solo BOM al inicio)
+        response.write('﻿')
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow([
+            'Período', 'Año', 'Mes', 'Estado',
+            'Trabajadores', 'Δ Trabajadores',
+            'Bruto (S/)', 'Descuentos (S/)', 'Neto (S/)', 'Δ Neto %',
+            'Aporte Empresa (S/)', 'Costo Total (S/)', 'Δ Costo %',
+            'Fecha pago',
+        ])
+        for f in filas:
+            writer.writerow([
+                f['label'], f['anio'], f['mes'], f['estado'],
+                f['trabajadores'],
+                '' if f['delta_workers'] is None else f['delta_workers'],
+                f'{f["bruto"]:.2f}',
+                f'{f["descuentos"]:.2f}',
+                f'{f["neto"]:.2f}',
+                '' if f['delta_neto_pct'] is None else f'{f["delta_neto_pct"]}',
+                f'{f["aporte_empresa"]:.2f}',
+                f'{f["costo_empresa"]:.2f}',
+                '' if f['delta_costo_pct'] is None else f'{f["delta_costo_pct"]}',
+                f['fecha_pago'].strftime('%Y-%m-%d') if f['fecha_pago'] else '',
+            ])
+        # Fila resumen al final
+        if resumen:
+            writer.writerow([])
+            writer.writerow(['RESUMEN VENTANA',
+                             '', '', resumen['rango'],
+                             '', resumen['delta_workers_total'],
+                             '', '',
+                             f'{resumen["neto_promedio"]:.2f}',
+                             '' if resumen['delta_neto_pct_total'] is None
+                                else f'{resumen["delta_neto_pct_total"]}',
+                             '',
+                             f'{resumen["costo_promedio"]:.2f}',
+                             '' if resumen['delta_costo_pct_total'] is None
+                                else f'{resumen["delta_costo_pct_total"]}',
+                             ''])
+        return response
+
     context = {
         'filas': filas,
         'ventana': ventana,

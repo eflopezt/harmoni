@@ -106,17 +106,26 @@
             empresa. Útil para gerencia y planificación presupuestaria.
         </p>
     </div>
-    <form method="get" class="d-flex gap-2 align-items-end">
-        <div>
-            <label class="form-label small mb-1">Ventana</label>
-            <select name="n" class="form-select form-select-sm" onchange="this.form.submit()">
-                <option value="3"  {% if ventana == 3 %}selected{% endif %}>Últimos 3 meses</option>
-                <option value="6"  {% if ventana == 6 %}selected{% endif %}>Últimos 6 meses</option>
-                <option value="9"  {% if ventana == 9 %}selected{% endif %}>Últimos 9 meses</option>
-                <option value="12" {% if ventana == 12 %}selected{% endif %}>Últimos 12 meses</option>
-            </select>
-        </div>
-    </form>
+    <div class="d-flex gap-2 align-items-end">
+        <form method="get" class="d-flex gap-2 align-items-end">
+            <div>
+                <label class="form-label small mb-1">Ventana</label>
+                <select name="n" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="3"  {% if ventana == 3 %}selected{% endif %}>Últimos 3 meses</option>
+                    <option value="6"  {% if ventana == 6 %}selected{% endif %}>Últimos 6 meses</option>
+                    <option value="9"  {% if ventana == 9 %}selected{% endif %}>Últimos 9 meses</option>
+                    <option value="12" {% if ventana == 12 %}selected{% endif %}>Últimos 12 meses</option>
+                </select>
+            </div>
+        </form>
+        {% if filas %}
+        <a href="?n={{ ventana }}&format=csv"
+           class="btn btn-outline-success btn-sm"
+           title="Descargar tabla como CSV (compatible con Excel)">
+            <i class="fas fa-file-csv me-1"></i>Exportar CSV
+        </a>
+        {% endif %}
+    </div>
 </div>
 
 {% if filas %}
