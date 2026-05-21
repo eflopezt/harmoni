@@ -145,3 +145,57 @@ class TestSkillsCatalog:
     def test_catalog_tiene_skills_admin(self):
         assert 'planillas' in SKILLS_CATALOG
         assert 'sunat' in SKILLS_CATALOG
+
+
+class TestExtraerExperiencias:
+    def test_extrae_experiencias_basicas(self):
+        from reclutamiento.cv_parser import extraer_experiencias
+        exps = extraer_experiencias(SAMPLE_CV)
+        # SAMPLE_CV tiene 2 experiencias: Mar 2022 - Actualidad y Ene 2019 - Feb 2022
+        assert len(exps) >= 2
+        # La primera debe tener fecha inicio "Mar 2022"
+        assert exps[0]['año_inicio'] == 2022
+
+    def test_calcula_año_actualidad(self):
+        from reclutamiento.cv_parser import extraer_experiencias
+        from datetime import date
+        exps = extraer_experiencias(SAMPLE_CV)
+        if exps and 'actualidad' in exps[0]['fecha_fin'].lower():
+            assert exps[0]['año_fin'] == date.today().year
+
+    def test_sin_seccion_experiencia_devuelve_vacio(self):
+        from reclutamiento.cv_parser import extraer_experiencias
+        exps = extraer_experiencias("Solo texto sin headers reconocidos")
+        assert exps == []
+
+
+class TestExtraerEducacion:
+    def test_extrae_educacion(self):
+        from reclutamiento.cv_parser import extraer_educacion
+        items = extraer_educacion(SAMPLE_CV)
+        # SAMPLE_CV tiene "2017-2018: Cibertec - Técnico en Gastronomía"
+        assert len(items) >= 1
+        # El primer año debe ser 2017
+        assert any(item['año'] == 2017 for item in items)
+
+    def test_sin_seccion_educacion(self):
+        from reclutamiento.cv_parser import extraer_educacion
+        items = extraer_educacion("Solo texto sin headers")
+        assert items == []
+
+
+class TestParseCVCompleto:
+    def test_parse_cv_from_file_incluye_estructura(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.txt', mode='w',
+                                          delete=False, encoding='utf-8') as tmp:
+            tmp.write(SAMPLE_CV)
+            path = tmp.name
+        try:
+            result = parse_cv_from_file(path)
+            # Ahora incluye experiencias y educacion_items
+            assert 'experiencias' in result
+            assert 'educacion_items' in result
+            assert len(result['experiencias']) >= 1
+        finally:
+            os.unlink(path)

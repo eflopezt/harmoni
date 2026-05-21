@@ -2007,6 +2007,264 @@ def subir_cv_express(request, vacante_pk=None):
 
 
 # ═══════════════════════════════════════════════════════════════════
+#  BULK IMPORT DE CANDIDATOS (CSV/Excel)
+# ═══════════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def candidatos_bulk_import(request):
+    """Importa candidatos masivamente desde CSV/Excel.
+
+    Flow:
+      1. GET → form con dropzone + plantilla descargable
+      2. POST con archivo → parsea, valida, muestra preview
+      3. POST con preview confirmado → crea Postulaciones con dedup
+    """
+    if request.method == 'POST' and request.FILES.get('archivo'):
+        archivo = request.FILES['archivo']
+        ext = os.path.splitext(archivo.name)[1].lower()
+
+        if ext not in ('.csv', '.xlsx', '.xls'):
+            messages.error(request, 'Formato no soportado. Usa CSV o Excel.')
+            return redirect('candidatos_bulk_import')
+
+        # Parsear archivo
+        filas, errores = _parsear_bulk_import(archivo, ext)
+        if errores and not filas:
+            messages.error(request, f'No se pudo procesar: {errores[0]}')
+            return redirect('candidatos_bulk_import')
+
+        # Dedup análisis para cada fila
+        from .dedup import buscar_duplicados
+        for f in filas:
+            dups = buscar_duplicados(
+                email=f.get('email', ''),
+                telefono=f.get('telefono', ''),
+                nombre_completo=f.get('nombre_completo', ''),
+            )
+            f['duplicados'] = [(d.pk, d.nombre_completo, m, s) for d, m, s in dups[:3]]
+            f['es_duplicado'] = bool([s for _, _, _, s in f['duplicados'] if s >= 80])
+
+        # Guardar en session para confirmar después
+        request.session['bulk_import_filas'] = filas
+
+        return render(request, 'reclutamiento/bulk_import_preview.html', {
+            'filas':              filas,
+            'total':              len(filas),
+            'duplicados':         sum(1 for f in filas if f.get('es_duplicado')),
+            'errores':            errores,
+            'vacantes':           Vacante.objects.filter(
+                                      estado__in=['PUBLICADA', 'ACTIVA']
+                                  ).order_by('-creado_en'),
+        })
+
+    # Confirmar import (POST sin archivo, con vacante_id)
+    if request.method == 'POST' and request.POST.get('confirmar') == '1':
+        filas = request.session.get('bulk_import_filas', [])
+        vac_id = request.POST.get('vacante_id')
+        omitir_duplicados = request.POST.get('omitir_duplicados') == '1'
+
+        if not filas:
+            messages.error(request, 'No hay datos para importar. Sube el archivo primero.')
+            return redirect('candidatos_bulk_import')
+        try:
+            vac = Vacante.objects.get(pk=int(vac_id))
+        except (Vacante.DoesNotExist, ValueError, TypeError):
+            messages.error(request, 'Vacante inválida.')
+            return redirect('candidatos_bulk_import')
+
+        etapa_ini = EtapaPipeline.objects.order_by('orden').first()
+        creados = 0
+        omitidos = 0
+        for f in filas:
+            if omitir_duplicados and f.get('es_duplicado'):
+                omitidos += 1
+                continue
+            Postulacion.objects.create(
+                vacante=vac,
+                etapa=etapa_ini,
+                nombre_completo=f.get('nombre_completo', '')[:250],
+                email=f.get('email', '')[:254],
+                telefono=f.get('telefono', '')[:30],
+                experiencia_anos=f.get('anios_experiencia', 0),
+                fuente=f.get('fuente', 'PORTAL'),
+                notas=(f.get('notas', '') + ' · [bulk_import]').strip()[:2000],
+                cv_skills=f.get('skills', []),
+                cv_score=f.get('score', 0),
+            )
+            creados += 1
+
+        # Limpiar session
+        request.session.pop('bulk_import_filas', None)
+
+        messages.success(
+            request,
+            f'✓ Importadas {creados} postulaciones a "{vac.titulo}". '
+            f'Omitidas {omitidos} por duplicado.'
+        )
+        return redirect('vacante_detalle', pk=vac.pk)
+
+    # GET → form
+    return render(request, 'reclutamiento/bulk_import_form.html')
+
+
+def _parsear_bulk_import(archivo, ext):
+    """Lee CSV o Excel y devuelve (filas, errores).
+
+    Cada fila es un dict con: nombre_completo, email, telefono,
+    anios_experiencia, fuente, skills, notas.
+    """
+    filas = []
+    errores = []
+
+    try:
+        if ext == '.csv':
+            import csv as _csv
+            content = archivo.read().decode('utf-8-sig')
+            reader = _csv.DictReader(content.splitlines())
+            for i, row in enumerate(reader, start=2):
+                filas.append(_normalizar_fila_import(row, i))
+        else:  # xlsx/xls
+            import openpyxl
+            from io import BytesIO
+            wb = openpyxl.load_workbook(BytesIO(archivo.read()), data_only=True)
+            ws = wb.active
+            headers = [
+                (str(c.value) if c.value else '').strip().lower()
+                for c in ws[1]
+            ]
+            for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                if not row or not any(row):
+                    continue
+                rowdict = dict(zip(headers, row))
+                filas.append(_normalizar_fila_import(rowdict, i))
+    except Exception as e:
+        errores.append(f'Error parseando archivo: {e}')
+
+    return filas, errores
+
+
+def _normalizar_fila_import(raw: dict, row_num: int) -> dict:
+    """Normaliza una fila de import: convierte tipos, limpia strings."""
+    def _g(*keys):
+        for k in keys:
+            v = raw.get(k) or raw.get(k.lower()) or raw.get(k.upper())
+            if v not in (None, ''):
+                return str(v).strip()
+        return ''
+
+    nombre = _g('nombre_completo', 'nombre', 'nombre y apellido', 'nombres')
+    email = _g('email', 'correo', 'correo electronico', 'e-mail')
+    telefono = _g('telefono', 'celular', 'movil', 'teléfono')
+    fuente_raw = _g('fuente', 'origen', 'canal').upper()
+    fuente = fuente_raw if fuente_raw in ('PORTAL', 'LINKEDIN', 'REFERIDO', 'HEADHUNTER', 'OTRO') else 'PORTAL'
+    notas = _g('notas', 'observaciones', 'comentarios')
+
+    try:
+        anios = int(float(_g('anios_experiencia', 'experiencia', 'años') or '0'))
+    except (ValueError, TypeError):
+        anios = 0
+
+    skills_raw = _g('skills', 'habilidades', 'competencias')
+    skills = [s.strip().lower() for s in skills_raw.split(',') if s.strip()] if skills_raw else []
+
+    try:
+        score = int(float(_g('score', 'puntaje') or '0'))
+    except (ValueError, TypeError):
+        score = 0
+
+    return {
+        'row_num':           row_num,
+        'nombre_completo':   nombre,
+        'email':             email,
+        'telefono':          telefono,
+        'anios_experiencia': anios,
+        'fuente':            fuente,
+        'notas':             notas,
+        'skills':            skills,
+        'score':             score,
+        'valido':            bool(nombre and (email or telefono)),
+    }
+
+
+@login_required
+@solo_admin
+def candidatos_bulk_plantilla(request):
+    """Descarga plantilla Excel para bulk import."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from io import BytesIO
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Candidatos'
+
+    TEAL = 'FF0D2B27'
+    HDR_FONT = Font(color='FFFFFFFF', bold=True, size=10)
+    HDR_FILL = PatternFill(fill_type='solid', fgColor=TEAL)
+
+    headers = [
+        'nombre_completo*', 'email', 'telefono',
+        'anios_experiencia', 'fuente', 'skills', 'notas',
+    ]
+    for col, h in enumerate(headers, start=1):
+        c = ws.cell(row=1, column=col, value=h)
+        c.font = HDR_FONT
+        c.fill = HDR_FILL
+        c.alignment = Alignment(horizontal='center')
+
+    # Ejemplos
+    ejemplos = [
+        ['MARIA QUISPE LOPEZ', 'maria@ejemplo.com', '987654321', 5, 'LINKEDIN',
+         'cocina_caliente, haccp, ingles intermedio', 'Recomendada por chef'],
+        ['JUAN PEREZ TORRES', 'jperez@ejemplo.com', '999888777', 8, 'PORTAL',
+         'parrilla, control de costos', ''],
+    ]
+    for i, ej in enumerate(ejemplos, start=2):
+        for col, v in enumerate(ej, start=1):
+            ws.cell(row=i, column=col, value=v)
+
+    widths = [30, 28, 15, 10, 13, 35, 30]
+    for col, w in enumerate(widths, start=1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = w
+
+    # Hoja Instrucciones
+    ws2 = wb.create_sheet('Instrucciones')
+    instrucciones = [
+        ('BULK IMPORT DE CANDIDATOS — HARMONI', True),
+        ('', False),
+        ('Columnas:', True),
+        ('• nombre_completo*: requerido. APELLIDOS, NOMBRES (mayúsculas recomendado)', False),
+        ('• email: recomendado (sin esto, dedup por teléfono/nombre)', False),
+        ('• telefono: móvil PE 9XXXXXXXX', False),
+        ('• anios_experiencia: número entero', False),
+        ('• fuente: PORTAL | LINKEDIN | REFERIDO | HEADHUNTER | OTRO', False),
+        ('• skills: separados por coma. Ej: "cocina_caliente, haccp"', False),
+        ('• notas: texto libre', False),
+        ('', False),
+        ('Después del upload:', True),
+        ('1. Verás preview con todas las filas validadas', False),
+        ('2. Las filas duplicadas (score >= 80 vs base) se marcan en amarillo', False),
+        ('3. Eliges vacante de destino para todas', False),
+        ('4. Puedes optar por omitir duplicados o crear todos', False),
+    ]
+    for i, (texto, bold) in enumerate(instrucciones, start=1):
+        c = ws2.cell(row=i, column=1, value=texto)
+        if bold:
+            c.font = Font(bold=True, size=11)
+    ws2.column_dimensions['A'].width = 90
+
+    buf = BytesIO()
+    wb.save(buf)
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="plantilla_candidatos.xlsx"'
+    return response
+
+
+# ═══════════════════════════════════════════════════════════════════
 #  FUNNEL DE RECLUTAMIENTO
 # ═══════════════════════════════════════════════════════════════════
 
@@ -2136,19 +2394,138 @@ def funnel_reclutamiento(request):
 
 def _calcular_score_matching(parsed: dict, vacante) -> int:
     """Score 0-100 de matching CV vs vacante. Heurística simple."""
+    desglose = _desglose_score_matching(parsed, vacante)
+    return desglose['total']
+
+
+def _desglose_score_matching(parsed: dict, vacante) -> dict:
+    """Devuelve desglose explicado del score.
+
+    Estructura:
+    {
+        'total': 75,
+        'componentes': [
+            {'concepto': 'Años de experiencia', 'pts': 30, 'detalle': '5 años (req: 3)'},
+            ...
+        ],
+        'skills_coincidentes': ['cocina_caliente', 'haccp'],
+        'skills_faltantes':    ['mariscos'],
+    }
+    """
     score = 0
-    anios_cv = parsed.get('anios_experiencia', 0)
+    componentes = []
+
+    anios_cv = parsed.get('anios_experiencia', 0) or 0
     anios_req = getattr(vacante, 'experiencia_minima_anos', 0) or 0
     if anios_cv >= anios_req:
         score += 30
+        componentes.append({
+            'concepto': 'Años de experiencia',
+            'pts':      30,
+            'detalle':  f'{anios_cv} años (requiere {anios_req})',
+            'estado':   'ok',
+        })
     elif anios_cv >= max(0, anios_req - 2):
         score += 15
+        componentes.append({
+            'concepto': 'Años de experiencia',
+            'pts':      15,
+            'detalle':  f'{anios_cv} años (cerca de {anios_req})',
+            'estado':   'parcial',
+        })
+    else:
+        componentes.append({
+            'concepto': 'Años de experiencia',
+            'pts':      0,
+            'detalle':  f'{anios_cv} años (requiere {anios_req})',
+            'estado':   'falta',
+        })
 
-    if parsed.get('email'):    score += 10
-    if parsed.get('telefono'): score += 10
-    if parsed.get('tiene_experiencia'): score += 10
-    if parsed.get('tiene_educacion'):   score += 10
+    if parsed.get('email'):
+        score += 10
+        componentes.append({'concepto': 'Email detectado', 'pts': 10, 'detalle': parsed['email'], 'estado': 'ok'})
+    else:
+        componentes.append({'concepto': 'Email detectado', 'pts': 0, 'detalle': 'No detectado', 'estado': 'falta'})
 
-    skills_count = len(parsed.get('skills', []))
-    score += min(skills_count * 3, 30)
-    return min(score, 100)
+    if parsed.get('telefono'):
+        score += 10
+        componentes.append({'concepto': 'Teléfono detectado', 'pts': 10, 'detalle': parsed['telefono'], 'estado': 'ok'})
+    else:
+        componentes.append({'concepto': 'Teléfono detectado', 'pts': 0, 'detalle': 'No detectado', 'estado': 'falta'})
+
+    if parsed.get('tiene_experiencia'):
+        score += 10
+        componentes.append({'concepto': 'Sección Experiencia', 'pts': 10, 'detalle': 'Detectada en CV', 'estado': 'ok'})
+    if parsed.get('tiene_educacion'):
+        score += 10
+        componentes.append({'concepto': 'Sección Educación', 'pts': 10, 'detalle': 'Detectada en CV', 'estado': 'ok'})
+
+    # Skills coincidentes vs requeridos
+    skills_cv = set(parsed.get('skills', []) or [])
+    skills_req = set()
+    # Extraer "skills" requeridos del campo requisitos / descripcion
+    requisitos_text = ' '.join([
+        getattr(vacante, 'requisitos', '') or '',
+        getattr(vacante, 'descripcion', '') or '',
+    ]).lower()
+    from .cv_parser import SKILLS_CATALOG, _strip_tildes
+    req_norm = _strip_tildes(requisitos_text)
+    for skill in SKILLS_CATALOG:
+        if _strip_tildes(skill) in req_norm:
+            skills_req.add(skill)
+
+    skills_coincidentes = list(skills_cv & skills_req)
+    skills_faltantes = list(skills_req - skills_cv)
+
+    # Puntos por skills: 5 por cada match con requisitos (capado 30)
+    if skills_req:
+        match_pts = min(len(skills_coincidentes) * 5, 30)
+        componentes.append({
+            'concepto': f'Skills coincidentes ({len(skills_coincidentes)}/{len(skills_req)})',
+            'pts':      match_pts,
+            'detalle':  ', '.join(skills_coincidentes[:5]) or 'Ninguno',
+            'estado':   'ok' if skills_coincidentes else 'falta',
+        })
+        score += match_pts
+    else:
+        # Sin skills_req → puntos por skills generales (max 30)
+        skills_count = len(skills_cv)
+        pts = min(skills_count * 3, 30)
+        score += pts
+        componentes.append({
+            'concepto': 'Skills detectados',
+            'pts':      pts,
+            'detalle':  f'{skills_count} skills (sin requisitos específicos)',
+            'estado':   'ok' if pts > 0 else 'falta',
+        })
+
+    score = min(score, 100)
+    return {
+        'total':                 score,
+        'componentes':           componentes,
+        'skills_coincidentes':   sorted(skills_coincidentes),
+        'skills_faltantes':      sorted(skills_faltantes),
+        'skills_extra':          sorted(skills_cv - skills_req),
+    }
+
+
+@login_required
+@solo_admin
+def postulacion_score_detalle(request, pk):
+    """Vista que muestra el desglose detallado del score de matching."""
+    post = get_object_or_404(Postulacion.objects.select_related('vacante'), pk=pk)
+    # Reconstruir parsed dict desde la Postulacion
+    parsed = {
+        'email':             post.email,
+        'telefono':          post.telefono,
+        'anios_experiencia': post.experiencia_anos,
+        'tiene_experiencia': bool(post.cv_texto_extraido),
+        'tiene_educacion':   bool(post.cv_texto_extraido),
+        'skills':            post.cv_skills or [],
+        'idiomas':           post.cv_idiomas or [],
+    }
+    desglose = _desglose_score_matching(parsed, post.vacante)
+    return render(request, 'reclutamiento/postulacion_score_detalle.html', {
+        'postulacion': post,
+        'desglose':    desglose,
+    })

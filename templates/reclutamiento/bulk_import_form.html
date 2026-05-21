@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Import — Candidatos{% endblock %}
+
+{% block extra_css %}
+<style>
+.bi-hero {
+    background: linear-gradient(135deg, #4338ca, #7c3aed);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1.4rem 1.75rem;
+    margin-bottom: 1.5rem;
+}
+.bi-hero h2 { color: #fff; font-size: 1.4rem; margin: 0; }
+.bi-hero p  { color: #ddd6fe; margin: .2rem 0 0; font-size: .9rem; }
+
+.bi-dropzone {
+    background: #fff;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all .2s;
+}
+.bi-dropzone:hover, .bi-dropzone.is-dragover {
+    border-color: #7c3aed;
+    background: #faf5ff;
+}
+.bi-dropzone-icon {
+    font-size: 3.5rem;
+    color: #94a3b8;
+    margin-bottom: 1rem;
+}
+.bi-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="bi-hero">
+    <h2><i class="fas fa-file-import me-2"></i>Bulk Import de Candidatos</h2>
+    <p>
+        Sube un CSV o Excel con los candidatos. Harmoni detecta duplicados
+        automáticamente con dedup vs la base existente.
+    </p>
+</div>
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label class="bi-dropzone d-block" for="bi-input" id="biDz">
+                <div class="bi-dropzone-icon">
+                    <i class="fas fa-file-csv"></i>
+                </div>
+                <h5>Arrastra el archivo o click para seleccionar</h5>
+                <p class="text-muted mb-0" style="font-size:.8rem;">
+                    Formatos: <code>CSV</code> · <code>XLSX</code> · <code>XLS</code>
+                </p>
+                <p class="text-success small mt-2 mb-0" id="biFn" style="display:none;">
+                    <i class="fas fa-check-circle"></i> <span></span>
+                </p>
+                <input type="file" name="archivo" id="bi-input" required
+                       accept=".csv,.xlsx,.xls" style="display:none;">
+            </label>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'vacantes_panel' %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload me-1"></i>Procesar archivo
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="bi-card">
+            <h6><i class="fas fa-download me-1 text-primary"></i>Plantilla</h6>
+            <p class="small text-muted mb-2">
+                Descarga la plantilla Excel con columnas y ejemplos.
+            </p>
+            <a href="{% url 'candidatos_bulk_plantilla' %}" class="btn btn-outline-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i>Descargar plantilla
+            </a>
+            <hr>
+            <h6><i class="fas fa-info-circle me-1 text-info"></i>Columnas</h6>
+            <ul class="small text-muted mb-0">
+                <li><code>nombre_completo*</code> (requerido)</li>
+                <li><code>email</code></li>
+                <li><code>telefono</code></li>
+                <li><code>anios_experiencia</code></li>
+                <li><code>fuente</code> (PORTAL/LINKEDIN/...)</li>
+                <li><code>skills</code> (separadas por coma)</li>
+                <li><code>notas</code></li>
+            </ul>
+            <hr>
+            <p class="small text-muted mb-0">
+                <i class="fas fa-shield-alt me-1"></i>
+                Dedup automático: filas con match score ≥ 80 vs base existente
+                quedan marcadas y puedes omitirlas en el confirm.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const dz = document.getElementById('biDz');
+    const inp = document.getElementById('bi-input');
+    const fn = document.getElementById('biFn');
+    inp.addEventListener('change', () => {
+        if (inp.files.length) {
+            fn.style.display = 'block';
+            fn.querySelector('span').textContent = inp.files[0].name;
+        }
+    });
+    ['dragenter', 'dragover'].forEach(ev =>
+        dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('is-dragover'); }));
+    ['dragleave', 'drop'].forEach(ev =>
+        dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('is-dragover'); }));
+    dz.addEventListener('drop', e => {
+        if (e.dataTransfer.files.length) {
+            inp.files = e.dataTransfer.files;
+            fn.style.display = 'block';
+            fn.querySelector('span').textContent = e.dataTransfer.files[0].name;
+        }
+    });
+})();
+</script>
+
+{% endblock %}

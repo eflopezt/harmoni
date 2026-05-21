@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Score detalle — {{ postulacion.nombre_completo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.sd-hero {
+    background: linear-gradient(135deg, #4338ca, #7c3aed);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.5rem;
+}
+.sd-hero h2 { color: #fff; font-size: 1.3rem; margin: 0; }
+.sd-hero p { color: #ddd6fe; margin: 0; font-size: .88rem; }
+
+.sd-score-big {
+    font-size: 4rem;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1;
+    color: #fff;
+}
+.sd-score-small { font-size: 1rem; color: #c4b5fd; text-align:center; }
+
+.sd-comp {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: .85rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .55rem;
+    border-left: 4px solid #cbd5e1;
+}
+.sd-comp.ok      { border-left-color: #10b981; background: #f0fdf4; }
+.sd-comp.parcial { border-left-color: #f59e0b; background: #fef3c7; }
+.sd-comp.falta   { border-left-color: #ef4444; background: #fee2e2; }
+
+.sd-comp-info strong { display: block; color: #0d2b27; }
+.sd-comp-info small { color: #475569; }
+.sd-pts {
+    background: #4338ca;
+    color: #fff;
+    padding: .25rem .75rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: .85rem;
+}
+.sd-pts.zero { background: #94a3b8; }
+
+.sd-skill {
+    background: #ecfdf5;
+    color: #065f46;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    margin-right: .25rem;
+    display: inline-block;
+}
+.sd-skill.falta { background: #fee2e2; color: #991b1b; }
+.sd-skill.extra { background: #e0e7ff; color: #3730a3; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="sd-hero d-flex align-items-center gap-4 flex-wrap">
+    <div>
+        <div class="sd-score-big">{{ desglose.total }}</div>
+        <div class="sd-score-small">/ 100</div>
+    </div>
+    <div class="flex-grow-1">
+        <h2><i class="fas fa-calculator me-2"></i>Score de Matching detallado</h2>
+        <p>
+            Candidato: <strong>{{ postulacion.nombre_completo }}</strong><br>
+            Vacante: <strong>{{ postulacion.vacante.titulo }}</strong>
+        </p>
+    </div>
+    <a href="{% url 'postulacion_detalle' postulacion.pk %}" class="btn btn-light btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <h5 class="text-muted text-uppercase mb-3" style="font-size:.78rem; letter-spacing:.04em;">
+            Componentes del score
+        </h5>
+        {% for c in desglose.componentes %}
+        <div class="sd-comp {{ c.estado }}">
+            <div class="sd-comp-info">
+                <strong>{{ c.concepto }}</strong>
+                <small>{{ c.detalle }}</small>
+            </div>
+            <span class="sd-pts {% if c.pts == 0 %}zero{% endif %}">
+                +{{ c.pts }} pts
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="col-md-5">
+        <h5 class="text-muted text-uppercase mb-3" style="font-size:.78rem; letter-spacing:.04em;">
+            Skills
+        </h5>
+
+        {% if desglose.skills_coincidentes %}
+        <div class="mb-3">
+            <small class="text-success fw-bold"><i class="fas fa-check"></i> Coincidentes con vacante ({{ desglose.skills_coincidentes|length }})</small>
+            <div class="mt-2">
+                {% for s in desglose.skills_coincidentes %}
+                <span class="sd-skill">{{ s }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if desglose.skills_faltantes %}
+        <div class="mb-3">
+            <small class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> Faltantes del requisito ({{ desglose.skills_faltantes|length }})</small>
+            <div class="mt-2">
+                {% for s in desglose.skills_faltantes %}
+                <span class="sd-skill falta">{{ s }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if desglose.skills_extra %}
+        <div class="mb-3">
+            <small class="text-muted fw-bold"><i class="fas fa-plus"></i> Skills extras del candidato ({{ desglose.skills_extra|length }})</small>
+            <div class="mt-2">
+                {% for s in desglose.skills_extra %}
+                <span class="sd-skill extra">{{ s }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="alert alert-info small mt-3" style="font-size:.75rem;">
+            <i class="fas fa-info-circle"></i>
+            El score (0-100) suma: 30pts experiencia · 10pts email · 10pts teléfono ·
+            10pts secciones × 2 · 30pts skills coincidentes (5pts c/u, max 30).
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Preview Bulk Import — Candidatos{% endblock %}
+
+{% block extra_css %}
+<style>
+.bi-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+}
+@media (max-width:576px) { .bi-summary { grid-template-columns: 1fr; } }
+.bi-kpi {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: .85rem 1rem;
+    text-align: center;
+}
+.bi-kpi .lbl { font-size: .65rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+.bi-kpi .val { font-size: 1.5rem; font-weight: 800; }
+
+.bi-table { width:100%; font-size:.82rem; border-collapse: collapse; }
+.bi-table thead th { background:#f0fafa; color:#134e4a; font-weight:700; padding:.45rem .65rem; border-bottom:1px solid #cbf6ed; text-transform:uppercase; font-size:.66rem; letter-spacing:.04em; }
+.bi-table tbody td { padding:.45rem .65rem; border-bottom:1px solid #f1f5f9; }
+.bi-table tr.duplicado td { background:#fef3c7; }
+.bi-table tr.invalido td  { background:#fee2e2; }
+.bi-dup-badge { background:#f59e0b; color:#fff; padding:.1rem .45rem; border-radius:6px; font-size:.65rem; font-weight:700; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-list-check"></i>Preview Bulk Import</h2>
+        <p class="page-subtitle">
+            {{ total }} fila(s) procesada(s) — revisa antes de confirmar
+        </p>
+    </div>
+    <a href="{% url 'candidatos_bulk_import' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Subir otro
+    </a>
+</div>
+
+<div class="bi-summary">
+    <div class="bi-kpi">
+        <div class="lbl">Total filas</div>
+        <div class="val">{{ total }}</div>
+    </div>
+    <div class="bi-kpi">
+        <div class="lbl">Posibles duplicados</div>
+        <div class="val text-warning">{{ duplicados }}</div>
+    </div>
+    <div class="bi-kpi">
+        <div class="lbl">Listas para crear</div>
+        <div class="val text-success">{{ total|add:duplicados|add:"-"|add:duplicados }}</div>
+    </div>
+</div>
+
+{% if errores %}
+<div class="alert alert-warning small">
+    <strong>Errores detectados:</strong>
+    <ul class="mb-0">{% for e in errores %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body p-0" style="max-height:500px; overflow:auto;">
+        <table class="bi-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Años exp</th>
+                    <th>Fuente</th>
+                    <th>Skills</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in filas %}
+                <tr class="{% if f.es_duplicado %}duplicado{% endif %}{% if not f.valido %} invalido{% endif %}">
+                    <td>{{ f.row_num }}</td>
+                    <td>{{ f.nombre_completo|truncatechars:35 }}</td>
+                    <td>{{ f.email }}</td>
+                    <td>{{ f.telefono }}</td>
+                    <td>{{ f.anios_experiencia }}</td>
+                    <td><small class="text-muted">{{ f.fuente }}</small></td>
+                    <td><small class="text-muted">{{ f.skills|length }} skills</small></td>
+                    <td>
+                        {% if not f.valido %}
+                        <span class="bi-dup-badge" style="background:#ef4444;">Sin nombre/contacto</span>
+                        {% elif f.es_duplicado %}
+                        <span class="bi-dup-badge">Posible duplicado</span>
+                        {% else %}
+                        <small class="text-success"><i class="fas fa-check-circle"></i> OK</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<form method="post" class="card shadow-sm">
+    {% csrf_token %}
+    <input type="hidden" name="confirmar" value="1">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-7">
+                <label class="form-label fw-bold">Vacante destino *</label>
+                <select name="vacante_id" class="form-select" required>
+                    <option value="">— Selecciona vacante —</option>
+                    {% for v in vacantes %}
+                    <option value="{{ v.pk }}">{{ v.titulo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <div class="form-check mt-3">
+                    <input type="checkbox" name="omitir_duplicados" value="1"
+                           id="omitDup" class="form-check-input" checked>
+                    <label for="omitDup" class="form-check-label">
+                        Omitir posibles duplicados ({{ duplicados }})
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-end gap-2">
+        <a href="{% url 'candidatos_bulk_import' %}" class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check me-1"></i>Confirmar import
+        </button>
+    </div>
+</form>
+
+{% endblock %}

@@ -366,4 +366,135 @@ def parse_cv_from_file(filepath: str) -> dict:
     text = extract_text_from_file(filepath)
     result = parse_cv(text)
     result['texto_extraido'] = text
+    # Extracción estructurada de experiencias y educación
+    result['experiencias'] = extraer_experiencias(text)
+    result['educacion_items'] = extraer_educacion(text)
     return result
+
+
+# ──────────────────────────────────────────────────────────────────
+# Extracción estructurada (adaptado de NexoTalent cv_structure.py)
+# ──────────────────────────────────────────────────────────────────
+
+# Patrones de fecha extendidos para experiencias
+RE_BLOQUE_FECHA = re.compile(
+    r'(?P<inicio>'
+        # Mes año ó solo año
+        r'(?:Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Set|Oct|Nov|Dic)[a-z]*\.?\s+\d{4}'
+        r'|\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{4}'
+        r'|\d{4}'
+    r')'
+    r'\s*[-–—a]+\s*'      # separador (–, -, a)
+    r'(?P<fin>'
+        r'(?:Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Set|Oct|Nov|Dic)[a-z]*\.?\s+\d{4}'
+        r'|\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{4}'
+        r'|\d{4}'
+        r'|Actualidad|Presente|Hoy|Actual'
+    r')',
+    re.IGNORECASE,
+)
+
+
+def _seccion_texto(text: str, header_re, max_chars: int = 4000) -> str:
+    """Devuelve el texto que sigue a un header dado, hasta el siguiente
+    header de sección o max_chars."""
+    m = header_re.search(text)
+    if not m:
+        return ''
+    start = m.end()
+    # Buscar el siguiente header (cualquiera)
+    next_headers = [
+        RE_HEADER_EXPERIENCIA, RE_HEADER_EDUCACION,
+        RE_HEADER_SKILLS, RE_HEADER_IDIOMAS,
+    ]
+    next_pos = start + max_chars
+    for nh in next_headers:
+        m2 = nh.search(text, pos=start + 5)
+        if m2 and m2.start() < next_pos:
+            next_pos = m2.start()
+    return text[start:next_pos]
+
+
+def extraer_experiencias(text: str) -> list:
+    """Detecta bloques de experiencia laboral con fechas.
+
+    Devuelve lista de dicts:
+        {
+            'fecha_inicio': 'Mar 2022',
+            'fecha_fin':    'Actualidad',
+            'lineas_siguientes': ['Restaurante Insignia', 'Mesera Senior'],
+            'año_inicio': 2022,
+            'año_fin':    2026,
+        }
+    """
+    seccion = _seccion_texto(text, RE_HEADER_EXPERIENCIA, max_chars=4000)
+    if not seccion:
+        return []
+
+    experiencias = []
+    matches = list(RE_BLOQUE_FECHA.finditer(seccion))
+
+    for i, m in enumerate(matches):
+        fecha_inicio = m.group('inicio').strip()
+        fecha_fin = m.group('fin').strip()
+
+        # Texto entre este match y el siguiente (max 300 chars)
+        end_pos = matches[i + 1].start() if i + 1 < len(matches) else min(m.end() + 400, len(seccion))
+        contexto = seccion[m.end():end_pos].strip()
+        # Tomar primeras 2-3 líneas no vacías
+        lineas = [l.strip() for l in contexto.split('\n') if l.strip()][:3]
+
+        # Año inicio / fin numéricos
+        año_inicio = _año_de_str(fecha_inicio)
+        año_fin = _año_de_str(fecha_fin)
+        if not año_fin and fecha_fin.lower() in ('actualidad', 'presente', 'hoy', 'actual'):
+            from datetime import date as _date
+            año_fin = _date.today().year
+
+        experiencias.append({
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin':    fecha_fin,
+            'año_inicio':   año_inicio,
+            'año_fin':      año_fin,
+            'lineas':       lineas,
+        })
+
+    return experiencias[:10]  # cap a 10
+
+
+def extraer_educacion(text: str) -> list:
+    """Detecta bloques de educación con años + institución/título."""
+    seccion = _seccion_texto(text, RE_HEADER_EDUCACION, max_chars=2500)
+    if not seccion:
+        return []
+
+    items = []
+    # Para educación, usar años solos también es válido
+    año_re = re.compile(r'\b(19|20)\d{2}\b')
+    años_encontrados = [(m.start(), m.group()) for m in año_re.finditer(seccion)]
+
+    if not años_encontrados:
+        return []
+
+    # Tomar el primer año como referencia y el contexto siguiente
+    for pos, año in años_encontrados[:5]:
+        # Texto en línea + siguiente línea
+        line_start = seccion.rfind('\n', 0, pos) + 1
+        line_end = seccion.find('\n\n', pos)
+        if line_end == -1:
+            line_end = pos + 200
+        contexto = seccion[line_start:line_end].strip()
+        lineas = [l.strip() for l in contexto.split('\n') if l.strip()][:2]
+        items.append({
+            'año':    int(año),
+            'lineas': lineas,
+        })
+
+    return items[:5]
+
+
+def _año_de_str(s: str) -> int | None:
+    m = re.search(r'\b(19|20)\d{2}\b', s)
+    if m:
+        return int(m.group())
+    return None
