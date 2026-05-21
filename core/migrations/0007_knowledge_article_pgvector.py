@@ -32,28 +32,44 @@ def _make_field():
     )
 
 
+def _conditional_hnsw_sql(apps, schema_editor):
+    """Crear el indice HNSW solo en Postgres con pgvector."""
+    if schema_editor.connection.vendor != 'postgresql':
+        return
+    if not HAS_PGVECTOR:
+        return
+    try:
+        schema_editor.execute(
+            'CREATE INDEX IF NOT EXISTS "ka_embedding_hnsw_idx" '
+            'ON "core_knowledgearticle" USING hnsw '
+            '(embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)'
+        )
+    except Exception:
+        # No romper migracion si por algun motivo pgvector no esta listo
+        pass
+
+
+def _conditional_hnsw_sql_reverse(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
+    try:
+        schema_editor.execute('DROP INDEX IF EXISTS "ka_embedding_hnsw_idx"')
+    except Exception:
+        pass
+
+
 def _make_operations():
-    ops = [
+    return [
         migrations.AddField(
             model_name='knowledgearticle',
             name='embedding',
             field=_make_field(),
         ),
+        migrations.RunPython(
+            _conditional_hnsw_sql,
+            reverse_code=_conditional_hnsw_sql_reverse,
+        ),
     ]
-    if HAS_PGVECTOR:
-        ops.append(
-            migrations.AddIndex(
-                model_name='knowledgearticle',
-                index=HnswIndex(
-                    name='ka_embedding_hnsw_idx',
-                    fields=['embedding'],
-                    m=16,
-                    ef_construction=64,
-                    opclasses=['vector_cosine_ops'],
-                ),
-            ),
-        )
-    return ops
 
 
 class Migration(migrations.Migration):
