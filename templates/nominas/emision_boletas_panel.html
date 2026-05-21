@@ -240,7 +240,7 @@
             </button>
         </form>
         {% endif %}
-        {% if item.p.estado != 'BORRADOR' %}
+        {% if item.p.estado != 'BORRADOR' and item.total %}
         <form method="post" action="{% url 'nominas_notificar_periodo_boletas' item.p.pk %}"
               onsubmit="return confirm('¿Enviar notificación a {{ item.total }} trabajador(es) avisando que su boleta de {{ item.p.mes_nombre }} {{ item.p.anio }} está disponible?');">
             {% csrf_token %}
@@ -253,11 +253,13 @@
         <a href="{% url 'nominas_periodo_exportar' item.p.pk %}" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-file-csv me-1"></i>CSV
         </a>
+        {% if item.total %}
         <a href="{% url 'nominas_reporte_periodo_pdf' item.p.pk %}" target="_blank"
            class="btn btn-outline-info btn-sm"
            title="Reporte ejecutivo PDF para gerencia">
             <i class="fas fa-file-pdf me-1"></i>Reporte Ejecutivo
         </a>
+        {% endif %}
     </div>
 </div>
 {% empty %}

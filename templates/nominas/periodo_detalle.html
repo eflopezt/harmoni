@@ -489,14 +489,16 @@
   </div>
   {% endif %}
 
-  {# Reporte ejecutivo PDF + Comparativo (estado != BORRADOR) #}
+  {# Reporte ejecutivo PDF + Comparativo (estado != BORRADOR + tiene registros) #}
   {% if periodo.estado != 'BORRADOR' %}
   <div class="action-bar-divider"></div>
+  {% if registros %}
   <a href="{% url 'nominas_reporte_periodo_pdf' periodo.pk %}" target="_blank"
      class="btn btn-outline-info btn-sm"
      title="Reporte ejecutivo PDF — 1 página, gerencia">
     <i class="fas fa-file-pdf me-1"></i>Reporte Ejecutivo
   </a>
+  {% endif %}
   <a href="{% url 'nominas_comparativo_mensual' %}"
      class="btn btn-outline-info btn-sm"
      title="Comparar evolución mensual de planilla">
@@ -504,8 +506,8 @@
   </a>
   {% endif %}
 
-  {# Notificar trabajadores (estado APROBADO o CERRADO) #}
-  {% if periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}
+  {# Notificar trabajadores (estado APROBADO o CERRADO + tiene registros) #}
+  {% if registros and periodo.estado == 'APROBADO' or registros and periodo.estado == 'CERRADO' %}
   <form method="post" action="{% url 'nominas_notificar_periodo_boletas' periodo.pk %}" class="d-inline"
         onsubmit="return confirm('¿Enviar notificación in-app a los trabajadores avisando que sus boletas están disponibles?\n\nIdempotente: no duplica si ya se notificó.');">
     {% csrf_token %}
