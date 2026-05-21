@@ -13,6 +13,16 @@
         </small>
     </div>
     <div class="d-flex gap-2">
+        {% if postulacion.cv_score %}
+        <a href="{% url 'postulacion_score_detalle' postulacion.pk %}"
+           class="btn btn-sm btn-outline-info" title="Ver desglose del score">
+            <i class="fas fa-calculator me-1"></i>Score {{ postulacion.cv_score }}/100
+        </a>
+        {% endif %}
+        <button id="btnAiSummary" class="btn btn-sm btn-outline-primary"
+                onclick="generarAiSummary({{ postulacion.pk }})">
+            <i class="fas fa-magic me-1"></i>Resumen IA
+        </button>
         {% if postulacion.estado == 'ACTIVA' %}
         <a href="{% url 'contratar_candidato' postulacion.pk %}"
            class="btn btn-sm btn-success">
@@ -28,6 +38,60 @@
         <a href="{% url 'vacante_detalle' postulacion.vacante.pk %}" class="btn btn-sm btn-secondary"><i class="fas fa-arrow-left me-1"></i>Volver</a>
     </div>
 </div>
+
+{# ── Card AI Summary (oculta inicialmente) ─────────────────────── #}
+<div id="aiSummaryCard" class="card mb-3" style="display:none; border-left:4px solid #4338ca;">
+    <div class="card-body p-3">
+        <h6 class="text-muted mb-2"><i class="fas fa-magic me-1 text-primary"></i>Resumen ejecutivo del CV
+            <small class="text-muted" id="aiSourceLbl"></small>
+        </h6>
+        <p id="aiSummaryText" class="mb-0" style="white-space:pre-wrap; line-height:1.55;"></p>
+    </div>
+</div>
+
+{# ── Card CV Skills si están parseados ──────────────────────────── #}
+{% if postulacion.cv_skills %}
+<div class="card mb-3" style="border-left:4px solid #10b981;">
+    <div class="card-body p-3">
+        <h6 class="text-muted mb-2"><i class="fas fa-cogs me-1 text-success"></i>Skills detectados ({{ postulacion.cv_skills|length }})</h6>
+        {% for s in postulacion.cv_skills %}
+        <span class="badge bg-success-subtle text-success me-1 mb-1" style="font-weight:500;">{{ s }}</span>
+        {% endfor %}
+        {% if postulacion.cv_idiomas %}
+        <div class="mt-2">
+            <small class="text-muted"><i class="fas fa-language me-1"></i>Idiomas:</small>
+            {% for i in postulacion.cv_idiomas %}
+            <span class="badge bg-warning-subtle text-warning me-1" style="font-weight:500;">{{ i }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+function generarAiSummary(pk) {
+    const btn = document.getElementById('btnAiSummary');
+    const card = document.getElementById('aiSummaryCard');
+    const text = document.getElementById('aiSummaryText');
+    const lbl = document.getElementById('aiSourceLbl');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generando...';
+    fetch(`/reclutamiento/postulacion/${pk}/ai-summary/`)
+        .then(r => r.json())
+        .then(data => {
+            card.style.display = 'block';
+            text.textContent = data.resumen;
+            lbl.textContent = ` · fuente: ${data.fuente}`;
+            btn.innerHTML = '<i class="fas fa-magic me-1"></i>Regenerar resumen';
+            btn.disabled = false;
+        })
+        .catch(e => {
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error';
+            btn.disabled = false;
+        });
+}
+</script>
 
 <div class="row g-3 mb-4">
     <!-- Info del candidato -->
