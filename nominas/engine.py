@@ -64,6 +64,37 @@ RMV_2026      = Decimal('1130.00')   # DS 006-2024-TR vigente ene-2025 — fallb
 ASIG_FAM      = RMV_2026 * Decimal('0.10')   # S/ 113.00
 
 
+def _get_tasas_afp(afp_nombre: str) -> dict:
+    """
+    Devuelve tasas AFP (comisión y seguro) para una AFP específica.
+    Prioridad: ConfiguracionSistema.afp_tasas_override > AFP_TASAS hardcoded.
+    """
+    try:
+        from asistencia.models import ConfiguracionSistema
+        override = ConfiguracionSistema.get().afp_tasas_override
+        if override and afp_nombre in override:
+            t = override[afp_nombre]
+            return {
+                'comision_flujo': Decimal(str(t.get('comision_flujo', '0'))),
+                'seguro': Decimal(str(t.get('seguro', '0'))),
+            }
+    except Exception:
+        pass
+    return AFP_TASAS.get(afp_nombre, AFP_TASAS['Prima'])
+
+
+def _get_tope_rma() -> Decimal:
+    """Lee el tope RMA AFP. Prioridad: ConfiguracionSistema > constante."""
+    try:
+        from asistencia.models import ConfiguracionSistema
+        tope = ConfiguracionSistema.get().afp_tope_rma
+        if tope is not None and tope > 0:
+            return tope
+    except Exception:
+        pass
+    return AFP_TOPE_REM_ASEGURABLE
+
+
 def _get_uit() -> Decimal:
     """Lee la UIT desde ConfiguracionSistema (configurable por admin). Fallback a constante."""
     try:
@@ -364,7 +395,9 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     onp          = Decimal('0')
 
     if pension == 'AFP':
-        tasas = AFP_TASAS.get(afp_nombre, AFP_TASAS['Prima'])
+        # Tasas dinámicas (override por ConfiguracionSistema o hardcoded fallback)
+        tasas = _get_tasas_afp(afp_nombre)
+        tope_rma = _get_tope_rma()
         # Aporte obligatorio 10% — sin tope, sobre remuneración asegurable total
         afp_aporte   = _redondear(rem_computable * AFP_APORTE / Decimal('100'))
         # Comisión por flujo — sin tope, sobre remuneración total
@@ -372,7 +405,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         # Prima de seguro — CON tope de Remuneración Máxima Asegurable (RMA)
         # publicado por SBS. Si gana más del tope, la prima se calcula
         # solo sobre el tope (la aseguradora no cubre por encima).
-        base_seguro = min(rem_computable, AFP_TOPE_REM_ASEGURABLE)
+        base_seguro = min(rem_computable, tope_rma)
         afp_seguro   = _redondear(base_seguro * tasas['seguro'] / Decimal('100'))
     elif pension == 'ONP':
         # ONP 13% — sin tope, sobre remuneración total (DL 19990)

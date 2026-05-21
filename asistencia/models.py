@@ -1443,6 +1443,26 @@ class ConfiguracionSistema(models.Model):
                   "evitar sobre-estimación en empleados con HE/bonos variables o cese a mitad "
                   "de año. Default: False (método legacy proyección × 14).")
 
+    # ── Tasas AFP — override por configuración (sin redeploy) ──
+    # SBS publica nuevas tasas cada cuatrimestre. Si este campo está
+    # poblado, el engine usa estos valores en lugar de los hardcoded.
+    afp_tasas_override = models.JSONField(
+        null=True, blank=True,
+        verbose_name="Override de tasas AFP (SBS)",
+        help_text='JSON con tasas por AFP. Formato: '
+                  '{"Habitat": {"comision_flujo": "1.47", "seguro": "1.74"}, ...}. '
+                  'Si está vacío, usa valores predeterminados del engine.')
+    afp_tope_rma = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        verbose_name="Tope RMA AFP — Prima Seguro (S/)",
+        help_text="Remuneración Máxima Asegurable para cálculo de prima de "
+                  "seguro AFP. Si está vacío, usa S/ 12,131.49 (Q2 2026). "
+                  "SBS lo actualiza cuatrimestralmente.")
+    afp_tasas_vigencia = models.CharField(
+        max_length=20, blank=True,
+        verbose_name="Vigencia tasas AFP",
+        help_text="Cuatrimestre de vigencia (ej. 'Q2-2026' o '2026-04 a 2026-07').")
+
     # ── Synkro (nombres de hojas) ──
     synkro_hoja_reloj = models.CharField(
         max_length=60, default='Reloj',
