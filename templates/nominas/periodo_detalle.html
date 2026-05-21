@@ -489,13 +489,18 @@
   </div>
   {% endif %}
 
-  {# Reporte ejecutivo PDF (estado != BORRADOR) #}
+  {# Reporte ejecutivo PDF + Comparativo (estado != BORRADOR) #}
   {% if periodo.estado != 'BORRADOR' %}
   <div class="action-bar-divider"></div>
   <a href="{% url 'nominas_reporte_periodo_pdf' periodo.pk %}" target="_blank"
      class="btn btn-outline-info btn-sm"
      title="Reporte ejecutivo PDF — 1 página, gerencia">
     <i class="fas fa-file-pdf me-1"></i>Reporte Ejecutivo
+  </a>
+  <a href="{% url 'nominas_comparativo_mensual' %}"
+     class="btn btn-outline-info btn-sm"
+     title="Comparar evolución mensual de planilla">
+    <i class="fas fa-chart-line me-1"></i>Comparativo
   </a>
   {% endif %}
 

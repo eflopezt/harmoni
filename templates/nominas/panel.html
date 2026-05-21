@@ -348,14 +348,18 @@
     <a href="{% url 'nominas_periodo_crear' %}" class="btn btn-primary btn-sm">
       <i class="fas fa-plus me-1"></i>Nuevo período
     </a>
+    <a href="{% url 'nominas_emision_boletas' %}" class="btn btn-outline-primary btn-sm">
+      <i class="fas fa-paper-plane me-1"></i>Emitir boletas
+    </a>
+    <a href="{% url 'nominas_comparativo_mensual' %}" class="btn btn-outline-info btn-sm"
+       title="Evolución de planilla últimos meses">
+      <i class="fas fa-chart-line me-1"></i>Comparativo
+    </a>
     <a href="{% url 'nominas_gratificaciones' %}" class="btn btn-outline-success btn-sm">
       <i class="fas fa-gift me-1"></i>Gratificaciones
     </a>
-    <a href="{% url 'nominas_ir5ta' %}" class="btn btn-outline-info btn-sm">
+    <a href="{% url 'nominas_ir5ta' %}" class="btn btn-outline-secondary btn-sm">
       <i class="fas fa-percent me-1"></i>IR 5ta
-    </a>
-    <a href="{% url 'nominas_conceptos' %}" class="btn btn-outline-secondary btn-sm">
-      <i class="fas fa-list me-1"></i>Conceptos
     </a>
   </div>
 </div>
