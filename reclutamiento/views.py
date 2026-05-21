@@ -284,6 +284,12 @@ def postulacion_crear(request, vacante_pk):
             postulacion.etapa = primera_etapa
             postulacion.save()
             log_create(request, postulacion)
+            # Email automatico de confirmacion (no rompe flujo si falla)
+            try:
+                from reclutamiento.emails import enviar_email_candidato
+                enviar_email_candidato(postulacion, 'postulado')
+            except Exception:
+                pass
             messages.success(request, f'Postulacion de "{postulacion.nombre_completo}" registrada.')
             return redirect('vacante_detalle', pk=vacante.pk)
     else:
@@ -358,6 +364,13 @@ def postulacion_mover_etapa(request, pk):
         tipo='NOTA',
     )
 
+    # Email automatico segun nueva etapa (sin romper flujo si falla)
+    try:
+        from reclutamiento.emails import email_por_etapa
+        email_por_etapa(postulacion, etapa)
+    except Exception:
+        pass
+
     return JsonResponse({
         'ok': True,
         'etapa_nombre': etapa.nombre,
@@ -388,6 +401,13 @@ def postulacion_descartar(request, pk):
         texto=f'Candidato descartado. {motivo}'.strip(),
         tipo='NOTA',
     )
+
+    # Email de descarte cortés (sin romper flujo si falla)
+    try:
+        from reclutamiento.emails import email_descarte
+        email_descarte(postulacion, motivo=motivo)
+    except Exception:
+        pass
 
     return JsonResponse({'ok': True})
 
@@ -616,6 +636,11 @@ def pipeline_bulk_action(request):
             etapa_destino = EtapaPipeline.objects.get(pk=etapa_id, activa=True)
         except (ValueError, EtapaPipeline.DoesNotExist):
             return JsonResponse({'ok': False, 'error': 'etapa_invalida'}, status=400)
+        # Email helper (lazy import)
+        try:
+            from reclutamiento.emails import email_por_etapa
+        except Exception:
+            email_por_etapa = None
         for p in qs:
             etapa_anterior = p.etapa
             p.etapa = etapa_destino
@@ -630,11 +655,21 @@ def pipeline_bulk_action(request):
                 )
             except Exception:
                 pass
+            # Email best-effort
+            if email_por_etapa:
+                try:
+                    email_por_etapa(p, etapa_destino)
+                except Exception:
+                    pass
             count += 1
         return JsonResponse({'ok': True, 'count': count, 'accion': accion})
 
     if accion == 'descartar':
         motivo = (request.POST.get('motivo', '') or 'Descartado en bulk action').strip()
+        try:
+            from reclutamiento.emails import email_descarte
+        except Exception:
+            email_descarte = None
         for p in qs:
             p.estado = 'DESCARTADA'
             p.save(update_fields=['estado'])
@@ -647,6 +682,11 @@ def pipeline_bulk_action(request):
                 )
             except Exception:
                 pass
+            if email_descarte:
+                try:
+                    email_descarte(p, motivo=motivo)
+                except Exception:
+                    pass
             count += 1
         return JsonResponse({'ok': True, 'count': count, 'accion': accion})
 
@@ -1531,22 +1571,12 @@ def mover_etapa(request, pk):
         tipo='NOTA',
     )
 
-    # Notificacion al candidato (best-effort)
-    if postulacion.email:
-        try:
-            from comunicaciones.services import NotificacionService
-            NotificacionService.enviar_email(
-                destinatario=postulacion.email,
-                asunto=f'Actualizacion de tu postulacion — {postulacion.vacante.titulo}',
-                cuerpo=(
-                    f'Estimado/a {postulacion.nombre_completo},\n\n'
-                    f'Tu postulacion para el puesto "{postulacion.vacante.titulo}" '
-                    f'ha avanzado a la etapa: {etapa.nombre}.\n\n'
-                    f'Gracias por tu interes.'
-                ),
-            )
-        except Exception:
-            pass
+    # Email automatico al candidato segun nueva etapa (best-effort)
+    try:
+        from reclutamiento.emails import email_por_etapa
+        email_por_etapa(postulacion, etapa)
+    except Exception:
+        pass
 
     return JsonResponse({
         'ok': True,
