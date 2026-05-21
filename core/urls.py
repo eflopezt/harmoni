@@ -2,9 +2,14 @@
 from django.urls import path
 from core import views
 from core import views_audit
+from core import views_dashboard
 from core import views_reports
 
 urlpatterns = [
+    # Dashboard ejecutivo cross-modulo (CEO/Director)
+    path('dashboard/ejecutivo/', views_dashboard.dashboard_ejecutivo,
+         name='dashboard_ejecutivo'),
+
     # Auditoría avanzada
     path('auditoria/', views_audit.audit_log_list, name='audit_list'),
     path('auditoria/detalle/<int:pk>/', views_audit.audit_log_detail, name='audit_detail'),

@@ -1,0 +1,633 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Dashboard Ejecutivo — Harmoni{% endblock %}
+
+{% block page_title %}
+<h1 class="topbar-h1">
+    <i class="fas fa-chart-pie me-2 text-primary"></i>Dashboard Ejecutivo
+</h1>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --hde-teal-dark:  #0d2b27;
+    --hde-teal:       #0f766e;
+    --hde-teal-light: #5eead4;
+    --hde-amber:      #f59e0b;
+    --hde-red:        #dc2626;
+    --hde-green:      #10b981;
+    --hde-gray:       #94a3b8;
+    --hde-blue:       #2563eb;
+    --hde-purple:     #7c3aed;
+}
+
+.hde-wrap { display: flex; flex-direction: column; gap: 1.25rem; }
+
+/* Hero / filtros */
+.hde-hero {
+    background: linear-gradient(135deg, var(--hde-teal) 0%, var(--hde-teal-dark) 100%);
+    border-radius: 14px;
+    padding: 20px 24px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 18px rgba(15,118,110,.25);
+}
+.hde-hero-title { font-size: 1.3rem; font-weight: 800; margin: 0; }
+.hde-hero-sub   { font-size: .78rem; color: rgba(255,255,255,.78); margin: 4px 0 0; }
+.hde-hero-filter select {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: .85rem;
+    backdrop-filter: blur(4px);
+}
+.hde-hero-filter select option { color: #0d2b27; }
+
+/* Stat cards (headline) */
+.hde-stats {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+}
+@media(max-width: 1280px) { .hde-stats { grid-template-columns: repeat(3, 1fr); } }
+@media(max-width: 720px)  { .hde-stats { grid-template-columns: repeat(2, 1fr); } }
+
+.hde-stat {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    border-left: 4px solid var(--hde-teal);
+    display: flex; flex-direction: column; gap: 6px;
+    min-height: 108px;
+}
+.hde-stat-head {
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--hde-gray);
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 700;
+}
+.hde-stat-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem;
+}
+.hde-stat-val {
+    font-size: 1.85rem; font-weight: 800; color: var(--hde-teal-dark); line-height: 1.1;
+}
+.hde-stat-sub  { font-size: .72rem; color: var(--hde-gray); margin-top: 2px; }
+
+.hde-stat.teal   { border-color: var(--hde-teal); }
+.hde-stat.amber  { border-color: var(--hde-amber); }
+.hde-stat.green  { border-color: var(--hde-green); }
+.hde-stat.blue   { border-color: var(--hde-blue); }
+.hde-stat.purple { border-color: var(--hde-purple); }
+.hde-stat.red    { border-color: var(--hde-red); }
+
+.hde-stat.teal   .hde-stat-icon { background: rgba(15,118,110,.12); color: var(--hde-teal); }
+.hde-stat.amber  .hde-stat-icon { background: rgba(245,158,11,.13); color: var(--hde-amber); }
+.hde-stat.green  .hde-stat-icon { background: rgba(16,185,129,.13); color: var(--hde-green); }
+.hde-stat.blue   .hde-stat-icon { background: rgba(37,99,235,.12);  color: var(--hde-blue); }
+.hde-stat.purple .hde-stat-icon { background: rgba(124,58,237,.12); color: var(--hde-purple); }
+.hde-stat.red    .hde-stat-icon { background: rgba(220,38,38,.12);  color: var(--hde-red); }
+
+/* Panels */
+.hde-panels-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+@media(max-width: 1100px) { .hde-panels-2 { grid-template-columns: 1fr; } }
+
+.hde-panel {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 14px;
+}
+.hde-panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 10px;
+    margin-bottom: 4px;
+}
+.hde-panel-head h3 {
+    font-size: 1rem; font-weight: 700; color: var(--hde-teal-dark);
+    margin: 0;
+}
+.hde-panel-head .hde-sub {
+    font-size: .72rem; color: var(--hde-gray);
+    font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+}
+
+.hde-metric-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+.hde-metric {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.hde-metric-val { font-size: 1.3rem; font-weight: 800; color: var(--hde-teal-dark); }
+.hde-metric-lbl { font-size: .68rem; color: var(--hde-gray); font-weight: 600;
+                   text-transform: uppercase; letter-spacing: .04em; }
+
+/* Funnel */
+.hde-funnel { display: flex; flex-direction: column; gap: 6px; }
+.hde-funnel-row {
+    display: flex; align-items: center; gap: 10px;
+    background: #f8fafc; border-radius: 8px; padding: 8px 12px;
+}
+.hde-funnel-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.hde-funnel-name { flex: 1; font-size: .82rem; color: #334155; font-weight: 500; }
+.hde-funnel-count { font-size: .9rem; font-weight: 800; color: var(--hde-teal-dark); }
+
+/* Lista top vacantes */
+.hde-list { display: flex; flex-direction: column; gap: 6px; }
+.hde-list-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: #f8fafc; border-radius: 8px;
+    font-size: .82rem;
+}
+.hde-list-item .name { color: #334155; font-weight: 500;
+                        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hde-list-item .badge {
+    background: var(--hde-teal); color: #fff; font-size: .7rem;
+    padding: 3px 9px; border-radius: 12px; font-weight: 700;
+}
+
+/* Charts grid */
+.hde-charts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+@media(max-width: 900px) { .hde-charts { grid-template-columns: 1fr; } }
+
+.hde-chart-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.hde-chart-card h4 {
+    font-size: .9rem; font-weight: 700; color: var(--hde-teal-dark);
+    margin: 0 0 12px;
+}
+.hde-chart-wrap { position: relative; height: 220px; }
+
+/* Alertas */
+.hde-alertas {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.hde-alert {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 8px;
+    border-left: 4px solid var(--hde-gray);
+}
+.hde-alert:last-child { margin-bottom: 0; }
+.hde-alert.danger  { background: #fef2f2; border-color: var(--hde-red); }
+.hde-alert.warning { background: #fffbeb; border-color: var(--hde-amber); }
+.hde-alert.info    { background: #eff6ff; border-color: var(--hde-blue); }
+.hde-alert-icon {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.hde-alert.danger  .hde-alert-icon { background: rgba(220,38,38,.13);  color: var(--hde-red); }
+.hde-alert.warning .hde-alert-icon { background: rgba(245,158,11,.13); color: var(--hde-amber); }
+.hde-alert.info    .hde-alert-icon { background: rgba(37,99,235,.12);  color: var(--hde-blue); }
+.hde-alert-title { font-size: .86rem; font-weight: 700; color: #1e293b; }
+.hde-alert-detail { font-size: .74rem; color: #64748b; margin-top: 2px; }
+
+.hde-empty {
+    text-align: center; color: var(--hde-gray);
+    font-size: .85rem; padding: 14px 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hde-wrap">
+
+    {# ── Hero / filtro ───────────────────────────────────────── #}
+    <div class="hde-hero">
+        <div>
+            <h2 class="hde-hero-title">
+                <i class="fas fa-chart-pie me-2"></i>Dashboard Ejecutivo
+            </h2>
+            <div class="hde-hero-sub">
+                <i class="fas fa-calendar-day me-1 opacity-75"></i>
+                {% now "l, d \d\e F \d\e Y" %}
+                &nbsp;·&nbsp; Vista cross-modulo CEO/Director
+            </div>
+        </div>
+        <div class="hde-hero-filter">
+            <form method="get" id="hdeFilterForm">
+                <label class="me-2" style="font-size:.76rem;font-weight:600;color:rgba(255,255,255,.85);">
+                    <i class="fas fa-building me-1"></i>Empresa:
+                </label>
+                <select name="empresa" onchange="document.getElementById('hdeFilterForm').submit()">
+                    <option value="">— Todas ({{ kpi_empresas_activas }}) —</option>
+                    {% for e in empresas %}
+                    <option value="{{ e.id }}" {% if empresa_filtro == e.id %}selected{% endif %}>
+                        {{ e.nombre_comercial|default:e.razon_social }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+
+    {# ── Headline cards ────────────────────────────────────────── #}
+    <div class="hde-stats">
+
+        <div class="hde-stat teal">
+            <div class="hde-stat-head">
+                <span>Personal Activo</span>
+                <span class="hde-stat-icon"><i class="fas fa-users"></i></span>
+            </div>
+            <div class="hde-stat-val">{{ kpi_personal_activo|intcomma }}</div>
+            <div class="hde-stat-sub">Trabajadores en planilla</div>
+        </div>
+
+        <div class="hde-stat blue">
+            <div class="hde-stat-head">
+                <span>Locales Activos</span>
+                <span class="hde-stat-icon"><i class="fas fa-store"></i></span>
+            </div>
+            <div class="hde-stat-val">{{ kpi_empresas_activas }}</div>
+            <div class="hde-stat-sub">RUCs operativos</div>
+        </div>
+
+        <div class="hde-stat purple">
+            <div class="hde-stat-head">
+                <span>Nómina {{ kpi_nomina_mes.mes_label }} {{ kpi_nomina_mes.anio }}</span>
+                <span class="hde-stat-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+            </div>
+            <div class="hde-stat-val">
+                S/ {{ kpi_nomina_mes.monto|floatformat:0|intcomma }}
+            </div>
+            <div class="hde-stat-sub">Total neto · {{ kpi_nomina_mes.estado }}</div>
+        </div>
+
+        <div class="hde-stat amber">
+            <div class="hde-stat-head">
+                <span>Vacantes Abiertas</span>
+                <span class="hde-stat-icon"><i class="fas fa-bullhorn"></i></span>
+            </div>
+            <div class="hde-stat-val">{{ kpi_vacantes_abiertas }}</div>
+            <div class="hde-stat-sub">Publicadas / en proceso</div>
+        </div>
+
+        <div class="hde-stat green">
+            <div class="hde-stat-head">
+                <span>Postulaciones Mes</span>
+                <span class="hde-stat-icon"><i class="fas fa-paper-plane"></i></span>
+            </div>
+            <div class="hde-stat-val">{{ kpi_postulaciones_mes|intcomma }}</div>
+            <div class="hde-stat-sub">{{ kpi_contrataciones_mes }} contratada{{ kpi_contrataciones_mes|pluralize:"s" }}</div>
+        </div>
+
+        <div class="hde-stat red">
+            <div class="hde-stat-head">
+                <span>Alertas Urgentes</span>
+                <span class="hde-stat-icon"><i class="fas fa-triangle-exclamation"></i></span>
+            </div>
+            <div class="hde-stat-val">{{ alertas|length }}</div>
+            <div class="hde-stat-sub">Requieren atención</div>
+        </div>
+
+    </div>
+
+    {# ── Reclutamiento + Asistencia panels ────────────────────── #}
+    <div class="hde-panels-2">
+
+        {# ── Reclutamiento ── #}
+        <div class="hde-panel">
+            <div class="hde-panel-head">
+                <h3><i class="fas fa-user-tie me-1 text-primary"></i>Reclutamiento</h3>
+                <span class="hde-sub">Pipeline activo</span>
+            </div>
+
+            <div class="hde-metric-row">
+                <div class="hde-metric">
+                    <div class="hde-metric-val">{{ conversion_rate }}%</div>
+                    <div class="hde-metric-lbl">Conversión Mes</div>
+                </div>
+                <div class="hde-metric">
+                    <div class="hde-metric-val">
+                        {% if tiempo_avg_contratacion %}{{ tiempo_avg_contratacion }}d{% else %}—{% endif %}
+                    </div>
+                    <div class="hde-metric-lbl">Tiempo Avg.</div>
+                </div>
+                <div class="hde-metric">
+                    <div class="hde-metric-val">{{ kpi_vacantes_abiertas }}</div>
+                    <div class="hde-metric-lbl">Vacantes</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="hde-sub" style="margin-bottom:6px;">Funnel — candidatos activos</div>
+                <div class="hde-funnel">
+                    {% for etapa in funnel_etapas %}
+                    <div class="hde-funnel-row">
+                        <span class="hde-funnel-dot" style="background:{{ etapa.color }}"></span>
+                        <span class="hde-funnel-name">{{ etapa.nombre }}</span>
+                        <span class="hde-funnel-count">{{ etapa.total }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="hde-empty">Sin etapas activas en el pipeline.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <div class="hde-sub" style="margin-bottom:6px;">Top vacantes con más candidatos</div>
+                <div class="hde-list">
+                    {% for v in top_vacantes %}
+                    <div class="hde-list-item">
+                        <span class="name">{{ v.titulo }}</span>
+                        <span class="badge">{{ v.activos }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="hde-empty">Sin vacantes activas.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {# ── Asistencia / Operación ── #}
+        <div class="hde-panel">
+            <div class="hde-panel-head">
+                <h3><i class="fas fa-utensils me-1 text-primary"></i>Operación</h3>
+                <span class="hde-sub">Hoy</span>
+            </div>
+
+            <div class="hde-metric-row">
+                <div class="hde-metric">
+                    <div class="hde-metric-val">
+                        {{ briefings_hoy }}<small style="font-size:.7rem;color:#94a3b8;font-weight:500"> / {{ kpi_empresas_activas }}</small>
+                    </div>
+                    <div class="hde-metric-lbl">Briefings Hoy</div>
+                </div>
+                <div class="hde-metric">
+                    <div class="hde-metric-val">{{ papeletas_pendientes }}</div>
+                    <div class="hde-metric-lbl">Papeletas Pdtes.</div>
+                </div>
+                <div class="hde-metric">
+                    <div class="hde-metric-val">{{ capacitaciones_proximas }}</div>
+                    <div class="hde-metric-lbl">Capac. 30 días</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="hde-sub" style="margin-bottom:6px;">Certificaciones BPM / HACCP</div>
+                <div class="hde-metric-row">
+                    <div class="hde-metric" style="border-left:3px solid var(--hde-red);">
+                        <div class="hde-metric-val" style="color:var(--hde-red)">{{ certs_vencidas }}</div>
+                        <div class="hde-metric-lbl">Vencidas</div>
+                    </div>
+                    <div class="hde-metric" style="border-left:3px solid var(--hde-amber);">
+                        <div class="hde-metric-val" style="color:var(--hde-amber)">{{ certs_por_vencer }}</div>
+                        <div class="hde-metric-lbl">Por Vencer</div>
+                    </div>
+                    <div class="hde-metric" style="border-left:3px solid var(--hde-green);">
+                        <div class="hde-metric-val" style="color:var(--hde-green)">
+                            <i class="fas fa-shield-alt" style="font-size:1rem;"></i>
+                        </div>
+                        <div class="hde-metric-lbl">SUNAFIL OK</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="hde-sub" style="margin-bottom:6px;">Personal por área (top)</div>
+                <div class="hde-list">
+                    {% for a in chart_personal_areas|slice:":5" %}
+                    <div class="hde-list-item">
+                        <span class="name">{{ a.area }}</span>
+                        <span class="badge" style="background:#0f766e">{{ a.total }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="hde-empty">Sin datos de áreas.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Charts ──────────────────────────────────────────────── #}
+    <div class="hde-charts">
+        <div class="hde-chart-card">
+            <h4><i class="fas fa-chart-bar me-1 text-primary"></i>Postulaciones — últimos 6 meses</h4>
+            <div class="hde-chart-wrap"><canvas id="chartPostulaciones"></canvas></div>
+        </div>
+        <div class="hde-chart-card">
+            <h4><i class="fas fa-chart-pie me-1 text-primary"></i>Distribución personal por área</h4>
+            <div class="hde-chart-wrap"><canvas id="chartAreas"></canvas></div>
+        </div>
+        <div class="hde-chart-card">
+            <h4><i class="fas fa-chart-line me-1 text-primary"></i>Headcount — últimos 6 meses</h4>
+            <div class="hde-chart-wrap"><canvas id="chartHeadcount"></canvas></div>
+        </div>
+        <div class="hde-chart-card">
+            <h4><i class="fas fa-money-bill-trend-up me-1 text-primary"></i>Nómina histórica</h4>
+            <div class="hde-chart-wrap"><canvas id="chartNomina"></canvas></div>
+        </div>
+    </div>
+
+    {# ── Alertas urgentes ────────────────────────────────────── #}
+    <div class="hde-alertas">
+        <div class="hde-panel-head" style="margin-bottom:14px;">
+            <h3><i class="fas fa-bell me-1 text-danger"></i>Alertas Urgentes</h3>
+            <span class="hde-sub">Acción requerida</span>
+        </div>
+        {% for a in alertas %}
+        <div class="hde-alert {{ a.tipo }}">
+            <div class="hde-alert-icon"><i class="fas {{ a.icono }}"></i></div>
+            <div style="flex:1;">
+                <div class="hde-alert-title">{{ a.titulo }}</div>
+                <div class="hde-alert-detail">{{ a.detalle }}</div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="hde-alert info" style="border-color:var(--hde-green);background:#f0fdf4;">
+            <div class="hde-alert-icon" style="background:rgba(16,185,129,.13);color:var(--hde-green);">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div style="flex:1;">
+                <div class="hde-alert-title">Todo al día — sin alertas urgentes</div>
+                <div class="hde-alert-detail">Operación dentro de los parámetros normales.</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>{# /hde-wrap #}
+
+{{ chart_postulaciones|json_script:"data-postulaciones" }}
+{{ chart_personal_areas|json_script:"data-areas" }}
+{{ chart_headcount|json_script:"data-headcount" }}
+{{ chart_nomina|json_script:"data-nomina" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    if (typeof Chart === 'undefined') { return; }
+
+    var palette = ['#0f766e', '#5eead4', '#f59e0b', '#dc2626',
+                   '#2563eb', '#7c3aed', '#10b981', '#94a3b8'];
+
+    function load(id) {
+        var el = document.getElementById(id);
+        if (!el) return null;
+        try { return JSON.parse(el.textContent); } catch (e) { return null; }
+    }
+
+    var dataPost = load('data-postulaciones');
+    var dataAreas = load('data-areas');
+    var dataHead = load('data-headcount');
+    var dataNom = load('data-nomina');
+
+    var commonOpts = {
+        maintainAspectRatio: false,
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' },
+                 ticks: { color: '#94a3b8', font: { size: 10 } } },
+            x: { grid: { display: false },
+                 ticks: { color: '#94a3b8', font: { size: 10 } } }
+        }
+    };
+
+    // Postulaciones (bar)
+    if (dataPost) {
+        var ctx = document.getElementById('chartPostulaciones');
+        if (ctx) new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dataPost.labels || [],
+                datasets: [{
+                    label: 'Postulaciones',
+                    data: dataPost.valores || [],
+                    backgroundColor: '#0f766e',
+                    borderRadius: 6,
+                }]
+            },
+            options: commonOpts
+        });
+    }
+
+    // Áreas (doughnut)
+    if (dataAreas && dataAreas.length) {
+        var ctx2 = document.getElementById('chartAreas');
+        if (ctx2) new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: dataAreas.map(function(a) { return a.area; }),
+                datasets: [{
+                    data: dataAreas.map(function(a) { return a.total; }),
+                    backgroundColor: palette,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: { position: 'right',
+                              labels: { boxWidth: 10, font: { size: 10 }, color: '#475569' } }
+                }
+            }
+        });
+    }
+
+    // Headcount (line)
+    if (dataHead) {
+        var ctx3 = document.getElementById('chartHeadcount');
+        if (ctx3) new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: dataHead.labels || [],
+                datasets: [{
+                    label: 'Headcount',
+                    data: dataHead.valores || [],
+                    borderColor: '#0f766e',
+                    backgroundColor: 'rgba(15,118,110,.12)',
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#0f766e',
+                }]
+            },
+            options: commonOpts
+        });
+    }
+
+    // Nómina (bar)
+    if (dataNom) {
+        var ctx4 = document.getElementById('chartNomina');
+        if (ctx4) new Chart(ctx4, {
+            type: 'bar',
+            data: {
+                labels: dataNom.labels || [],
+                datasets: [{
+                    label: 'Nómina S/',
+                    data: dataNom.valores || [],
+                    backgroundColor: '#7c3aed',
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                var v = ctx.parsed.y || 0;
+                                return 'S/ ' + v.toLocaleString('es-PE',
+                                    { maximumFractionDigits: 0 });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' },
+                         ticks: {
+                             color: '#94a3b8', font: { size: 10 },
+                             callback: function(v) {
+                                 return 'S/ ' + Math.round(v / 1000) + 'k';
+                             }
+                         } },
+                    x: { grid: { display: false },
+                         ticks: { color: '#94a3b8', font: { size: 10 } } }
+                }
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}
