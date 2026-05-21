@@ -483,7 +483,15 @@ def generar_plame(queryset_personal, queryset_nomina=None, periodo_str=''):
     AFP_RATE     = Decimal('0.10')
     ESSALUD_RATE = Decimal('0.09')
     ONP_RATE     = Decimal('0.13')
-    ASIG_FAM_MON = Decimal('102.50')
+    # Asignación familiar = 10% RMV. Lee de ConfiguracionSistema; fallback S/ 113
+    # (RMV S/ 1,130 vigente DS 006-2024-TR). El valor anterior 102.50 era con
+    # RMV S/ 1,025 — desactualizado.
+    try:
+        from asistencia.models import ConfiguracionSistema
+        _rmv_cfg = ConfiguracionSistema.get().rmv_valor or Decimal('1130')
+    except Exception:
+        _rmv_cfg = Decimal('1130')
+    ASIG_FAM_MON = (_rmv_cfg * Decimal('0.10')).quantize(Decimal('0.01'))
 
     count = 0
     for p in queryset_personal:
