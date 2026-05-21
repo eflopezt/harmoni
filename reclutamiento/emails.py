@@ -355,3 +355,102 @@ def email_descarte(postulacion, motivo=''):
     return enviar_email_candidato(
         postulacion, 'descartado', extra_context={'motivo': motivo}
     )
+
+
+# ───────────────────────────────────────────────────────────
+# Notificaciones in-app a reclutadores
+# ───────────────────────────────────────────────────────────
+
+def notif_in_app_reclutadores(postulacion, mensaje, tipo='etapa'):
+    """
+    Envía notificación IN_APP a los reclutadores que han participado
+    en el proceso del candidato (autores de notas o entrevistadores).
+
+    Args:
+        postulacion: instancia Postulacion
+        mensaje: str — texto del mensaje
+        tipo: 'etapa' | 'descarte' | 'contratado' | 'comentario'
+
+    Returns:
+        int — cantidad de notificaciones creadas
+    """
+    if getattr(settings, 'RECLUTAMIENTO_DISABLE_EMAILS', False):
+        return 0
+
+    try:
+        from comunicaciones.models import Notificacion
+        from django.utils import timezone as _tz
+    except ImportError:
+        return 0
+
+    # Recopilar IDs de usuarios que han interactuado
+    user_ids = set()
+    try:
+        for nota in postulacion.notas_detalle.filter(autor__isnull=False):
+            user_ids.add(nota.autor_id)
+    except Exception:
+        pass
+    try:
+        for entrev in postulacion.entrevistas.filter(entrevistador__isnull=False):
+            user_ids.add(entrev.entrevistador_id)
+    except Exception:
+        pass
+
+    if not user_ids:
+        return 0
+
+    creadas = 0
+    iconos = {
+        'etapa':       'fa-arrows-alt-h',
+        'descarte':    'fa-times-circle',
+        'contratado':  'fa-user-check',
+        'comentario':  'fa-comment',
+    }
+    icono = iconos.get(tipo, 'fa-bell')
+    url_destino = f'/reclutamiento/postulacion/{postulacion.pk}/'
+    asunto_corto = f'[Reclutamiento] {postulacion.nombre_completo[:40]}'
+
+    for uid in user_ids:
+        try:
+            # Notificacion necesita destinatario (Personal). Usuario no tiene Personal directo
+            # Buscar Personal vía email del User
+            from django.contrib.auth import get_user_model as _gum
+            User = _gum()
+            user = User.objects.filter(pk=uid).first()
+            if not user:
+                continue
+            # Buscar Personal por email matching (best-effort)
+            destinatario = None
+            try:
+                from personal.models import Personal
+                if user.email:
+                    destinatario = Personal.objects.filter(
+                        correo_corporativo=user.email,
+                    ).first() or Personal.objects.filter(
+                        correo_personal=user.email,
+                    ).first()
+            except Exception:
+                pass
+            # Crear notificacion in-app
+            Notificacion.objects.create(
+                destinatario=destinatario,
+                destinatario_email=user.email or '',
+                asunto=asunto_corto,
+                cuerpo=f'<i class="fas {icono} me-2"></i>{mensaje}<br>'
+                       f'<a href="{url_destino}">Ver postulación</a>',
+                tipo='IN_APP',
+                estado='ENVIADA',
+                enviada_en=_tz.now(),
+                metadata={
+                    'modulo':         'reclutamiento',
+                    'postulacion_id': postulacion.pk,
+                    'evento':         tipo,
+                    'user_target_id': uid,
+                },
+            )
+            creadas += 1
+        except Exception as e:
+            logger.warning(f"Error creando notif in-app para user {uid}: {e}")
+            continue
+
+    return creadas

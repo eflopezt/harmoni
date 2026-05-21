@@ -364,10 +364,15 @@ def postulacion_mover_etapa(request, pk):
         tipo='NOTA',
     )
 
-    # Email automatico segun nueva etapa (sin romper flujo si falla)
+    # Email automatico segun nueva etapa + notif in-app a reclutadores (best-effort)
     try:
-        from reclutamiento.emails import email_por_etapa
+        from reclutamiento.emails import email_por_etapa, notif_in_app_reclutadores
         email_por_etapa(postulacion, etapa)
+        notif_in_app_reclutadores(
+            postulacion,
+            f'{postulacion.nombre_completo} avanzó de "{texto_etapa_anterior}" a "{etapa.nombre}"',
+            tipo='etapa',
+        )
     except Exception:
         pass
 
@@ -402,10 +407,15 @@ def postulacion_descartar(request, pk):
         tipo='NOTA',
     )
 
-    # Email de descarte cortés (sin romper flujo si falla)
+    # Email de descarte cortés + notif in-app a reclutadores (sin romper flujo si falla)
     try:
-        from reclutamiento.emails import email_descarte
+        from reclutamiento.emails import email_descarte, notif_in_app_reclutadores
         email_descarte(postulacion, motivo=motivo)
+        notif_in_app_reclutadores(
+            postulacion,
+            f'{postulacion.nombre_completo} fue descartado/a. Motivo: {motivo[:80]}',
+            tipo='descarte',
+        )
     except Exception:
         pass
 
