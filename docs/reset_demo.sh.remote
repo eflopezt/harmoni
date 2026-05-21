@@ -1,0 +1,149 @@
+#!/bin/bash
+# Reset diario de la BD demo a las 03:00 am
+# Restaura BD limpia con datos de seed + nuevos seeds (May 2026)
+# Endurecido 2026-05-20: tolerante a `docker rm` (recrea containers si faltan).
+
+LOG=/opt/harmoni-demo/logs/reset.log
+mkdir -p "$(dirname "$LOG")"
+echo "$(date) === Reset demo ==="  >> $LOG
+
+EXEC_ENV="-e DJANGO_SETTINGS_MODULE=config.settings.production"
+ENV_FILE=/opt/harmoni-demo/.env.demo
+IMAGE=harmoni-web-img:latest
+
+# ── Helper: arrancar un container; si no existe, crearlo desde cero ─────
+# Uso: ensure_container <nombre> <cmd...>
+ensure_container() {
+    local name="$1"; shift
+    if docker inspect "$name" >/dev/null 2>&1; then
+        docker start "$name" >> $LOG 2>&1 \
+            || { echo "  ! docker start $name fallo" >> $LOG; return 1; }
+    else
+        echo "  ! container $name no existe -- recreando" >> $LOG
+        docker run -d --name "$name" --network host --restart unless-stopped \
+            --env-file "$ENV_FILE" \
+            -v /opt/harmoni-demo/app:/app:ro \
+            -v /opt/harmoni-demo/staticfiles:/app/staticfiles \
+            -v /opt/harmoni-demo/media:/app/media \
+            -v /opt/harmoni-demo/logs:/app/logs \
+            "$IMAGE" "$@" >> $LOG 2>&1 \
+            || { echo "  !! docker run $name FALLO -- intervencion manual" >> $LOG; return 1; }
+    fi
+}
+
+# Stop demo containers (tolerar containers ausentes/ya detenidos)
+for c in harmoni-demo-web harmoni-demo-celery harmoni-demo-beat; do
+    docker stop "$c" >> $LOG 2>&1 || echo "  (stop $c: no existia o ya detenido)" >> $LOG
+done
+
+# Reset BD
+set -e
+sudo -u postgres psql <<SQL >> $LOG 2>&1
+DROP DATABASE IF EXISTS harmoni_demo_db;
+CREATE DATABASE harmoni_demo_db OWNER harmoni_demo;
+SQL
+sudo -u postgres psql -d harmoni_demo_db -c "CREATE EXTENSION IF NOT EXISTS vector;" >> $LOG 2>&1
+sudo -u postgres psql -d harmoni_demo_db -c "GRANT ALL ON SCHEMA public TO harmoni_demo;" >> $LOG 2>&1
+
+# Restaurar schema desde prod
+# [DESHABILITADO 2026-05-21] pg_dump prod schema — desfasado vs models.py
+# sudo -u postgres pg_dump --schema-only --no-owner --no-acl -d harmoni_db -f /tmp/schema_demo.sql 2>&1 >> $LOG
+# sudo -u postgres psql -d harmoni_demo_db -f /tmp/schema_demo.sql >> $LOG 2>&1
+sudo -u postgres psql -d harmoni_demo_db <<'SQL' >> /opt/harmoni-demo/logs/reset.log 2>&1
+DO $reset$ DECLARE r RECORD; BEGIN
+  FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='public' LOOP
+    EXECUTE 'ALTER TABLE public.' || quote_ident(r.tablename) || ' OWNER TO harmoni_demo';
+  END LOOP;
+  FOR r IN SELECT sequence_name FROM information_schema.sequences WHERE sequence_schema='public' LOOP
+    EXECUTE 'ALTER SEQUENCE public.' || quote_ident(r.sequence_name) || ' OWNER TO harmoni_demo';
+  END LOOP;
+END $reset$;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO harmoni_demo;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO harmoni_demo;
+SQL
+set +e
+
+# Restart / recrear containers
+ensure_container harmoni-demo-web    gunicorn config.wsgi:application --bind 0.0.0.0:8004 --workers 2 --timeout 120
+ensure_container harmoni-demo-celery celery -A config worker --loglevel=info --concurrency=1
+ensure_container harmoni-demo-beat   celery -A config beat   --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+sleep 5
+
+# ── Re-seed base ─────────────────────────────────────────────────────────
+docker exec $EXEC_ENV harmoni-demo-web python manage.py migrate --no-input >> $LOG 2>&1
+docker exec $EXEC_ENV harmoni-demo-web python manage.py shell -c "
+from django.contrib.auth import get_user_model
+U = get_user_model()
+u, _ = U.objects.get_or_create(username='demo', defaults={'email':'demo@demo.com'})
+u.set_password('demo'); u.is_superuser=True; u.is_staff=True; u.is_active=True; u.save()
+" >> $LOG 2>&1
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_presentacion >> $LOG 2>&1
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_completar >> $LOG 2>&1
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_tareo_inicial >> $LOG 2>&1
+docker exec $EXEC_ENV harmoni-demo-web sh -c "cd /app && PYTHONPATH=/app python /tmp/seed_asis.py" >> $LOG 2>&1
+
+# Empresa demo
+docker exec $EXEC_ENV harmoni-demo-web python manage.py shell -c "
+from empresas.models import Empresa
+from personal.models import Personal
+e, _ = Empresa.objects.get_or_create(subdominio='demo', defaults={'razon_social':'Demo Empresa SAC','nombre_comercial':'Demo','ruc':'20999999999','direccion':'Av Ejemplo 123, Lima','email_rrhh':'demo@demo.com','activa':True})
+Personal.objects.filter(empresa__isnull=True).update(empresa=e)
+" >> $LOG 2>&1
+
+# ── Re-seed NUEVOS (May 2026) ────────────────────────────────────────────
+echo "$(date) Aplicando seeds nuevos (prestamos, nominas)..." >> $LOG
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_prestamos >> $LOG 2>&1 || echo "  ! seed_demo_prestamos fallo (no critico)" >> $LOG
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_nominas   >> $LOG 2>&1 || echo "  ! seed_demo_nominas fallo (no critico)" >> $LOG
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_gastronomia >> $LOG 2>&1 || echo "  ! seed_demo_gastronomia fallo (no critico)" >> $LOG
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_extra >> $LOG 2>&1 || echo "  ! seed_demo_extra fallo (no critico)" >> $LOG
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_periodos_historicos >> $LOG 2>&1 || echo "  ! seed_periodos_historicos fallo (no critico)" >> $LOG
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_grupo_edo_premium >> $LOG 2>&1 || echo "  ! seed_grupo_edo_premium fallo (no critico)" >> $LOG
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_briefings_demo >> $LOG 2>&1 || echo "  ! seed_briefings_demo fallo (no critico)" >> $LOG
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_saldos_apertura_demo >> $LOG 2>&1 || echo "  ! seed_saldos_apertura_demo fallo (no critico)" >> $LOG
+
+# ── Crear usuarios + clave demo123 para TODOS los trabajadores ──────────
+docker exec $EXEC_ENV harmoni-demo-web python manage.py crear_usuarios_trabajadores --password=demo123 >> $LOG 2>&1 || echo "  ! crear_usuarios_trabajadores fallo" >> $LOG
+
+# Forzar clave demo123 a TODOS los usuarios de Personal (idempotente)
+docker exec $EXEC_ENV harmoni-demo-web python manage.py shell -c "
+from django.contrib.auth import get_user_model
+from personal.models import Personal
+U = get_user_model()
+n = 0
+for p in Personal.objects.filter(usuario__isnull=False):
+    p.usuario.set_password('demo123')
+    p.usuario.save()
+    n += 1
+print(f'  -> Clave demo123 puesta a {n} trabajadores')
+" >> $LOG 2>&1
+
+echo "$(date) === Reset OK ===" >> $LOG
+
+# ── Garantizar Briefing del Día para Hans (demo trabajador) ──────────────
+docker exec -i $EXEC_ENV harmoni-demo-web python manage.py shell << "PYEOF" >> $LOG 2>&1
+from personal.models import Personal
+from asistencia.models import BriefingServicio
+from datetime import date
+from django.utils import timezone
+
+hans = Personal.objects.filter(nro_doc="71445678").first()
+if hans and hans.empresa_id:
+    if not BriefingServicio.objects.filter(empresa=hans.empresa, fecha=date.today(), estado="PUBLICADO").exists():
+        b = BriefingServicio.objects.create(
+            empresa=hans.empresa, fecha=date.today(), servicio="ALMUERZO",
+            estado="PUBLICADO", covers_esperados=42,
+            notas_chef="Equipo, hoy esperamos clientes corporativos a las 13:00. Foco en presentacion.",
+            especiales="Tiradito de lenguado con leche de tigre amazonica\nLomo saltado con quinua roja\nMousse de chocolate 70%",
+            items_86="Ceviche clasico (pescado no llego)",
+            vips_alergias="Mesa 4: ALERGIA AL GLUTEN SEVERA\nMesa 8: corporativos Banco BBVA",
+            dress_code="Protocolo - uniforme blanco - corbata teal",
+        )
+        b.publicado_en = timezone.now()
+        b.save()
+        print(f"  Briefing Hans creado pk={b.pk}")
+    else:
+        print("  Briefing Hans ya existe")
+PYEOF
+
+
+echo "$(date) === Reset OK ===" >> $LOG

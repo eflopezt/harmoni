@@ -92,6 +92,7 @@ WORKER_ALLOWED_PATTERNS = [
     r'^/asistencia/papeleta/crear',
     r'^/asistencia/justificacion/crear',
     r'^/asistencia/solicitud-he/crear',
+    r'^/asistencia/briefing/\d+/leido/',  # AJAX marcar briefing leído
 
     # Onboarding del trabajador
     r'^/onboarding/checklist/personal/',
