@@ -277,6 +277,28 @@ class TestBulkActions:
         candidatos['alto'].refresh_from_db()
         assert 'en_espera' not in candidatos['alto'].tags
 
+    def test_bulk_nota(self, client_admin, candidatos):
+        from reclutamiento.models import NotaPostulacion
+        ids = ','.join(str(p.pk) for p in [candidatos['alto'], candidatos['medio']])
+        resp = client_admin.post(reverse('pipeline_bulk_action'), {
+            'ids': ids, 'accion': 'nota',
+            'texto': 'Reunion proxima semana',
+        })
+        assert resp.status_code == 200
+        assert resp.json()['count'] == 2
+        notas = NotaPostulacion.objects.filter(
+            postulacion__in=[candidatos['alto'], candidatos['medio']],
+            texto__contains='[BULK] Reunion',
+        )
+        assert notas.count() == 2
+
+    def test_bulk_nota_vacia(self, client_admin, candidatos):
+        ids = str(candidatos['alto'].pk)
+        resp = client_admin.post(reverse('pipeline_bulk_action'), {
+            'ids': ids, 'accion': 'nota', 'texto': '',
+        })
+        assert resp.status_code == 400
+
     def test_bulk_sin_ids(self, client_admin):
         resp = client_admin.post(reverse('pipeline_bulk_action'), {
             'ids': '', 'accion': 'mover',

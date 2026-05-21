@@ -703,6 +703,23 @@ def pipeline_bulk_action(request):
             count += 1
         return JsonResponse({'ok': True, 'count': count, 'accion': accion, 'tag': code})
 
+    if accion == 'nota':
+        texto = (request.POST.get('texto', '') or '').strip()
+        if not texto:
+            return JsonResponse({'ok': False, 'error': 'texto_vacio'}, status=400)
+        for p in qs:
+            try:
+                NotaPostulacion.objects.create(
+                    postulacion=p,
+                    autor=request.user,
+                    tipo='NOTA',
+                    texto=f"[BULK] {texto}",
+                )
+                count += 1
+            except Exception:
+                pass
+        return JsonResponse({'ok': True, 'count': count, 'accion': accion})
+
     return JsonResponse({'ok': False, 'error': 'accion_invalida'}, status=400)
 
 

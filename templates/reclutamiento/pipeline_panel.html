@@ -519,6 +519,10 @@
         </ul>
     </div>
 
+    <button class="btn btn-sm btn-outline-light" onclick="bulkNota()">
+        <i class="fas fa-sticky-note me-1"></i>Nota
+    </button>
+
     <button class="btn btn-sm btn-danger" onclick="bulkDescartar()">
         <i class="fas fa-times me-1"></i>Descartar
     </button>
@@ -672,6 +676,14 @@ function bulkTag(code, action) {
     if (selectedIds.size === 0) return;
     const accion = action === 'add' ? 'tag_add' : 'tag_remove';
     bulkPost({ accion, tag: code })
+        .then(d => d.ok ? location.reload() : alert(d.error || 'Error'));
+}
+
+function bulkNota() {
+    if (selectedIds.size === 0) return;
+    const texto = prompt(`Agregar nota a ${selectedIds.size} candidato(s):`, '');
+    if (!texto || !texto.trim()) return;
+    bulkPost({ accion: 'nota', texto: texto.trim() })
         .then(d => d.ok ? location.reload() : alert(d.error || 'Error'));
 }
 
