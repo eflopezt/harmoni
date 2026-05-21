@@ -172,6 +172,143 @@
     width: 22px; text-align: center; color: #64748b; font-size: .9rem;
 }
 
+/* ─── Animaciones nav premium ─── */
+.portal-bottom-nav .pbn-tab i {
+    transition: transform .18s cubic-bezier(.34, 1.56, .64, 1);
+}
+.portal-bottom-nav .pbn-tab.active i {
+    transform: scale(1.18) translateY(-1px);
+}
+.portal-bottom-nav .pbn-tab:active i {
+    transform: scale(0.9);
+}
+@keyframes pbnRipple {
+    0% { transform: scale(0); opacity: .35; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+.portal-bottom-nav .pbn-tab .pbn-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, #5eead4 0%, transparent 70%);
+    pointer-events: none;
+    opacity: 0;
+}
+.portal-bottom-nav .pbn-tab:active .pbn-ripple {
+    animation: pbnRipple .35s ease-out;
+}
+
+/* ─── Glassmorphism cards ─── */
+.portal-glass-card {
+    background: rgba(255,255,255,.78);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border: 1px solid rgba(255,255,255,.6);
+    border-radius: 14px;
+    box-shadow:
+        0 1px 2px rgba(0,0,0,.04),
+        0 8px 24px rgba(13,43,39,.06);
+}
+
+/* ─── FAB (Floating Action Button) ─── */
+.portal-fab {
+    position: fixed;
+    right: 18px;
+    bottom: 86px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0f766e, #5eead4);
+    color: #fff;
+    border: none;
+    box-shadow: 0 6px 20px rgba(15,118,110,.4), 0 0 0 1px rgba(255,255,255,.1) inset;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    z-index: 1042;
+    cursor: pointer;
+    transition: transform .22s cubic-bezier(.34, 1.56, .64, 1),
+                box-shadow .22s ease,
+                background .25s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.portal-fab:active {
+    transform: scale(0.92);
+    box-shadow: 0 3px 10px rgba(15,118,110,.4);
+}
+.portal-fab:hover {
+    box-shadow: 0 8px 28px rgba(15,118,110,.5);
+}
+.portal-fab.show { display: flex; }
+
+/* FAB menu (radial) */
+.portal-fab-menu {
+    position: fixed;
+    right: 18px;
+    bottom: 150px;
+    z-index: 1041;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: opacity .22s ease, transform .22s ease;
+}
+.portal-fab-menu.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.portal-fab-action {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 30px;
+    padding: 8px 16px 8px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.08);
+    color: #0d2b27;
+    font-size: .82rem;
+    font-weight: 600;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+}
+.portal-fab-action:active {
+    background: #f0fdfa;
+    color: #0f766e;
+}
+.portal-fab-action i {
+    width: 28px; height: 28px;
+    background: #f0fdfa;
+    color: #0f766e;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem;
+}
+
+/* ─── Pull-to-refresh hint ─── */
+.portal-pull-hint {
+    text-align: center;
+    color: #94a3b8;
+    font-size: .68rem;
+    padding: 4px 0;
+    display: none;
+}
+
+/* ─── Notif dot pulse animation ─── */
+@keyframes notifPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.6), 0 0 0 2px #0d2b27; }
+    50%      { box-shadow: 0 0 0 5px rgba(245,158,11,0),  0 0 0 2px #0d2b27; }
+}
+.portal-mobile-header .notif-dot {
+    animation: notifPulse 1.8s ease-in-out infinite;
+}
+
 /* ─── Mobile-only show rules ─── */
 @media (max-width: 991.98px) {
     .portal-mobile-header { display: flex; }
@@ -195,6 +332,8 @@
         padding-left: 12px !important;
         padding-right: 12px !important;
     }
+
+    .portal-pull-hint { display: block; }
 }
 
 /* ─── Touch-friendly utility classes ─── */
@@ -328,26 +467,55 @@
 <!-- ═══ BOTTOM TAB NAVIGATION ═══ -->
 <nav class="portal-bottom-nav">
     <a href="{% url 'portal_home' %}" class="pbn-tab {% block tab_inicio %}{% endblock %}">
+        <span class="pbn-ripple"></span>
         <i class="fas fa-home"></i>
         <span>Inicio</span>
     </a>
     <a href="{% url 'portal_mi_nomina' %}" class="pbn-tab {% block tab_boletas %}{% endblock %}">
+        <span class="pbn-ripple"></span>
         <i class="fas fa-file-invoice-dollar"></i>
         <span>Boletas</span>
     </a>
     <a href="{% url 'portal_mis_vacaciones' %}" class="pbn-tab {% block tab_vacaciones %}{% endblock %}">
+        <span class="pbn-ripple"></span>
         <i class="fas fa-umbrella-beach"></i>
         <span>Vacaciones</span>
     </a>
     <a href="{% url 'mi_asistencia' %}" class="pbn-tab {% block tab_asistencia %}{% endblock %}">
+        <span class="pbn-ripple"></span>
         <i class="fas fa-clock"></i>
         <span>Asistencia</span>
     </a>
     <a href="{% url 'mi_perfil' %}" class="pbn-tab {% block tab_perfil %}{% endblock %}">
+        <span class="pbn-ripple"></span>
         <i class="fas fa-user"></i>
         <span>Perfil</span>
     </a>
 </nav>
+
+<!-- ═══ FAB: Floating Action Button (mobile only) ═══ -->
+<button class="portal-fab" id="portalFab" aria-label="Acciones rápidas">
+    <i class="fas fa-plus" id="portalFabIcon"></i>
+</button>
+
+<div class="portal-fab-menu" id="portalFabMenu">
+    <a href="{% url 'mis_papeletas' %}" class="portal-fab-action">
+        <i class="fas fa-file-alt"></i>
+        Solicitar papeleta
+    </a>
+    <a href="{% url 'portal_mis_vacaciones' %}" class="portal-fab-action">
+        <i class="fas fa-umbrella-beach"></i>
+        Solicitar vacaciones
+    </a>
+    <a href="{% url 'mis_justificaciones' %}" class="portal-fab-action">
+        <i class="fas fa-clipboard-check"></i>
+        Justificar falta
+    </a>
+    <a href="{% url 'portal_mi_nomina' %}" class="portal-fab-action">
+        <i class="fas fa-file-invoice-dollar"></i>
+        Ver mi boleta
+    </a>
+</div>
 
 <!-- ═══ MOBILE SLIDE-UP MENU ═══ -->
 <div class="portal-mobile-menu" id="portalMobileMenu">
@@ -442,6 +610,78 @@
                 }
             }, {passive: true});
         }
+    }
+
+    // ── FAB (Floating Action Button) — solo mobile ──
+    var fab = document.getElementById('portalFab');
+    var fabIcon = document.getElementById('portalFabIcon');
+    var fabMenu = document.getElementById('portalFabMenu');
+    var fabOpen = false;
+
+    function isMobile() {
+        return window.matchMedia('(max-width: 991.98px)').matches;
+    }
+
+    function toggleFab() {
+        fabOpen = !fabOpen;
+        if (fabOpen) {
+            fabMenu.classList.add('show');
+            fabIcon.style.transform = 'rotate(45deg)';
+            fab.style.background = 'linear-gradient(135deg, #dc2626, #f97316)';
+        } else {
+            fabMenu.classList.remove('show');
+            fabIcon.style.transform = 'rotate(0deg)';
+            fab.style.background = 'linear-gradient(135deg, #0f766e, #5eead4)';
+        }
+    }
+
+    function closeFab() {
+        if (!fabOpen) return;
+        fabOpen = false;
+        fabMenu.classList.remove('show');
+        fabIcon.style.transform = 'rotate(0deg)';
+        fab.style.background = 'linear-gradient(135deg, #0f766e, #5eead4)';
+    }
+
+    function maybeShowFab() {
+        if (isMobile() && fab) fab.classList.add('show');
+        else if (fab) fab.classList.remove('show');
+    }
+
+    if (fab) {
+        fabIcon.style.transition = 'transform .22s ease';
+        fab.addEventListener('click', toggleFab);
+        // Click fuera del FAB cierra menu
+        document.addEventListener('click', function(e) {
+            if (fabOpen && !fab.contains(e.target) && !fabMenu.contains(e.target)) {
+                closeFab();
+            }
+        });
+        maybeShowFab();
+        window.addEventListener('resize', maybeShowFab);
+    }
+
+    // ── Pull-to-refresh (gesture simple, simulado) ──
+    var pullStartY = 0;
+    var pullActive = false;
+    if (isMobile()) {
+        document.addEventListener('touchstart', function(e) {
+            if (window.scrollY === 0) {
+                pullStartY = e.touches[0].clientY;
+                pullActive = true;
+            }
+        }, {passive: true});
+        document.addEventListener('touchmove', function(e) {
+            if (!pullActive) return;
+            var delta = e.touches[0].clientY - pullStartY;
+            if (delta > 120) {
+                pullActive = false;
+                window.location.reload();
+            }
+        }, {passive: true});
+        document.addEventListener('touchend', function() {
+            pullActive = false;
+        }, {passive: true});
     }
 })();
 </script>
