@@ -1303,14 +1303,6 @@
         var TAB_KEY   = 'harmoni_tab_v1';
         var DEFAULT   = 'portal';
         var tabsEl    = document.getElementById('sidebarTabs');
-        if (!tabsEl) return; // non-admin users have no tabs
-
-        function loadTab() {
-            try { return localStorage.getItem(TAB_KEY) || DEFAULT; } catch(e) { return DEFAULT; }
-        }
-        function saveTab(t) {
-            try { localStorage.setItem(TAB_KEY, t); } catch(e) {}
-        }
 
         // Auto-detect tab from active nav-item
         var autoGroup = null;
@@ -1324,11 +1316,24 @@
             document.querySelectorAll('.nav-section[data-group]').forEach(function(sec) {
                 sec.classList.toggle('group-visible', sec.getAttribute('data-group') === group);
             });
-            // Update tab buttons
+            // Update tab buttons (if present)
             document.querySelectorAll('.sidebar-tab[data-tab]').forEach(function(btn) {
                 btn.classList.toggle('active', btn.getAttribute('data-tab') === group);
             });
-            saveTab(group);
+            if (tabsEl) {
+                try { localStorage.setItem(TAB_KEY, group); } catch(e) {}
+            }
+        }
+
+        // Trabajadores SIN tabs (no admin): siempre mostrar grupo "portal".
+        // No persistir preferencia — el trabajador no tiene cómo cambiar de tab.
+        if (!tabsEl) {
+            showTab(autoGroup || 'portal');
+            return;
+        }
+
+        function loadTab() {
+            try { return localStorage.getItem(TAB_KEY) || DEFAULT; } catch(e) { return DEFAULT; }
         }
 
         // Bind clicks

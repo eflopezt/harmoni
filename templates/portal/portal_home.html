@@ -192,15 +192,24 @@
     {% endif %}
     {% if ultimo_recibo %}
     <div class="col-6 col-md-3">
-        <a href="{% url 'portal_mi_nomina' %}" class="text-decoration-none">
-        <div class="portal-kpi" style="padding:10px;border-color:#5eead4;background:#f0fdfa;">
-            <div class="portal-kpi-icon" style="font-size:.8rem;margin-bottom:3px;color:#0f766e;"><i class="fas fa-receipt"></i></div>
-            <div class="portal-kpi-num" style="font-size:.95rem;color:#0f766e;">
-                S/ {{ ultimo_recibo.neto_a_pagar|floatformat:0 }}
-            </div>
-            <div class="portal-kpi-lbl">Último neto ({{ ultimo_recibo.periodo.mes_nombre|truncatechars:5 }})</div>
+        <div class="portal-kpi" style="padding:10px 10px 8px;border-color:#5eead4;background:#f0fdfa;position:relative">
+            <a href="{% url 'portal_mi_nomina' %}" class="text-decoration-none d-block">
+                <div class="portal-kpi-icon" style="font-size:.8rem;margin-bottom:3px;color:#0f766e;"><i class="fas fa-receipt"></i></div>
+                <div class="portal-kpi-num" style="font-size:.95rem;color:#0f766e;">
+                    S/ {{ ultimo_recibo.neto_a_pagar|floatformat:0 }}
+                </div>
+                <div class="portal-kpi-lbl">Último neto ({{ ultimo_recibo.periodo.mes_nombre|truncatechars:5 }})</div>
+            </a>
+            {# Botón directo descarga PDF — DS 009-2011-TR (acceso fácil a boleta) #}
+            <a href="{% url 'nominas_boleta_pdf' ultimo_recibo.pk %}"
+               target="_blank" rel="noopener"
+               class="d-inline-flex align-items-center justify-content-center w-100"
+               style="margin-top:6px;background:#0f766e;color:#fff;font-size:.7rem;font-weight:600;padding:4px 8px;border-radius:6px;text-decoration:none;gap:5px"
+               title="Descargar boleta PDF de {{ ultimo_recibo.periodo.mes_nombre }}">
+                <i class="fas fa-download" style="font-size:.65rem"></i>
+                Descargar boleta
+            </a>
         </div>
-        </a>
     </div>
     {% endif %}
     {% if prestamo_activo %}
