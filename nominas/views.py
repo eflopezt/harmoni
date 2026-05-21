@@ -433,7 +433,13 @@ def periodo_generar(request, pk):
 @solo_admin
 @require_POST
 def periodo_aprobar(request, pk):
-    """Aprueba el período (lo bloquea para edición)."""
+    """
+    Aprueba el período (lo bloquea para edición).
+
+    Side effect: notifica IN_APP a cada trabajador con boleta calculada
+    en el período (cumplimiento DS 009-2011-TR — el trabajador debe saber
+    cuándo su boleta está disponible para revisar/confirmar recepción).
+    """
     periodo = get_object_or_404(PeriodoNomina, pk=pk)
     if periodo.estado != 'CALCULADO':
         messages.error(request, 'Solo se puede aprobar un período en estado CALCULADO.')
@@ -443,8 +449,84 @@ def periodo_aprobar(request, pk):
     periodo.aprobado_por = request.user
     periodo.aprobado_en  = timezone.now()
     periodo.save()
-    messages.success(request, f'Período {periodo} aprobado correctamente.')
+
+    # Notificar a cada trabajador (DS 009-2011-TR)
+    notif_count = _notificar_boletas_disponibles(periodo)
+
+    msg = f'Período {periodo} aprobado correctamente.'
+    if notif_count:
+        plural = '' if notif_count == 1 else 's'
+        msg += f' {notif_count} trabajador{plural} notificado{plural}.'
+    messages.success(request, msg)
     return redirect('nominas_periodo_detalle', pk=pk)
+
+
+def _notificar_boletas_disponibles(periodo):
+    """
+    Crea una Notificacion IN_APP por cada trabajador del período avisando
+    que su boleta está disponible. Idempotente: si ya se notificó al
+    trabajador del período, no duplica.
+
+    Returns: int — número de notificaciones creadas en esta corrida.
+    """
+    try:
+        from comunicaciones.models import Notificacion
+    except Exception:
+        return 0
+
+    count = 0
+    for registro in RegistroNomina.objects.filter(
+        periodo=periodo,
+    ).select_related('personal'):
+        if not registro.personal:
+            continue
+        # Detectar duplicado por metadata.registro_id
+        already = Notificacion.objects.filter(
+            destinatario=registro.personal,
+            tipo='IN_APP',
+            metadata__registro_id=registro.pk,
+        ).exists()
+        if already:
+            continue
+        # Construir nombre simple
+        nombre_completo = registro.personal.apellidos_nombres or ''
+        if ',' in nombre_completo:
+            primer_nombre = nombre_completo.split(',', 1)[1].strip().split()[0] if nombre_completo.split(',', 1)[1].strip() else ''
+        else:
+            primer_nombre = ''
+        primer_nombre = primer_nombre.title() if primer_nombre else 'colaborador'
+        try:
+            Notificacion.objects.create(
+                destinatario=registro.personal,
+                asunto=f'Tu boleta de {periodo.mes_nombre} {periodo.anio} está disponible',
+                cuerpo=(
+                    f'Hola {primer_nombre},\n\n'
+                    f'Tu boleta de pago del período {periodo.mes_nombre} '
+                    f'{periodo.anio} ya está disponible en el portal del '
+                    f'trabajador.\n\n'
+                    f'Neto a pagar: S/ {registro.neto_a_pagar or 0:,.2f}\n\n'
+                    f'Por favor revísala y confirma la recepción para '
+                    f'cumplimiento DS 009-2011-TR.\n\n'
+                    f'Ingresa a: /mi-portal/mi-nomina/\n\n'
+                    f'Saludos,\nGerencia de Recursos Humanos'
+                ),
+                tipo='IN_APP',
+                estado='ENVIADA',
+                enviada_en=timezone.now(),
+                metadata={
+                    'registro_id': registro.pk,
+                    'periodo_id': periodo.pk,
+                    'tipo_evento': 'boleta_disponible',
+                },
+            )
+            count += 1
+        except Exception as exc:
+            logger.warning(
+                'No se pudo notificar a %s: %s',
+                registro.personal, exc,
+            )
+            continue
+    return count
 
 
 @login_required
@@ -2743,3 +2825,43 @@ def config_tasas_afp(request):
         'tope_default': AFP_TOPE_REM_ASEGURABLE,
         'afps': ['Habitat', 'Integra', 'Prima', 'Profuturo'],
     })
+
+
+# ═════════════════════════════════════════════════════════════════
+# Notificar trabajadores — desde panel de emisión
+# ═════════════════════════════════════════════════════════════════
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+@require_POST
+def notificar_periodo_boletas(request, pk):
+    """
+    Envía notificación IN_APP a TODOS los trabajadores del período
+    avisando que su boleta está disponible. Idempotente (no duplica).
+
+    Llamado desde el panel /nominas/boletas/ por período.
+    """
+    periodo = get_object_or_404(PeriodoNomina, pk=pk)
+    if periodo.estado not in ('CALCULADO', 'APROBADO', 'CERRADO'):
+        messages.error(
+            request,
+            f'No se pueden notificar boletas del período en estado {periodo.estado}.'
+        )
+        return redirect('nominas_emision_boletas')
+
+    notif_count = _notificar_boletas_disponibles(periodo)
+
+    if notif_count:
+        plural = '' if notif_count == 1 else 'es'
+        messages.success(
+            request,
+            f'{notif_count} trabajador{plural} notificado{plural} del período '
+            f'{periodo.mes_nombre} {periodo.anio}.'
+        )
+    else:
+        messages.info(
+            request,
+            f'Sin nuevas notificaciones para {periodo.mes_nombre} {periodo.anio} '
+            '(todos los trabajadores ya fueron notificados previamente).'
+        )
+    return redirect('nominas_emision_boletas')

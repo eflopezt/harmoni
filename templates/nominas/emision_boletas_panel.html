@@ -230,10 +230,20 @@
         </a>
         {% if item.p.estado == 'CALCULADO' %}
         <form method="post" action="{% url 'nominas_periodo_aprobar' item.p.pk %}"
-              onsubmit="return confirm('¿Aprobar período {{ item.p }}? Una vez aprobadas, las boletas quedan disponibles para los trabajadores en su portal.');">
+              onsubmit="return confirm('¿Aprobar período {{ item.p }}? Las boletas quedarán disponibles en el portal del trabajador y se enviará una notificación a cada uno.');">
             {% csrf_token %}
             <button type="submit" class="btn btn-success btn-sm">
                 <i class="fas fa-check me-1"></i>Aprobar y publicar
+            </button>
+        </form>
+        {% endif %}
+        {% if item.p.estado != 'BORRADOR' %}
+        <form method="post" action="{% url 'nominas_notificar_periodo_boletas' item.p.pk %}"
+              onsubmit="return confirm('¿Enviar notificación a {{ item.total }} trabajador(es) avisando que su boleta de {{ item.p.mes_nombre }} {{ item.p.anio }} está disponible?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-warning btn-sm"
+                    title="Crea una Notificación in-app a cada trabajador. Idempotente (no duplica si ya se notificó).">
+                <i class="fas fa-bell me-1"></i>Notificar trabajadores
             </button>
         </form>
         {% endif %}

@@ -50,6 +50,8 @@ urlpatterns = [
 
     # Panel de Emisión y Entrega de Boletas (con tracking SmartBoletas)
     path('boletas/', views.emision_boletas_panel, name='nominas_emision_boletas'),
+    path('boletas/<int:pk>/notificar/', views.notificar_periodo_boletas,
+         name='nominas_notificar_periodo_boletas'),
 
     # Configuración tasas AFP (admin)
     path('config/tasas-afp/', views.config_tasas_afp, name='config_tasas_afp'),
