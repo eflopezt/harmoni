@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}{{ empresa.nombre_comercial|default:empresa.razon_social }} — Pulse{% endblock %}
+
+{% block extra_css %}
+<style>
+.pld-hero {
+    background: linear-gradient(135deg, #0d2b27, #0f766e);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1.4rem 1.75rem;
+    margin-bottom: 1.5rem;
+}
+.pld-hero h2 { color: #fff; font-size: 1.4rem; margin-bottom: .25rem; }
+.pld-hero p { color: #cffafe; margin: 0; font-size: .85rem; }
+
+.pld-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.15rem 1.35rem;
+    margin-bottom: 1rem;
+}
+.pld-card h5 {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #134e4a;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: .85rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.pld-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .75rem;
+    margin-bottom: 1.2rem;
+}
+@media (max-width:768px) { .pld-kpis { grid-template-columns: repeat(2, 1fr); } }
+.pld-kpi {
+    background: #f0fafa;
+    border-radius: 10px;
+    padding: .85rem 1rem;
+    text-align: center;
+    border-left: 3px solid #0f766e;
+}
+.pld-kpi .lbl { font-size: .65rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.pld-kpi .val { font-size: 1.35rem; font-weight: 800; color: #0d2b27; line-height: 1.1; font-variant-numeric: tabular-nums; }
+
+.brf-mini {
+    background: #f8fafc;
+    border-left: 3px solid #0f766e;
+    border-radius: 8px;
+    padding: .65rem .85rem;
+    margin-bottom: .5rem;
+}
+.brf-mini.BORRADOR  { border-left-color: #f59e0b; }
+.brf-mini.PUBLICADO { border-left-color: #10b981; }
+.brf-mini.CERRADO   { border-left-color: #94a3b8; opacity: .85; }
+
+.pld-worker-row {
+    padding: .45rem .65rem;
+    border-radius: 6px;
+    transition: background .1s;
+    font-size: .82rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.pld-worker-row:hover { background: #f0fafa; }
+
+.contrato-vence {
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 6px;
+    padding: .35rem .65rem;
+    margin-bottom: .35rem;
+    font-size: .8rem;
+    display: flex;
+    justify-content: space-between;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="pld-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <p class="mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#a7f3d0;">
+                <a href="{% url 'pulse_del_grupo' %}" class="text-decoration-none" style="color:#a7f3d0;">
+                    <i class="fas fa-chevron-left me-1"></i>Pulse del Grupo
+                </a>
+            </p>
+            <h2>{{ empresa.nombre_comercial|default:empresa.razon_social }}</h2>
+            <p>
+                <i class="fas fa-id-card me-1"></i>RUC {{ empresa.ruc }}
+                {% if empresa.direccion %}
+                · <i class="fas fa-map-marker-alt me-1"></i>{{ empresa.direccion }}
+                {% endif %}
+            </p>
+        </div>
+        <span class="badge" style="background:#5eead4;color:#0d2b27;padding:.4rem .85rem;border-radius:999px;font-size:.72rem;font-weight:700;">
+            {{ hoy|date:"D d M Y" }}
+        </span>
+    </div>
+</div>
+
+<div class="pld-kpis">
+    <div class="pld-kpi">
+        <div class="lbl">Headcount</div>
+        <div class="val">{{ headcount }}</div>
+    </div>
+    {% if asistencia_hoy %}
+    <div class="pld-kpi" style="border-left-color:#10b981;">
+        <div class="lbl">Presentes hoy</div>
+        <div class="val text-success">{{ asistencia_hoy.presentes|default:0 }}</div>
+    </div>
+    <div class="pld-kpi" style="border-left-color:#ef4444;">
+        <div class="lbl">Faltas hoy</div>
+        <div class="val text-danger">{{ asistencia_hoy.faltas|default:0 }}</div>
+    </div>
+    {% endif %}
+    <div class="pld-kpi" style="border-left-color:#7c3aed;">
+        <div class="lbl">Saldos apertura</div>
+        <div class="val" style="color:#7c3aed;">{{ saldos_apertura_count }}</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        {# Planilla del último período #}
+        {% if planilla_emp %}
+        <div class="pld-card">
+            <h5><i class="fas fa-file-invoice-dollar"></i>Planilla — {{ planilla_emp.periodo }}</h5>
+            <div class="row g-2">
+                <div class="col-6 col-md-3">
+                    <div class="lbl text-muted small">Trabajadores</div>
+                    <div class="fw-bold">{{ planilla_emp.trabajadores }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="lbl text-muted small">Bruto</div>
+                    <div class="fw-bold">S/ {{ planilla_emp.bruto|floatformat:0|intcomma }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="lbl text-muted small">Neto</div>
+                    <div class="fw-bold text-success">S/ {{ planilla_emp.neto|floatformat:0|intcomma }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="lbl text-muted small">Costo empresa</div>
+                    <div class="fw-bold" style="color:#7c3aed;">S/ {{ planilla_emp.costo|floatformat:0|intcomma }}</div>
+                </div>
+            </div>
+            <a href="{% url 'nominas_periodo_detalle' planilla_emp.periodo_pk %}" class="btn btn-sm btn-outline-primary mt-3">
+                <i class="fas fa-arrow-right me-1"></i>Ver período completo
+            </a>
+        </div>
+        {% endif %}
+
+        {# Briefings próximos #}
+        <div class="pld-card">
+            <h5><i class="fas fa-clipboard-list"></i>Briefings (hoy + próximos 2 días)</h5>
+            {% for b in briefings %}
+            <div class="brf-mini {{ b.estado }}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ b.fecha|date:"D d/m" }}</strong> ·
+                        {{ b.get_servicio_display }}
+                        {% if b.covers_esperados %}
+                        · <i class="fas fa-users me-1"></i>{{ b.covers_esperados }} covers
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'briefing_detalle' b.pk %}" class="btn btn-xs btn-outline-secondary"
+                       style="font-size:.7rem;padding:.15rem .55rem;">
+                        Ver
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted small mb-0">
+                Sin briefings programados.
+                <a href="{% url 'briefing_crear' %}">Crear nuevo briefing →</a>
+            </p>
+            {% endfor %}
+        </div>
+
+        {# Trabajadores #}
+        <div class="pld-card">
+            <h5><i class="fas fa-users"></i>Trabajadores ({{ headcount }})</h5>
+            {% for w in workers_sample %}
+            <div class="pld-worker-row">
+                <div>
+                    <strong>{{ w.apellidos_nombres }}</strong>
+                    <small class="text-muted ms-2">DNI {{ w.nro_doc }}</small>
+                </div>
+                <small class="text-muted">{{ w.cargo|default:"—" }}</small>
+            </div>
+            {% endfor %}
+            {% if headcount > 20 %}
+            <small class="text-muted d-block mt-2">
+                Mostrando 20 de {{ headcount }} ·
+                <a href="{% url 'personal_list' %}?empresa={{ empresa.pk }}">Ver todos →</a>
+            </small>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        {# Distribución por grupo #}
+        {% if grupos %}
+        <div class="pld-card">
+            <h5><i class="fas fa-chart-pie"></i>Distribución por grupo</h5>
+            {% for g in grupos %}
+            <div class="d-flex justify-content-between align-items-center py-1">
+                <span>{{ g.grupo_tareo|default:"—" }}</span>
+                <span class="badge bg-secondary">{{ g.n }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Contratos por vencer #}
+        {% if contratos_vencen %}
+        <div class="pld-card">
+            <h5><i class="fas fa-file-contract text-warning"></i>Contratos por vencer (30d)</h5>
+            {% for c in contratos_vencen %}
+            <div class="contrato-vence">
+                <strong>{{ c.apellidos_nombres|truncatechars:30 }}</strong>
+                <span>{{ c.fecha_fin_contrato|date:"d/m" }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Acciones rápidas #}
+        <div class="pld-card">
+            <h5><i class="fas fa-bolt"></i>Acciones rápidas</h5>
+            <div class="d-grid gap-2">
+                <a href="{% url 'briefing_crear' %}" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-clipboard-list me-1"></i>Nuevo Briefing
+                </a>
+                <a href="{% url 'nominas_emision_boletas' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-paper-plane me-1"></i>Emisión Boletas
+                </a>
+                <a href="{% url 'nominas_comparativo_mensual' %}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-chart-line me-1"></i>Comparativo Mensual
+                </a>
+                <a href="{% url 'empresa_editar' empresa.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-cog me-1"></i>Editar empresa
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -72,7 +72,11 @@
     padding: 1.1rem 1.2rem;
     transition: box-shadow .15s, transform .15s;
     position: relative;
+    color: inherit;
+    display: block;
+    cursor: pointer;
 }
+.pulse-local:hover { color: inherit; text-decoration: none; }
 .pulse-local:hover {
     box-shadow: 0 4px 12px rgba(15,41,38,.1);
     transform: translateY(-1px);
@@ -263,7 +267,7 @@
 {% if locales %}
 <div class="pulse-grid">
     {% for l in locales %}
-    <div class="pulse-local color-{{ l.color }}">
+    <a href="{% url 'pulse_local_detalle' l.empresa.pk %}" class="pulse-local color-{{ l.color }} text-decoration-none">
         <div class="pulse-local-header">
             <div>
                 <div class="pulse-local-name">
@@ -326,7 +330,7 @@
             {% endfor %}
         </div>
         {% endif %}
-    </div>
+    </a>
     {% endfor %}
 </div>
 {% else %}

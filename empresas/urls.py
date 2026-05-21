@@ -6,6 +6,7 @@ from . import views_admin
 urlpatterns = [
     path('', views.empresas_panel, name='empresas_panel'),
     path('pulse/', views.pulse_del_grupo, name='pulse_del_grupo'),
+    path('pulse/<int:pk>/', views.pulse_local_detalle, name='pulse_local_detalle'),
     path('nueva/', views.empresa_crear, name='empresa_crear'),
     path('<int:pk>/editar/', views.empresa_editar, name='empresa_editar'),
     path('<int:pk>/configuracion/', views.configuracion_empresa, name='configuracion_empresa'),

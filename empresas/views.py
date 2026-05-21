@@ -320,3 +320,118 @@ def pulse_del_grupo(request):
         'locales_rojo':         locales_rojo,
         'hoy':                  hoy,
     })
+
+
+@login_required
+@solo_admin
+def pulse_local_detalle(request, pk):
+    """Drill-down de un local específico desde el Pulse del Grupo.
+
+    Muestra detalle completo del local: trabajadores, briefings hoy,
+    asistencia hoy, alertas, último período planilla.
+    """
+    from datetime import date, timedelta
+    from django.db.models import Count, Q, Sum
+    from personal.models import Personal
+    from nominas.models import PeriodoNomina, RegistroNomina
+    from empresas.models import Empresa
+
+    emp = get_object_or_404(Empresa, pk=pk)
+    hoy = date.today()
+    en_30_dias = hoy + timedelta(days=30)
+
+    # Trabajadores activos del local
+    personal_qs = Personal.objects.filter(empresa=emp, estado='Activo').order_by('apellidos_nombres')
+    headcount = personal_qs.count()
+
+    # Distribución por grupo
+    grupos = list(
+        personal_qs.values('grupo_tareo')
+        .annotate(n=Count('id'))
+        .order_by('-n')
+    )
+
+    # Asistencia hoy
+    asistencia_hoy = None
+    try:
+        from asistencia.models import RegistroTareo
+        tareo_qs = RegistroTareo.objects.filter(personal__empresa=emp, fecha=hoy)
+        agg = tareo_qs.aggregate(
+            total=Count('id'),
+            presentes=Count('id', filter=Q(codigo_dia__in=['T', 'NOR', 'TR', 'SS'])),
+            faltas=Count('id', filter=Q(codigo_dia__in=['FA', 'LSG'])),
+            permisos=Count('id', filter=Q(codigo_dia__in=['V', 'DL', 'DLA', 'DM', 'LCG', 'LF', 'LP', 'LM'])),
+        )
+        asistencia_hoy = {**agg, 'sin_marcar': max(0, headcount - (agg['total'] or 0))}
+    except Exception:
+        pass
+
+    # Briefings de hoy/mañana
+    briefings = []
+    try:
+        from asistencia.models import BriefingServicio
+        briefings = list(
+            BriefingServicio.objects
+            .filter(empresa=emp, fecha__gte=hoy, fecha__lte=hoy + timedelta(days=2))
+            .order_by('fecha', 'servicio')
+        )
+    except Exception:
+        pass
+
+    # Último período planilla
+    ultimo_periodo = PeriodoNomina.objects.filter(
+        tipo='REGULAR',
+        estado__in=['CALCULADO', 'APROBADO', 'CERRADO'],
+    ).order_by('-anio', '-mes').first()
+
+    planilla_emp = None
+    if ultimo_periodo:
+        reg_qs = RegistroNomina.objects.filter(periodo=ultimo_periodo, personal__empresa=emp)
+        agg_pl = reg_qs.aggregate(
+            trabajadores=Count('id'),
+            bruto=Sum('total_ingresos'),
+            descuentos=Sum('total_descuentos'),
+            neto=Sum('neto_a_pagar'),
+            costo=Sum('costo_total_empresa'),
+        )
+        if agg_pl['trabajadores']:
+            planilla_emp = {
+                'periodo':      f'{ultimo_periodo.mes_nombre} {ultimo_periodo.anio}',
+                'periodo_pk':   ultimo_periodo.pk,
+                'trabajadores': agg_pl['trabajadores'],
+                'bruto':        agg_pl['bruto']      or 0,
+                'descuentos':   agg_pl['descuentos'] or 0,
+                'neto':         agg_pl['neto']       or 0,
+                'costo':        agg_pl['costo']      or 0,
+            }
+
+    # Contratos por vencer
+    contratos_vencen = personal_qs.filter(
+        fecha_fin_contrato__isnull=False,
+        fecha_fin_contrato__gte=hoy,
+        fecha_fin_contrato__lte=en_30_dias,
+    ).order_by('fecha_fin_contrato')[:10]
+
+    # Saldos apertura del local
+    saldos_apertura_count = 0
+    try:
+        from nominas.models import SaldoAperturaTrabajador
+        saldos_apertura_count = SaldoAperturaTrabajador.objects.filter(
+            personal__empresa=emp,
+        ).count()
+    except Exception:
+        pass
+
+    return render(request, 'empresas/pulse_local_detalle.html', {
+        'empresa':              emp,
+        'headcount':            headcount,
+        'grupos':               grupos,
+        'asistencia_hoy':       asistencia_hoy,
+        'briefings':            briefings,
+        'planilla_emp':         planilla_emp,
+        'ultimo_periodo':       ultimo_periodo,
+        'contratos_vencen':     contratos_vencen,
+        'saldos_apertura_count': saldos_apertura_count,
+        'workers_sample':       personal_qs[:20],
+        'hoy':                  hoy,
+    })

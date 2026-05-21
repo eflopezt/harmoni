@@ -210,7 +210,28 @@ def portal_home(request):
         except Exception:
             pass
 
+        # ── Briefing del Día (si hay publicado para el local del trabajador) ──
+        briefing_hoy = None
+        ya_lei_briefing = False
+        try:
+            from asistencia.models import BriefingServicio, BriefingLectura
+            if empleado.empresa_id:
+                briefing_hoy = (
+                    BriefingServicio.objects
+                    .filter(empresa=empleado.empresa, fecha=hoy, estado='PUBLICADO')
+                    .order_by('servicio')
+                    .first()
+                )
+                if briefing_hoy:
+                    ya_lei_briefing = BriefingLectura.objects.filter(
+                        briefing=briefing_hoy, personal=empleado,
+                    ).exists()
+        except Exception:
+            pass
+
         context.update({
+            'briefing_hoy':    briefing_hoy,
+            'ya_lei_briefing': ya_lei_briefing,
             'dias_trabajados_mes': registros_mes.filter(horas_efectivas__gt=0).count(),
             'banco_actual': banco,
             'roster_hoy': roster_hoy,

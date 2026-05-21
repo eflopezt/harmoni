@@ -82,6 +82,90 @@
     </div>
 </div>
 
+<!-- Briefing del Día (gastronomía premium) -->
+{% if briefing_hoy %}
+<div class="card mb-3" style="border:none;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#134e4a,#0f766e);color:#fff;">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+            <div>
+                <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:#cffafe;font-weight:700;">
+                    <i class="fas fa-clipboard-list me-1"></i>Briefing del Día · {{ briefing_hoy.get_servicio_display }}
+                </div>
+                <div style="font-size:1.15rem;font-weight:700;line-height:1.2;margin-top:.15rem;">
+                    {{ briefing_hoy.empresa.nombre_comercial|default:briefing_hoy.empresa.razon_social }}
+                </div>
+                <div style="font-size:.78rem;color:#a7f3d0;margin-top:.15rem;">
+                    {% if briefing_hoy.covers_esperados %}
+                    <i class="fas fa-users me-1"></i>{{ briefing_hoy.covers_esperados }} covers esperados
+                    {% endif %}
+                    {% if briefing_hoy.publicado_en %}
+                    · <i class="fas fa-clock me-1"></i>Publicado {{ briefing_hoy.publicado_en|date:"H:i" }}
+                    {% endif %}
+                </div>
+            </div>
+            {% if ya_lei_briefing %}
+            <span class="badge" style="background:rgba(255,255,255,.2);color:#fff;padding:.4rem .7rem;border-radius:999px;font-size:.7rem;">
+                <i class="fas fa-check-circle me-1"></i>Ya leído
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="row g-2 mt-1">
+            {% if briefing_hoy.especiales %}
+            <div class="col-md-6">
+                <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:.55rem .75rem;">
+                    <div style="font-size:.65rem;color:#cffafe;text-transform:uppercase;letter-spacing:.05em;font-weight:700;">
+                        <i class="fas fa-utensils me-1"></i>Especiales
+                    </div>
+                    <div style="font-size:.78rem;color:#fff;white-space:pre-wrap;margin-top:.2rem;">
+{{ briefing_hoy.especiales|truncatechars:180 }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% if briefing_hoy.items_86 %}
+            <div class="col-md-6">
+                <div style="background:rgba(239,68,68,.25);border-radius:8px;padding:.55rem .75rem;">
+                    <div style="font-size:.65rem;color:#fecaca;text-transform:uppercase;letter-spacing:.05em;font-weight:700;">
+                        <i class="fas fa-ban me-1"></i>86's (sin stock)
+                    </div>
+                    <div style="font-size:.78rem;color:#fff;white-space:pre-wrap;margin-top:.2rem;">
+{{ briefing_hoy.items_86|truncatechars:180 }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% if briefing_hoy.vips_alergias %}
+            <div class="col-12">
+                <div style="background:rgba(245,158,11,.2);border-radius:8px;padding:.55rem .75rem;">
+                    <div style="font-size:.65rem;color:#fde68a;text-transform:uppercase;letter-spacing:.05em;font-weight:700;">
+                        <i class="fas fa-star me-1"></i>VIPs · Alergias · Cumpleaños
+                    </div>
+                    <div style="font-size:.78rem;color:#fff;white-space:pre-wrap;margin-top:.2rem;">
+{{ briefing_hoy.vips_alergias }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if briefing_hoy.dress_code %}
+        <div class="mt-2" style="font-size:.78rem;color:#a7f3d0;">
+            <i class="fas fa-tshirt me-1"></i><strong>Dress code:</strong> {{ briefing_hoy.dress_code }}
+        </div>
+        {% endif %}
+
+        {% if not ya_lei_briefing %}
+        <button type="button" id="btn-marcar-briefing-leido" class="btn btn-sm mt-2"
+                data-briefing-id="{{ briefing_hoy.pk }}"
+                style="background:#fff;color:#0f766e;font-weight:600;border:none;padding:.4rem 1rem;border-radius:8px;">
+            <i class="fas fa-check me-1"></i>Marcar como leído
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Alerta de encuestas pendientes -->
 {% if encuestas_badge > 0 %}
 <div class="alert-pending" style="background:#f0fdfa;border-color:#5eead4;margin-bottom:12px;">
@@ -511,4 +595,34 @@
 </div>
 
 {% endif %}
+
+<script>
+// Briefing del Día — marcar como leído (AJAX)
+(function() {
+    const btn = document.getElementById('btn-marcar-briefing-leido');
+    if (!btn) return;
+    btn.addEventListener('click', async function() {
+        const bid = btn.dataset.briefingId;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Marcando...';
+        try {
+            const csrf = document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+            const resp = await fetch(`/asistencia/briefing/${bid}/leido/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf },
+                credentials: 'same-origin',
+            });
+            if (resp.ok) {
+                btn.outerHTML = '<span class="badge" style="background:rgba(255,255,255,.25);color:#fff;padding:.4rem .8rem;border-radius:999px;font-size:.78rem;"><i class="fas fa-check-circle me-1"></i>Leído</span>';
+            } else {
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error';
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error';
+            btn.disabled = false;
+        }
+    });
+})();
+</script>
 {% endblock %}
