@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Checklist: {{ checklist.personal.apellidos_nombres }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.gastro-hero {
+    background: linear-gradient(135deg, #0d2b27 0%, #0f766e 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+}
+.gastro-hero h2 { color: #fff; margin: 0; }
+.progress-gastro { height: 10px; background: rgba(255,255,255,.2); }
+.progress-gastro .progress-bar { background: #5eead4; }
+
+.gastro-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+.gastro-card-header {
+    padding: .75rem 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: #0f766e;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+.gastro-card-header.certs   { background: #0d2b27; }
+.gastro-card-header.evals   { background: #b45309; }
+
+.gastro-item {
+    display: flex;
+    align-items: center;
+    padding: .65rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    gap: .75rem;
+}
+.gastro-item:last-child { border-bottom: 0; }
+.gastro-item .icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f0fdfa;
+    color: #0f766e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+    flex-shrink: 0;
+}
+.gastro-item.done .icon { background: #d1fae5; color: #047857; }
+.gastro-item .label { flex: 1; }
+.gastro-item .label .title { font-weight: 500; color: #1f2937; }
+.gastro-item .label .meta  { font-size: .75rem; color: #6b7280; }
+.gastro-item .toggle-btn {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    border-radius: 999px;
+    padding: .25rem .75rem;
+    font-size: .8rem;
+    cursor: pointer;
+    transition: all .15s;
+}
+.gastro-item .toggle-btn:hover { background: #e2e8f0; }
+.gastro-item.done .toggle-btn {
+    background: #10b981;
+    border-color: #10b981;
+    color: #fff;
+}
+.alert-vencido {
+    background: #fef2f2;
+    border-left: 4px solid #dc2626;
+    color: #991b1b;
+    padding: .75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.timeline-stage {
+    position: relative;
+    padding-left: 2rem;
+    padding-bottom: 1.5rem;
+    border-left: 2px solid #e5e7eb;
+}
+.timeline-stage::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+.timeline-stage.done::before { background: #10b981; }
+.timeline-stage.warn::before { background: #f59e0b; }
+.timeline-stage.fail::before { background: #dc2626; }
+.timeline-stage h6 { margin: 0 0 .25rem; }
+
+.eval-form {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: .75rem;
+    margin-top: .5rem;
+}
+.eval-form textarea { font-size: .85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="gastro-hero">
+    <div class="d-flex justify-content-between align-items-start flex-wrap">
+        <div>
+            <h2><i class="fas fa-utensils me-2"></i>{{ checklist.personal.apellidos_nombres }}</h2>
+            <div class="text-light mt-1" style="font-size:.85rem;">
+                DNI: {{ checklist.personal.nro_doc }} ·
+                Ingreso: {{ checklist.fecha_ingreso|date:"d/m/Y" }} ·
+                Día {{ checklist.dias_desde_ingreso }}
+            </div>
+        </div>
+        <a href="{% url 'checklist_gastro_panel' %}" class="btn btn-outline-light btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Volver al panel
+        </a>
+    </div>
+    <div class="row mt-3 align-items-center">
+        <div class="col-md-8">
+            <div class="progress progress-gastro">
+                <div class="progress-bar" id="progress-bar" style="width:{{ checklist.porcentaje_completado }}%"></div>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-end mt-2 mt-md-0">
+            <span style="font-size:1.5rem; font-weight:700;" id="progress-pct">{{ checklist.porcentaje_completado }}%</span>
+            <small class="text-light ms-1">
+                <span id="progress-items">{{ checklist.items_completados }}</span> de {{ checklist.total_items }} items
+            </small>
+        </div>
+    </div>
+</div>
+
+{% if alertas %}
+<div class="alert-vencido">
+    <strong><i class="fas fa-exclamation-triangle me-1"></i>{{ alertas|length }} alerta(s) vencida(s):</strong>
+    <ul class="mb-0 mt-1" style="font-size:.85rem;">
+        {% for codigo, mensaje in alertas %}
+        <li>{{ mensaje }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if messages %}
+{% for m in messages %}
+<div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ m }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Timeline visual 30/60/90 -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h6 class="mb-3"><i class="fas fa-stream me-2 text-secondary"></i>Línea de tiempo 30/60/90</h6>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="timeline-stage {% if checklist.evaluacion_30 %}done{% elif checklist.dias_desde_ingreso >= 30 %}fail{% elif checklist.dias_desde_ingreso >= 21 %}warn{% endif %}">
+                    <h6>30 días</h6>
+                    <small class="text-muted">
+                        Documentación + certificaciones básicas.
+                        {% if checklist.evaluacion_30 %}
+                            Cal: <strong>{{ checklist.evaluacion_30_calificacion|default:"—" }}/10</strong>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="timeline-stage {% if checklist.evaluacion_60 %}done{% elif checklist.dias_desde_ingreso >= 60 %}fail{% elif checklist.dias_desde_ingreso >= 50 %}warn{% endif %}">
+                    <h6>60 días</h6>
+                    <small class="text-muted">
+                        Desempeño en cocina, integración al equipo.
+                        {% if checklist.evaluacion_60 %}
+                            Cal: <strong>{{ checklist.evaluacion_60_calificacion|default:"—" }}/10</strong>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="timeline-stage {% if checklist.evaluacion_90 %}done{% elif checklist.dias_desde_ingreso >= 90 %}fail{% elif checklist.dias_desde_ingreso >= 80 %}warn{% endif %}">
+                    <h6>90 días</h6>
+                    <small class="text-muted">
+                        Confirmación / fin de período de prueba.
+                        {% if checklist.evaluacion_90 %}
+                            Cal: <strong>{{ checklist.evaluacion_90_calificacion|default:"—" }}/10</strong>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Checklist agrupado -->
+<div class="row">
+    <div class="col-lg-7">
+        {% for categoria, items in grupos.items %}
+        <div class="gastro-card">
+            <div class="gastro-card-header {% if categoria == 'Certificaciones' %}certs{% elif categoria == 'Evaluaciones' %}evals{% endif %}">
+                {% if categoria == 'Documentos' %}<i class="fas fa-folder-open"></i>{% endif %}
+                {% if categoria == 'Certificaciones' %}<i class="fas fa-shield-alt"></i>{% endif %}
+                {% if categoria == 'Evaluaciones' %}<i class="fas fa-star"></i>{% endif %}
+                {{ categoria }}
+            </div>
+            {% for it in items %}
+            <div class="gastro-item {% if it.marcado %}done{% endif %}" data-campo="{{ it.campo }}">
+                <div class="icon"><i class="fas {{ it.icono }}"></i></div>
+                <div class="label">
+                    <div class="title">{{ it.label }}</div>
+                    <div class="meta">
+                        {% if it.fecha %}
+                            <i class="fas fa-calendar-check me-1"></i>{{ it.fecha|date:"d/m/Y" }}
+                        {% else %}
+                            Pendiente
+                        {% endif %}
+                        {% if it.calificacion %}
+                            · Calificación: <strong>{{ it.calificacion }}/10</strong>
+                        {% endif %}
+                    </div>
+                </div>
+                <form method="post" action="{% url 'checklist_gastro_toggle' pk=checklist.pk %}"
+                      class="d-inline toggle-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="campo" value="{{ it.campo }}">
+                    <button type="submit" class="toggle-btn">
+                        {% if it.marcado %}
+                            <i class="fas fa-check me-1"></i>Listo
+                        {% else %}
+                            Marcar
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Formulario de evaluaciones (sidebar) -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="fas fa-pen me-2 text-warning"></i>Registrar evaluaciones</h6>
+
+                <form method="post" class="eval-form mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="eval_30">
+                    <strong>Evaluación 30 días</strong>
+                    <div class="row g-2 mt-1">
+                        <div class="col-5">
+                            <input type="number" min="1" max="10"
+                                   class="form-control form-control-sm"
+                                   name="evaluacion_30_calificacion"
+                                   placeholder="1-10"
+                                   value="{{ checklist.evaluacion_30_calificacion|default:'' }}">
+                        </div>
+                        <div class="col-7">
+                            <button type="submit" class="btn btn-sm btn-warning w-100">
+                                <i class="fas fa-save me-1"></i>Registrar
+                            </button>
+                        </div>
+                    </div>
+                    <textarea class="form-control form-control-sm mt-2"
+                              name="evaluacion_30_notas" rows="2"
+                              placeholder="Notas...">{{ checklist.evaluacion_30_notas }}</textarea>
+                </form>
+
+                <form method="post" class="eval-form mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="eval_60">
+                    <strong>Evaluación 60 días</strong>
+                    <div class="row g-2 mt-1">
+                        <div class="col-5">
+                            <input type="number" min="1" max="10"
+                                   class="form-control form-control-sm"
+                                   name="evaluacion_60_calificacion"
+                                   placeholder="1-10"
+                                   value="{{ checklist.evaluacion_60_calificacion|default:'' }}">
+                        </div>
+                        <div class="col-7">
+                            <button type="submit" class="btn btn-sm btn-warning w-100">
+                                <i class="fas fa-save me-1"></i>Registrar
+                            </button>
+                        </div>
+                    </div>
+                    <textarea class="form-control form-control-sm mt-2"
+                              name="evaluacion_60_notas" rows="2"
+                              placeholder="Notas...">{{ checklist.evaluacion_60_notas }}</textarea>
+                </form>
+
+                <form method="post" class="eval-form mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="eval_90">
+                    <strong>Evaluación 90 días</strong>
+                    <div class="row g-2 mt-1">
+                        <div class="col-5">
+                            <input type="number" min="1" max="10"
+                                   class="form-control form-control-sm"
+                                   name="evaluacion_90_calificacion"
+                                   placeholder="1-10"
+                                   value="{{ checklist.evaluacion_90_calificacion|default:'' }}">
+                        </div>
+                        <div class="col-7">
+                            <button type="submit" class="btn btn-sm btn-warning w-100">
+                                <i class="fas fa-save me-1"></i>Registrar
+                            </button>
+                        </div>
+                    </div>
+                    <textarea class="form-control form-control-sm mt-2"
+                              name="evaluacion_90_notas" rows="2"
+                              placeholder="Notas...">{{ checklist.evaluacion_90_notas }}</textarea>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    // AJAX toggle para los items del checklist
+    function getCookie(name) {
+        const v = `; ${document.cookie}`;
+        const parts = v.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    document.querySelectorAll('.toggle-form').forEach(function (form) {
+        form.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            const url = form.getAttribute('action');
+            const fd = new FormData(form);
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With': 'XMLHttpRequest' },
+                body: fd,
+                credentials: 'same-origin',
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.ok) {
+                    alert(data.error || 'Error');
+                    return;
+                }
+                // Actualizar UI del item
+                const wrapper = form.closest('.gastro-item');
+                if (wrapper) {
+                    if (data.nuevo_valor) wrapper.classList.add('done');
+                    else wrapper.classList.remove('done');
+                    const btn = form.querySelector('.toggle-btn');
+                    if (btn) {
+                        btn.innerHTML = data.nuevo_valor
+                            ? '<i class="fas fa-check me-1"></i>Listo'
+                            : 'Marcar';
+                    }
+                    const meta = wrapper.querySelector('.meta');
+                    if (meta && data.fecha) {
+                        meta.innerHTML = '<i class="fas fa-calendar-check me-1"></i>' + new Date(data.fecha).toLocaleDateString();
+                    } else if (meta) {
+                        meta.innerHTML = 'Pendiente';
+                    }
+                }
+                // Actualizar % global
+                const bar = document.getElementById('progress-bar');
+                const pct = document.getElementById('progress-pct');
+                const items = document.getElementById('progress-items');
+                if (bar) bar.style.width = data.porcentaje + '%';
+                if (pct) pct.textContent = data.porcentaje + '%';
+                if (items) items.textContent = data.items_completados;
+            })
+            .catch(err => alert('Error de red: ' + err));
+        });
+    });
+})();
+</script>
+{% endblock %}

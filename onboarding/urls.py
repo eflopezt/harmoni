@@ -32,4 +32,10 @@ urlpatterns = [
 
     # ── Portal ──
     path('mi/', views.mi_onboarding, name='mi_onboarding'),
+
+    # ── Checklist Gastronomía 30/60/90 ──
+    path('gastro/', views.checklist_gastro_panel, name='checklist_gastro_panel'),
+    path('gastro/auto-crear/', views.checklist_gastro_auto_crear, name='checklist_gastro_auto_crear'),
+    path('gastro/<int:pk>/', views.checklist_gastro_detalle, name='checklist_gastro_detalle'),
+    path('gastro/<int:pk>/toggle/', views.checklist_gastro_toggle, name='checklist_gastro_toggle'),
 ]

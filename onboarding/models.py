@@ -7,6 +7,7 @@ from datetime import date, timedelta
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from personal.models import Personal, Area
 
@@ -223,6 +224,161 @@ class PasoOnboarding(models.Model):
         if self.fecha_limite and date.today() > self.fecha_limite:
             return True
         return False
+
+
+# ══════════════════════════════════════════════════════════════
+# CHECKLIST GASTRONOMÍA — 30/60/90 días
+# ══════════════════════════════════════════════════════════════
+
+class ChecklistGastronomia(models.Model):
+    """Checklist de onboarding específico para trabajadores nuevos en gastronomía.
+
+    Complementa el sistema genérico de Plantillas con un checklist fijo
+    orientado a documentos legales, certificaciones sanitarias obligatorias
+    (BPM, HACCP, Manipulación de Alimentos, Carné Sanitario) y evaluaciones
+    de desempeño a los 30/60/90 días.
+    """
+    personal = models.OneToOneField(
+        Personal, on_delete=models.CASCADE,
+        related_name='checklist_gastro', verbose_name="Trabajador"
+    )
+    fecha_ingreso = models.DateField(verbose_name="Fecha de Ingreso")
+
+    # ── Documentos y firmas (semana 1) ─────────────────────────
+    contrato_firmado = models.BooleanField(default=False, verbose_name="Contrato firmado")
+    contrato_firmado_fecha = models.DateField(null=True, blank=True)
+
+    examen_medico = models.BooleanField(default=False, verbose_name="Examen médico ocupacional")
+    examen_medico_fecha = models.DateField(null=True, blank=True)
+
+    uniforme_entregado = models.BooleanField(default=False, verbose_name="Uniforme entregado")
+    uniforme_entregado_fecha = models.DateField(null=True, blank=True)
+
+    induccion_general = models.BooleanField(default=False, verbose_name="Inducción general")
+    induccion_general_fecha = models.DateField(null=True, blank=True)
+
+    # ── Certificaciones sanitarias (mes 1) ─────────────────────
+    bpm_certificado = models.BooleanField(default=False, verbose_name="Certificación BPM")
+    bpm_certificado_fecha = models.DateField(null=True, blank=True)
+
+    haccp_certificado = models.BooleanField(default=False, verbose_name="Certificación HACCP")
+    haccp_certificado_fecha = models.DateField(null=True, blank=True)
+
+    manipulacion_alimentos = models.BooleanField(default=False, verbose_name="Manipulación de alimentos")
+    manipulacion_alimentos_fecha = models.DateField(null=True, blank=True)
+
+    carne_sanitario = models.BooleanField(default=False, verbose_name="Carné sanitario")
+    carne_sanitario_fecha = models.DateField(null=True, blank=True)
+
+    # ── Evaluaciones 30 / 60 / 90 días ─────────────────────────
+    evaluacion_30 = models.BooleanField(default=False, verbose_name="Evaluación 30 días")
+    evaluacion_30_fecha = models.DateField(null=True, blank=True)
+    evaluacion_30_calificacion = models.PositiveIntegerField(
+        null=True, blank=True, help_text='Calificación 1-10'
+    )
+    evaluacion_30_notas = models.TextField(blank=True)
+
+    evaluacion_60 = models.BooleanField(default=False, verbose_name="Evaluación 60 días")
+    evaluacion_60_fecha = models.DateField(null=True, blank=True)
+    evaluacion_60_calificacion = models.PositiveIntegerField(
+        null=True, blank=True, help_text='Calificación 1-10'
+    )
+    evaluacion_60_notas = models.TextField(blank=True)
+
+    evaluacion_90 = models.BooleanField(default=False, verbose_name="Evaluación 90 días")
+    evaluacion_90_fecha = models.DateField(null=True, blank=True)
+    evaluacion_90_calificacion = models.PositiveIntegerField(
+        null=True, blank=True, help_text='Calificación 1-10'
+    )
+    evaluacion_90_notas = models.TextField(blank=True)
+
+    # ── Estado general ─────────────────────────────────────────
+    completado = models.BooleanField(default=False, verbose_name="Completado")
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+    responsable = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='checklists_gastro',
+        verbose_name="Responsable"
+    )
+
+    # Lista de campos boolean que cuentan para el porcentaje
+    _ITEMS_CHECKLIST = (
+        'contrato_firmado', 'examen_medico', 'uniforme_entregado', 'induccion_general',
+        'bpm_certificado', 'haccp_certificado', 'manipulacion_alimentos', 'carne_sanitario',
+        'evaluacion_30', 'evaluacion_60', 'evaluacion_90',
+    )
+
+    class Meta:
+        verbose_name = "Checklist de Onboarding Gastronomía"
+        verbose_name_plural = "Checklists de Onboarding Gastronomía"
+        ordering = ['-fecha_ingreso']
+
+    def __str__(self):
+        return f"Checklist {self.personal.apellidos_nombres}"
+
+    @property
+    def porcentaje_completado(self):
+        items = [getattr(self, f) for f in self._ITEMS_CHECKLIST]
+        if not items:
+            return 0
+        return int(sum(1 for i in items if i) / len(items) * 100)
+
+    @property
+    def items_completados(self):
+        return sum(1 for f in self._ITEMS_CHECKLIST if getattr(self, f))
+
+    @property
+    def total_items(self):
+        return len(self._ITEMS_CHECKLIST)
+
+    @property
+    def dias_desde_ingreso(self):
+        return (timezone.now().date() - self.fecha_ingreso).days
+
+    @property
+    def alertas_vencidas(self):
+        """Items que ya deberían estar listos pero no lo están."""
+        alerts = []
+        dias = self.dias_desde_ingreso
+        if dias >= 7 and not self.contrato_firmado:
+            alerts.append(('contrato_firmado', 'Contrato firmado (semana 1)'))
+        if dias >= 14 and not self.examen_medico:
+            alerts.append(('examen_medico', 'Examen médico (semana 2)'))
+        if dias >= 30 and not (self.bpm_certificado and self.manipulacion_alimentos):
+            alerts.append(('certs', 'Certificaciones BPM/Manipulación (mes 1)'))
+        if dias >= 30 and not self.evaluacion_30:
+            alerts.append(('eval_30', 'Evaluación 30 días vencida'))
+        if dias >= 60 and not self.evaluacion_60:
+            alerts.append(('eval_60', 'Evaluación 60 días vencida'))
+        if dias >= 90 and not self.evaluacion_90:
+            alerts.append(('eval_90', 'Evaluación 90 días vencida'))
+        return alerts
+
+    @property
+    def en_riesgo(self):
+        return len(self.alertas_vencidas) > 0
+
+    @property
+    def proximo_hito(self):
+        """Devuelve string con el siguiente hito pendiente."""
+        if not self.contrato_firmado:
+            return "Firmar contrato"
+        if not self.examen_medico:
+            return "Examen médico"
+        if not self.induccion_general:
+            return "Inducción general"
+        if not self.uniforme_entregado:
+            return "Entregar uniforme"
+        if not (self.bpm_certificado and self.manipulacion_alimentos):
+            return "Certificaciones sanitarias"
+        if not self.evaluacion_30:
+            return "Evaluación 30 días"
+        if not self.evaluacion_60:
+            return "Evaluación 60 días"
+        if not self.evaluacion_90:
+            return "Evaluación 90 días"
+        return "Completado"
 
 
 # ══════════════════════════════════════════════════════════════
