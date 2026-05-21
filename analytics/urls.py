@@ -3,6 +3,7 @@ Analytics & People Intelligence — URLs.
 """
 from django.urls import path
 from . import views
+from . import views_predictor
 
 urlpatterns = [
     # Dashboard principal
@@ -13,6 +14,12 @@ urlpatterns = [
     path('attrition/', views.attrition_risk, name='analytics_attrition'),
     path('salarios/', views.salary_analytics, name='analytics_salarios'),
     path('predictive/', views.predictive_insights, name='analytics_predictive'),
+
+    # Predictor de Rotación de Personal (rule-based explicable)
+    path('predictor-rotacion/', views_predictor.predictor_rotacion_panel,
+         name='predictor_rotacion_panel'),
+    path('predictor-rotacion/<int:pk>/', views_predictor.predictor_rotacion_detalle,
+         name='predictor_rotacion_detalle'),
 
     # Snapshots KPI
     path('snapshots/', views.snapshots_list, name='analytics_snapshots'),
