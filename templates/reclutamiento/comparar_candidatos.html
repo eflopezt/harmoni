@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Comparar Candidatos{% endblock %}
+
+{% block extra_css %}
+<style>
+.compare-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+.compare-table th.attr-col {
+    width: 130px;
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: .82rem;
+    text-align: right;
+    padding: 10px 12px;
+    border-right: 1px solid #e2e8f0;
+    vertical-align: top;
+}
+.compare-table td.candidato-col {
+    padding: 10px 14px;
+    border-right: 1px solid #e2e8f0;
+    vertical-align: top;
+    background: #fff;
+    min-width: 220px;
+}
+.compare-table tr:nth-child(even) td,
+.compare-table tr:nth-child(even) th { background: #fafbfc; }
+.compare-table tr:hover td { background: #f0fdf4; }
+
+.compare-header {
+    padding: 16px;
+    background: linear-gradient(135deg,#0d2b27,#0f766e);
+    color: #fff;
+    border-radius: 10px 10px 0 0;
+    text-align: center;
+}
+.compare-header .score-big {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #5eead4;
+}
+.compare-header h5 {
+    margin: 8px 0 2px;
+    font-size: 1rem;
+}
+.compare-header .small {
+    color: #b6d4d0;
+    font-size: .78rem;
+}
+.skill-pill-on  { background:#10b981; color:#fff; }
+.skill-pill-off { background:#e2e8f0; color:#94a3b8; }
+.skill-pill {
+    font-size:.7rem; padding:3px 8px; border-radius:10px;
+    margin:2px 2px 0 0; display:inline-block; font-weight:600;
+}
+.add-card {
+    background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 10px;
+    padding: 30px 16px; text-align: center; color: #64748b;
+}
+.add-card:hover { border-color: #5eead4; color: #0d2b27; }
+.btn-remove {
+    background:rgba(255,255,255,.15); color:#fff; border:none;
+    border-radius:50%; width:24px; height:24px; font-size:.78rem;
+    line-height:1; cursor:pointer;
+}
+.btn-remove:hover { background:#dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-balance-scale text-secondary me-2"></i>{{ titulo }}</h2>
+        <small class="text-muted">Side-by-side de hasta 4 candidatos · análisis de matching, skills, experiencia</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pipeline_panel' %}" class="btn btn-sm btn-secondary">
+            <i class="fas fa-columns me-1"></i>Pipeline
+        </a>
+    </div>
+</div>
+
+{% if not candidatos %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body p-4 text-center">
+        <i class="fas fa-balance-scale" style="font-size:3rem; color:#cbd5e1;"></i>
+        <h5 class="mt-3 text-muted">Selecciona candidatos para comparar</h5>
+        <p class="small text-muted mb-3">Elige hasta 4 candidatos del listado lateral para verlos lado a lado.</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Sidebar selector -->
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm" style="position:sticky; top:80px; max-height: calc(100vh - 120px); overflow-y:auto;">
+            <div class="card-header py-2">
+                <small class="fw-bold"><i class="fas fa-users me-1"></i>Activos ({{ todas_activas.count }})</small>
+            </div>
+            <div class="list-group list-group-flush small" style="font-size:.8rem">
+                {% for p in todas_activas %}
+                <a href="?ids={% if ids_str %}{{ ids_str }},{% endif %}{{ p.pk }}"
+                   class="list-group-item list-group-item-action py-2 px-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-truncate" style="max-width:75%">
+                            <strong>{{ p.nombre_completo|truncatechars:24 }}</strong><br>
+                            <small class="text-muted">{{ p.vacante.titulo|truncatechars:24 }}</small>
+                        </div>
+                        {% if p.cv_score %}
+                        <span class="badge" style="background:{% if p.cv_score >= 80 %}#10b981{% elif p.cv_score >= 60 %}#f59e0b{% else %}#94a3b8{% endif %}; color:#fff">
+                            {{ p.cv_score }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparacion -->
+    <div class="col-md-9">
+        {% if candidatos %}
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <!-- Headers de candidatos -->
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th class="attr-col"></th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col p-0">
+                                <div class="compare-header position-relative">
+                                    <button class="btn-remove position-absolute" style="top:8px; right:8px;"
+                                            onclick="removerCandidato({{ c.pk }})" title="Quitar">×</button>
+                                    <div class="score-big">{{ c.cv_score|default:"—" }}</div>
+                                    <small class="small">/ 100 Score</small>
+                                    <h5>{{ c.nombre_completo|truncatechars:24 }}</h5>
+                                    <div class="small">{{ c.vacante.titulo|truncatechars:32 }}</div>
+                                    <div class="mt-2">
+                                        <a href="{% url 'postulacion_detalle' c.pk %}" class="btn btn-sm btn-light">
+                                            <i class="fas fa-eye"></i> Ver
+                                        </a>
+                                        <a href="{% url 'postulacion_pdf' c.pk %}" target="_blank" class="btn btn-sm btn-light">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                            {% endfor %}
+                            {% if candidatos|length < 4 %}
+                            <td class="candidato-col">
+                                <div class="add-card">
+                                    <i class="fas fa-plus-circle" style="font-size:1.8rem;"></i>
+                                    <div class="mt-2 small">Agrega otro<br>desde el panel</div>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr>
+                            <th class="attr-col">Etapa actual</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">
+                                <span class="badge" style="background:{{ c.etapa.color|default:'#94a3b8' }}; color:#fff">
+                                    {{ c.etapa.nombre|default:"—" }}
+                                </span>
+                            </td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th class="attr-col">Estado</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">{{ c.get_estado_display }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th class="attr-col">Email</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col small">{{ c.email|default:"—" }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th class="attr-col">Teléfono</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col small">{{ c.telefono|default:"—" }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th class="attr-col">Fuente</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">
+                                <span class="badge bg-light text-dark border">{{ c.get_fuente_display }}</span>
+                            </td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th class="attr-col">Experiencia</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">
+                                {% if c.experiencia_anos %}{{ c.experiencia_anos }} año(s){% else %}—{% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th class="attr-col">Salario pretendido</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">
+                                {% if c.salario_pretendido %}S/ {{ c.salario_pretendido }}{% else %}—{% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th class="attr-col">Días en proceso</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">{{ c.dias_en_proceso }} día(s)</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <th class="attr-col">Tags</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">
+                                {% if c.tags %}
+                                    {% for code, label in c.tags_display %}
+                                    <span class="badge bg-warning text-dark mb-1">{{ label }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+
+                        <!-- Skills matching matrix -->
+                        {% if skills_union %}
+                        <tr>
+                            <th class="attr-col" style="background:#e0f2f1;">
+                                Skills detectados<br>
+                                <small class="text-muted" style="font-weight:400">comparación</small>
+                            </th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">
+                                {% for skill in skills_union %}
+                                    <span class="skill-pill {% if skill in c.cv_skills %}skill-pill-on{% else %}skill-pill-off{% endif %}"
+                                          title="{{ skill }}">
+                                        {{ skill|cut:"_"|truncatechars:14 }}
+                                    </span>
+                                {% endfor %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endif %}
+
+                        <tr>
+                            <th class="attr-col">Idiomas</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col small">
+                                {% if c.cv_idiomas %}{{ c.cv_idiomas|join:", " }}{% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+
+                        <!-- Notas (cantidad) -->
+                        <tr>
+                            <th class="attr-col">Notas</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">{{ c.notas_detalle.count }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <!-- Entrevistas -->
+                        <tr>
+                            <th class="attr-col">Entrevistas</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">{{ c.entrevistas.count }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <!-- CV parseado -->
+                        <tr>
+                            <th class="attr-col">CV parseado</th>
+                            {% for c in candidatos %}
+                            <td class="candidato-col">
+                                {% if c.cv_parsed_at %}
+                                    <i class="fas fa-check text-success"></i> {{ c.cv_parsed_at|date:"d/m" }}
+                                {% else %}
+                                    <i class="fas fa-times text-muted"></i> —
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recomendacion -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-body py-3">
+                <h6 class="mb-2"><i class="fas fa-lightbulb text-warning me-1"></i>Análisis rápido</h6>
+                <ul class="small mb-0">
+                    {% with best=candidatos|dictsortreversed:"cv_score"|first %}
+                    {% if best.cv_score %}
+                    <li><strong>Mayor score:</strong> <a href="{% url 'postulacion_detalle' best.pk %}">{{ best.nombre_completo }}</a> con {{ best.cv_score }}/100.</li>
+                    {% endif %}
+                    {% endwith %}
+                    <li><strong>Total seleccionados:</strong> {{ candidatos|length }} candidato(s)</li>
+                    <li><strong>Skills únicos detectados:</strong> {{ skills_union|length }}</li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const idsActuales = "{{ ids_str|escapejs }}".split(',').filter(Boolean);
+
+function removerCandidato(pk) {
+    const filtrados = idsActuales.filter(x => x !== String(pk));
+    const url = filtrados.length > 0
+        ? `?ids=${filtrados.join(',')}`
+        : window.location.pathname;
+    window.location.href = url;
+}
+
+// Atajo: C para abrir Comparar desde Pipeline (se podria poner global)
+</script>
+{% endblock %}

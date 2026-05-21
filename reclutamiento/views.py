@@ -724,6 +724,215 @@ def pipeline_bulk_action(request):
 
 
 # ══════════════════════════════════════════════════════════════
+# ADMIN — Banco de Talento (candidatos descartados rescatables)
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def banco_de_talento(request):
+    """
+    Vista de todos los candidatos con estado DESCARTADA o no contratados
+    que pueden ser rescatados para futuras vacantes.
+
+    Filtros: skill, fuente, score_min, q (busqueda texto)
+    """
+    qs = (
+        Postulacion.objects
+        .filter(estado='DESCARTADA')
+        .select_related('vacante', 'etapa')
+    )
+
+    skill_filtro = (request.GET.get('skill') or '').strip().lower()
+    fuente_filtro = (request.GET.get('fuente') or '').strip()
+    score_min = (request.GET.get('score_min') or '').strip()
+    q = (request.GET.get('q') or '').strip()
+
+    if fuente_filtro:
+        qs = qs.filter(fuente=fuente_filtro)
+    if score_min:
+        try:
+            qs = qs.filter(cv_score__gte=int(score_min))
+        except ValueError:
+            pass
+    if q:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(nombre_completo__icontains=q) |
+            Q(email__icontains=q) |
+            Q(telefono__icontains=q)
+        )
+    if skill_filtro:
+        # Filtrar en Python si JSONField __contains no soportado
+        try:
+            from django.db import connection
+            if connection.vendor == 'postgresql':
+                qs = qs.filter(cv_skills__contains=[skill_filtro])
+            else:
+                qs = [p for p in qs if skill_filtro in (p.cv_skills or [])]
+        except Exception:
+            pass
+
+    # Ordenar por score desc
+    if hasattr(qs, 'order_by'):
+        qs = qs.order_by('-cv_score', '-fecha_postulacion')
+    qs = list(qs)[:200]
+
+    # Skills agregados para autocomplete
+    skills_disponibles = set()
+    for p in qs:
+        skills_disponibles |= set(p.cv_skills or [])
+    skills_disponibles = sorted(skills_disponibles)
+
+    # Vacantes activas para reactivar
+    vacantes_activas = Vacante.objects.filter(
+        estado__in=['PUBLICADA', 'EN_PROCESO']
+    ).order_by('titulo')
+
+    # Stats
+    total_descartados = Postulacion.objects.filter(estado='DESCARTADA').count()
+    con_score_alto = sum(1 for p in qs if (p.cv_score or 0) >= 70)
+
+    context = {
+        'titulo':                 'Banco de Talento',
+        'candidatos':             qs,
+        'skills_disponibles':     skills_disponibles,
+        'vacantes_activas':       vacantes_activas,
+        'fuentes_choices':        Postulacion.FUENTE_CHOICES,
+        'filtro_skill':           skill_filtro,
+        'filtro_fuente':          fuente_filtro,
+        'filtro_score_min':       score_min,
+        'q':                      q,
+        'total_descartados':      total_descartados,
+        'con_score_alto':         con_score_alto,
+    }
+    return render(request, 'reclutamiento/banco_talento.html', context)
+
+
+@login_required
+@solo_admin
+@require_POST
+def reactivar_candidato(request, pk):
+    """Reactivar un candidato descartado a otra vacante."""
+    from django.http import JsonResponse
+    try:
+        postulacion = Postulacion.objects.get(pk=pk, estado='DESCARTADA')
+    except Postulacion.DoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'No existe o no esta descartado'}, status=404)
+
+    nueva_vacante_id = request.POST.get('vacante_id')
+    try:
+        nueva_vacante = Vacante.objects.get(pk=int(nueva_vacante_id))
+    except (Vacante.DoesNotExist, ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'Vacante invalida'}, status=400)
+
+    # Crear nueva Postulacion para la nueva vacante (clonando datos del candidato)
+    primera_etapa = EtapaPipeline.objects.filter(activa=True).order_by('orden').first()
+    nueva = Postulacion.objects.create(
+        vacante=nueva_vacante,
+        etapa=primera_etapa,
+        nombre_completo=postulacion.nombre_completo,
+        email=postulacion.email,
+        telefono=postulacion.telefono,
+        fuente='BANCO',
+        cv=postulacion.cv if postulacion.cv else None,
+        experiencia_anos=getattr(postulacion, 'experiencia_anos', 0) or 0,
+        salario_pretendido=postulacion.salario_pretendido,
+        cv_texto_extraido=postulacion.cv_texto_extraido,
+        cv_skills=list(postulacion.cv_skills or []),
+        cv_idiomas=list(postulacion.cv_idiomas or []),
+        cv_score=postulacion.cv_score,
+        cv_parsed_at=postulacion.cv_parsed_at,
+    )
+    NotaPostulacion.objects.create(
+        postulacion=nueva,
+        autor=request.user,
+        tipo='NOTA',
+        texto=f'Candidato rescatado del Banco de Talento (postulación original #{postulacion.pk} en "{postulacion.vacante.titulo}")',
+    )
+    # Tag al original como reubicado
+    postulacion.add_tag('reubicar')
+
+    return JsonResponse({
+        'ok': True,
+        'nueva_postulacion_id': nueva.pk,
+        'redirect': f'/reclutamiento/postulacion/{nueva.pk}/',
+    })
+
+
+# ══════════════════════════════════════════════════════════════
+# ADMIN — Comparacion side-by-side de candidatos
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def comparar_candidatos(request):
+    """
+    Vista side-by-side de 2-4 candidatos.
+    URL: /reclutamiento/comparar/?ids=1,2,3
+    """
+    ids_raw = request.GET.get('ids', '')
+    ids = [int(x) for x in ids_raw.split(',') if x.strip().isdigit()][:4]
+
+    candidatos = []
+    if ids:
+        candidatos = list(
+            Postulacion.objects
+            .select_related('vacante', 'etapa')
+            .prefetch_related('notas_detalle', 'entrevistas')
+            .filter(pk__in=ids)
+        )
+        # Mantener el orden segun se pidio
+        order_map = {pid: idx for idx, pid in enumerate(ids)}
+        candidatos.sort(key=lambda c: order_map.get(c.pk, 99))
+
+    # Obtener union de skills para visualizar matching
+    skills_union = set()
+    for c in candidatos:
+        skills_union |= set(c.cv_skills or [])
+    skills_union = sorted(skills_union)
+
+    # Calcular desglose para cada uno
+    desgloses = {}
+    if candidatos:
+        try:
+            for c in candidatos:
+                parsed = {
+                    'email':             c.email or '',
+                    'telefono':          c.telefono or '',
+                    'anios_experiencia': getattr(c, 'experiencia_anos', 0) or 0,
+                    'skills':            list(c.cv_skills or []),
+                    'idiomas':           list(c.cv_idiomas or []),
+                    'tiene_experiencia': bool(c.cv_texto_extraido),
+                    'tiene_educacion':   bool(
+                        c.cv_texto_extraido and
+                        any(w in c.cv_texto_extraido.lower()
+                            for w in ['educacion', 'educación', 'estudios', 'universidad'])
+                    ),
+                }
+                desgloses[c.pk] = _desglose_score_matching(parsed, c.vacante)
+        except Exception:
+            desgloses = {}
+
+    # Para el selector lateral (todas las postulaciones activas)
+    todas_activas = (
+        Postulacion.objects
+        .filter(estado='ACTIVA')
+        .select_related('vacante')
+        .order_by('-cv_score', 'nombre_completo')[:50]
+    )
+
+    context = {
+        'titulo':         'Comparar Candidatos',
+        'candidatos':     candidatos,
+        'skills_union':   skills_union,
+        'desgloses':      desgloses,
+        'todas_activas':  todas_activas,
+        'ids_str':        ','.join(str(i) for i in ids),
+    }
+    return render(request, 'reclutamiento/comparar_candidatos.html', context)
+
+
+# ══════════════════════════════════════════════════════════════
 # ADMIN — PDF Candidato (perfil unificado)
 # ══════════════════════════════════════════════════════════════
 

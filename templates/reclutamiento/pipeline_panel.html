@@ -523,6 +523,10 @@
         <i class="fas fa-sticky-note me-1"></i>Nota
     </button>
 
+    <button class="btn btn-sm btn-info" onclick="bulkComparar()">
+        <i class="fas fa-balance-scale me-1"></i>Comparar
+    </button>
+
     <button class="btn btn-sm btn-danger" onclick="bulkDescartar()">
         <i class="fas fa-times me-1"></i>Descartar
     </button>
@@ -685,6 +689,16 @@ function bulkNota() {
     if (!texto || !texto.trim()) return;
     bulkPost({ accion: 'nota', texto: texto.trim() })
         .then(d => d.ok ? location.reload() : alert(d.error || 'Error'));
+}
+
+function bulkComparar() {
+    if (selectedIds.size === 0) return;
+    if (selectedIds.size > 4) {
+        alert('Máximo 4 candidatos por comparación. Tienes ' + selectedIds.size + ' seleccionados.');
+        return;
+    }
+    const ids = Array.from(selectedIds).join(',');
+    window.location.href = `/reclutamiento/comparar/?ids=${ids}`;
 }
 
 // ───── Keyboard shortcuts ─────

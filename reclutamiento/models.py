@@ -238,6 +238,7 @@ class Postulacion(models.Model):
         ('LINKEDIN', 'LinkedIn'),
         ('REFERIDO', 'Referido'),
         ('HEADHUNTER', 'Headhunter'),
+        ('BANCO', 'Banco de Talento'),
         ('OTRO', 'Otro'),
     ]
 

@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Banco de Talento{% endblock %}
+
+{% block extra_css %}
+<style>
+.bt-stat-card {
+    background: linear-gradient(135deg,#0d2b27,#0f766e);
+    color: #fff; border-radius: 10px; padding: 16px; text-align: center;
+}
+.bt-stat-card .number { font-size: 2rem; font-weight: 800; line-height: 1; }
+.bt-stat-card .label  { color: #b6d4d0; font-size: .8rem; margin-top: 4px; }
+
+.candidato-row {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background .15s;
+}
+.candidato-row:hover { background:#f8fafc; }
+.candidato-row td { padding: 12px 14px; vertical-align: middle; }
+
+.score-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: .85rem;
+    color: #fff;
+    min-width: 42px;
+    text-align: center;
+}
+.skill-mini {
+    display: inline-block;
+    font-size: .65rem;
+    background: #e0f2fe; color: #075985;
+    padding: 2px 7px; border-radius: 8px; margin: 1px 2px 0 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-archive text-secondary me-2"></i>{{ titulo }}</h2>
+        <small class="text-muted">
+            Candidatos descartados que pueden ser rescatados para nuevas vacantes
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pipeline_panel' %}" class="btn btn-sm btn-secondary">
+            <i class="fas fa-columns me-1"></i>Pipeline
+        </a>
+        <a href="{% url 'funnel_reclutamiento' %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-funnel-dollar me-1"></i>Funnel
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row mb-3">
+    <div class="col-md-4 mb-2">
+        <div class="bt-stat-card">
+            <div class="number">{{ total_descartados }}</div>
+            <div class="label">Total en banco</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-2">
+        <div class="bt-stat-card" style="background:linear-gradient(135deg,#15803d,#22c55e);">
+            <div class="number">{{ con_score_alto }}</div>
+            <div class="label">Con score ≥ 70 (rescatables)</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-2">
+        <div class="bt-stat-card" style="background:linear-gradient(135deg,#7e22ce,#a855f7);">
+            <div class="number">{{ skills_disponibles|length }}</div>
+            <div class="label">Skills disponibles</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Buscar</label>
+                <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
+                       style="min-width:200px" placeholder="Nombre, email, teléfono">
+            </div>
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Skill</label>
+                <select name="skill" class="form-select form-select-sm" style="min-width:150px">
+                    <option value="">Todos</option>
+                    {% for s in skills_disponibles %}
+                    <option value="{{ s }}" {% if filtro_skill == s %}selected{% endif %}>
+                        {{ s|cut:"_"|truncatechars:24 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Score min</label>
+                <select name="score_min" class="form-select form-select-sm" style="width:100px">
+                    <option value="">—</option>
+                    <option value="50" {% if filtro_score_min == '50' %}selected{% endif %}>≥ 50</option>
+                    <option value="60" {% if filtro_score_min == '60' %}selected{% endif %}>≥ 60</option>
+                    <option value="70" {% if filtro_score_min == '70' %}selected{% endif %}>≥ 70</option>
+                    <option value="80" {% if filtro_score_min == '80' %}selected{% endif %}>≥ 80</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Fuente</label>
+                <select name="fuente" class="form-select form-select-sm" style="width:140px">
+                    <option value="">Todas</option>
+                    {% for code, label in fuentes_choices %}
+                    <option value="{{ code }}" {% if filtro_fuente == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-sm btn-primary">
+                <i class="fas fa-search me-1"></i>Buscar
+            </button>
+            {% if q or filtro_skill or filtro_score_min or filtro_fuente %}
+            <a href="{% url 'banco_de_talento' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Limpiar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Listado -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        {% if candidatos %}
+        <table class="table mb-0">
+            <thead style="background:#f8fafc">
+                <tr style="font-size:.8rem">
+                    <th>Candidato</th>
+                    <th>Vacante original</th>
+                    <th>Score</th>
+                    <th>Skills</th>
+                    <th>Postulado</th>
+                    <th class="text-end">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in candidatos %}
+                <tr class="candidato-row">
+                    <td>
+                        <strong><a href="{% url 'postulacion_detalle' c.pk %}" class="text-dark text-decoration-none">{{ c.nombre_completo|truncatechars:36 }}</a></strong>
+                        <div class="text-muted small">{{ c.email|default:"—" }} · {{ c.telefono|default:"" }}</div>
+                    </td>
+                    <td>
+                        <div class="small">{{ c.vacante.titulo|truncatechars:30 }}</div>
+                        <small class="text-muted">{{ c.get_fuente_display }}</small>
+                    </td>
+                    <td>
+                        {% if c.cv_score %}
+                        <span class="score-badge" style="background:{% if c.cv_score >= 80 %}#10b981{% elif c.cv_score >= 60 %}#f59e0b{% else %}#94a3b8{% endif %}">
+                            {{ c.cv_score }}
+                        </span>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for s in c.cv_skills|slice:":4" %}
+                        <span class="skill-mini">{{ s|cut:"_"|truncatechars:14 }}</span>
+                        {% endfor %}
+                        {% if c.cv_skills|length > 4 %}
+                        <small class="text-muted">+{{ c.cv_skills|length|add:"-4" }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small>{{ c.fecha_postulacion|date:"d/m/Y" }}</small>
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'postulacion_pdf' c.pk %}" target="_blank"
+                           class="btn btn-sm btn-outline-secondary py-0 px-2" title="PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </a>
+                        <button class="btn btn-sm btn-success py-0 px-2"
+                                onclick="abrirReactivar({{ c.pk }}, '{{ c.nombre_completo|escapejs }}')">
+                            <i class="fas fa-redo me-1"></i>Rescatar
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center">
+            <i class="fas fa-archive" style="font-size:3rem; color:#cbd5e1;"></i>
+            <h5 class="mt-3 text-muted">Sin candidatos en el Banco</h5>
+            <p class="small text-muted">
+                {% if q or filtro_skill or filtro_score_min or filtro_fuente %}
+                No hay resultados con los filtros aplicados.
+                {% else %}
+                Aún no hay candidatos descartados. Los candidatos descartados aparecerán aquí.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal reactivar -->
+<div class="modal fade" id="reactivarModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">Rescatar candidato del Banco</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body small">
+        <p class="mb-2">Reactivar a <strong id="modalCandidatoNombre"></strong> para una nueva vacante.</p>
+        <p class="mb-3 small text-muted">Se creará una nueva postulación en la etapa inicial. La postulación original queda como historial.</p>
+        <label class="form-label fw-bold">Vacante destino</label>
+        <select id="modalVacante" class="form-select form-select-sm">
+          <option value="">— Seleccionar vacante —</option>
+          {% for v in vacantes_activas %}
+          <option value="{{ v.pk }}">{{ v.titulo|truncatechars:60 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer py-2">
+        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-sm btn-success" id="btnConfirmarRescatar">
+            <i class="fas fa-redo me-1"></i>Rescatar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = '{{ csrf_token }}';
+let candidatoActualPk = null;
+
+function abrirReactivar(pk, nombre) {
+    candidatoActualPk = pk;
+    document.getElementById('modalCandidatoNombre').textContent = nombre;
+    document.getElementById('modalVacante').value = '';
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('reactivarModal'));
+    modal.show();
+}
+
+document.getElementById('btnConfirmarRescatar').addEventListener('click', function() {
+    const vacanteId = document.getElementById('modalVacante').value;
+    if (!vacanteId) {
+        alert('Selecciona una vacante destino.');
+        return;
+    }
+    fetch(`/reclutamiento/postulacion/${candidatoActualPk}/reactivar/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `vacante_id=${vacanteId}`,
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            window.location.href = d.redirect;
+        } else {
+            alert(d.error || 'Error al rescatar');
+        }
+    });
+});
+</script>
+{% endblock %}
