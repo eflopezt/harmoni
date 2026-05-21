@@ -187,3 +187,8 @@ if SENTRY_DSN:
 # Logging — hereda de base.py, solo ajusta nivel para producción
 LOGGING['root']['level'] = 'WARNING'
 LOGGING['handlers']['console']['level'] = 'WARNING'
+
+# URL base para verificación de boletas (impreso en QR y al pie del PDF)
+BOLETA_VERIFY_BASE_URL = os.environ.get("BOLETA_VERIFY_BASE_URL", "").strip()
+if not BOLETA_VERIFY_BASE_URL and ALLOWED_HOSTS:
+    BOLETA_VERIFY_BASE_URL = f"https://{ALLOWED_HOSTS[0]}"

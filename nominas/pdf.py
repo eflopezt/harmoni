@@ -173,8 +173,8 @@ def generar_boleta_pdf(registro):
     val      = sty("val",     fontSize=8,  fontName="Helvetica-Bold")  # valor del campo
     h_emp    = sty("h_emp",   fontSize=11, fontName="Helvetica-Bold", textColor=C_TXT, leading=13)
     h_meta   = sty("h_meta",  fontSize=7.5, textColor=C_TXT)
-    h_tit    = sty("h_tit",   fontSize=11, fontName="Helvetica-Bold", textColor=C_TXT, alignment=TA_CENTER)
-    h_per    = sty("h_per",   fontSize=8, fontName="Helvetica-Bold", textColor=C_TXT, alignment=TA_RIGHT)
+    h_tit    = sty("h_tit",   fontSize=13, fontName="Helvetica-Bold", textColor=C_TXT, alignment=TA_RIGHT, leading=18, spaceAfter=4)
+    h_per    = sty("h_per",   fontSize=8, textColor=C_TXT, alignment=TA_RIGHT, leading=11)
     ct_hdr   = sty("ct_hdr",  fontSize=8, fontName="Helvetica-Bold", textColor=C_TXT, alignment=TA_CENTER)
     ct_sub   = sty("ct_sub",  fontSize=7, textColor=C_LBL, alignment=TA_RIGHT)
     ct_nm    = sty("ct_nm",   fontSize=8)
@@ -587,26 +587,38 @@ def generar_boleta_pdf(registro):
 
     # ════════════════════════════════════════════════════════════════
     # FIRMAS — Empleador (izq) y Trabajador (der)
+    # Para que ambos labels queden alineados verticalmente con la línea,
+    # uso dos líneas debajo de cada uno (incluyendo línea vacía si solo
+    # hay un label de un lado).
     # ════════════════════════════════════════════════════════════════
-    # Firmas con dos líneas (línea 1 = "Recibí conforme", línea 2 = "Trabajador — DNI")
-    firma_emp = [_p("Empleador / RRHH", fl_st)]
-    firma_trab = [
-        _p("Recibí conforme", fr_st),
-        _p(f"Trabajador — {personal.nro_doc}", fr_st),
+    # Estilo dedicado: alineación CENTER ambos lados
+    sig_line_st = sty("sig_l",  fontSize=8, textColor=C_LBL, alignment=TA_CENTER)
+    sig_lbl_st  = sty("sig_lbl", fontSize=7.5, fontName="Helvetica-Bold", textColor=C_LBL, alignment=TA_CENTER)
+    sig_sub_st  = sty("sig_sub", fontSize=7, textColor=C_MUTED, alignment=TA_CENTER)
+
+    # Cada celda contiene: [línea de firma] [label principal] [sub-label opcional]
+    sig_emp = [
+        _p("_" * 38, sig_line_st),
+        _p("Empleador / RRHH", sig_lbl_st),
     ]
+    sig_trab = [
+        _p("_" * 38, sig_line_st),
+        _p("Recibí conforme", sig_lbl_st),
+        _p(f"Trabajador — {personal.nro_doc}", sig_sub_st),
+    ]
+    # Espacio arriba para la firma manual
     fdata = [
-        [_p("", sm), _p("", sm)],
-        [_p("_" * 32, sm), _p("_" * 32, sm)],
-        [firma_emp, firma_trab],
+        [_p("", sm), _p("", sm)],   # espacio para escribir firma
+        [sig_emp, sig_trab],
     ]
-    ftt = Table(fdata, colWidths=[USABLE_W*0.5, USABLE_W*0.5], rowHeights=[24, 8, 22])
+    ftt = Table(fdata, colWidths=[USABLE_W*0.5, USABLE_W*0.5], rowHeights=[28, None])
     ftt.setStyle(TableStyle([
-        ("VALIGN",        (0,0),(-1,-1), "BOTTOM"),
+        ("VALIGN",        (0,0),(-1,-1), "TOP"),
         ("ALIGN",         (0,0),(-1,-1), "CENTER"),
         ("LEFTPADDING",   (0,0),(-1,-1), 4),
         ("RIGHTPADDING",  (0,0),(-1,-1), 4),
-        ("TOPPADDING",    (0,0),(-1,-1), 1),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 1),
+        ("TOPPADDING",    (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 0),
     ]))
     story.append(ftt)
     story.append(Spacer(1, 8))

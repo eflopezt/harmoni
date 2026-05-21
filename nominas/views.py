@@ -1280,13 +1280,22 @@ def verificar_boleta(request, token):
         primer_nombre = partes[-1] if len(partes) > 1 else ''
     nombre_publico = f"{primer_nombre} {primer_apellido}".strip() or 'Trabajador'
 
-    # Empresa
+    # Empresa — multi-tenant: prioridad a la empresa del trabajador
     empresa_nombre = 'Empresa'
     try:
-        from core.context_processors import _get_config
-        cfg = _get_config()
-        if cfg:
-            empresa_nombre = cfg.empresa_nombre or 'Empresa'
+        emp = getattr(match.personal, 'empresa', None)
+        if emp:
+            empresa_nombre = (
+                getattr(emp, 'razon_social', None)
+                or getattr(emp, 'nombre_comercial', None)
+                or empresa_nombre
+            )
+        # Fallback a ConfiguracionSistema (cuando Personal no tiene empresa)
+        if empresa_nombre == 'Empresa':
+            from core.context_processors import _get_config
+            cfg = _get_config()
+            if cfg:
+                empresa_nombre = cfg.empresa_nombre or 'Empresa'
     except Exception:
         pass
 
