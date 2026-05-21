@@ -308,6 +308,16 @@ def pulse_del_grupo(request):
     locales_amarillo = sum(1 for l in locales if l['color'] == 'amarillo')
     locales_rojo = sum(1 for l in locales if l['color'] == 'rojo')
 
+    # Briefings publicados HOY (globales)
+    briefings_hoy_count = 0
+    try:
+        from asistencia.models import BriefingServicio
+        briefings_hoy_count = BriefingServicio.objects.filter(
+            fecha=hoy, estado='PUBLICADO',
+        ).count()
+    except Exception:
+        pass
+
     return render(request, 'empresas/pulse_grupo.html', {
         'locales':              locales,
         'total_locales':        total_locales,
@@ -315,6 +325,7 @@ def pulse_del_grupo(request):
         'total_planilla_neto':  total_planilla_neto,
         'total_planilla_costo': total_planilla_costo,
         'total_alertas':        total_alertas,
+        'briefings_hoy_count':  briefings_hoy_count,
         'locales_verde':        locales_verde,
         'locales_amarillo':     locales_amarillo,
         'locales_rojo':         locales_rojo,

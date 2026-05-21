@@ -263,6 +263,25 @@
     </div>
 </div>
 
+{# Quick actions del grupo #}
+<div class="d-flex gap-2 flex-wrap mb-3" style="font-size:.85rem;">
+    <a href="{% url 'briefing_panel' %}" class="btn btn-sm btn-outline-success">
+        <i class="fas fa-clipboard-list me-1"></i>Briefings del Día
+        {% if briefings_hoy_count %}
+        <span class="badge bg-success ms-1">{{ briefings_hoy_count }} hoy</span>
+        {% endif %}
+    </a>
+    <a href="{% url 'nominas_comparativo_mensual' %}" class="btn btn-sm btn-outline-info">
+        <i class="fas fa-chart-line me-1"></i>Comparativo Mensual
+    </a>
+    <a href="{% url 'nominas_emision_boletas' %}" class="btn btn-sm btn-outline-primary">
+        <i class="fas fa-paper-plane me-1"></i>Emisión de Boletas
+    </a>
+    <a href="{% url 'nominas_saldos_apertura' %}" class="btn btn-sm btn-outline-warning">
+        <i class="fas fa-rocket me-1"></i>Saldos Apertura
+    </a>
+</div>
+
 {# Grid de locales #}
 {% if locales %}
 <div class="pulse-grid">
