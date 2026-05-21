@@ -2511,6 +2511,81 @@ def _desglose_score_matching(parsed: dict, vacante) -> dict:
 
 @login_required
 @solo_admin
+def postulacion_ai_summary(request, pk):
+    """Genera resumen ejecutivo del CV usando IA (Gemini/DeepSeek/Anthropic).
+
+    Devuelve JSON con el resumen. Si la IA no está configurada, devuelve
+    un resumen heurístico basado en cv_skills + experiencia.
+    """
+    from django.http import JsonResponse
+
+    post = get_object_or_404(Postulacion.objects.select_related('vacante'), pk=pk)
+    texto = post.cv_texto_extraido or ''
+
+    if not texto:
+        # Sin texto extraído → resumen heurístico
+        skills = ', '.join(post.cv_skills or [])
+        return JsonResponse({
+            'ok':       True,
+            'fuente':   'heuristico',
+            'resumen': (
+                f"Candidato: {post.nombre_completo}. "
+                f"Experiencia: {post.experiencia_anos} años. "
+                f"Skills: {skills or 'no detectados'}. "
+                f"Postula a {post.vacante.titulo}. "
+                f"Score matching: {post.cv_score}/100."
+            ),
+        })
+
+    # Intentar usar IA
+    try:
+        from asistencia.services.ai_service import get_service
+        svc = get_service()
+        if svc is None:
+            raise RuntimeError('IA no configurada')
+
+        prompt = (
+            f"Resume este CV en 4-6 líneas breves para un reclutador. "
+            f"Foco: experiencia clave, skills destacados, encaje con vacante "
+            f"'{post.vacante.titulo}'. No inventes datos. Si falta info, dilo.\n\n"
+            f"=== CV ===\n{texto[:6000]}\n\n"
+            f"=== Skills detectados ===\n{', '.join(post.cv_skills or [])}\n"
+            f"Score matching: {post.cv_score}/100"
+        )
+        system = (
+            'Eres un reclutador senior peruano. Respondes en español, '
+            'sobrio y conciso. No usas emojis. Máximo 6 líneas.'
+        )
+        result = svc.generate(prompt, system=system)
+        if result and result.strip():
+            return JsonResponse({
+                'ok':       True,
+                'fuente':   svc.provider_name,
+                'resumen':  result.strip(),
+            })
+    except Exception as e:
+        # Fallback a resumen heurístico
+        logger = __import__('logging').getLogger('reclutamiento.ai')
+        logger.warning('AI summary fallo, usando heurístico: %s', e)
+
+    # Heurístico fallback
+    skills = ', '.join(post.cv_skills or [])
+    return JsonResponse({
+        'ok':       True,
+        'fuente':   'heuristico',
+        'resumen': (
+            f"Candidato: {post.nombre_completo}. "
+            f"Experiencia: {post.experiencia_anos} años. "
+            f"Skills detectados: {skills or 'ninguno'}. "
+            f"Postula a {post.vacante.titulo}. "
+            f"Score matching: {post.cv_score}/100. "
+            f"Email: {post.email or '—'} · Tel: {post.telefono or '—'}."
+        ),
+    })
+
+
+@login_required
+@solo_admin
 def postulacion_score_detalle(request, pk):
     """Vista que muestra el desglose detallado del score de matching."""
     post = get_object_or_404(Postulacion.objects.select_related('vacante'), pk=pk)
