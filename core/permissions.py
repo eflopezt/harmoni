@@ -93,3 +93,58 @@ def get_permisos_usuario(user) -> dict:
             'exportar': pm.puede_exportar,
         }
     return result
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# admin_required — atajo para bloquear trabajadores en URLs admin
+# ═════════════════════════════════════════════════════════════════════════
+
+def es_admin(user) -> bool:
+    """
+    Determina si un usuario tiene rol administrativo:
+    - is_superuser (root)
+    - is_staff (RRHH típicamente)
+    - perfil_acceso.es_responsable o puede_aprobar (jefes de área)
+
+    Los trabajadores puros (con personal_data pero sin estos flags) → False.
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    perfil = getattr(user, 'perfil_acceso', None)
+    if perfil:
+        if getattr(perfil, 'es_responsable', False):
+            return True
+        if getattr(perfil, 'puede_aprobar', False):
+            return True
+    return False
+
+
+def admin_required(view_func):
+    """
+    Decorador rápido: solo admin/staff/jefe puede acceder.
+    Si es trabajador puro → redirect a /mi-portal/
+    Si no autenticado → redirect a login (vía @login_required).
+
+    Uso:
+        from core.permissions import admin_required
+
+        @admin_required
+        def mi_vista_admin(request):
+            ...
+    """
+    @wraps(view_func)
+    @login_required
+    def _wrapped(request, *args, **kwargs):
+        if not es_admin(request.user):
+            # Trabajador → su portal (no 403 que es confuso)
+            from django.contrib import messages as _m
+            _m.warning(
+                request,
+                'Esa página es solo para administradores. '
+                'Si necesitas ayuda contacta a RRHH.',
+            )
+            return redirect('/mi-portal/')
+        return view_func(request, *args, **kwargs)
+    return _wrapped

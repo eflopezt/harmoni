@@ -83,6 +83,9 @@ MIDDLEWARE = [
     'empresas.middleware_subdomain.SubdomainMiddleware',
     'empresas.middleware.EmpresaMiddleware',
     'empresas.middleware_billing.BillingMiddleware',
+    # Restringe trabajadores a URLs del portal (defensa profunda).
+    # Debe ir DESPUÉS de auth+empresa+billing para tener el contexto completo.
+    'core.middleware_worker_access.WorkerAccessRestrictionMiddleware',
     'core.middleware.AuditMiddleware',
 ]
 
