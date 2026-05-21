@@ -799,7 +799,7 @@ def cmd_search(request):
     Busca empleados por nombre o DNI + retorna acciones contextuales.
     """
     q = request.GET.get('q', '').strip()
-    results = {'empleados': [], 'acciones': [], 'nav': []}
+    results = {'empleados': [], 'candidatos': [], 'vacantes': [], 'acciones': [], 'nav': []}
 
     if len(q) >= 2:
         # Búsqueda de empleados
@@ -821,6 +821,42 @@ def cmd_search(request):
                 'url':    f'/personal/{p.pk}/',
             })
 
+        # Candidatos (Postulaciones) + Vacantes
+        if request.user.is_superuser:
+            try:
+                from reclutamiento.models import Postulacion, Vacante
+                cands = Postulacion.objects.filter(
+                    Q(nombre_completo__icontains=q) |
+                    Q(email__icontains=q) |
+                    Q(telefono__startswith=q)
+                ).select_related('vacante', 'etapa').order_by('-cv_score', '-fecha_postulacion')[:6]
+                for c in cands:
+                    results['candidatos'].append({
+                        'pk':      c.pk,
+                        'nombre':  c.nombre_completo,
+                        'email':   c.email or '',
+                        'vacante': c.vacante.titulo if c.vacante else '',
+                        'etapa':   c.etapa.nombre if c.etapa else '',
+                        'estado':  c.estado,
+                        'score':   c.cv_score or 0,
+                        'url':     f'/reclutamiento/postulacion/{c.pk}/',
+                    })
+
+                vacs = Vacante.objects.filter(
+                    Q(titulo__icontains=q) |
+                    Q(descripcion__icontains=q)
+                ).order_by('-creado_en')[:4]
+                for v in vacs:
+                    results['vacantes'].append({
+                        'pk':     v.pk,
+                        'titulo': v.titulo,
+                        'estado': v.get_estado_display(),
+                        'area':   v.area.nombre if v.area else '',
+                        'url':    f'/reclutamiento/{v.pk}/',
+                    })
+            except Exception:
+                pass
+
         # Acciones rápidas contextuales
         if request.user.is_superuser:
             if any(k in q.lower() for k in ['nuevo', 'crear', 'agregar', 'alta']):
@@ -831,6 +867,14 @@ def cmd_search(request):
                 results['acciones'].append({'label': 'Aprobaciones pendientes', 'url': '/aprobaciones/', 'icon': 'fa-tasks'})
             if any(k in q.lower() for k in ['cese', 'baja', 'liquidac']):
                 results['acciones'].append({'label': 'Panel de Cese', 'url': '/documentos/cese/', 'icon': 'fa-user-slash'})
+            if any(k in q.lower() for k in ['pipeline', 'kanban', 'reclut']):
+                results['acciones'].append({'label': 'Pipeline Reclutamiento', 'url': '/reclutamiento/pipeline/', 'icon': 'fa-columns'})
+            if any(k in q.lower() for k in ['banco', 'talento']):
+                results['acciones'].append({'label': 'Banco de Talento', 'url': '/reclutamiento/banco-talento/', 'icon': 'fa-archive'})
+            if any(k in q.lower() for k in ['compar', 'matching']):
+                results['acciones'].append({'label': 'Comparar Candidatos', 'url': '/reclutamiento/comparar/', 'icon': 'fa-balance-scale'})
+            if any(k in q.lower() for k in ['entrev', 'agenda', 'calend']):
+                results['acciones'].append({'label': 'Calendario Entrevistas', 'url': '/reclutamiento/calendario/', 'icon': 'fa-calendar-alt'})
 
     # Navegación estática siempre disponible (filtrar según query)
     nav_items = [

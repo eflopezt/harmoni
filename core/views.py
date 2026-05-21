@@ -230,7 +230,29 @@ def global_search(request):
                     'color': '#d97706',
                     'titulo': v.titulo,
                     'detalle': f'{v.get_estado_display()} · {getattr(v.area, "nombre", "Sin área")}',
-                    'url': f'/reclutamiento/vacantes/{v.pk}/',
+                    'url': f'/reclutamiento/{v.pk}/',
+                })
+        except Exception:
+            pass
+
+    # ── Postulaciones (candidatos) ──
+    if request.user.is_superuser:
+        try:
+            from reclutamiento.models import Postulacion
+            posts = Postulacion.objects.filter(
+                Q(nombre_completo__icontains=q) |
+                Q(email__icontains=q) |
+                Q(telefono__icontains=q)
+            ).select_related('vacante', 'etapa').order_by('-cv_score', '-fecha_postulacion')[:6]
+            for p in posts:
+                score_badge = f' · ★ {p.cv_score}/100' if p.cv_score else ''
+                results.append({
+                    'tipo': 'candidato',
+                    'icono': 'fa-user-tie',
+                    'color': '#ec4899',
+                    'titulo': p.nombre_completo,
+                    'detalle': f'{p.vacante.titulo[:30]} · {p.etapa.nombre if p.etapa else "—"} · {p.get_estado_display()}{score_badge}',
+                    'url': f'/reclutamiento/postulacion/{p.pk}/',
                 })
         except Exception:
             pass

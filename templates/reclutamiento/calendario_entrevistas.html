@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Calendario de Entrevistas{% endblock %}
+
+{% block extra_css %}
+<style>
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    padding: 4px;
+}
+.cal-header {
+    background: #0d2b27;
+    color: #fff;
+    padding: 8px;
+    text-align: center;
+    font-weight: 700;
+    font-size: .78rem;
+    letter-spacing: .05em;
+}
+.cal-day {
+    background: #fff;
+    min-height: 110px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.cal-day.fuera-mes {
+    background: #fafbfc;
+    color: #cbd5e1;
+}
+.cal-day.es-hoy {
+    background: #f0fdf4;
+    box-shadow: inset 0 0 0 2px #5eead4;
+}
+.cal-day.es-pasado .cal-day-num { color: #94a3b8; }
+.cal-day-num {
+    font-weight: 700;
+    font-size: .9rem;
+    margin-bottom: 4px;
+    color: #1e293b;
+}
+.cal-day.es-hoy .cal-day-num {
+    background: #0f766e;
+    color: #fff;
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem;
+}
+.cal-event {
+    background: #0f766e;
+    color: #fff;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: .65rem;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    display: block;
+    text-decoration: none;
+}
+.cal-event:hover { opacity: .85; color:#fff; }
+.cal-event.tipo-RRHH        { background:#0f766e; border-left-color:#5eead4; }
+.cal-event.tipo-TECNICA     { background:#1e40af; border-left-color:#60a5fa; }
+.cal-event.tipo-FINAL       { background:#7e22ce; border-left-color:#c084fc; }
+.cal-event.tipo-GERENCIAL   { background:#7e22ce; border-left-color:#c084fc; }
+.cal-event.tipo-GRUPAL      { background:#92400e; border-left-color:#fbbf24; }
+.cal-event.pendiente   { opacity: .9; }
+.cal-event.aprobada    { background:#15803d; }
+.cal-event.rechazada   { background:#991b1b; }
+.cal-event-more {
+    font-size: .65rem;
+    color: #64748b;
+    margin-top: auto;
+    text-align: right;
+}
+.cal-stat {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.cal-stat .number { font-size: 1.8rem; font-weight: 800; line-height:1; }
+.cal-stat .label { color: #64748b; font-size:.78rem; margin-top: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-calendar-alt text-secondary me-2"></i>{{ titulo }}</h2>
+        <small class="text-muted">{{ mes_nombre }} {{ anio }} · entrevistas programadas</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="?mes={{ mes_ant }}&anio={{ anio_ant }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <a href="{% url 'calendario_entrevistas' %}" class="btn btn-sm btn-secondary">
+            <i class="fas fa-calendar-day me-1"></i>Hoy
+        </a>
+        <a href="?mes={{ mes_sig }}&anio={{ anio_sig }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        <a href="{% url 'pipeline_panel' %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-columns me-1"></i>Pipeline
+        </a>
+    </div>
+</div>
+
+<!-- Stats + filtros -->
+<div class="row mb-3">
+    <div class="col-md-3 mb-2">
+        <div class="cal-stat">
+            <div class="number text-primary">{{ total_mes }}</div>
+            <div class="label">Entrevistas {{ mes_nombre }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-2">
+        <div class="cal-stat">
+            <div class="number text-warning">{{ pendientes }}</div>
+            <div class="label">Pendientes</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-2">
+        <div class="cal-stat">
+            <div class="number text-success">{{ aprobadas }}</div>
+            <div class="label">Aprobadas</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-2">
+        <div class="cal-stat" style="display:flex; flex-direction:column; justify-content:center;">
+            <form method="get" class="d-flex gap-1">
+                <input type="hidden" name="mes" value="{{ mes }}">
+                <input type="hidden" name="anio" value="{{ anio }}">
+                <select name="tipo" class="form-select form-select-sm">
+                    <option value="">Todos los tipos</option>
+                    {% for code, label in tipos_choices %}
+                    <option value="{{ code }}" {% if filtro_tipo == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-sm btn-primary"><i class="fas fa-filter"></i></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros adicionales -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap small">
+            <input type="hidden" name="mes" value="{{ mes }}">
+            <input type="hidden" name="anio" value="{{ anio }}">
+            <span class="fw-semibold">Filtrar:</span>
+            <select name="vacante_id" class="form-select form-select-sm" style="max-width:240px">
+                <option value="">Todas las vacantes</option>
+                {% for v in vacantes_activas %}
+                <option value="{{ v.pk }}" {% if filtro_vacante == v.pk|stringformat:"d" %}selected{% endif %}>
+                    {{ v.titulo|truncatechars:38 }}
+                </option>
+                {% endfor %}
+            </select>
+            <select name="entrevistador_id" class="form-select form-select-sm" style="max-width:180px">
+                <option value="">Todos los entrevistadores</option>
+                {% for e in entrevistadores %}
+                <option value="{{ e.pk }}" {% if filtro_entrevistador == e.pk|stringformat:"d" %}selected{% endif %}>
+                    {{ e.get_full_name|default:e.username }}
+                </option>
+                {% endfor %}
+            </select>
+            <select name="tipo" class="form-select form-select-sm" style="max-width:140px">
+                <option value="">Todos los tipos</option>
+                {% for code, label in tipos_choices %}
+                <option value="{{ code }}" {% if filtro_tipo == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-primary"><i class="fas fa-search me-1"></i>Aplicar</button>
+            {% if filtro_vacante or filtro_entrevistador or filtro_tipo %}
+            <a href="?mes={{ mes }}&anio={{ anio }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Limpiar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Calendario -->
+<div class="cal-grid">
+    <div class="cal-header">LUN</div>
+    <div class="cal-header">MAR</div>
+    <div class="cal-header">MIÉ</div>
+    <div class="cal-header">JUE</div>
+    <div class="cal-header">VIE</div>
+    <div class="cal-header">SÁB</div>
+    <div class="cal-header">DOM</div>
+
+    {% for semana in semanas %}
+        {% for dia in semana %}
+        <div class="cal-day {% if not dia.es_mes %}fuera-mes{% endif %} {% if dia.es_hoy %}es-hoy{% endif %} {% if dia.es_pasado %}es-pasado{% endif %}">
+            <div class="cal-day-num">{{ dia.date|date:"j" }}</div>
+            {% for ev in dia.eventos|slice:":3" %}
+            <a href="{% url 'postulacion_detalle' ev.postulacion.pk %}"
+               class="cal-event tipo-{{ ev.tipo }} {{ ev.resultado|lower }}"
+               title="{{ ev.fecha_hora|date:'H:i' }} · {{ ev.postulacion.nombre_completo }} ({{ ev.get_tipo_display }}) · {{ ev.get_resultado_display }}">
+                <strong>{{ ev.fecha_hora|date:"H:i" }}</strong>
+                {{ ev.postulacion.nombre_completo|truncatechars:14 }}
+            </a>
+            {% endfor %}
+            {% if dia.eventos|length > 3 %}
+            <div class="cal-event-more">+{{ dia.eventos|length|add:"-3" }} más</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+
+<!-- Leyenda -->
+<div class="mt-3 small text-muted">
+    <strong>Tipos:</strong>
+    <span class="cal-event tipo-RRHH d-inline-block" style="padding:1px 8px">RRHH</span>
+    <span class="cal-event tipo-TECNICA d-inline-block" style="padding:1px 8px">Técnica</span>
+    <span class="cal-event tipo-GERENCIAL d-inline-block" style="padding:1px 8px">Gerencial</span>
+    <span class="cal-event tipo-GRUPAL d-inline-block" style="padding:1px 8px">Grupal</span>
+    <span class="ms-3"><strong>Resultado:</strong></span>
+    <span class="cal-event aprobada d-inline-block" style="padding:1px 8px">Aprobada</span>
+    <span class="cal-event rechazada d-inline-block" style="padding:1px 8px">Rechazada</span>
+</div>
+{% endblock %}

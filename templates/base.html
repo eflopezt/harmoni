@@ -1959,6 +1959,40 @@ function render(data, q) {
         }
     }
 
+    // Candidatos (Postulaciones)
+    if (data.candidatos && data.candidatos.length) {
+        hasAny = true;
+        html += `<div class="cmd-section-label"><i class="fas fa-user-tie me-1"></i>Candidatos</div>`;
+        for (const c of data.candidatos) {
+            const scoreBadge = c.score
+                ? `<span class="cmd-item-badge" style="background:${c.score >= 80 ? '#10b981' : c.score >= 60 ? '#f59e0b' : '#94a3b8'};color:#fff;">★ ${c.score}</span>`
+                : '';
+            html += `<a href="${c.url}" class="cmd-item" onclick="cmdClose()">
+                <div class="cmd-item-icon" style="background:#fce7f3;color:#ec4899"><i class="fas fa-user-tie"></i></div>
+                <div class="cmd-item-body">
+                    <div class="cmd-item-title">${esc(c.nombre)}</div>
+                    <div class="cmd-item-sub">${esc(c.vacante)} · ${esc(c.etapa)} · ${esc(c.estado)}</div>
+                </div>
+                ${scoreBadge}
+            </a>`;
+        }
+    }
+
+    // Vacantes
+    if (data.vacantes && data.vacantes.length) {
+        hasAny = true;
+        html += `<div class="cmd-section-label"><i class="fas fa-briefcase me-1"></i>Vacantes</div>`;
+        for (const v of data.vacantes) {
+            html += `<a href="${v.url}" class="cmd-item" onclick="cmdClose()">
+                <div class="cmd-item-icon" style="background:#fed7aa;color:#d97706"><i class="fas fa-briefcase"></i></div>
+                <div class="cmd-item-body">
+                    <div class="cmd-item-title">${esc(v.titulo)}</div>
+                    <div class="cmd-item-sub">${esc(v.estado)} · ${esc(v.area)}</div>
+                </div>
+            </a>`;
+        }
+    }
+
     // Acciones
     if (data.acciones && data.acciones.length) {
         hasAny = true;

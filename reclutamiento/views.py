@@ -724,6 +724,136 @@ def pipeline_bulk_action(request):
 
 
 # ══════════════════════════════════════════════════════════════
+# ADMIN — Calendario de Entrevistas
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def calendario_entrevistas(request):
+    """
+    Vista calendario mensual de EntrevistaPrograma.
+    Query params:
+        mes:   1..12 (default: actual)
+        anio:  YYYY (default: actual)
+        vacante_id, entrevistador_id, tipo: filtros opcionales
+    """
+    from datetime import date, timedelta
+    from calendar import monthrange
+    import calendar as _cal
+
+    hoy = timezone.now().date()
+    try:
+        mes = int(request.GET.get('mes', hoy.month))
+        anio = int(request.GET.get('anio', hoy.year))
+        if mes < 1 or mes > 12 or anio < 2020 or anio > 2050:
+            raise ValueError
+    except (ValueError, TypeError):
+        mes, anio = hoy.month, hoy.year
+
+    primer_dia = date(anio, mes, 1)
+    _, ultimo_dia_n = monthrange(anio, mes)
+    ultimo_dia = date(anio, mes, ultimo_dia_n)
+
+    # Padding inicio (lunes = 0)
+    padding_start = primer_dia.weekday()
+    inicio_grid = primer_dia - timedelta(days=padding_start)
+
+    # Padding fin (domingo = 6)
+    padding_end = 6 - ultimo_dia.weekday()
+    fin_grid = ultimo_dia + timedelta(days=padding_end)
+
+    # Filtros
+    vacante_id = request.GET.get('vacante_id', '')
+    entrevistador_id = request.GET.get('entrevistador_id', '')
+    tipo = request.GET.get('tipo', '')
+
+    qs = (
+        EntrevistaPrograma.objects
+        .filter(fecha_hora__date__gte=inicio_grid, fecha_hora__date__lte=fin_grid)
+        .select_related('postulacion__vacante', 'entrevistador')
+        .order_by('fecha_hora')
+    )
+    if vacante_id:
+        qs = qs.filter(postulacion__vacante_id=vacante_id)
+    if entrevistador_id:
+        qs = qs.filter(entrevistador_id=entrevistador_id)
+    if tipo:
+        qs = qs.filter(tipo=tipo)
+
+    # Agrupar por dia
+    eventos_por_dia = {}
+    for ev in qs:
+        d = ev.fecha_hora.date()
+        eventos_por_dia.setdefault(d, []).append(ev)
+
+    # Construir grid de semanas
+    semanas = []
+    semana_actual = []
+    d = inicio_grid
+    while d <= fin_grid:
+        semana_actual.append({
+            'date':         d,
+            'es_mes':       d.month == mes,
+            'es_hoy':       d == hoy,
+            'es_pasado':    d < hoy,
+            'eventos':      eventos_por_dia.get(d, []),
+        })
+        if d.weekday() == 6:
+            semanas.append(semana_actual)
+            semana_actual = []
+        d += timedelta(days=1)
+    if semana_actual:
+        semanas.append(semana_actual)
+
+    # Navegacion mes anterior/siguiente
+    mes_ant = mes - 1; anio_ant = anio
+    if mes_ant == 0:
+        mes_ant = 12; anio_ant = anio - 1
+    mes_sig = mes + 1; anio_sig = anio
+    if mes_sig == 13:
+        mes_sig = 1; anio_sig = anio + 1
+
+    # Stats
+    total_mes = sum(len(v) for d, v in eventos_por_dia.items() if d.month == mes)
+    pendientes = qs.filter(resultado='PENDIENTE').count()
+    aprobadas = qs.filter(resultado='APROBADO').count()
+
+    # Para filtros
+    vacantes_activas = Vacante.objects.filter(
+        estado__in=['PUBLICADA', 'EN_PROCESO']
+    ).order_by('titulo')
+    from django.contrib.auth import get_user_model as _gum
+    _User = _gum()
+    entrevistadores = _User.objects.filter(entrevistas_asignadas__isnull=False).distinct()
+
+    nombres_meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+
+    context = {
+        'titulo':            'Calendario de Entrevistas',
+        'semanas':           semanas,
+        'mes':               mes,
+        'anio':              anio,
+        'mes_nombre':        nombres_meses[mes - 1],
+        'mes_ant':           mes_ant,
+        'anio_ant':          anio_ant,
+        'mes_sig':           mes_sig,
+        'anio_sig':          anio_sig,
+        'hoy':               hoy,
+        'total_mes':         total_mes,
+        'pendientes':        pendientes,
+        'aprobadas':         aprobadas,
+        'vacantes_activas':  vacantes_activas,
+        'entrevistadores':   entrevistadores,
+        'filtro_vacante':    vacante_id,
+        'filtro_entrevistador': entrevistador_id,
+        'filtro_tipo':       tipo,
+        'tipos_choices':     EntrevistaPrograma.TIPO_CHOICES,
+    }
+    return render(request, 'reclutamiento/calendario_entrevistas.html', context)
+
+
+# ══════════════════════════════════════════════════════════════
 # ADMIN — Banco de Talento (candidatos descartados rescatables)
 # ══════════════════════════════════════════════════════════════
 
