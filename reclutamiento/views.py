@@ -724,6 +724,118 @@ def pipeline_bulk_action(request):
 
 
 # ══════════════════════════════════════════════════════════════
+# ADMIN — Stats por reclutador: PDF export
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def stats_reclutadores_pdf(request):
+    """Genera PDF del dashboard de stats reclutadores."""
+    from reclutamiento.stats_pdf import stats_pdf_response
+
+    # Reusar la lógica del calculo (delegar a la vista normal)
+    # Construir el mismo context que la vista HTML
+    from datetime import timedelta
+    from django.db.models import Count, Avg
+    from django.contrib.auth import get_user_model as _gum
+    _U = _gum()
+
+    periodo = request.GET.get('periodo', '90').strip()
+    try:
+        dias = int(periodo)
+    except ValueError:
+        dias = 90
+    desde = timezone.now() - timedelta(days=dias)
+
+    reclutadores_ids = set()
+    reclutadores_ids.update(
+        NotaPostulacion.objects.filter(fecha__gte=desde, autor__isnull=False)
+        .values_list('autor_id', flat=True).distinct()
+    )
+    reclutadores_ids.update(
+        EntrevistaPrograma.objects.filter(creado_en__gte=desde, entrevistador__isnull=False)
+        .values_list('entrevistador_id', flat=True).distinct()
+    )
+
+    stats_por_reclutador = []
+    for uid in reclutadores_ids:
+        try:
+            user = _U.objects.get(pk=uid)
+        except _U.DoesNotExist:
+            continue
+        notas_count = NotaPostulacion.objects.filter(autor=user, fecha__gte=desde).count()
+        entrev_count = EntrevistaPrograma.objects.filter(entrevistador=user, creado_en__gte=desde).count()
+        entrev_aprobadas = EntrevistaPrograma.objects.filter(
+            entrevistador=user, creado_en__gte=desde, resultado='APROBADO',
+        ).count()
+        post_ids = set(NotaPostulacion.objects.filter(
+            autor=user, fecha__gte=desde,
+        ).values_list('postulacion_id', flat=True))
+        post_ids.update(EntrevistaPrograma.objects.filter(
+            entrevistador=user, creado_en__gte=desde,
+        ).values_list('postulacion_id', flat=True))
+        candidatos_tocados = len(post_ids)
+        contrataciones = Postulacion.objects.filter(
+            estado='CONTRATADA',
+            fecha_postulacion__gte=desde,
+            entrevistas__entrevistador=user,
+        ).distinct().count()
+        avg_cal = EntrevistaPrograma.objects.filter(
+            entrevistador=user, creado_en__gte=desde, calificacion__isnull=False,
+        ).aggregate(avg=Avg('calificacion'))['avg']
+        tasa_aprob = (entrev_aprobadas / entrev_count * 100) if entrev_count else 0
+        stats_por_reclutador.append({
+            'nombre':            user.get_full_name() or user.username,
+            'notas_count':       notas_count,
+            'entrev_count':      entrev_count,
+            'entrev_aprobadas':  entrev_aprobadas,
+            'candidatos_tocados': candidatos_tocados,
+            'contrataciones':    contrataciones,
+            'avg_calificacion':  round(avg_cal, 1) if avg_cal else None,
+            'tasa_aprobacion':   round(tasa_aprob, 0),
+        })
+    stats_por_reclutador.sort(key=lambda x: x['candidatos_tocados'], reverse=True)
+
+    total_postulaciones = Postulacion.objects.filter(fecha_postulacion__gte=desde).count()
+    total_contratados = Postulacion.objects.filter(
+        estado='CONTRATADA', fecha_postulacion__gte=desde,
+    ).count()
+    total_descartados = Postulacion.objects.filter(
+        estado='DESCARTADA', fecha_postulacion__gte=desde,
+    ).count()
+    total_entrevistas = EntrevistaPrograma.objects.filter(creado_en__gte=desde).count()
+    tasa_conversion = (
+        total_contratados / total_postulaciones * 100
+    ) if total_postulaciones else 0
+    contrataciones_recientes = Postulacion.objects.filter(
+        estado='CONTRATADA', fecha_postulacion__gte=desde,
+    )
+    if contrataciones_recientes.exists():
+        tiempos = [(timezone.now() - p.fecha_postulacion).days for p in contrataciones_recientes]
+        tiempo_promedio = sum(tiempos) / len(tiempos)
+    else:
+        tiempo_promedio = 0
+    fuentes_exito = list(
+        Postulacion.objects.filter(estado='CONTRATADA', fecha_postulacion__gte=desde)
+        .values('fuente').annotate(count=Count('id')).order_by('-count')
+    )
+
+    stats_data = {
+        'stats_por_reclutador':    stats_por_reclutador,
+        'total_postulaciones':     total_postulaciones,
+        'total_contratados':       total_contratados,
+        'total_descartados':       total_descartados,
+        'total_entrevistas':       total_entrevistas,
+        'tasa_conversion':         round(tasa_conversion, 1),
+        'tiempo_promedio_dias':    round(tiempo_promedio, 0),
+        'total_reclutadores':      len(stats_por_reclutador),
+        'fuentes_exito':           fuentes_exito,
+    }
+
+    return stats_pdf_response(stats_data, dias)
+
+
+# ══════════════════════════════════════════════════════════════
 # ADMIN — Stats por reclutador (dashboard ejecutivo)
 # ══════════════════════════════════════════════════════════════
 
