@@ -171,10 +171,14 @@ ETAPA_TO_TEMPLATE = {
 
 
 def _render(template_key, context):
-    """Renderiza asunto y cuerpo con format strings simple."""
-    tpl = TEMPLATES.get(template_key)
-    if not tpl:
-        return None, None
+    """Renderiza asunto y cuerpo.
+
+    1. Intenta cargar desde PlantillaNotificacion (DB, editable desde admin)
+       usando código `reclutamiento_<template_key>` o `<template_key>` directo.
+    2. Si no existe en BD o falla, cae a hardcoded TEMPLATES.
+
+    Esto permite que el admin edite los emails sin redeploy.
+    """
     safe_ctx = {
         'nombre':          context.get('nombre', 'candidato/a'),
         'vacante':         context.get('vacante', 'la vacante'),
@@ -182,6 +186,36 @@ def _render(template_key, context):
         'telefono_propio': context.get('telefono_propio', '—'),
         'motivo':          context.get('motivo', ''),
     }
+
+    # 1. Probar desde BD (PlantillaNotificacion)
+    try:
+        from comunicaciones.models import PlantillaNotificacion
+        from django.template import Context, Template as DjangoTemplate
+        codigos = [
+            f'reclutamiento_{template_key}',
+            f'reclutamiento_email_{template_key}',
+            template_key,
+        ]
+        plantilla = (
+            PlantillaNotificacion.objects
+            .filter(codigo__in=codigos, activa=True)
+            .first()
+        )
+        if plantilla:
+            ctx = Context(safe_ctx)
+            asunto = DjangoTemplate(plantilla.asunto_template).render(ctx)
+            cuerpo = DjangoTemplate(plantilla.cuerpo_template).render(ctx)
+            return asunto, cuerpo
+    except Exception as e:
+        logger.warning(
+            f"PlantillaNotificacion lookup falló para '{template_key}': {e}. "
+            f"Fallback a hardcoded."
+        )
+
+    # 2. Fallback a hardcoded TEMPLATES (format strings)
+    tpl = TEMPLATES.get(template_key)
+    if not tpl:
+        return None, None
     try:
         asunto = tpl['asunto'].format(**safe_ctx)
         cuerpo = tpl['cuerpo'].format(**safe_ctx)
@@ -189,6 +223,49 @@ def _render(template_key, context):
     except Exception as e:
         logger.error(f"Error renderizando email '{template_key}': {e}")
         return None, None
+
+
+def sincronizar_plantillas_default():
+    """Crea/actualiza las PlantillaNotificacion en BD desde TEMPLATES hardcoded.
+
+    Convierte format strings {var} a Django template tags {{ var }} para
+    que el admin pueda editarlas en la BD usando sintaxis Django familiar.
+
+    Llamar desde una migración o management command.
+    """
+    try:
+        from comunicaciones.models import PlantillaNotificacion
+    except ImportError:
+        return 0
+
+    creadas = 0
+    for key, tpl in TEMPLATES.items():
+        codigo = f'reclutamiento_{key}'
+        # Convertir {var} → {{ var }} para Django template
+        asunto_django = tpl['asunto']
+        cuerpo_django = tpl['cuerpo']
+        for var in ['nombre', 'vacante', 'empresa', 'telefono_propio', 'motivo']:
+            asunto_django = asunto_django.replace(
+                '{' + var + '}', '{{ ' + var + ' }}'
+            )
+            cuerpo_django = cuerpo_django.replace(
+                '{' + var + '}', '{{ ' + var + ' }}'
+            )
+        plantilla, created = PlantillaNotificacion.objects.update_or_create(
+            codigo=codigo,
+            defaults={
+                'nombre':                 f'Reclutamiento — {key.replace("_", " ").title()}',
+                'asunto_template':        asunto_django,
+                'cuerpo_template':        cuerpo_django,
+                'tipo':                   'EMAIL',
+                'modulo':                 'RRHH',
+                'activa':                 True,
+                'variables_disponibles':  '{{ nombre }}, {{ vacante }}, {{ empresa }}, {{ telefono_propio }}, {{ motivo }}',
+            },
+        )
+        if created:
+            creadas += 1
+    return creadas
 
 
 def enviar_email_candidato(postulacion, template_key, extra_context=None):
