@@ -20,6 +20,7 @@ urlpatterns = [
     path('candidatos/bulk/plantilla.xlsx', views.candidatos_bulk_plantilla, name='candidatos_bulk_plantilla'),
     path('postulacion/<int:pk>/score/', views.postulacion_score_detalle, name='postulacion_score_detalle'),
     path('postulacion/<int:pk>/ai-summary/', views.postulacion_ai_summary, name='postulacion_ai_summary'),
+    path('postulacion/<int:pk>/pdf/', views.postulacion_pdf, name='postulacion_pdf'),
     path('postulacion/<int:pk>/', views.postulacion_detalle, name='postulacion_detalle'),
     path('postulacion/<int:pk>/mover/', views.postulacion_mover_etapa, name='postulacion_mover_etapa'),
     path('postulacion/<int:pk>/descartar/', views.postulacion_descartar, name='postulacion_descartar'),

@@ -23,6 +23,11 @@
                 onclick="generarAiSummary({{ postulacion.pk }})">
             <i class="fas fa-magic me-1"></i>Resumen IA
         </button>
+        <a href="{% url 'postulacion_pdf' postulacion.pk %}" target="_blank"
+           class="btn btn-sm btn-outline-secondary"
+           title="Perfil PDF imprimible para entrevista">
+            <i class="fas fa-file-pdf me-1"></i>PDF
+        </a>
         {% if postulacion.estado == 'ACTIVA' %}
         <a href="{% url 'contratar_candidato' postulacion.pk %}"
            class="btn btn-sm btn-success">

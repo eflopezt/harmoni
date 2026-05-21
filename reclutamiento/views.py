@@ -667,6 +667,24 @@ def pipeline_bulk_action(request):
 
 
 # ══════════════════════════════════════════════════════════════
+# ADMIN — PDF Candidato (perfil unificado)
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def postulacion_pdf(request, pk):
+    """Genera PDF unificado del candidato para imprimir antes de entrevista."""
+    from reclutamiento.candidato_pdf import candidato_pdf_response
+
+    postulacion = get_object_or_404(
+        Postulacion.objects.select_related('vacante', 'etapa', 'personal_creado')
+        .prefetch_related('notas_detalle__autor'),
+        pk=pk,
+    )
+    return candidato_pdf_response(postulacion)
+
+
+# ══════════════════════════════════════════════════════════════
 # ADMIN — EXPORTAR CANDIDATOS EXCEL
 # ══════════════════════════════════════════════════════════════
 
