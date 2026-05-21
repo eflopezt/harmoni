@@ -340,3 +340,55 @@ main hr {
         border: 1px solid #ddd !important;
     }
 }
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   12. Notif bell — animación + badge prominente
+   ────────────────────────────────────────────────────────────────────────── */
+
+.notif-bell-btn {
+    color: #475569 !important;
+    transition: color 0.2s ease;
+}
+.notif-bell-btn:hover {
+    color: #0f766e !important;
+}
+
+/* Pulse del badge cuando hay no leídas */
+.notif-badge:not([style*="display: none"]) {
+    animation: notif-pulse 2s ease-in-out infinite;
+}
+
+@keyframes notif-pulse {
+    0%, 100% {
+        box-shadow: 0 1px 3px rgba(220, 38, 38, 0.4),
+                    0 0 0 0 rgba(220, 38, 38, 0.5);
+    }
+    50% {
+        box-shadow: 0 1px 3px rgba(220, 38, 38, 0.5),
+                    0 0 0 6px rgba(220, 38, 38, 0);
+    }
+}
+
+/* Bell shake cuando se carga con notifs nuevas */
+.notif-bell-btn.has-unread #notifBellIcon {
+    animation: bell-shake 1.2s ease-in-out;
+    animation-delay: 0.5s;
+    transform-origin: top center;
+}
+
+@keyframes bell-shake {
+    0%, 100% { transform: rotate(0); }
+    10%, 30%, 50% { transform: rotate(-12deg); }
+    20%, 40%, 60% { transform: rotate(12deg); }
+    70%, 90% { transform: rotate(-6deg); }
+    80% { transform: rotate(6deg); }
+}
+
+/* Dropdown — hover en cada notif */
+.notif-dropdown .notif-item {
+    transition: background-color 0.12s ease;
+}
+.notif-dropdown .notif-item:hover {
+    background-color: #f0fdfa !important;
+}

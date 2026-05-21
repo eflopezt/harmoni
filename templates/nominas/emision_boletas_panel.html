@@ -250,6 +250,11 @@
         <a href="{% url 'nominas_periodo_exportar' item.p.pk %}" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-file-csv me-1"></i>CSV
         </a>
+        <a href="{% url 'nominas_reporte_periodo_pdf' item.p.pk %}" target="_blank"
+           class="btn btn-outline-info btn-sm"
+           title="Reporte ejecutivo PDF para gerencia">
+            <i class="fas fa-file-pdf me-1"></i>Reporte Ejecutivo
+        </a>
     </div>
 </div>
 {% empty %}

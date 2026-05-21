@@ -2865,3 +2865,271 @@ def notificar_periodo_boletas(request, pk):
             '(todos los trabajadores ya fueron notificados previamente).'
         )
     return redirect('nominas_emision_boletas')
+
+
+# ═════════════════════════════════════════════════════════════════
+# REPORTE EJECUTIVO MENSUAL — PDF para gerencia
+# ═════════════════════════════════════════════════════════════════
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+def reporte_periodo_pdf(request, pk):
+    """
+    PDF resumen ejecutivo del período de nómina para gerencia.
+
+    Contenido:
+    - Resumen financiero (totales, neto, costo empresa)
+    - Distribución por grupo de tareo (STAFF/RCO)
+    - Top 5 conceptos remunerativos
+    - Distribución régimen pensionario (AFP/ONP)
+
+    Útil para gerencia que no necesita ver registros individuales.
+    """
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    )
+    from django.db.models import Sum, Count, Avg
+    from django.http import HttpResponse
+
+    periodo = get_object_or_404(PeriodoNomina, pk=pk)
+    registros = (
+        RegistroNomina.objects
+        .filter(periodo=periodo)
+        .select_related('personal')
+    )
+
+    if not registros.exists():
+        messages.error(request, 'El período no tiene registros para reportar.')
+        return redirect('nominas_periodo_detalle', pk=pk)
+
+    # Stats globales
+    total_trabajadores = registros.count()
+    sumas = registros.aggregate(
+        total_ingresos=Sum('total_ingresos'),
+        total_descuentos=Sum('total_descuentos'),
+        total_aportes=Sum('aporte_essalud'),
+        total_neto=Sum('neto_a_pagar'),
+        avg_neto=Avg('neto_a_pagar'),
+    )
+    total_ingresos = sumas['total_ingresos'] or Decimal('0')
+    total_descuentos = sumas['total_descuentos'] or Decimal('0')
+    total_aportes = sumas['total_aportes'] or Decimal('0')
+    total_neto = sumas['total_neto'] or Decimal('0')
+    avg_neto = sumas['avg_neto'] or Decimal('0')
+    costo_empresa = (total_ingresos + total_aportes).quantize(Decimal('0.01'))
+
+    # Por grupo
+    por_grupo = list(
+        registros.values('personal__grupo_tareo')
+        .annotate(n=Count('id'), neto=Sum('neto_a_pagar'))
+        .order_by('-n')
+    )
+
+    # Top conceptos remunerativos
+    top_conceptos = list(
+        LineaNomina.objects.filter(
+            registro__periodo=periodo,
+            concepto__tipo='INGRESO',
+        )
+        .values('concepto__nombre')
+        .annotate(total=Sum('monto'), c=Count('id'))
+        .order_by('-total')[:5]
+    )
+
+    # Distribución AFP
+    por_afp = list(
+        registros.filter(regimen_pension='AFP')
+        .values('afp')
+        .annotate(n=Count('id'))
+        .order_by('-n')
+    )
+    onp_count = registros.filter(regimen_pension='ONP').count()
+    sin_pension = registros.filter(regimen_pension='SIN_PENSION').count()
+
+    # Empresa
+    empresa_nombre = 'Empresa'
+    try:
+        if periodo.empresa:
+            empresa_nombre = (
+                periodo.empresa.razon_social
+                or getattr(periodo.empresa, 'nombre_comercial', None)
+                or 'Empresa'
+            )
+    except Exception:
+        pass
+
+    # ── Build PDF ──
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=15*mm, rightMargin=15*mm,
+        topMargin=15*mm, bottomMargin=15*mm,
+    )
+    story = []
+    styles = getSampleStyleSheet()
+
+    title_st = ParagraphStyle(
+        'title', parent=styles['Title'],
+        fontSize=18, textColor=colors.HexColor('#0d2b27'),
+        spaceAfter=4, leading=22,
+    )
+    subtitle_st = ParagraphStyle(
+        'sub', parent=styles['Normal'],
+        fontSize=10, textColor=colors.HexColor('#64748b'),
+        spaceAfter=16,
+    )
+    h2_st = ParagraphStyle(
+        'h2', parent=styles['Heading2'],
+        fontSize=12, textColor=colors.HexColor('#134e4a'),
+        spaceAfter=8, spaceBefore=14,
+    )
+
+    def _f(val):
+        return f'S/ {val:,.2f}'
+
+    # Header
+    story.append(Paragraph('<b>Reporte Ejecutivo de Planilla</b>', title_st))
+    story.append(Paragraph(
+        f'{empresa_nombre} · {periodo.mes_nombre} {periodo.anio} · '
+        f'{periodo.get_tipo_display()} · Estado: <b>{periodo.get_estado_display()}</b>',
+        subtitle_st,
+    ))
+
+    # 1. Resumen financiero
+    story.append(Paragraph('<b>Resumen Financiero</b>', h2_st))
+    tot_data = [
+        ['Concepto', 'Monto'],
+        ['Total Trabajadores', f'{total_trabajadores}'],
+        ['Total Ingresos (haberes brutos)', _f(total_ingresos)],
+        ['Total Descuentos al Trabajador', _f(total_descuentos)],
+        ['Total Aportes del Empleador (EsSalud)', _f(total_aportes)],
+        ['Neto a Pagar (planilla)', _f(total_neto)],
+        ['Promedio Neto / Trabajador', _f(avg_neto)],
+        ['Costo Total Empresa (Rem + Aportes)', _f(costo_empresa)],
+    ]
+    tot_table = Table(tot_data, colWidths=[110*mm, 60*mm])
+    tot_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d2b27')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#ecfdf5')),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#cbd5e1')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(tot_table)
+
+    # 2. Por grupo
+    story.append(Paragraph('<b>Distribución por Grupo de Tareo</b>', h2_st))
+    grupo_data = [['Grupo', 'Trabajadores', '% del total', 'Neto Total', '% del Neto']]
+    for g in por_grupo:
+        n = g['n']
+        neto_g = g['neto'] or Decimal('0')
+        pct = (n / total_trabajadores * 100) if total_trabajadores else 0
+        pct_neto = (neto_g / total_neto * 100) if total_neto else 0
+        grupo_data.append([
+            g['personal__grupo_tareo'] or '(s/grupo)',
+            str(n),
+            f'{pct:.1f}%',
+            _f(neto_g),
+            f'{pct_neto:.1f}%',
+        ])
+    grupo_table = Table(grupo_data, colWidths=[35*mm, 30*mm, 30*mm, 45*mm, 30*mm])
+    grupo_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#134e4a')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#cbd5e1')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+    ]))
+    story.append(grupo_table)
+
+    # 3. Top conceptos
+    if top_conceptos:
+        story.append(Paragraph('<b>Top 5 Conceptos Remunerativos</b>', h2_st))
+        cpt_data = [['Concepto', 'Líneas', 'Total Pagado']]
+        for c in top_conceptos:
+            cpt_data.append([
+                c['concepto__nombre'],
+                str(c['c']),
+                _f(c['total']),
+            ])
+        cpt_table = Table(cpt_data, colWidths=[90*mm, 35*mm, 45*mm])
+        cpt_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f766e')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#cbd5e1')),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+        ]))
+        story.append(cpt_table)
+
+    # 4. Régimen pensionario
+    story.append(Paragraph('<b>Distribución Régimen Pensionario</b>', h2_st))
+    pen_data = [['Régimen', 'Trabajadores', '% del total']]
+    for p in por_afp:
+        afp_name = p['afp'] or '(s/afp)'
+        n = p['n']
+        pct = (n / total_trabajadores * 100) if total_trabajadores else 0
+        pen_data.append([f'AFP {afp_name}', str(n), f'{pct:.1f}%'])
+    if onp_count:
+        pct = onp_count / total_trabajadores * 100
+        pen_data.append(['ONP', str(onp_count), f'{pct:.1f}%'])
+    if sin_pension:
+        pct = sin_pension / total_trabajadores * 100
+        pen_data.append(['Sin pensión', str(sin_pension), f'{pct:.1f}%'])
+    pen_table = Table(pen_data, colWidths=[70*mm, 50*mm, 50*mm])
+    pen_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#7c3aed')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#cbd5e1')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+    ]))
+    story.append(pen_table)
+
+    # Footer
+    story.append(Spacer(1, 14))
+    pie = ParagraphStyle(
+        'pie', fontSize=7, textColor=colors.HexColor('#94a3b8'),
+        alignment=TA_CENTER, leading=10,
+    )
+    story.append(Paragraph(
+        f'Reporte generado por Harmoni ERP el '
+        f'{timezone.now().strftime("%d/%m/%Y %H:%M")} · '
+        f'Usuario: {request.user.username}',
+        pie,
+    ))
+
+    doc.build(story)
+    pdf = buf.getvalue()
+    buf.close()
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    fname = f'reporte_planilla_{periodo.anio}_{periodo.mes:02d}_{periodo.tipo}.pdf'
+    response['Content-Disposition'] = f'inline; filename="{fname}"'
+    return response

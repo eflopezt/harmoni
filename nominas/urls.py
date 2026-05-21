@@ -53,6 +53,10 @@ urlpatterns = [
     path('boletas/<int:pk>/notificar/', views.notificar_periodo_boletas,
          name='nominas_notificar_periodo_boletas'),
 
+    # Reporte ejecutivo PDF del período (admin)
+    path('periodos/<int:pk>/reporte.pdf', views.reporte_periodo_pdf,
+         name='nominas_reporte_periodo_pdf'),
+
     # Configuración tasas AFP (admin)
     path('config/tasas-afp/', views.config_tasas_afp, name='config_tasas_afp'),
 
