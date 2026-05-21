@@ -96,3 +96,9 @@ from asistencia.views.biometrico import (  # noqa: F401
     test_dispositivo,
     logs_sincronizacion,
 )
+from asistencia.views.briefing import (  # noqa: F401
+    briefing_panel,
+    briefing_crear,
+    briefing_detalle,
+    briefing_marcar_leido,
+)

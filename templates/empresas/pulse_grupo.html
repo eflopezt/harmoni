@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Pulse del Grupo — Harmoni{% endblock %}
+
+{% block extra_css %}
+<style>
+.pulse-hero {
+    background: linear-gradient(135deg, #0d2b27 0%, #0f766e 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 1.4rem 1.75rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.pulse-hero h2 { color: #fff; font-size: 1.4rem; margin: 0 0 .25rem; }
+.pulse-hero p  { color: #cffafe; margin: 0; font-size: .88rem; opacity: .9; }
+.pulse-hero .pulse-clock {
+    font-size: .8rem;
+    color: #cffafe;
+    text-align: right;
+}
+
+.pulse-summary {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+}
+@media (max-width: 992px) { .pulse-summary { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 576px) { .pulse-summary { grid-template-columns: repeat(2, 1fr); } }
+.pulse-kpi {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    padding: .85rem 1rem;
+    text-align: center;
+}
+.pulse-kpi .lbl {
+    font-size: .65rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-weight: 600;
+    margin-bottom: .15rem;
+}
+.pulse-kpi .val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0d2b27;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.pulse-kpi.verde    { border-top: 3px solid #10b981; }
+.pulse-kpi.amarillo { border-top: 3px solid #f59e0b; }
+.pulse-kpi.rojo     { border-top: 3px solid #ef4444; }
+
+.pulse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.pulse-local {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    transition: box-shadow .15s, transform .15s;
+    position: relative;
+}
+.pulse-local:hover {
+    box-shadow: 0 4px 12px rgba(15,41,38,.1);
+    transform: translateY(-1px);
+}
+.pulse-local.color-verde    { border-left: 4px solid #10b981; }
+.pulse-local.color-amarillo { border-left: 4px solid #f59e0b; }
+.pulse-local.color-rojo     { border-left: 4px solid #ef4444; }
+
+.pulse-local-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: .75rem;
+}
+.pulse-local-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0d2b27;
+    line-height: 1.2;
+}
+.pulse-local-ruc {
+    font-size: .72rem;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+}
+.pulse-status-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(255,255,255,1), 0 0 0 4px rgba(0,0,0,.08);
+}
+.pulse-status-dot.verde    { background: #10b981; animation: pulse-verde 2s ease-in-out infinite; }
+.pulse-status-dot.amarillo { background: #f59e0b; }
+.pulse-status-dot.rojo     { background: #ef4444; animation: pulse-rojo 1.5s ease-in-out infinite; }
+
+@keyframes pulse-verde {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(255,255,255,1), 0 0 0 4px rgba(0,0,0,.08); }
+    50%      { box-shadow: 0 0 0 3px rgba(255,255,255,1), 0 0 0 8px rgba(16,185,129,.25); }
+}
+@keyframes pulse-rojo {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(255,255,255,1), 0 0 0 4px rgba(239,68,68,.3); }
+    50%      { box-shadow: 0 0 0 3px rgba(255,255,255,1), 0 0 0 10px rgba(239,68,68,.0); }
+}
+
+.pulse-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .55rem;
+    margin-bottom: .65rem;
+}
+.pulse-stat {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: .45rem .6rem;
+}
+.pulse-stat .lbl {
+    font-size: .62rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-weight: 600;
+}
+.pulse-stat .val {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0d2b27;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.pulse-stat .sub {
+    font-size: .65rem;
+    color: #94a3b8;
+}
+
+.pulse-asistencia {
+    display: flex;
+    gap: .4rem;
+    font-size: .7rem;
+    margin-bottom: .6rem;
+    flex-wrap: wrap;
+}
+.asis-pill {
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+}
+.asis-pill.pres   { background: #d1fae5; color: #065f46; }
+.asis-pill.falta  { background: #fee2e2; color: #991b1b; }
+.asis-pill.permiso{ background: #fef3c7; color: #92400e; }
+.asis-pill.sinmar { background: #e2e8f0; color: #475569; }
+
+.pulse-alertas {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    font-size: .72rem;
+}
+.pulse-alerta {
+    padding: .35rem .55rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.pulse-alerta.warning { background: #fef3c7; color: #92400e; }
+.pulse-alerta.info    { background: #e0f2fe; color: #075985; }
+.pulse-alerta.danger  { background: #fee2e2; color: #991b1b; }
+
+.pulse-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #94a3b8;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="pulse-hero">
+    <div>
+        <h2><i class="fas fa-heartbeat me-2"></i>Pulse del Grupo</h2>
+        <p>
+            Visión unificada de las <strong>{{ total_locales }}</strong> empresas del grupo —
+            asistencia, planilla y alertas en una sola pantalla.
+        </p>
+    </div>
+    <div class="pulse-clock">
+        <div style="font-size:1.5rem; font-weight:800; line-height:1;">{{ hoy|date:"d" }}</div>
+        <div style="font-size:.78rem; text-transform:uppercase; letter-spacing:.06em;">
+            {{ hoy|date:"M Y" }}
+        </div>
+    </div>
+</div>
+
+{# KPIs globales #}
+<div class="pulse-summary">
+    <div class="pulse-kpi">
+        <div class="lbl">Locales activos</div>
+        <div class="val">{{ total_locales }}</div>
+    </div>
+    <div class="pulse-kpi verde">
+        <div class="lbl">Operación normal</div>
+        <div class="val">{{ locales_verde }}</div>
+    </div>
+    <div class="pulse-kpi amarillo">
+        <div class="lbl">Atención</div>
+        <div class="val">{{ locales_amarillo }}</div>
+    </div>
+    <div class="pulse-kpi rojo">
+        <div class="lbl">Crítico</div>
+        <div class="val">{{ locales_rojo }}</div>
+    </div>
+    <div class="pulse-kpi">
+        <div class="lbl">Headcount total</div>
+        <div class="val">{{ total_headcount|intcomma }}</div>
+    </div>
+</div>
+
+{# Resumen económico #}
+<div class="row g-2 mb-3">
+    <div class="col-md-4">
+        <div class="pulse-kpi" style="text-align:left;">
+            <div class="lbl">Planilla último período (Neto)</div>
+            <div class="val" style="color:#0d9488;">S/ {{ total_planilla_neto|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="pulse-kpi" style="text-align:left;">
+            <div class="lbl">Costo Empresa</div>
+            <div class="val" style="color:#7c3aed;">S/ {{ total_planilla_costo|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="pulse-kpi" style="text-align:left;">
+            <div class="lbl">Alertas activas</div>
+            <div class="val" style="color:{% if total_alertas %}#ef4444{% else %}#10b981{% endif %};">
+                {{ total_alertas }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Grid de locales #}
+{% if locales %}
+<div class="pulse-grid">
+    {% for l in locales %}
+    <div class="pulse-local color-{{ l.color }}">
+        <div class="pulse-local-header">
+            <div>
+                <div class="pulse-local-name">
+                    {{ l.empresa.nombre_comercial|default:l.empresa.razon_social }}
+                </div>
+                <div class="pulse-local-ruc">RUC {{ l.empresa.ruc|default:"—" }}</div>
+            </div>
+            <div class="pulse-status-dot {{ l.color }}" title="Estado: {{ l.color|capfirst }}"></div>
+        </div>
+
+        <div class="pulse-stats">
+            <div class="pulse-stat">
+                <div class="lbl">Headcount</div>
+                <div class="val">{{ l.headcount }}</div>
+            </div>
+            {% if l.planilla %}
+            <div class="pulse-stat">
+                <div class="lbl">Neto {{ l.planilla.periodo|truncatechars:9 }}</div>
+                <div class="val">S/ {{ l.planilla.neto|floatformat:0|intcomma }}</div>
+            </div>
+            {% else %}
+            <div class="pulse-stat">
+                <div class="lbl">Planilla</div>
+                <div class="val" style="font-size:.78rem; color:#94a3b8;">Sin datos</div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Asistencia hoy #}
+        {% if l.asistencia_hoy %}
+        <div class="pulse-asistencia">
+            <span class="asis-pill pres">
+                <i class="fas fa-check"></i> {{ l.asistencia_hoy.presentes|default:0 }}
+            </span>
+            {% if l.asistencia_hoy.faltas %}
+            <span class="asis-pill falta">
+                <i class="fas fa-times"></i> {{ l.asistencia_hoy.faltas }}
+            </span>
+            {% endif %}
+            {% if l.asistencia_hoy.permisos %}
+            <span class="asis-pill permiso">
+                <i class="fas fa-umbrella-beach"></i> {{ l.asistencia_hoy.permisos }}
+            </span>
+            {% endif %}
+            {% if l.asistencia_hoy.sin_marcar %}
+            <span class="asis-pill sinmar">
+                <i class="far fa-circle"></i> {{ l.asistencia_hoy.sin_marcar }}
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# Alertas #}
+        {% if l.alertas %}
+        <div class="pulse-alertas">
+            {% for a in l.alertas %}
+            <div class="pulse-alerta {{ a.tipo }}">
+                <i class="fas {{ a.icono }}"></i> {{ a.texto }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="pulse-empty">
+    <i class="fas fa-building fa-3x mb-3 opacity-25"></i>
+    <h5 class="text-muted mb-1">No hay empresas activas</h5>
+    <p class="text-muted small mb-0">
+        Agrega empresas desde <a href="{% url 'empresas_panel' %}">Empresas → Nueva</a>
+    </p>
+</div>
+{% endif %}
+
+{% endblock %}

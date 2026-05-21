@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Briefings del Día — Harmoni{% endblock %}
+
+{% block extra_css %}
+<style>
+.brf-hero {
+    background: linear-gradient(135deg, #134e4a, #0f766e);
+    color: #fff;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.brf-hero h2 { color: #fff; font-size: 1.3rem; margin: 0 0 .25rem; }
+.brf-hero p { color: #cffafe; margin: 0; font-size: .85rem; }
+
+.brf-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem 1.15rem;
+    margin-bottom: .85rem;
+    border-left: 3px solid #94a3b8;
+    transition: box-shadow .15s, transform .15s;
+}
+.brf-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.06); transform: translateY(-1px); }
+.brf-card.publicado { border-left-color: #10b981; }
+.brf-card.borrador  { border-left-color: #f59e0b; }
+.brf-card.cerrado   { border-left-color: #94a3b8; opacity: .8; }
+
+.brf-badge {
+    display: inline-block;
+    padding: .15rem .55rem;
+    border-radius: 999px;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.brf-badge.publicado { background: #d1fae5; color: #065f46; }
+.brf-badge.borrador  { background: #fef3c7; color: #92400e; }
+.brf-badge.cerrado   { background: #e2e8f0; color: #475569; }
+
+.brf-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+@media (max-width: 576px) { .brf-summary { grid-template-columns: 1fr; } }
+.brf-kpi {
+    background: #fff;
+    border-radius: 10px;
+    padding: .75rem 1rem;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+.brf-kpi .val { font-size: 1.3rem; font-weight: 800; color: #0d2b27; line-height: 1.1; }
+.brf-kpi .lbl { font-size: .68rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="brf-hero">
+    <div>
+        <h2><i class="fas fa-clipboard-list me-2"></i>Briefing del Día</h2>
+        <p>
+            Pre-shift handover estilo brigade — comunica covers, VIPs, especiales y 86's
+            a la brigada antes del servicio.
+        </p>
+    </div>
+    <a href="{% url 'briefing_crear' %}" class="btn btn-light btn-sm">
+        <i class="fas fa-plus me-1"></i>Nuevo Briefing
+    </a>
+</div>
+
+<div class="brf-summary">
+    <div class="brf-kpi">
+        <div class="val">{{ hoy_count }}</div>
+        <div class="lbl">Briefings hoy</div>
+    </div>
+    <div class="brf-kpi">
+        <div class="val text-success">{{ publicados_hoy }}</div>
+        <div class="lbl">Publicados hoy</div>
+    </div>
+    <div class="brf-kpi">
+        <div class="val text-warning">{{ borradores_hoy }}</div>
+        <div class="lbl">Borradores hoy</div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 flex-wrap align-items-end">
+            <div>
+                <label class="form-label small mb-1">Fecha</label>
+                <input type="date" name="fecha" value="{{ fecha_filtro }}"
+                       class="form-control form-control-sm">
+            </div>
+            <div>
+                <label class="form-label small mb-1">Local / Empresa</label>
+                <select name="empresa_id" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for e in empresas %}
+                    <option value="{{ e.pk }}" {% if empresa_filtro == e.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ e.nombre_comercial|default:e.razon_social }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-filter me-1"></i>Filtrar
+            </button>
+            {% if fecha_filtro or empresa_filtro %}
+            <a href="{% url 'briefing_panel' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times me-1"></i>Limpiar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% for b in briefings %}
+<div class="brf-card {{ b.estado|lower }}">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'briefing_detalle' b.pk %}" class="fw-bold text-decoration-none"
+                   style="color:#0d2b27; font-size:1rem;">
+                    {{ b.empresa.nombre_comercial|default:b.empresa.razon_social }}
+                </a>
+                <span class="brf-badge {{ b.estado|lower }}">{{ b.get_estado_display }}</span>
+            </div>
+            <div class="text-muted small">
+                <i class="fas fa-calendar me-1"></i>{{ b.fecha|date:"d M Y" }}
+                <span class="mx-2">·</span>
+                <i class="fas fa-utensils me-1"></i>{{ b.get_servicio_display }}
+                {% if b.covers_esperados %}
+                <span class="mx-2">·</span>
+                <i class="fas fa-users me-1"></i>{{ b.covers_esperados }} covers
+                {% endif %}
+                {% if b.publicado_en %}
+                <span class="mx-2">·</span>
+                <i class="fas fa-clock me-1"></i>Pub. {{ b.publicado_en|date:"H:i" }}
+                {% endif %}
+            </div>
+        </div>
+        <a href="{% url 'briefing_detalle' b.pk %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-eye me-1"></i>Ver
+        </a>
+    </div>
+</div>
+{% empty %}
+<div class="text-center py-5 text-muted">
+    <i class="fas fa-clipboard fa-3x mb-3 opacity-25"></i>
+    <h5 class="text-muted">No hay briefings registrados</h5>
+    <p class="small">Crea el primer briefing del día con el botón "Nuevo Briefing".</p>
+</div>
+{% endfor %}
+
+{% endblock %}

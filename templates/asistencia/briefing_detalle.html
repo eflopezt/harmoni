@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Briefing {{ briefing.fecha|date:"d M" }} — {{ briefing.empresa }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.brf-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem 1.15rem;
+    margin-bottom: .85rem;
+}
+.brf-card h6 {
+    font-size: .85rem;
+    font-weight: 700;
+    color: #134e4a;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: .55rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.brf-card .content {
+    white-space: pre-wrap;
+    color: #334155;
+    font-size: .88rem;
+    line-height: 1.5;
+}
+.brf-card.especial   { border-left: 3px solid #10b981; }
+.brf-card.danger     { border-left: 3px solid #ef4444; }
+.brf-card.vip        { border-left: 3px solid #f59e0b; }
+.brf-card.chef       { border-left: 3px solid #06b6d4; }
+.brf-card.operativa  { border-left: 3px solid #94a3b8; }
+
+.brf-header-info {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+@media (max-width:768px) { .brf-header-info { grid-template-columns: repeat(2, 1fr); } }
+.brf-info-pill {
+    background: #f0fafa;
+    border-radius: 8px;
+    padding: .6rem .85rem;
+    text-align: center;
+}
+.brf-info-pill .lbl { font-size: .65rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+.brf-info-pill .val { font-size: 1.1rem; font-weight: 800; color: #0d2b27; }
+
+.brf-state-badge {
+    padding: .3rem .85rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.brf-state-badge.PUBLICADO { background: #d1fae5; color: #065f46; }
+.brf-state-badge.BORRADOR  { background: #fef3c7; color: #92400e; }
+.brf-state-badge.CERRADO   { background: #e2e8f0; color: #475569; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-clipboard-list"></i>
+            Briefing — {{ briefing.empresa.nombre_comercial|default:briefing.empresa.razon_social }}
+        </h2>
+        <p class="page-subtitle">
+            <a href="{% url 'briefing_panel' %}" class="text-decoration-none text-muted">
+                <i class="fas fa-chevron-left me-1" style="font-size:.7rem;"></i>Briefings
+            </a>
+            <span class="mx-1">/</span>
+            {{ briefing.fecha|date:"d M Y" }} · {{ briefing.get_servicio_display }}
+        </p>
+    </div>
+    <span class="brf-state-badge {{ briefing.estado }}">
+        <i class="fas
+            {% if briefing.estado == 'PUBLICADO' %}fa-paper-plane
+            {% elif briefing.estado == 'BORRADOR' %}fa-pen
+            {% else %}fa-lock{% endif %} me-1"></i>
+        {{ briefing.get_estado_display }}
+    </span>
+</div>
+
+<div class="brf-header-info">
+    <div class="brf-info-pill">
+        <div class="lbl">Fecha</div>
+        <div class="val">{{ briefing.fecha|date:"d M" }}</div>
+    </div>
+    <div class="brf-info-pill">
+        <div class="lbl">Servicio</div>
+        <div class="val" style="font-size:.95rem;">{{ briefing.get_servicio_display }}</div>
+    </div>
+    <div class="brf-info-pill">
+        <div class="lbl">Covers</div>
+        <div class="val">{{ briefing.covers_esperados }}</div>
+    </div>
+    <div class="brf-info-pill">
+        <div class="lbl">Lecturas</div>
+        <div class="val text-success">{{ total_lecturas }}</div>
+    </div>
+</div>
+
+{# Acciones del estado #}
+{% if briefing.estado == 'BORRADOR' %}
+<form method="post" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="publicar">
+    <button type="submit" class="btn btn-success mb-3"
+            onclick="return confirm('¿Publicar este briefing? Los trabajadores recibirán notificación.');">
+        <i class="fas fa-paper-plane me-1"></i>Publicar Briefing
+    </button>
+</form>
+{% elif briefing.estado == 'PUBLICADO' %}
+<div class="d-inline-block mb-3">
+    <small class="text-muted">
+        <i class="fas fa-check-circle text-success me-1"></i>
+        Publicado por <strong>{{ briefing.publicado_por.username|default:"—" }}</strong>
+        el {{ briefing.publicado_en|date:"d/m H:i" }}
+    </small>
+    <form method="post" class="d-inline ms-2">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="cerrar">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-lock me-1"></i>Cerrar
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        {% if briefing.notas_chef %}
+        <div class="brf-card chef">
+            <h6><i class="fas fa-comment-dots" style="color:#06b6d4;"></i>Notas del Chef</h6>
+            <div class="content">{{ briefing.notas_chef }}</div>
+        </div>
+        {% endif %}
+
+        {% if briefing.especiales %}
+        <div class="brf-card especial">
+            <h6><i class="fas fa-utensils" style="color:#10b981;"></i>Especiales del día</h6>
+            <div class="content">{{ briefing.especiales }}</div>
+        </div>
+        {% endif %}
+
+        {% if briefing.items_86 %}
+        <div class="brf-card danger">
+            <h6><i class="fas fa-ban" style="color:#ef4444;"></i>Items 86'd (sin stock)</h6>
+            <div class="content">{{ briefing.items_86 }}</div>
+        </div>
+        {% endif %}
+
+        {% if briefing.vips_alergias %}
+        <div class="brf-card vip">
+            <h6><i class="fas fa-star" style="color:#f59e0b;"></i>VIPs / Alergias / Cumpleaños</h6>
+            <div class="content">{{ briefing.vips_alergias }}</div>
+        </div>
+        {% endif %}
+
+        {% if briefing.dress_code %}
+        <div class="brf-card">
+            <h6><i class="fas fa-tshirt" style="color:#0f766e;"></i>Dress code</h6>
+            <div class="content">{{ briefing.dress_code }}</div>
+        </div>
+        {% endif %}
+
+        {% if briefing.notas_operativas %}
+        <div class="brf-card operativa">
+            <h6><i class="fas fa-info-circle"></i>Notas operativas</h6>
+            <div class="content">{{ briefing.notas_operativas }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="brf-card">
+            <h6><i class="fas fa-eye"></i>Quién leyó</h6>
+            {% if lecturas %}
+            <ul class="list-unstyled mb-0" style="font-size:.82rem;">
+                {% for l in lecturas %}
+                <li class="d-flex justify-content-between py-1" style="border-bottom:1px solid #f1f5f9;">
+                    <span>{{ l.personal.apellidos_nombres|default:l.personal.nro_doc }}</span>
+                    <span class="text-muted small">{{ l.leido_en|date:"H:i" }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if total_lecturas > 30 %}
+            <small class="text-muted">+ {{ total_lecturas|add:"-30" }} más</small>
+            {% endif %}
+            {% else %}
+            <p class="text-muted small mb-0">
+                {% if briefing.estado == 'PUBLICADO' %}
+                Aún no hay lecturas registradas.
+                {% else %}
+                Publica el briefing para empezar a registrar lecturas.
+                {% endif %}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

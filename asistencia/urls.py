@@ -119,6 +119,12 @@ urlpatterns = [
     path('biometrico/test/', views.test_dispositivo, name='asistencia_biometrico_test'),
     path('biometrico/logs/', views.logs_sincronizacion, name='asistencia_biometrico_logs'),
 
+    # ── Briefing del Día (gastronomía premium) ──
+    path('briefing/', views.briefing_panel, name='briefing_panel'),
+    path('briefing/crear/', views.briefing_crear, name='briefing_crear'),
+    path('briefing/<int:pk>/', views.briefing_detalle, name='briefing_detalle'),
+    path('briefing/<int:pk>/leido/', views.briefing_marcar_leido, name='briefing_marcar_leido'),
+
     # Reportes por Área
     path('reportes/areas/', panel_reportes_area, name='asistencia_reportes_areas'),
     path('reportes/areas/<int:area_id>/configurar/', configurar_area, name='asistencia_reportes_area_config'),

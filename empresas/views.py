@@ -163,3 +163,160 @@ def configuracion_empresa(request, pk):
         'titulo': f'Configuración — {empresa.nombre_display}',
         'empresa': empresa,
     })
+
+
+# ──────────────────────────────────────────────────────────────────
+#  Pulse del Grupo — Dashboard multi-local para grupo corporativo
+# ──────────────────────────────────────────────────────────────────
+
+@login_required
+@solo_admin
+def pulse_del_grupo(request):
+    """Dashboard ejecutivo: vista unificada de todas las empresas/locales.
+
+    Para grupos corporativos con múltiples RUCs (gastronomía, retail, etc).
+    Muestra cada empresa como tarjeta con KPIs operacionales + estado:
+    - Headcount activo
+    - Asistencia hoy (presentes / faltas / sin marcar)
+    - Planilla del último período (neto + costo empresa)
+    - Alertas (contratos por vencer, HE excedida, etc.)
+    - Código de color: verde/amarillo/rojo según salud operativa
+
+    El "cockpit de Isabel" — la pantalla que el dueño abre con su café.
+    """
+    from datetime import date, timedelta
+    from django.db.models import Count, Q, Sum
+    from personal.models import Personal
+    from nominas.models import PeriodoNomina
+    from empresas.models import Empresa
+
+    hoy = date.today()
+    en_30_dias = hoy + timedelta(days=30)
+
+    empresas_qs = Empresa.objects.filter(activa=True).order_by('razon_social')
+
+    locales = []
+    for emp in empresas_qs:
+        # Headcount activo
+        personal_qs = Personal.objects.filter(empresa=emp, estado='Activo')
+        headcount = personal_qs.count()
+
+        # Asistencia hoy (solo si el modulo está activo)
+        asistencia_hoy = None
+        try:
+            from asistencia.models import RegistroTareo
+            tareo_qs = RegistroTareo.objects.filter(
+                personal__empresa=emp, fecha=hoy,
+            )
+            agg = tareo_qs.aggregate(
+                total=Count('id'),
+                presentes=Count('id', filter=Q(codigo_dia__in=['T', 'NOR', 'TR', 'SS'])),
+                faltas=Count('id', filter=Q(codigo_dia__in=['FA', 'LSG'])),
+                permisos=Count('id', filter=Q(codigo_dia__in=[
+                    'V', 'DL', 'DLA', 'DM', 'LCG', 'LF', 'LP', 'LM',
+                ])),
+            )
+            sin_marcar = headcount - (agg['total'] or 0)
+            asistencia_hoy = {**agg, 'sin_marcar': max(0, sin_marcar)}
+        except Exception:
+            pass
+
+        # Último período de planilla (consolidado entre todas las empresas)
+        # Usamos el último período REGULAR cerrado/aprobado, agregando por empresa
+        ultimo_periodo = PeriodoNomina.objects.filter(
+            tipo='REGULAR',
+            estado__in=['CALCULADO', 'APROBADO', 'CERRADO'],
+        ).order_by('-anio', '-mes').first()
+
+        planilla_emp = None
+        if ultimo_periodo:
+            from nominas.models import RegistroNomina
+            reg_qs = RegistroNomina.objects.filter(
+                periodo=ultimo_periodo, personal__empresa=emp,
+            )
+            agg_pl = reg_qs.aggregate(
+                trabajadores=Count('id'),
+                neto=Sum('neto_a_pagar'),
+                costo=Sum('costo_total_empresa'),
+            )
+            if agg_pl['trabajadores']:
+                planilla_emp = {
+                    'periodo': f'{ultimo_periodo.mes_nombre} {ultimo_periodo.anio}',
+                    'trabajadores': agg_pl['trabajadores'],
+                    'neto':         agg_pl['neto']  or 0,
+                    'costo':        agg_pl['costo'] or 0,
+                }
+
+        # Alertas
+        alertas = []
+        # Contratos por vencer (30 días)
+        contratos_vencen = personal_qs.filter(
+            fecha_fin_contrato__isnull=False,
+            fecha_fin_contrato__gte=hoy,
+            fecha_fin_contrato__lte=en_30_dias,
+        ).count()
+        if contratos_vencen:
+            alertas.append({
+                'tipo':    'warning',
+                'icono':   'fa-file-contract',
+                'texto':   f'{contratos_vencen} contrato(s) por vencer en 30 días',
+                'count':   contratos_vencen,
+            })
+
+        # Sin saldos de apertura cargados → bandera amarilla
+        try:
+            from nominas.models import SaldoAperturaTrabajador
+            personal_con_saldo = SaldoAperturaTrabajador.objects.filter(
+                personal__empresa=emp,
+            ).count()
+            sin_saldo = headcount - personal_con_saldo
+            if headcount and sin_saldo > headcount * 0.5:
+                alertas.append({
+                    'tipo':  'info',
+                    'icono': 'fa-rocket',
+                    'texto': f'Saldos de apertura pendientes ({sin_saldo} trab.)',
+                    'count': sin_saldo,
+                })
+        except Exception:
+            pass
+
+        # Determinar color de salud
+        if asistencia_hoy and asistencia_hoy.get('faltas', 0) > headcount * 0.15:
+            color = 'rojo'
+        elif alertas or (asistencia_hoy and asistencia_hoy.get('sin_marcar', 0) > headcount * 0.3):
+            color = 'amarillo'
+        else:
+            color = 'verde'
+
+        locales.append({
+            'empresa':        emp,
+            'headcount':      headcount,
+            'asistencia_hoy': asistencia_hoy,
+            'planilla':       planilla_emp,
+            'alertas':        alertas,
+            'color':          color,
+            'contratos_vencen': contratos_vencen,
+        })
+
+    # Stats agregadas globales
+    total_locales = len(locales)
+    total_headcount = sum(l['headcount'] for l in locales)
+    total_planilla_neto = sum((l['planilla']['neto'] if l['planilla'] else 0) for l in locales)
+    total_planilla_costo = sum((l['planilla']['costo'] if l['planilla'] else 0) for l in locales)
+    total_alertas = sum(len(l['alertas']) for l in locales)
+    locales_verde = sum(1 for l in locales if l['color'] == 'verde')
+    locales_amarillo = sum(1 for l in locales if l['color'] == 'amarillo')
+    locales_rojo = sum(1 for l in locales if l['color'] == 'rojo')
+
+    return render(request, 'empresas/pulse_grupo.html', {
+        'locales':              locales,
+        'total_locales':        total_locales,
+        'total_headcount':      total_headcount,
+        'total_planilla_neto':  total_planilla_neto,
+        'total_planilla_costo': total_planilla_costo,
+        'total_alertas':        total_alertas,
+        'locales_verde':        locales_verde,
+        'locales_amarillo':     locales_amarillo,
+        'locales_rojo':         locales_rojo,
+        'hoy':                  hoy,
+    })

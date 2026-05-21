@@ -26,6 +26,7 @@ from django.views.decorators.http import require_POST
 from .models import (
     ConceptoRemunerativo, LineaNomina, PeriodoNomina, RegistroNomina,
     PresupuestoPlanilla, PlanPlantilla, LineaPlan,
+    SaldoAperturaTrabajador, ConfiguracionApertura,
 )
 from . import engine
 from .flujo_caja_engine import proyectar_flujo_caja, proyectar_desde_plan
@@ -3202,21 +3203,60 @@ def saldos_apertura(request):
                 messages.error(request, f'Error procesando Excel: {e}')
             return redirect('nominas_saldos_apertura')
 
-        # Paso 3 → confirmar import
+        # Paso 3 → confirmar import (persiste a DB)
         if accion == 'confirmar' and preview_data:
-            # En MVP: solo registra la confirmación en session/log
-            # Post-deal: persiste en modelo SaldoAperturaTrabajador
-            request.session['apertura_confirmada'] = {
-                'fecha_corte': preview_data['fecha_corte'],
-                'total': preview_data['total_filas'],
-                'confirmado_por': request.user.username,
-                'confirmado_en': timezone.now().isoformat(),
-            }
+            from datetime import date as _date
+            fc_str = preview_data['fecha_corte']
+            try:
+                anio, mes, dia = fc_str.split('-')
+                fecha_corte = _date(int(anio), int(mes), int(dia))
+            except (ValueError, AttributeError):
+                fecha_corte = _date(2026, 5, 31)
+
+            # Crear/actualizar saldos por trabajador
+            creados = 0
+            actualizados = 0
+            with transaction.atomic():
+                for f in preview_data['filas']:
+                    try:
+                        persona = Personal.objects.get(nro_doc=f['dni'])
+                    except Personal.DoesNotExist:
+                        continue
+                    obj, was_created = SaldoAperturaTrabajador.objects.update_or_create(
+                        personal=persona,
+                        defaults={
+                            'fecha_corte':                fecha_corte,
+                            'prov_cts':                   Decimal(str(f['prov_cts'])),
+                            'prov_gratificacion':         Decimal(str(f['prov_gratif'])),
+                            'prov_vacaciones':            Decimal(str(f['prov_vac'])),
+                            'dias_vacaciones_pendientes': int(f['dias_vac_pend']),
+                            'ir5_acumulado':              Decimal(str(f['ir5_acumulado'])),
+                            'prestamo_saldo':             Decimal(str(f['prestamo_saldo'])),
+                            'creado_por':                 request.user,
+                        },
+                    )
+                    if was_created:
+                        creados += 1
+                    else:
+                        actualizados += 1
+
+                # Marcar configuración global como completada
+                cfg, _ = ConfiguracionApertura.objects.update_or_create(
+                    empresa=None,
+                    defaults={
+                        'fecha_corte':        fecha_corte,
+                        'completado':         True,
+                        'total_trabajadores': creados + actualizados,
+                        'confirmado_en':      timezone.now(),
+                        'confirmado_por':     request.user,
+                    },
+                )
+
             request.session.pop('apertura_preview', None)
             messages.success(
                 request,
-                f'✓ Saldos de apertura registrados al {preview_data["fecha_corte"]}. '
-                f'{preview_data["total_filas"]} trabajadores inicializados. '
+                f'✓ Saldos de apertura registrados al {fecha_corte}. '
+                f'{creados} creados, {actualizados} actualizados. '
                 f'Harmoni listo para procesar planilla del próximo período.'
             )
             return redirect('nominas_saldos_apertura')
@@ -3226,14 +3266,25 @@ def saldos_apertura(request):
             request.session.pop('apertura_preview', None)
             return redirect('nominas_saldos_apertura')
 
-    apertura_confirmada = request.session.get('apertura_confirmada')
+    # Leer estado de DB (modelo real)
+    cfg = ConfiguracionApertura.objects.filter(empresa=None, completado=True).first()
+    apertura_confirmada = None
+    if cfg:
+        apertura_confirmada = {
+            'fecha_corte':    cfg.fecha_corte.strftime('%Y-%m-%d'),
+            'total':          cfg.total_trabajadores,
+            'confirmado_por': cfg.confirmado_por.username if cfg.confirmado_por else '—',
+            'confirmado_en':  cfg.confirmado_en.isoformat() if cfg.confirmado_en else '',
+        }
     total_personal = Personal.objects.filter(estado='Activo').count()
+    total_saldos_db = SaldoAperturaTrabajador.objects.count()
 
     return render(request, 'nominas/saldos_apertura.html', {
         'fecha_corte_str':     fecha_corte_str,
         'preview_data':        preview_data,
         'apertura_confirmada': apertura_confirmada,
         'total_personal':      total_personal,
+        'total_saldos_db':     total_saldos_db,
     })
 
 

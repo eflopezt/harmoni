@@ -581,3 +581,102 @@ class RecargaAlimentacion(models.Model):
     def save(self, *args, **kwargs):
         self.total = self.monto + self.comision
         super().save(*args, **kwargs)
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  SALDOS DE APERTURA — Onboarding Express (no migración histórica)
+# ═══════════════════════════════════════════════════════════════════
+
+class SaldoAperturaTrabajador(models.Model):
+    """Saldos iniciales de un trabajador al momento de arrancar Harmoni.
+
+    Reemplaza la necesidad de migrar 12 meses de planillas históricas.
+    Se llenan vía wizard /nominas/apertura/ con plantilla Excel.
+
+    El engine de planilla consulta estos saldos para arrancar acumulados
+    de CTS, gratificación, vacaciones, IR5 y préstamos vigentes.
+    """
+    personal = models.OneToOneField(
+        Personal,
+        on_delete=models.CASCADE,
+        related_name='saldo_apertura',
+    )
+    fecha_corte = models.DateField(
+        verbose_name='Fecha de corte',
+        help_text='Fecha hasta la cual el sistema anterior procesó planilla. '
+                  'Desde el día siguiente, Harmoni asume el cálculo.',
+    )
+    prov_cts = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name='Provisión CTS acumulada',
+    )
+    prov_gratificacion = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name='Provisión Gratificación',
+    )
+    prov_vacaciones = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name='Provisión Vacaciones',
+    )
+    dias_vacaciones_pendientes = models.IntegerField(
+        default=0,
+        verbose_name='Días vacaciones pendientes',
+    )
+    ir5_acumulado = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name='IR 5ta acumulado del año',
+    )
+    prestamo_saldo = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name='Saldo préstamo vigente',
+    )
+    notas = models.TextField(blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+',
+    )
+
+    class Meta:
+        verbose_name = 'Saldo de Apertura'
+        verbose_name_plural = 'Saldos de Apertura'
+        ordering = ['personal__apellidos_nombres']
+
+    def __str__(self):
+        return f'Apertura {self.personal} @ {self.fecha_corte}'
+
+
+class ConfiguracionApertura(models.Model):
+    """Estado global del onboarding por empresa.
+
+    Marca si la empresa ya completó el wizard de apertura y la fecha
+    de corte usada como referencia.
+    """
+    empresa = models.OneToOneField(
+        'empresas.Empresa',
+        on_delete=models.CASCADE,
+        related_name='configuracion_apertura',
+        null=True, blank=True,
+        help_text='Vacío = configuración global (multi-empresa).',
+    )
+    fecha_corte = models.DateField()
+    completado = models.BooleanField(default=False)
+    total_trabajadores = models.IntegerField(default=0)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    confirmado_en = models.DateTimeField(null=True, blank=True)
+    confirmado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+',
+    )
+    notas = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = 'Configuración de Apertura'
+        verbose_name_plural = 'Configuraciones de Apertura'
+
+    def __str__(self):
+        emp = self.empresa.razon_social if self.empresa else 'Global'
+        return f'Apertura {emp} @ {self.fecha_corte}'

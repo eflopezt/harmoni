@@ -2307,3 +2307,151 @@ class ReglaEspecialPersonal(models.Model):
         if self.solo_feriados and not es_feriado:
             return False
         return True
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  BRIEFING DEL DÍA — Pre-shift handover (gastronomía premium)
+# ═══════════════════════════════════════════════════════════════════
+
+class BriefingServicio(models.Model):
+    """Briefing publicado por el jefe de local antes del servicio.
+
+    Patrón de brigade kitchen (Escoffier): 15-30 min antes del servicio,
+    el jefe comunica a la brigada lo crítico del día — covers esperados,
+    VIPs/alergias, especiales del chef, items 86'd (sin stock), notas
+    operativas, dress code.
+
+    Los trabajadores asignados al turno reciben push notification + lo
+    ven en su portal del trabajador al hacer login.
+
+    Trail auditable: queda registro firmado de qué se comunicó y a quién.
+    """
+    SERVICIO_CHOICES = [
+        ('DESAYUNO',  'Desayuno'),
+        ('ALMUERZO',  'Almuerzo'),
+        ('CENA',      'Cena'),
+        ('CONTINUO',  'Servicio continuo'),
+        ('EVENTO',    'Evento especial'),
+    ]
+    ESTADO_CHOICES = [
+        ('BORRADOR',  'Borrador'),
+        ('PUBLICADO', 'Publicado'),
+        ('CERRADO',   'Cerrado'),
+    ]
+
+    empresa = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.CASCADE,
+        related_name='briefings',
+        help_text='Local / RUC al que corresponde el briefing.',
+    )
+    fecha = models.DateField(
+        verbose_name='Fecha del servicio',
+        db_index=True,
+    )
+    servicio = models.CharField(
+        max_length=12, choices=SERVICIO_CHOICES, default='ALMUERZO',
+    )
+    estado = models.CharField(
+        max_length=10, choices=ESTADO_CHOICES, default='BORRADOR',
+    )
+
+    covers_esperados = models.IntegerField(
+        default=0,
+        verbose_name='Covers esperados',
+        help_text='Reservaciones confirmadas + walk-ins estimados.',
+    )
+    notas_chef = models.TextField(
+        blank=True,
+        verbose_name='Notas del Chef',
+        help_text='Mensaje del chef ejecutivo a la brigada.',
+    )
+    especiales = models.TextField(
+        blank=True,
+        verbose_name='Platos especiales del día',
+        help_text='Sugerencias del día / off-menu. Uno por línea.',
+    )
+    items_86 = models.TextField(
+        blank=True,
+        verbose_name='Items 86\'d (sin stock)',
+        help_text='Platos NO disponibles. Crítico comunicar al salón.',
+    )
+    vips_alergias = models.TextField(
+        blank=True,
+        verbose_name='VIPs / Alergias / Cumpleaños',
+        help_text='Mesas con atención especial. Ej: Mesa 4: alergia gluten severa.',
+    )
+    dress_code = models.CharField(
+        max_length=100, blank=True,
+        verbose_name='Dress code',
+        help_text='Uniforme del día. Ej: Protocolo formal, evento blanco, etc.',
+    )
+    notas_operativas = models.TextField(
+        blank=True,
+        verbose_name='Notas operativas',
+        help_text='Otros: corte de servicio, prueba de menú, visita inspección, etc.',
+    )
+
+    publicado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='briefings_publicados',
+    )
+    publicado_en = models.DateTimeField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'tareo'
+        verbose_name = 'Briefing del Día'
+        verbose_name_plural = 'Briefings del Día'
+        ordering = ['-fecha', 'servicio']
+        unique_together = [('empresa', 'fecha', 'servicio')]
+        indexes = [
+            models.Index(fields=['fecha', 'estado'], name='brf_fecha_estado_idx'),
+        ]
+
+    def __str__(self):
+        return f'{self.empresa} · {self.fecha} · {self.get_servicio_display()}'
+
+    @property
+    def is_publicado(self):
+        return self.estado == 'PUBLICADO'
+
+    def publicar(self, user):
+        from django.utils import timezone
+        self.estado = 'PUBLICADO'
+        self.publicado_por = user
+        self.publicado_en = timezone.now()
+        self.save(update_fields=['estado', 'publicado_por', 'publicado_en', 'actualizado_en'])
+
+
+class BriefingLectura(models.Model):
+    """Registro de cuándo un trabajador leyó el briefing.
+
+    Útil para compliance: el jefe puede ver quién no leyó aún el briefing
+    antes del servicio y mandarles recordatorio.
+    """
+    briefing = models.ForeignKey(
+        BriefingServicio,
+        on_delete=models.CASCADE,
+        related_name='lecturas',
+    )
+    personal = models.ForeignKey(
+        'personal.Personal',
+        on_delete=models.CASCADE,
+        related_name='briefings_leidos',
+    )
+    leido_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = 'tareo'
+        verbose_name = 'Lectura de Briefing'
+        verbose_name_plural = 'Lecturas de Briefings'
+        unique_together = [('briefing', 'personal')]
+        indexes = [
+            models.Index(fields=['briefing', 'leido_en'], name='brfl_brf_fecha_idx'),
+        ]
+
+    def __str__(self):
+        return f'{self.personal} leyó {self.briefing} en {self.leido_en}'

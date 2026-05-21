@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Briefing — Harmoni{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h2><i class="fas fa-clipboard-list"></i>Nuevo Briefing del Día</h2>
+        <p class="page-subtitle">
+            Comparte covers esperados, VIPs/alergias, especiales del chef y 86's
+            con la brigada antes del servicio.
+        </p>
+    </div>
+    <a href="{% url 'briefing_panel' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+</div>
+
+<form method="post" class="card shadow-sm">
+    {% csrf_token %}
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label small fw-bold">Local / Empresa</label>
+                <select name="empresa" class="form-select" required>
+                    {% for e in empresas %}
+                    <option value="{{ e.pk }}">{{ e.nombre_comercial|default:e.razon_social }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Fecha</label>
+                <input type="date" name="fecha" value="{{ fecha_default }}" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Servicio</label>
+                <select name="servicio" class="form-select" required>
+                    {% for val, label in servicio_choices %}
+                    <option value="{{ val }}" {% if val == 'ALMUERZO' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Covers esperados</label>
+                <input type="number" name="covers_esperados" min="0" class="form-control" value="0">
+                <small class="text-muted">Reservaciones + walk-ins estimados.</small>
+            </div>
+            <div class="col-md-9">
+                <label class="form-label small fw-bold">Dress code</label>
+                <input type="text" name="dress_code" class="form-control"
+                       placeholder="Ej: Protocolo formal · Uniforme blanco completo · Mandil limpio">
+            </div>
+
+            <div class="col-12">
+                <label class="form-label small fw-bold">
+                    <i class="fas fa-utensils text-success me-1"></i>Especiales del día
+                </label>
+                <textarea name="especiales" rows="3" class="form-control"
+                          placeholder="Ej:&#10;- Tiradito de bonito con leche de tigre&#10;- Ravioli de cordero, salsa de menta&#10;- Sugerencia del sommelier: Sauvignon Blanc 2023"></textarea>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">
+                    <i class="fas fa-ban text-danger me-1"></i>Items 86'd (sin stock)
+                </label>
+                <textarea name="items_86" rows="3" class="form-control"
+                          placeholder="Ej:&#10;- Ceviche clásico (no llegó pescado)&#10;- Tartar de atún&#10;- Cheesecake"></textarea>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">
+                    <i class="fas fa-star text-warning me-1"></i>VIPs / Alergias / Cumpleaños
+                </label>
+                <textarea name="vips_alergias" rows="3" class="form-control"
+                          placeholder="Ej:&#10;- Mesa 4: cumpleaños 25 años Sra. González&#10;- Mesa 7: ALERGIA GLUTEN SEVERA (Sr. Pérez)&#10;- Mesa 12: VIP recurrente, ofrecer cortesía"></textarea>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">
+                    <i class="fas fa-comment-dots text-info me-1"></i>Notas del Chef
+                </label>
+                <textarea name="notas_chef" rows="3" class="form-control"
+                          placeholder="Mensaje del chef ejecutivo a la brigada..."></textarea>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">
+                    <i class="fas fa-info-circle text-secondary me-1"></i>Notas operativas
+                </label>
+                <textarea name="notas_operativas" rows="3" class="form-control"
+                          placeholder="Ej: Inspección INDECOPI 16:00 · prueba menú nuevo viernes · corte de servicio 23:30"></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-end gap-2">
+        <button type="submit" name="publicar" value="0" class="btn btn-outline-warning">
+            <i class="fas fa-save me-1"></i>Guardar borrador
+        </button>
+        <button type="submit" name="publicar" value="1" class="btn btn-success">
+            <i class="fas fa-paper-plane me-1"></i>Publicar ahora
+        </button>
+    </div>
+</form>
+{% endblock %}
