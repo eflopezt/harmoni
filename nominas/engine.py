@@ -733,7 +733,8 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
     # bajando tiempo de minutos a segundos.
     from django.db import transaction as _txn
     with _txn.atomic():
-        for emp in qs.select_related('cargo', 'subarea', 'empresa'):
+        # cargo_obj es la FK (cargo es CharField legacy retenido por backcompat)
+        for emp in qs.select_related('cargo_obj', 'subarea', 'empresa'):
             try:
                 registro, created = RegistroNomina.objects.update_or_create(
                     periodo=periodo, personal=emp,
