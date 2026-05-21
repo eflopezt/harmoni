@@ -151,6 +151,20 @@
     font-size: .88rem;
     -webkit-tap-highlight-color: transparent;
 }
+.portal-mobile-menu .pmm-panel .pmm-section {
+    font-size: .65rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 10px 8px 4px;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 4px;
+}
+.portal-mobile-menu .pmm-panel .pmm-section:first-of-type {
+    border-top: none;
+    margin-top: 10px;
+}
 .portal-mobile-menu .pmm-panel .pmm-link:active {
     background: #f0fdfa;
 }
@@ -347,19 +361,33 @@
         </div>
         <a href="{% url 'portal_home' %}" class="pmm-link"><i class="fas fa-home"></i> Inicio</a>
         <a href="{% url 'mi_perfil' %}" class="pmm-link"><i class="fas fa-user"></i> Mi Perfil</a>
-        <a href="{% url 'mi_asistencia' %}" class="pmm-link"><i class="fas fa-clock"></i> Mi Asistencia</a>
-        <a href="{% url 'portal_mi_nomina' %}" class="pmm-link"><i class="fas fa-file-invoice-dollar"></i> Mis Recibos</a>
+
+        <div class="pmm-section">Tiempo</div>
+        <a href="{% url 'mi_asistencia' %}" class="pmm-link"><i class="fas fa-fingerprint"></i> Mi Asistencia</a>
+        <a href="{% url 'mi_banco_horas' %}" class="pmm-link"><i class="fas fa-piggy-bank"></i> Banco de Horas</a>
+
+        <div class="pmm-section">Solicitudes</div>
         <a href="{% url 'portal_mis_vacaciones' %}" class="pmm-link"><i class="fas fa-umbrella-beach"></i> Mis Vacaciones</a>
         <a href="{% url 'mis_papeletas' %}" class="pmm-link"><i class="fas fa-file-alt"></i> Mis Papeletas</a>
         <a href="{% url 'mis_justificaciones' %}" class="pmm-link"><i class="fas fa-clipboard-check"></i> Justificaciones</a>
         <a href="{% url 'mis_solicitudes_he' %}" class="pmm-link"><i class="fas fa-hourglass-half"></i> Solicitudes HE</a>
-        <a href="{% url 'mi_banco_horas' %}" class="pmm-link"><i class="fas fa-piggy-bank"></i> Banco de Horas</a>
-        <a href="{% url 'mis_documentos' %}" class="pmm-link"><i class="fas fa-folder-open"></i> Mis Documentos</a>
-        <a href="{% url 'portal_mis_evaluaciones' %}" class="pmm-link"><i class="fas fa-star"></i> Evaluaciones</a>
+
+        <div class="pmm-section">Documentos y Nómina</div>
+        <a href="{% url 'portal_mi_nomina' %}" class="pmm-link"><i class="fas fa-file-invoice-dollar"></i> Mis Recibos</a>
+        <a href="{% url 'mis_boletas' %}" class="pmm-link"><i class="fas fa-receipt"></i> Mis Boletas</a>
+        <a href="{% url 'mis_documentos_laborales' %}" class="pmm-link"><i class="fas fa-file-contract"></i> Reglamentos y Políticas</a>
+        <a href="{% url 'mis_documentos' %}" class="pmm-link"><i class="fas fa-archive"></i> Mi Legajo</a>
+
+        <div class="pmm-section">Desarrollo</div>
         <a href="{% url 'portal_mis_capacitaciones' %}" class="pmm-link"><i class="fas fa-graduation-cap"></i> Capacitaciones</a>
+        <a href="{% url 'portal_mis_evaluaciones' %}" class="pmm-link"><i class="fas fa-star"></i> Evaluaciones</a>
+
+        <div class="pmm-section">Empresa</div>
         <a href="{% url 'organigrama' %}" class="pmm-link"><i class="fas fa-sitemap"></i> Organigrama</a>
         <a href="{% url 'directorio' %}" class="pmm-link"><i class="fas fa-address-book"></i> Directorio</a>
         <a href="{% url 'mi_timeline' %}" class="pmm-link"><i class="fas fa-stream"></i> Mi Timeline</a>
+        <a href="{% url 'mis_comunicados_com' %}" class="pmm-link"><i class="fas fa-bullhorn"></i> Comunicados</a>
+        <a href="{% url 'mis_notificaciones_com' %}" class="pmm-link"><i class="fas fa-bell"></i> Notificaciones</a>
         <hr class="my-2">
         <a href="{% url 'password_change' %}" class="pmm-link"><i class="fas fa-key"></i> Cambiar Contraseña</a>
         <form method="post" action="{% url 'logout' %}" style="margin:0;">

@@ -255,11 +255,20 @@ main hr {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   10. Mobile (≤ 768px) – tighter spacing
+   10. Mobile (≤ 768px) – tighter spacing + table overflow safeguard
    ────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
     main h2 {
         font-size: 1.2rem;
+    }
+
+    main h2 > i {
+        font-size: 0.95rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.78rem;
+        margin-bottom: 1rem;
     }
 
     main .card .card-body {
@@ -277,5 +286,49 @@ main hr {
     main .card .table tbody td {
         padding: 0.5rem 0.55rem;
         font-size: 0.78rem;
+    }
+
+    /* Tables inside card-body p-0 (common pattern in portal pages) — make
+       them horizontally scrollable on mobile so columns don't get crushed. */
+    main .card .card-body.p-0 {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Reduce padding on KPI rows */
+    main .row.g-3 {
+        --bs-gutter-x: 0.65rem;
+        --bs-gutter-y: 0.65rem;
+    }
+
+    /* Subheaders in tables: do not wrap */
+    main .card .table thead th {
+        white-space: nowrap;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   11. Print styles — clean PDF-like layout when printing a page
+   ────────────────────────────────────────────────────────────────────────── */
+@media print {
+    .harmoni-sidebar,
+    .harmoni-topbar,
+    .portal-bottom-nav,
+    .portal-mobile-header,
+    .btn,
+    .nav-section {
+        display: none !important;
+    }
+
+    .harmoni-main,
+    .harmoni-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
+    main .card {
+        page-break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
     }
 }
