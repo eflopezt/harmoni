@@ -100,6 +100,7 @@ urlpatterns = [
     # Shortcut: /buscar/ → same views as /sistema/buscar/ (avoids prefix)
     path('buscar/', include(('core.urls_buscar', 'buscar'))),
     path('prestamos/', include('prestamos.urls')),
+    path('descuentos/', include('descuentos.urls')),
     path('viaticos/', include('viaticos.urls')),
     path('vacaciones/', include('vacaciones.urls')),
     path('capacitaciones/', include('capacitaciones.urls')),

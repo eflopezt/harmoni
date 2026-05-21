@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'nominas.apps.NominasConfig',
     'empresas.apps.EmpresasConfig',
     'workflows.apps.WorkflowsConfig',
+    'descuentos.apps.DescuentosConfig',
 ]
 
 MIDDLEWARE = [

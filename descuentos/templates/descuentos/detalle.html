@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Descuento #{{ descuento.pk }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-minus-circle"></i>Descuento #{{ descuento.pk }}</h2>
+        <p class="page-subtitle">
+            <span class="badge"
+                  style="background:{{ descuento.color_estado }}22; color:{{ descuento.color_estado }}; border:1px solid {{ descuento.color_estado }}44; font-size:.72rem;">
+                {{ descuento.get_estado_display }}
+            </span>
+            · {{ descuento.get_causal_display }}
+            · Registrado {{ descuento.fecha_registro|date:"d/m/Y" }}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if descuento.estado == 'PENDIENTE' %}
+        <form method="post" action="{% url 'descuentos_aprobar' descuento.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-sm">
+                <i class="fas fa-check me-1"></i>Aprobar
+            </button>
+        </form>
+        {% endif %}
+        {% if descuento.estado not in 'PAGADO,ANULADO' %}
+        <form method="post" action="{% url 'descuentos_anular' descuento.pk %}"
+              onsubmit="this.elements.motivo.value = prompt('Motivo de anulación:') || ''; if(!this.elements.motivo.value) return false;">
+            {% csrf_token %}
+            <input type="hidden" name="motivo" value="">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-ban me-1"></i>Anular
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'descuentos_panel' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Datos principales -->
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5><i class="fas fa-info-circle"></i>Datos del Descuento</h5>
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr><th class="text-muted">Trabajador</th><td>{{ descuento.personal.apellidos_nombres }}</td></tr>
+                        <tr><th class="text-muted">DNI</th><td>{{ descuento.personal.nro_doc }}</td></tr>
+                        <tr><th class="text-muted">Cargo</th><td>{{ descuento.personal.cargo|default:"—" }}</td></tr>
+                        <tr><th class="text-muted">Causal</th><td><span class="badge bg-secondary">{{ descuento.get_causal_display }}</span></td></tr>
+                        <tr><th class="text-muted">Detalle</th><td>{{ descuento.detalle }}</td></tr>
+                        <tr><th class="text-muted">Monto total</th><td class="fw-bold">S/ {{ descuento.monto_total|floatformat:2|intcomma }}</td></tr>
+                        <tr><th class="text-muted">N° cuotas</th><td>{{ descuento.num_cuotas }}</td></tr>
+                        <tr><th class="text-muted">Cuota mensual</th><td class="fw-bold text-danger">S/ {{ descuento.cuota_mensual|floatformat:2|intcomma }}</td></tr>
+                        <tr><th class="text-muted">Inicia</th><td>{{ descuento.fecha_inicio_descuento|date:"d/m/Y"|default:"Próximo período" }}</td></tr>
+                        {% if descuento.requiere_consentimiento %}
+                        <tr><th class="text-muted">Consentimiento</th>
+                            <td>
+                                {% if descuento.consentimiento_firmado %}
+                                <span class="badge bg-success">Firmado</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% endif %}
+                            </td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progreso + saldo -->
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5><i class="fas fa-chart-line"></i>Progreso del Descuento</h5>
+                <div class="row mt-3 text-center">
+                    <div class="col-4">
+                        <div class="fw-bold text-primary">{{ descuento.cuotas_aplicadas }}/{{ descuento.num_cuotas }}</div>
+                        <small class="text-muted">Cuotas aplicadas</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold text-success">{{ descuento.progreso_pct }}%</div>
+                        <small class="text-muted">Avance</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold text-danger">S/ {{ descuento.saldo_pendiente|floatformat:2|intcomma }}</div>
+                        <small class="text-muted">Saldo</small>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height:8px">
+                    <div class="progress-bar bg-success" style="width:{{ descuento.progreso_pct }}%"></div>
+                </div>
+                {% if descuento.documento_soporte %}
+                <hr>
+                <p class="mb-1"><strong>Documento de soporte:</strong></p>
+                <a href="{{ descuento.documento_soporte.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-paperclip me-1"></i>Ver archivo
+                </a>
+                {% endif %}
+                {% if descuento.observaciones %}
+                <hr>
+                <p class="mb-1"><strong>Observaciones:</strong></p>
+                <p class="text-muted small mb-0" style="white-space:pre-wrap">{{ descuento.observaciones }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Aplicaciones -->
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="p-3 pb-2">
+                    <h5 class="mb-0"><i class="fas fa-list"></i>Cuotas aplicadas en planillas</h5>
+                </div>
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Período</th>
+                            <th>Registro Nómina</th>
+                            <th class="text-end">Monto Aplicado</th>
+                            <th>Aplicado el</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in aplicaciones %}
+                        <tr>
+                            <td>{{ a.periodo_mes }}/{{ a.periodo_anio }}</td>
+                            <td>
+                                {% if a.registro_nomina %}
+                                <a href="{% url 'nominas_registro_detalle' a.registro_nomina.pk %}">
+                                    Recibo #{{ a.registro_nomina.pk }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-semibold">S/ {{ a.monto_aplicado|floatformat:2 }}</td>
+                            <td><small class="text-muted">{{ a.creado_en|date:"d/m/Y H:i" }}</small></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-4">
+                            Aún no se ha aplicado ninguna cuota.
+                        </td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

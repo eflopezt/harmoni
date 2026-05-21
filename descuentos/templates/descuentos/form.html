@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<h2><i class="fas fa-minus-circle"></i>{{ titulo }}</h2>
+<p class="page-subtitle">Registra una deuda del trabajador a la empresa que se descontará por planilla.</p>
+
+<div class="card shadow-sm" style="max-width:720px;">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="row g-3">
+                <div class="col-12 col-md-7">
+                    <label class="form-label">{{ form.personal.label }}</label>
+                    {{ form.personal }}
+                    {% if form.personal.errors %}<div class="text-danger small">{{ form.personal.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-12 col-md-5">
+                    <label class="form-label">{{ form.causal.label }}</label>
+                    {{ form.causal }}
+                    {% if form.causal.errors %}<div class="text-danger small">{{ form.causal.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ form.detalle.label }}</label>
+                    {{ form.detalle }}
+                    <div class="form-text">Ej: "Rotura de 2 vasos de cristal en turno cena 12/05".</div>
+                </div>
+                <div class="col-4">
+                    <label class="form-label">{{ form.monto_total.label }}</label>
+                    {{ form.monto_total }}
+                </div>
+                <div class="col-4">
+                    <label class="form-label">{{ form.num_cuotas.label }}</label>
+                    {{ form.num_cuotas }}
+                </div>
+                <div class="col-4">
+                    <label class="form-label">{{ form.cuota_mensual.label }}</label>
+                    {{ form.cuota_mensual }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">{{ form.fecha_inicio_descuento.label }}</label>
+                    {{ form.fecha_inicio_descuento }}
+                    <div class="form-text">Vacío = inicia en el próximo período.</div>
+                </div>
+                <div class="col-12 col-md-6 d-flex flex-column gap-2 mt-md-4">
+                    <div class="form-check">
+                        {{ form.requiere_consentimiento }}
+                        <label class="form-check-label">{{ form.requiere_consentimiento.label }}</label>
+                    </div>
+                    <div class="form-check">
+                        {{ form.consentimiento_firmado }}
+                        <label class="form-check-label">{{ form.consentimiento_firmado.label }}</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ form.documento_soporte.label }}</label>
+                    {{ form.documento_soporte }}
+                    <div class="form-text">Foto del daño, acta firmada, orden judicial, etc.</div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ form.observaciones.label }}</label>
+                    {{ form.observaciones }}
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mt-3">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Registrar Descuento
+                </button>
+                <a href="{% url 'descuentos_panel' %}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

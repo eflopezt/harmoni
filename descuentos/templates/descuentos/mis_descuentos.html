@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Mis Descuentos{% endblock %}
+
+{% block content %}
+<h2><i class="fas fa-minus-circle"></i>Mis Descuentos</h2>
+<p class="page-subtitle">Deudas pendientes que se descuentan de tu planilla mes a mes.</p>
+
+{% if not empleado %}
+<div class="alert alert-warning">Tu usuario no está vinculado a un perfil de empleado.</div>
+{% else %}
+
+<!-- Resumen -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left:3px solid #0f766e;">
+            <div class="stat-value text-primary">{{ en_curso_count }}</div>
+            <div class="stat-label">En Curso</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left:3px solid #be123c;">
+            <div class="stat-value text-danger">S/ {{ saldo|floatformat:2|intcomma }}</div>
+            <div class="stat-label">Saldo Pendiente</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left:3px solid #f59e0b;">
+            <div class="stat-value text-warning">S/ {{ cuota_mes|floatformat:2|intcomma }}</div>
+            <div class="stat-label">Cuota Mensual</div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de descuentos -->
+{% for d in descuentos %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+            <div>
+                <h6 class="mb-1">{{ d.get_causal_display }}</h6>
+                <small class="text-muted">{{ d.detalle|truncatechars:120 }}</small>
+            </div>
+            <span class="badge"
+                  style="background:{{ d.color_estado }}22; color:{{ d.color_estado }}; border:1px solid {{ d.color_estado }}44;">
+                {{ d.get_estado_display }}
+            </span>
+        </div>
+        <div class="row mt-2 text-center">
+            <div class="col-3"><div class="fw-bold">S/ {{ d.monto_total|floatformat:2|intcomma }}</div><small class="text-muted">Total</small></div>
+            <div class="col-3"><div class="fw-bold text-success">{{ d.cuotas_aplicadas }}/{{ d.num_cuotas }}</div><small class="text-muted">Pagadas</small></div>
+            <div class="col-3"><div class="fw-bold text-warning">S/ {{ d.cuota_mensual|floatformat:2 }}</div><small class="text-muted">Cuota</small></div>
+            <div class="col-3"><div class="fw-bold text-danger">S/ {{ d.saldo_pendiente|floatformat:2|intcomma }}</div><small class="text-muted">Saldo</small></div>
+        </div>
+        <div class="progress mt-3" style="height:6px">
+            <div class="progress-bar bg-success" style="width:{{ d.progreso_pct }}%"></div>
+        </div>
+        {% if d.fecha_inicio_descuento %}
+        <small class="text-muted d-block mt-2">
+            <i class="fas fa-calendar me-1"></i>Inicia {{ d.fecha_inicio_descuento|date:"d/m/Y" }}
+        </small>
+        {% endif %}
+    </div>
+</div>
+{% empty %}
+<div class="card shadow-sm">
+    <div class="card-body text-center text-muted py-5">
+        <i class="fas fa-check-circle fa-3x mb-3" style="color:#10b981; opacity:.4"></i>
+        <h5 class="text-muted">Sin descuentos activos</h5>
+        <p class="text-muted small mb-0">No tienes deudas pendientes con la empresa.</p>
+    </div>
+</div>
+{% endfor %}
+
+{% endif %}
+{% endblock %}

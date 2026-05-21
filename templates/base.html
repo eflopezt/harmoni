@@ -262,6 +262,9 @@
                         <i class="fas fa-hand-holding-usd"></i><span>Mis Préstamos</span>
                     </a>
                     {% endif %}
+                    <a href="{% url 'mis_descuentos' %}" class="nav-item" data-match="/descuentos/mis">
+                        <i class="fas fa-minus-circle"></i><span>Mis Descuentos</span>
+                    </a>
                     {% if mod_viaticos %}
                     <a href="{% url 'mis_viaticos' %}" class="nav-item" data-match="/viaticos/mis">
                         <i class="fas fa-route"></i><span>Mis Viáticos</span>
@@ -781,6 +784,25 @@
                     </a>
                     <a href="{% url 'prestamo_crear' %}" class="nav-item" data-match="/prestamos/nuevo">
                         <i class="fas fa-plus-circle"></i><span>Nuevo Préstamo</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ══ DESCUENTOS PLANILLA ══ -->
+            {% if user.is_superuser or user.is_staff %}
+            <div class="nav-section" data-section="descuentos" data-group="nominas">
+                <button class="nav-section-toggle" type="button">
+                    <i class="fas fa-minus-circle section-icon"></i>
+                    <span>Descuentos</span>
+                    <i class="fas fa-chevron-right toggle-chevron"></i>
+                </button>
+                <div class="nav-section-body">
+                    <a href="{% url 'descuentos_panel' %}" class="nav-item" data-match="^/descuentos/$">
+                        <i class="fas fa-list"></i><span>Panel</span>
+                    </a>
+                    <a href="{% url 'descuentos_crear' %}" class="nav-item" data-match="/descuentos/crear">
+                        <i class="fas fa-plus-circle"></i><span>Nuevo Descuento</span>
                     </a>
                 </div>
             </div>

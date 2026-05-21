@@ -42,6 +42,7 @@ EXEMPT_URL_PATTERNS = [
     r'^/nominas/registros/\d+/constancia\.pdf', # constancia recepción (DS 009-2011-TR)
     r'^/nominas/verificar/',                    # verificación pública QR (sin auth)
     r'^/prestamos/mis',                       # mis préstamos
+    r'^/descuentos/mis',                      # mis descuentos por planilla
     r'^/capacitaciones/mis',                  # mis capacitaciones
     r'^/evaluaciones/mis',                    # mis evaluaciones / OKRs
     r'^/encuestas/mis',                       # mis encuestas

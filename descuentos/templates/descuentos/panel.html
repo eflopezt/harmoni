@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Descuentos por Planilla{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-minus-circle"></i>Descuentos por Planilla</h2>
+        <p class="page-subtitle">Deudas del trabajador a la empresa: roturas, reposiciones, embargos, pensiones ({{ total }} en total).</p>
+    </div>
+    <a href="{% url 'descuentos_crear' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i>Nuevo Descuento
+    </a>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card" style="border-left:3px solid #f59e0b;">
+            <div class="stat-value text-warning">{{ pendientes }}</div>
+            <div class="stat-label">Pend. Aprobación</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card" style="border-left:3px solid #10b981;">
+            <div class="stat-value text-success">{{ en_curso }}</div>
+            <div class="stat-label">En Curso</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card" style="border-left:3px solid #be123c;">
+            <div class="stat-value text-danger">S/ {{ saldo_total|floatformat:0|intcomma }}</div>
+            <div class="stat-label">Saldo Total Pendiente</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card" style="border-left:3px solid #0f766e;">
+            <div class="stat-value text-primary">{{ total }}</div>
+            <div class="stat-label">Total Registrados</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 flex-wrap align-items-end">
+            <div>
+                <label class="form-label small mb-1">Estado</label>
+                <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    {% for code, label in estado_choices %}
+                    <option value="{{ code }}" {% if filtro_estado == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-1">Causal</label>
+                <select name="causal" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas</option>
+                    {% for code, label in causal_choices %}
+                    <option value="{{ code }}" {% if filtro_causal == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if filtro_estado or filtro_causal %}
+            <a href="{% url 'descuentos_panel' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times me-1"></i>Limpiar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Trabajador</th>
+                    <th>Causal</th>
+                    <th>Detalle</th>
+                    <th class="text-end">Monto</th>
+                    <th class="text-center">Cuotas</th>
+                    <th class="text-center">Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in descuentos %}
+                <tr>
+                    <td><small class="text-muted">{{ d.fecha_registro|date:"d/m/Y" }}</small></td>
+                    <td>
+                        <div class="small fw-semibold">{{ d.personal.apellidos_nombres|truncatechars:35 }}</div>
+                        <div class="small text-muted">{{ d.personal.nro_doc }}</div>
+                    </td>
+                    <td><span class="badge bg-secondary">{{ d.get_causal_display }}</span></td>
+                    <td><small>{{ d.detalle|truncatechars:50 }}</small></td>
+                    <td class="text-end fw-semibold">S/ {{ d.monto_total|floatformat:2|intcomma }}</td>
+                    <td class="text-center small">
+                        {{ d.cuotas_aplicadas }}/{{ d.num_cuotas }}
+                        <div class="progress mt-1" style="height:4px">
+                            <div class="progress-bar bg-success" style="width:{{ d.progreso_pct }}%"></div>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge"
+                              style="background:{{ d.color_estado }}22; color:{{ d.color_estado }}; border:1px solid {{ d.color_estado }}44;">
+                            {{ d.get_estado_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'descuentos_detalle' d.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-2">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-5">
+                    <i class="fas fa-minus-circle fa-2x d-block mb-2 opacity-25"></i>
+                    No hay descuentos registrados con esos filtros.
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
