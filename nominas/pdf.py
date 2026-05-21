@@ -135,81 +135,87 @@ def _build_qr_image(url, size_mm=20):
 
 
 def generar_boleta_pdf(registro):
-    """Genera la boleta de pago PDF para RegistroNomina. Returns bytes."""
+    """
+    Genera la boleta de pago PDF para RegistroNomina.
+
+    Diseño: estilo formal S10 — sobrio, B&N, formato compacto en 1 página.
+    - Logo discreto en cabecera
+    - 3 columnas (Remuneraciones / Descuentos / Aportes empleador)
+    - Sin sección de provisiones (se acumulan internamente, no van en boleta)
+    - Sin caja colorida de Neto, solo línea sobria
+    - Una sola hoja (no se duplica empleador/trabajador — boleta digital)
+    - QR + hash discretos al pie + leyenda DS 009-2011-TR
+
+    Returns bytes.
+    """
     PAGE_W, PAGE_H = A4
     MARGIN   = 12 * mm
     USABLE_W = PAGE_W - 2 * MARGIN
 
+    # ── Paleta sobria estilo S10 ─────────────────────────────────────
+    C_BORDER = colors.HexColor("#000000")
+    C_HEADER_BG = colors.HexColor("#f8f9fa")
+    C_LINE   = colors.HexColor("#000000")
+    C_LINE_S = colors.HexColor("#d1d5db")
+    C_TXT    = colors.HexColor("#1a1a1a")
+    C_LBL    = colors.HexColor("#374151")
+    C_MUTED  = colors.HexColor("#6b7280")
+
     def sty(name, **kw):
-        d = dict(fontName="Helvetica", fontSize=8, leading=10, textColor=C_BLACK)
+        d = dict(fontName="Helvetica", fontSize=8, leading=10, textColor=C_TXT)
         d.update(kw)
         return ParagraphStyle(name, **d)
 
-    base     = sty("base")
     bold     = sty("bold",    fontName="Helvetica-Bold")
-    sm       = sty("sm",      fontSize=7, textColor=C_GRAY_B)
-    smr      = sty("smr",     fontSize=7, textColor=C_GRAY_B, alignment=TA_RIGHT)
-    lbl      = sty("lbl",     fontSize=7.5, fontName="Helvetica-Bold", textColor=C_GRAY_B)
-    val      = sty("val",     fontSize=8.5)
-    h_emp    = sty("h_emp",   fontSize=13, fontName="Helvetica-Bold", textColor=C_WHITE, leading=16)
-    h_ruc    = sty("h_ruc",   fontSize=8, textColor=C_GREEN_L)
-    h_dir    = sty("h_dir",   fontSize=7.5, textColor=C_GREEN_E)
-    h_tit    = sty("h_tit",   fontSize=11, fontName="Helvetica-Bold", textColor=C_ACCENT, alignment=TA_RIGHT)
-    h_per    = sty("h_per",   fontSize=8, textColor=C_GREEN_L, alignment=TA_RIGHT)
-    h_cop    = sty("h_cop",   fontSize=7, textColor=C_GREEN_E, alignment=TA_RIGHT)
-    ct_hdr   = sty("ct_hdr",  fontSize=7.5, fontName="Helvetica-Bold", textColor=C_WHITE)
-    ct_hdr_r = sty("ct_hr",   fontSize=7.5, fontName="Helvetica-Bold", textColor=C_WHITE, alignment=TA_RIGHT)
+    sm       = sty("sm",      fontSize=7, textColor=C_MUTED)
+    smr      = sty("smr",     fontSize=7, textColor=C_MUTED, alignment=TA_RIGHT)
+    lbl      = sty("lbl",     fontSize=7,  textColor=C_LBL)            # label de campo (Cargo:, DNI:)
+    val      = sty("val",     fontSize=8,  fontName="Helvetica-Bold")  # valor del campo
+    h_emp    = sty("h_emp",   fontSize=11, fontName="Helvetica-Bold", textColor=C_TXT, leading=13)
+    h_meta   = sty("h_meta",  fontSize=7.5, textColor=C_TXT)
+    h_tit    = sty("h_tit",   fontSize=11, fontName="Helvetica-Bold", textColor=C_TXT, alignment=TA_CENTER)
+    h_per    = sty("h_per",   fontSize=8, fontName="Helvetica-Bold", textColor=C_TXT, alignment=TA_RIGHT)
+    ct_hdr   = sty("ct_hdr",  fontSize=8, fontName="Helvetica-Bold", textColor=C_TXT, alignment=TA_CENTER)
+    ct_sub   = sty("ct_sub",  fontSize=7, textColor=C_LBL, alignment=TA_RIGHT)
     ct_nm    = sty("ct_nm",   fontSize=8)
-    ct_obs   = sty("ct_obs",  fontSize=7, textColor=C_GRAY_B)
-    ct_amt   = sty("ct_amt",  fontName="Courier", fontSize=8, alignment=TA_RIGHT)
-    ct_sub   = sty("ct_sub",  fontName="Helvetica-Bold", fontSize=8)
-    ct_sub_r = sty("ct_sr",   fontName="Courier-Bold", fontSize=8, alignment=TA_RIGHT)
-    net_lbl  = sty("net_lbl", fontSize=9.5, fontName="Helvetica-Bold", textColor=C_GREEN_L)
-    net_fml  = sty("net_fml", fontSize=7.5, textColor=C_GREEN_E, alignment=TA_RIGHT)
-    net_val  = sty("net_val", fontName="Courier-Bold", fontSize=15, alignment=TA_RIGHT, textColor=C_WHITE)
-    ft_note  = sty("ft_note", fontSize=7, textColor=C_GRAY_T, alignment=TA_CENTER)
-    ft_legal = sty("ft_legal",fontSize=7, textColor=C_GRAY_T, alignment=TA_CENTER, leading=8.5)
-    ft_hash  = sty("ft_hash", fontSize=6.5, textColor=C_GRAY_T, fontName="Courier")
-    cut_st   = sty("cut_st",  fontSize=6.5, textColor=C_GRAY_T, alignment=TA_CENTER)
-    badge_s  = sty("badge_s", fontSize=7, fontName="Helvetica-Bold", textColor=C_ACCENT)
-    badge_r  = sty("badge_r", fontSize=7, fontName="Helvetica-Bold", textColor=C_PURP_L)
-    tv_ing   = sty("tv_ing",  fontName="Courier-Bold", fontSize=11, alignment=TA_CENTER, textColor=C_GREEN_B)
-    tv_desc  = sty("tv_desc", fontName="Courier-Bold", fontSize=11, alignment=TA_CENTER, textColor=C_RED_B)
-    tv_ap    = sty("tv_ap",   fontName="Courier-Bold", fontSize=11, alignment=TA_CENTER, textColor=C_BLUE_B)
-    tot_lbl  = sty("tot_lbl", fontSize=7, fontName="Helvetica-Bold", alignment=TA_CENTER, textColor=C_BLACK)
-    costo_st = sty("costo",   fontSize=7.5, textColor=colors.HexColor("#166534"))
+    ct_amt   = sty("ct_amt",  fontName="Helvetica", fontSize=8, alignment=TA_RIGHT)
+    ct_sub_l = sty("ct_subl", fontName="Helvetica-Bold", fontSize=8)
+    ct_sub_r = sty("ct_subr", fontName="Helvetica-Bold", fontSize=8, alignment=TA_RIGHT)
+    net_lbl  = sty("net_lbl", fontSize=10, fontName="Helvetica-Bold", textColor=C_TXT)
+    net_val  = sty("net_val", fontName="Helvetica-Bold", fontSize=12, alignment=TA_RIGHT, textColor=C_TXT)
+    ft_note  = sty("ft_note", fontSize=6.5, textColor=C_MUTED, alignment=TA_CENTER)
+    ft_legal = sty("ft_legal",fontSize=6.5, textColor=C_MUTED, alignment=TA_CENTER, leading=8)
+    ft_hash  = sty("ft_hash", fontSize=6.2, textColor=C_MUTED, fontName="Courier")
     pago_st  = sty("pago",    fontSize=7.5)
-    fl_st    = sty("fl",      fontSize=7.5, textColor=C_GRAY_B)
-    fr_st    = sty("fr",      fontSize=7.5, textColor=C_GRAY_B, alignment=TA_RIGHT)
+    fl_st    = sty("fl",      fontSize=7, textColor=C_MUTED, alignment=TA_CENTER)
+    fr_st    = sty("fr",      fontSize=7, textColor=C_MUTED, alignment=TA_CENTER)
 
-    # Clasificar lineas
+    # Clasificar lineas — las provisiones (CTS/gratif acumuladas) se
+    # excluyen del PDF de boleta. Son acumulaciones internas del empleador
+    # que se pagan en las fechas legales (mayo/nov CTS, jul/dic gratif).
+    # No aparecen como "provisión" en una boleta digital formal — solo los
+    # conceptos efectivamente cobrados/descontados del mes.
     lineas_ingresos    = []
     lineas_descuentos  = []
     lineas_aportes     = []
-    lineas_provisiones = []
     total_ingresos     = Decimal("0")
     total_descuentos   = Decimal("0")
     total_aportes      = Decimal("0")
-    total_provisiones  = Decimal("0")
 
     for linea in registro.lineas.select_related("concepto").order_by(
             "concepto__tipo", "concepto__orden"):
-        entry = {"nombre": linea.concepto.nombre,
-                 "monto": linea.monto or Decimal("0"),
-                 "monto_str": _monto(linea.monto),
-                 "obs": linea.observacion or ""}
-        # Provisiones (CTS, gratif) son INGRESO con subtipo PROVISION en el catalogo.
-        # NO son ingresos cobrados este mes, se acumulan en cuentas de pasivo del
-        # empleador. La boleta debe mostrarlas como INFORMATIVO separado para que
-        # el trabajador entienda que NO se le restan ni se le suman al neto del mes.
+        # Filtrar provisiones (CTS, gratif): no van en boleta digital.
         es_provision = (
             getattr(linea.concepto, 'subtipo', '') == 'PROVISION'
             or linea.concepto.formula in ('GRATIFICACION', 'CTS')
         )
         if es_provision and linea.concepto.tipo == "INGRESO":
-            lineas_provisiones.append(entry)
-            total_provisiones += linea.monto or Decimal("0")
-        elif linea.concepto.tipo == "INGRESO":
+            continue
+        entry = {"nombre": linea.concepto.nombre,
+                 "monto": linea.monto or Decimal("0"),
+                 "monto_str": _monto(linea.monto),
+                 "obs": linea.observacion or ""}
+        if linea.concepto.tipo == "INGRESO":
             lineas_ingresos.append(entry)
             total_ingresos += linea.monto or Decimal("0")
         elif linea.concepto.tipo == "DESCUENTO":
@@ -224,8 +230,8 @@ def generar_boleta_pdf(registro):
         "essalud" in l["nombre"].lower() or "seguro" in l["nombre"].lower()
         for l in lineas_aportes)
     if not essalud_en_lineas and essalud > 0:
-        lineas_aportes.append({"nombre": "EsSalud (9%)", "monto": essalud,
-                                "monto_str": _monto(essalud), "obs": "Aporte empleador"})
+        lineas_aportes.append({"nombre": "EsSalud", "monto": essalud,
+                                "monto_str": _monto(essalud), "obs": ""})
         total_aportes += essalud
 
     neto = registro.neto_a_pagar or Decimal("0")
@@ -319,44 +325,57 @@ def generar_boleta_pdf(registro):
                             topMargin=MARGIN, bottomMargin=MARGIN)
     story = []
 
-    def make_col(lineas, titulo, hdr_color, sub_bg, sub_border, total_str, col_w):
-        """Build a 2-col concept table (name | amount)."""
-        nw = col_w * 0.67
-        aw = col_w * 0.33
-        rows = [[_p(titulo, ct_hdr), _p("S/", ct_hdr_r)]]
+    def make_col(lineas, titulo, total_str, col_w):
+        """
+        Tabla de 2 columnas (descripción | monto). Estilo S10:
+        - Header con fondo gris claro y borde
+        - Filas con borde inferior fino
+        - Fila TOTAL con borde superior
+        """
+        nw = col_w * 0.66
+        aw = col_w * 0.34
+        # Header
+        rows = [[_p(titulo, ct_hdr), _p("Monto (S/)", ct_sub)]]
         if lineas:
             for l in lineas:
                 rows.append([_p(l["nombre"], ct_nm), _p(l["monto_str"], ct_amt)])
-        else:
-            rows.append([_p("---", ct_obs), _p("", ct_amt)])
-        rows.append([_p("TOTAL", ct_sub), _p(total_str, ct_sub_r)])
+        # Filas en blanco para que la columna tenga altura mínima si hay pocos items
+        min_rows = 4
+        while len(rows) - 1 < min_rows:
+            rows.append([_p("", ct_nm), _p("", ct_amt)])
+        # TOTAL
+        rows.append([_p("TOTAL", ct_sub_l), _p(total_str, ct_sub_r)])
         n = len(rows)
         cmds = [
-            ("BACKGROUND",    (0,0),(-1,0),   hdr_color),
+            # Borde exterior de la tabla
+            ("BOX",           (0,0),(-1,-1), 0.5, C_BORDER),
+            # Header
+            ("BACKGROUND",    (0,0),(-1,0),   C_HEADER_BG),
+            ("LINEBELOW",     (0,0),(-1,0),   0.5, C_BORDER),
             ("TOPPADDING",    (0,0),(-1,0),   4),
             ("BOTTOMPADDING", (0,0),(-1,0),   4),
-            ("LEFTPADDING",   (0,0),(-1,0),   7),
-            ("RIGHTPADDING",  (0,0),(-1,0),   7),
+            ("LEFTPADDING",   (0,0),(-1,0),   5),
+            ("RIGHTPADDING",  (0,0),(-1,0),   5),
+            # Filas
             ("TOPPADDING",    (0,1),(-1,-2),  2),
             ("BOTTOMPADDING", (0,1),(-1,-2),  2),
-            ("LEFTPADDING",   (0,1),(-1,-2),  7),
-            ("RIGHTPADDING",  (0,1),(-1,-2),  7),
-            ("LINEBELOW",     (0,1),(-1,-2),  0.5, colors.HexColor("#f3f4f6")),
-            ("BACKGROUND",    (0,-1),(-1,-1), sub_bg),
-            ("LINEABOVE",     (0,-1),(-1,-1), 0.5, sub_border),
+            ("LEFTPADDING",   (0,1),(-1,-2),  5),
+            ("RIGHTPADDING",  (0,1),(-1,-2),  5),
+            # TOTAL
+            ("LINEABOVE",     (0,-1),(-1,-1), 0.5, C_BORDER),
             ("TOPPADDING",    (0,-1),(-1,-1), 3),
             ("BOTTOMPADDING", (0,-1),(-1,-1), 3),
-            ("LEFTPADDING",   (0,-1),(-1,-1), 7),
-            ("RIGHTPADDING",  (0,-1),(-1,-1), 7),
+            ("LEFTPADDING",   (0,-1),(-1,-1), 5),
+            ("RIGHTPADDING",  (0,-1),(-1,-1), 5),
             ("VALIGN",        (0,0),(-1,-1),  "TOP"),
+            # Línea vertical separadora
+            ("LINEAFTER",     (0,0),(0,-1),   0.3, C_LINE_S),
         ]
-        for i in range(2, n-1, 2):
-            cmds.append(("BACKGROUND", (0,i),(-1,i), colors.HexColor("#fafafa")))
         t = Table(rows, colWidths=[nw, aw])
         t.setStyle(TableStyle(cmds))
         return t
 
-    # Logo Harmoni para el header (path en static/images/)
+    # Logo Harmoni (path en static/images/) — solo elemento a color
     logo_path = None
     try:
         import os
@@ -368,287 +387,218 @@ def generar_boleta_pdf(registro):
     except Exception:
         logo_path = None
 
-    for copia_idx in range(2):
-        clabel = "EMPLEADOR" if copia_idx == 0 else "TRABAJADOR"
+    # ════════════════════════════════════════════════════════════════
+    # HEADER — formato S10 sobrio
+    # ════════════════════════════════════════════════════════════════
+    # Línea 1: [logo] EMPRESA + dirección  |  Boleta de Pago + período
+    info_box = [_p(empresa_nombre, h_emp)]
+    if empresa_ruc: info_box.append(_p(f"RUC: {empresa_ruc}", h_meta))
+    if empresa_dir: info_box.append(_p(empresa_dir, h_meta))
 
-        # --- HEADER ---
-        info_box = [_p(empresa_nombre, h_emp)]
-        if empresa_ruc: info_box.append(_p(f"RUC: {empresa_ruc}", h_ruc))
-        if empresa_dir: info_box.append(_p(empresa_dir, h_dir))
-
-        if logo_path:
-            try:
-                logo_img = RLImage(logo_path, width=14*mm, height=14*mm)
-                logo_img.hAlign = 'LEFT'
-                # Logo + info empresa lado a lado dentro del header_left
-                logo_table = Table([[logo_img, info_box]],
-                                   colWidths=[16*mm, USABLE_W*0.62 - 16*mm])
-                logo_table.setStyle(TableStyle([
-                    ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
-                    ("LEFTPADDING",   (0,0),(-1,-1), 0),
-                    ("RIGHTPADDING",  (0,0),(-1,-1), 4),
-                    ("TOPPADDING",    (0,0),(-1,-1), 0),
-                    ("BOTTOMPADDING", (0,0),(-1,-1), 0),
-                ]))
-                hl = logo_table
-            except Exception as exc:
-                logger.warning('No se pudo cargar logo en boleta PDF: %s', exc)
-                hl = info_box
-        else:
+    if logo_path:
+        try:
+            logo_img = RLImage(logo_path, width=14*mm, height=14*mm)
+            logo_img.hAlign = 'LEFT'
+            hl = Table([[logo_img, info_box]], colWidths=[16*mm, USABLE_W*0.58 - 16*mm])
+            hl.setStyle(TableStyle([
+                ("VALIGN",       (0,0),(-1,-1), "MIDDLE"),
+                ("LEFTPADDING",  (0,0),(-1,-1), 0),
+                ("RIGHTPADDING", (0,0),(-1,-1), 4),
+                ("TOPPADDING",   (0,0),(-1,-1), 0),
+                ("BOTTOMPADDING",(0,0),(-1,-1), 0),
+            ]))
+        except Exception as exc:
+            logger.warning('No se pudo cargar logo en boleta PDF: %s', exc)
             hl = info_box
+    else:
+        hl = info_box
 
-        hr_list = [_p("Boleta de Pago", h_tit),
-                   _p(f"{mes_nombre} {anio}  -  {tipo_display}", h_per),
-                   _p(f"Copia: {clabel}", h_cop)]
-        ht = Table([[hl, hr_list]], colWidths=[USABLE_W*0.62, USABLE_W*0.38])
-        ht.setStyle(TableStyle([
-            ("BACKGROUND",    (0,0),(-1,-1), C_DARK),
-            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
-            ("LEFTPADDING",   (0,0),(-1,-1), 10),
-            ("RIGHTPADDING",  (0,0),(-1,-1), 10),
-            ("TOPPADDING",    (0,0),(-1,-1), 8),
-            ("BOTTOMPADDING", (0,0),(-1,-1), 8),
-        ]))
-        story.append(ht)
-        story.append(Spacer(1, 4))
+    hr_list = [
+        _p("Boleta de Pago", h_tit),
+        _p(f"{mes_nombre} {anio}  ·  {tipo_display}", h_per),
+        _p(f"Del {registro.periodo.fecha_inicio.strftime('%d/%m/%Y')} al {registro.periodo.fecha_fin.strftime('%d/%m/%Y')}", h_per),
+    ]
+    ht = Table([[hl, hr_list]], colWidths=[USABLE_W*0.58, USABLE_W*0.42])
+    ht.setStyle(TableStyle([
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 6),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 6),
+        ("TOPPADDING",    (0,0),(-1,-1), 6),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 6),
+        ("LINEBELOW",     (0,0),(-1,-1), 1, C_BORDER),
+    ]))
+    story.append(ht)
 
-        # --- DATOS TRABAJADOR ---
-        if grupo == "STAFF":   gc = _p("STAFF", badge_s)
-        elif grupo == "RCO":   gc = _p("RCO", badge_r)
-        else:                   gc = _p(str(grupo), val)
-        dd = [
-            [_p("Trabajador:",lbl), _p(str(personal.apellidos_nombres),bold),
-             _p("DNI/CE:",lbl), _p(str(personal.nro_doc),val),
-             _p("Grupo:",lbl), gc],
-            [_p("Cargo:",lbl), _p(cargo_str,val),
-             _p("Area:",lbl), _p(area_nombre,val),
-             _p("Sueldo Base:",lbl), _p(f"S/ {_monto(registro.sueldo_base)}",bold)],
-            [_p("Regimen:",lbl), _p(regimen_str,val),
-             _p("CUSPP:",lbl), _p(cuspp or "—",val),
-             _p("Ingreso:",lbl), _p(fecha_ingreso_str,val)],
-            [_p("Dias Trab.:",lbl), _p(dias_str,val),
-             _p("HE:",lbl), _p(he_str,val),
-             _p("Contrato:",lbl), _p(fecha_fin_str,val)],
-        ]
-        dt = Table(dd, colWidths=[95, 145, 52, 85, 60, 90])
-        dt.setStyle(TableStyle([
-            ("BACKGROUND",    (0,0),(-1,-1), C_GRAY_L),
-            ("BOX",           (0,0),(-1,-1), 0.5, C_GRAY_E),
+    # ════════════════════════════════════════════════════════════════
+    # DATOS TRABAJADOR — formato S10 tipo formulario
+    # ════════════════════════════════════════════════════════════════
+    fecha_nac_str = "—"
+    try:
+        fn = personal.fecha_nacimiento
+        fecha_nac_str = fn.strftime("%d/%m/%Y") if fn else "—"
+    except Exception: pass
+
+    # Filas tipo formulario: [label, value, label, value, label, value]
+    cat_str = "Empleado"
+    try:
+        if hasattr(personal, 'get_tipo_trab_display'):
+            cat_str = personal.get_tipo_trab_display() or "Empleado"
+        elif personal.tipo_trab:
+            cat_str = personal.tipo_trab
+    except Exception:
+        pass
+
+    cta_bancaria = "—"
+    if banco_nombre and cuenta_cci:
+        cta_bancaria = f"{banco_nombre} — {_truncate(cuenta_cci, 22)}"
+    elif banco_nombre:
+        cta_bancaria = banco_nombre
+    elif cuenta_cci:
+        cta_bancaria = _truncate(cuenta_cci, 30)
+
+    dd = [
+        [_p("DNI", lbl), _p(str(personal.nro_doc), val),
+         _p("Nombre", lbl), _p(str(personal.apellidos_nombres), val),
+         _p("F.Ing.", lbl), _p(fecha_ingreso_str, val)],
+        [_p("Código", lbl), _p(str(personal.nro_doc), val),
+         _p("Ocupación", lbl), _p(cargo_str, val),
+         _p("F.Cese", lbl), _p(fecha_fin_str, val)],
+        [_p("F.Nac.", lbl), _p(fecha_nac_str, val),
+         _p("Categoría", lbl), _p(cat_str, val),
+         _p("Grupo", lbl), _p(grupo or "—", val)],
+        [_p("Afiliación", lbl), _p(regimen_str, val),
+         _p("CUSPP", lbl), _p(cuspp or "—", val),
+         _p("Sueldo Base", lbl), _p(f"S/ {_monto(registro.sueldo_base)}", val)],
+        [_p("Régimen Salud", lbl), _p("ESSALUD", val),
+         _p("Cuenta Bancaria", lbl), _p(cta_bancaria, val),
+         _p("Días Trab.", lbl), _p(dias_str, val)],
+    ]
+    dt = Table(dd, colWidths=[
+        USABLE_W * 0.10, USABLE_W * 0.17,
+        USABLE_W * 0.11, USABLE_W * 0.32,
+        USABLE_W * 0.08, USABLE_W * 0.22,
+    ])
+    dt.setStyle(TableStyle([
+        ("BOX",           (0,0),(-1,-1), 0.5, C_BORDER),
+        ("INNERGRID",     (0,0),(-1,-1), 0.3, C_LINE_S),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 4),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+        ("TOPPADDING",    (0,0),(-1,-1), 2),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 2),
+    ]))
+    story.append(dt)
+    story.append(Spacer(1, 6))
+
+    # ════════════════════════════════════════════════════════════════
+    # 3 COLUMNAS — Remuneraciones | Descuentos | Aportaciones
+    # ════════════════════════════════════════════════════════════════
+    col_w = USABLE_W / 3
+    ci = make_col(lineas_ingresos,   "Remuneraciones",
+                  _monto(total_ingresos),   col_w)
+    cd = make_col(lineas_descuentos, "Descuentos del trabajador",
+                  _monto(total_descuentos), col_w)
+    ca = make_col(lineas_aportes,    "Aportaciones del empleador",
+                  _monto(total_aportes),    col_w)
+    tc = Table([[ci, cd, ca]], colWidths=[col_w, col_w, col_w])
+    tc.setStyle(TableStyle([
+        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 0),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
+        ("TOPPADDING",    (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 0),
+    ]))
+    story.append(tc)
+    story.append(Spacer(1, 8))
+
+    # ════════════════════════════════════════════════════════════════
+    # NETO A PAGAR — sobrio, sin fondo coloreado
+    # ════════════════════════════════════════════════════════════════
+    nd = [[
+        _p("NETO A PAGAR", net_lbl),
+        _p(f"S/ {_monto(neto)}", net_val),
+    ]]
+    nt = Table(nd, colWidths=[USABLE_W*0.62, USABLE_W*0.38])
+    nt.setStyle(TableStyle([
+        ("BOX",           (0,0),(-1,-1), 1, C_BORDER),
+        ("BACKGROUND",    (0,0),(-1,-1), C_HEADER_BG),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 10),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 10),
+        ("TOPPADDING",    (0,0),(-1,-1), 6),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 6),
+    ]))
+    story.append(nt)
+    story.append(Spacer(1, 16))
+
+    # ════════════════════════════════════════════════════════════════
+    # FIRMAS — Empleador (izq) y Trabajador (der)
+    # ════════════════════════════════════════════════════════════════
+    # Firmas con dos líneas (línea 1 = "Recibí conforme", línea 2 = "Trabajador — DNI")
+    firma_emp = [_p("Empleador / RRHH", fl_st)]
+    firma_trab = [
+        _p("Recibí conforme", fr_st),
+        _p(f"Trabajador — {personal.nro_doc}", fr_st),
+    ]
+    fdata = [
+        [_p("", sm), _p("", sm)],
+        [_p("_" * 32, sm), _p("_" * 32, sm)],
+        [firma_emp, firma_trab],
+    ]
+    ftt = Table(fdata, colWidths=[USABLE_W*0.5, USABLE_W*0.5], rowHeights=[24, 8, 22])
+    ftt.setStyle(TableStyle([
+        ("VALIGN",        (0,0),(-1,-1), "BOTTOM"),
+        ("ALIGN",         (0,0),(-1,-1), "CENTER"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 4),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+        ("TOPPADDING",    (0,0),(-1,-1), 1),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 1),
+    ]))
+    story.append(ftt)
+    story.append(Spacer(1, 8))
+
+    # ════════════════════════════════════════════════════════════════
+    # FOOTER — leyenda legal + hash + QR (discretos)
+    # ════════════════════════════════════════════════════════════════
+    try: estado_display = registro.get_estado_display()
+    except Exception: estado_display = str(getattr(registro, "estado", ""))
+
+    story.append(HRFlowable(width="100%", color=C_LINE_S, thickness=0.3))
+    story.append(Spacer(1, 3))
+
+    qr_img = _build_qr_image(verify_url, size_mm=18) if verify_url else None
+    legal_txt = (
+        "Recibir y firmar la presente boleta no implica renuncia al derecho de "
+        "reclamar los pagos que el trabajador considere le corresponden (DS 009-2011-TR)."
+    )
+    meta_lines = [
+        _p(legal_txt, ft_legal),
+        _p(
+            f"Boleta digital — {mes_nombre} {anio} · "
+            f"Estado: {estado_display} · Documento electrónico generado por Harmoni ERP",
+            ft_note),
+    ]
+    if hash_int:
+        meta_lines.append(_p(f"Hash integridad: {hash_int}", ft_hash))
+    if token:
+        meta_lines.append(_p(f"Verificación: {base_url.rstrip('/')}/nominas/verificar/{token}/", ft_hash))
+
+    if qr_img is not None:
+        qr_w = 22 * mm
+        ft_block = Table([[meta_lines, [qr_img]]],
+                          colWidths=[USABLE_W - qr_w, qr_w])
+        ft_block.setStyle(TableStyle([
             ("VALIGN",        (0,0),(-1,-1), "TOP"),
-            ("LEFTPADDING",   (0,0),(-1,-1), 4),
-            ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+            ("ALIGN",         (1,0),(1,0),   "RIGHT"),
+            ("LEFTPADDING",   (0,0),(-1,-1), 2),
+            ("RIGHTPADDING",  (0,0),(-1,-1), 2),
             ("TOPPADDING",    (0,0),(-1,-1), 2),
             ("BOTTOMPADDING", (0,0),(-1,-1), 2),
         ]))
-        story.append(dt)
-        story.append(Spacer(1, 5))
-
-        # --- 3 COLUMNAS ---
-        gap = 4
-        ciw = int(USABLE_W * 0.36) - gap
-        cdw = int(USABLE_W * 0.34) - gap
-        caw = int(USABLE_W - ciw - cdw - gap * 2)
-        ci = make_col(lineas_ingresos,   "Ingresos del mes",  C_TEAL,
-                      C_SUBTOT, C_SUBTOT2, _monto(total_ingresos),   ciw)
-        cd = make_col(lineas_descuentos, "Descuentos",        C_RED_H,
-                      C_RED_L,  C_RED_E,   _monto(total_descuentos), cdw)
-        ca = make_col(lineas_aportes,    "Aportes Empleador", C_BLUE_H,
-                      C_BLUE_L, C_BLUE_E,  _monto(total_aportes),    caw)
-        tc = Table([[ci, cd, ca]], colWidths=[ciw+gap, cdw+gap, caw])
-        tc.setStyle(TableStyle([
-            ("VALIGN",        (0,0),(-1,-1), "TOP"),
-            ("LEFTPADDING",   (0,0),(-1,-1), 0),
-            ("RIGHTPADDING",  (0,0),(0,0),   gap),
-            ("RIGHTPADDING",  (1,0),(1,0),   gap),
-            ("RIGHTPADDING",  (2,0),(2,0),   0),
-            ("TOPPADDING",    (0,0),(-1,-1), 0),
-            ("BOTTOMPADDING", (0,0),(-1,-1), 0),
-        ]))
-        story.append(tc)
-        story.append(Spacer(1, 5))
-
-        # --- BARRA TOTALES ---
-        tw = USABLE_W / 3
-        tdata = [[
-            [_p("TOTAL INGRESOS", tot_lbl),   _p(f"S/ {_monto(total_ingresos)}",   tv_ing)],
-            [_p("TOTAL DESCUENTOS", tot_lbl), _p(f"S/ {_monto(total_descuentos)}", tv_desc)],
-            [_p("APORTES EMPLEADOR",tot_lbl), _p(f"S/ {_monto(total_aportes)}",    tv_ap)],
-        ]]
-        tt = Table(tdata, colWidths=[tw, tw, tw])
-        tt.setStyle(TableStyle([
-            ("BACKGROUND", (0,0),(0,0), C_GREEN_S), ("BOX",(0,0),(0,0),0.5,C_GREEN_E),
-            ("BACKGROUND", (1,0),(1,0), C_RED_L),   ("BOX",(1,0),(1,0),0.5,C_RED_E),
-            ("BACKGROUND", (2,0),(2,0), C_BLUE_L),  ("BOX",(2,0),(2,0),0.5,C_BLUE_E),
-            ("ALIGN",         (0,0),(-1,-1), "CENTER"),
-            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
-            ("TOPPADDING",    (0,0),(-1,-1), 6),
-            ("BOTTOMPADDING", (0,0),(-1,-1), 6),
-            ("LEFTPADDING",   (0,0),(-1,-1), 3),
-            ("RIGHTPADDING",  (0,0),(-1,-1), 3),
-        ]))
-        story.append(tt)
-        story.append(Spacer(1, 5))
-
-        # --- NETO A PAGAR ---
-        nf = f"{_monto(total_ingresos)} - {_monto(total_descuentos)}"
-        nd = [[_p("NETO A PAGAR", net_lbl), _p(nf, net_fml), _p(f"S/ {_monto(neto)}", net_val)]]
-        nt = Table(nd, colWidths=[USABLE_W*0.32, USABLE_W*0.33, USABLE_W*0.35])
-        nt.setStyle(TableStyle([
-            ("BACKGROUND",    (0,0),(-1,-1), C_DARK),
-            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
-            ("LEFTPADDING",   (0,0),(-1,-1), 12),
-            ("RIGHTPADDING",  (0,0),(-1,-1), 12),
-            ("TOPPADDING",    (0,0),(-1,-1), 8),
-            ("BOTTOMPADDING", (0,0),(-1,-1), 8),
-        ]))
-        story.append(nt)
-        story.append(Spacer(1, 4))
-
-        # --- PROVISIONES (INFORMATIVO) ---
-        # Las provisiones de CTS/gratificación NO se cobran este mes —
-        # son acumuladas por el empleador en cuentas de pasivo y se pagan
-        # en las fechas legales (mayo/nov CTS, jul/dic gratif).
-        # Mostradas como informativo para que el trabajador conozca el
-        # saldo acumulado a su favor.
-        if lineas_provisiones:
-            # Estilos específicos para esta sección
-            prov_title = sty("prov_t", fontSize=8.5, fontName="Helvetica-Bold",
-                             textColor=colors.HexColor("#854d0e"))
-            prov_item  = sty("prov_i", fontSize=8, leading=11,
-                             textColor=colors.HexColor("#713f12"))
-            prov_total = sty("prov_T", fontSize=8.5, fontName="Helvetica-Bold",
-                             textColor=colors.HexColor("#713f12"))
-            prov_rows = [
-                [_p("Provisiones acumuladas a tu favor — informativo, no se pagan este mes:",
-                    prov_title)],
-            ]
-            for lp in lineas_provisiones:
-                prov_rows.append([_p(
-                    f"   • {lp['nombre']}: S/ {lp['monto_str']}",
-                    prov_item,
-                )])
-            prov_rows.append([_p(
-                f"   Total provisionado este mes: S/ {_monto(total_provisiones)}",
-                prov_total,
-            )])
-            pvt = Table(prov_rows, colWidths=[USABLE_W])
-            pvt.setStyle(TableStyle([
-                ("BACKGROUND",    (0,0),(-1,-1), colors.HexColor("#fef9c3")),  # amarillo pálido
-                ("BOX",           (0,0),(-1,-1), 0.5, colors.HexColor("#fde047")),
-                ("LEFTPADDING",   (0,0),(-1,-1), 10),
-                ("RIGHTPADDING",  (0,0),(-1,-1), 10),
-                ("TOPPADDING",    (0,0),(-1,-1), 3),
-                ("BOTTOMPADDING", (0,0),(-1,-1), 3),
-            ]))
-            story.append(pvt)
-            story.append(Spacer(1, 4))
-
-        # --- COSTO EMPRESA ---
-        costo = registro.costo_total_empresa
-        if costo and costo > 0:
-            ct2 = Table([[_p(
-                f"Costo total empresa: S/ {_monto(costo)}  (Remun. + Aportes EsSalud)",
-                costo_st)]], colWidths=[USABLE_W])
-            ct2.setStyle(TableStyle([
-                ("BACKGROUND",    (0,0),(-1,-1), colors.HexColor("#f0fdf4")),
-                ("BOX",           (0,0),(-1,-1), 0.5, colors.HexColor("#bbf7d0")),
-                ("LEFTPADDING",   (0,0),(-1,-1), 10),
-                ("RIGHTPADDING",  (0,0),(-1,-1), 10),
-                ("TOPPADDING",    (0,0),(-1,-1), 4),
-                ("BOTTOMPADDING", (0,0),(-1,-1), 4),
-            ]))
-            story.append(ct2)
-            story.append(Spacer(1, 4))
-
-        # --- BANCO / PAGO ---
-        if banco_nombre or cuenta_cci:
-            pp = ["Forma de pago: Deposito bancario"]
-            if banco_nombre: pp.append(f"Banco: {banco_nombre}")
-            if cuenta_cci:   pp.append(f"CCI: {_truncate(cuenta_cci, 30)}")
-            pt = Table([[_p("     ".join(pp), pago_st)]], colWidths=[USABLE_W])
-            pt.setStyle(TableStyle([
-                ("BACKGROUND",    (0,0),(-1,-1), colors.HexColor("#fafafa")),
-                ("BOX",           (0,0),(-1,-1), 0.5, C_GRAY_E),
-                ("LEFTPADDING",   (0,0),(-1,-1), 10),
-                ("RIGHTPADDING",  (0,0),(-1,-1), 10),
-                ("TOPPADDING",    (0,0),(-1,-1), 5),
-                ("BOTTOMPADDING", (0,0),(-1,-1), 5),
-            ]))
-            story.append(pt)
-            story.append(Spacer(1, 8))
-
-        # --- FIRMAS ---
-        fdata = [
-            [_p("_" * 35, sm), _p("_" * 35, smr)],
-            [_p("Firma Empleador / RRHH", fl_st),
-             _p(f"Firma Trabajador - {personal.nro_doc}", fr_st)],
-        ]
-        ft = Table(fdata, colWidths=[USABLE_W*0.5, USABLE_W*0.5])
-        ft.setStyle(TableStyle([
-            ("VALIGN",        (0,0),(-1,-1), "BOTTOM"),
-            ("LEFTPADDING",   (0,0),(-1,-1), 4),
-            ("RIGHTPADDING",  (0,0),(-1,-1), 4),
-            ("TOPPADDING",    (0,0),(-1,-1), 1),
-            ("BOTTOMPADDING", (0,0),(-1,-1), 1),
-        ]))
-        story.append(ft)
-        story.append(Spacer(1, 6))
-
-        # --- FOOTER ---
-        try: estado_display = registro.get_estado_display()
-        except Exception: estado_display = str(getattr(registro, "estado", ""))
-        story.append(HRFlowable(width="100%", color=C_GRAY_E, thickness=0.5, dash=(2,2)))
-        story.append(Spacer(1, 2))
-
-        # Bloque QR + meta (izquierda: QR, derecha: leyenda + meta)
-        qr_img = _build_qr_image(verify_url, size_mm=20) if verify_url else None
-        legal_txt = (
-            "RECIBIR Y FIRMAR LA PRESENTE BOLETA NO IMPLICA RENUNCIA AL DERECHO DE "
-            "RECLAMAR LOS PAGOS QUE EL TRABAJADOR CONSIDERE LE CORRESPONDEN "
-            "(DS 009-2011-TR)."
-        )
-        meta_lines = []
-        if token:
-            meta_lines.append(_p(f"Hash: {token[:16]}", ft_hash))
-        if hash_int:
-            meta_lines.append(_p(f"Integridad: {hash_int}", ft_hash))
-        meta_lines.append(_p(legal_txt, ft_legal))
-        meta_lines.append(_p(
-            f"Generado por Harmoni ERP - {mes_nombre} {anio} - "
-            f"Estado: {estado_display} - Documento informativo. Conserve este comprobante.",
-            ft_note))
-
-        if qr_img is not None:
-            # Esquina inferior derecha: QR + hash truncado al costado.
-            # Layout: [leyenda + meta] [QR + hash]
-            qr_cell = [qr_img]
-            if token:
-                qr_cell.append(_p(f"Hash: {token[:16]}", ft_hash))
-            # Excluimos el "Hash:" de la columna izquierda porque va junto al QR.
-            left_lines = [m for m in meta_lines if "Hash:" not in str(getattr(m, "text", ""))]
-            qr_w = 25 * mm
-            ft = Table([[left_lines, qr_cell]],
-                       colWidths=[USABLE_W - qr_w, qr_w])
-            ft.setStyle(TableStyle([
-                ("VALIGN",        (0,0),(-1,-1), "TOP"),
-                ("ALIGN",         (1,0),(1,0),   "RIGHT"),
-                ("LEFTPADDING",   (0,0),(-1,-1), 2),
-                ("RIGHTPADDING",  (0,0),(-1,-1), 2),
-                ("TOPPADDING",    (0,0),(-1,-1), 2),
-                ("BOTTOMPADDING", (0,0),(-1,-1), 2),
-            ]))
-            story.append(ft)
-        else:
-            for line in meta_lines:
-                story.append(line)
-
-        # --- SEPARADOR COPIAS ---
-        # Cada copia (EMPLEADOR / TRABAJADOR) ocupa una página propia: evita
-        # cortes a mitad del documento cuando el contenido es extenso (muchos
-        # conceptos, varias provisiones, etc.). El usuario puede imprimir
-        # ambas o solo la que necesite firmar.
-        if copia_idx == 0:
-            story.append(PageBreak())
+        story.append(ft_block)
+    else:
+        for line in meta_lines:
+            story.append(line)
 
     doc.build(story)
     return buf.getvalue()
