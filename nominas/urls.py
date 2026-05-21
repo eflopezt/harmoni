@@ -61,6 +61,12 @@ urlpatterns = [
     path('comparativo/', views.comparativo_mensual,
          name='nominas_comparativo_mensual'),
 
+    # Saldos de Apertura — Onboarding Express (Wizard)
+    path('apertura/', views.saldos_apertura,
+         name='nominas_saldos_apertura'),
+    path('apertura/plantilla.xlsx', views.saldos_apertura_plantilla,
+         name='nominas_saldos_apertura_plantilla'),
+
     # Configuración tasas AFP (admin)
     path('config/tasas-afp/', views.config_tasas_afp, name='config_tasas_afp'),
 

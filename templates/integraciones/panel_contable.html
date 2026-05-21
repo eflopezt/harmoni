@@ -156,26 +156,53 @@
       </div>
     </div>
 
-    {# SAP Generico #}
+    {# Excel UNIVERSAL — formato genérico para cualquier ERP #}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border-success">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background:#0d9488; color:#fff;">
+          <span><i class="fas fa-file-excel me-2"></i><strong>Excel Universal</strong></span>
+          <span class="badge bg-light text-dark">Recomendado</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-2">
+            Excel <strong>simple</strong> con columnas estándar.
+            Importable a <strong>cualquier ERP</strong>: Spring, Odoo,
+            sistemas custom, hojas de tu contador.
+          </p>
+          <ul class="small text-muted mb-0">
+            <li>Una hoja, 8 columnas estándar</li>
+            <li>Fecha · Cuenta · CC · Glosa · Debe · Haber</li>
+            <li>Sin fórmulas, 100% portable</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-success w-100" onclick="descargar('universal')" {% if not periodos %}disabled{% endif %}>
+            <i class="fas fa-download me-1"></i>Exportar Excel Universal
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {# SAP Generico (con detalle por trabajador) #}
     <div class="col-md-6 col-lg-4">
       <div class="card h-100 shadow-sm">
         <div class="card-header" style="background:#0f766e; color:#fff;">
-          <i class="fas fa-file-excel me-2"></i><strong>SAP / Genérico</strong>
+          <i class="fas fa-file-excel me-2"></i><strong>SAP / Detalle</strong>
         </div>
         <div class="card-body">
           <p class="text-muted small mb-2">
             Excel con dos hojas: asiento resumen y detalle por trabajador.
-            Compatible con SAP FICO, Oracle y otros ERPs contables.
+            Compatible con SAP FICO, Oracle y ERPs con import detallado.
           </p>
           <ul class="small text-muted mb-0">
             <li>Formato: Excel .xlsx</li>
             <li>Hoja 1: asiento por cuenta</li>
-            <li>Hoja 2: detalle empleados</li>
+            <li>Hoja 2: detalle por empleado</li>
           </ul>
         </div>
         <div class="card-footer">
           <button class="btn btn-info w-100" onclick="descargar('sap')" {% if not periodos %}disabled{% endif %}>
-            <i class="fas fa-download me-1"></i>Exportar Excel SAP
+            <i class="fas fa-download me-1"></i>Exportar SAP Detalle
           </button>
         </div>
       </div>

@@ -771,3 +771,117 @@ def generar_asiento_provisiones(periodo, empresa=None):
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue(), 4
+
+
+# ====================================================================
+# EXCEL UNIVERSAL - Formato simple compatible con cualquier ERP
+# ====================================================================
+
+def generar_asiento_excel_universal(periodo, empresa=None):
+    """
+    Genera el asiento contable en formato Excel UNIVERSAL — UNA hoja,
+    columnas mínimas y estándar que cualquier sistema contable acepta.
+
+    Pensado para clientes que NO usan Concar/Siscont/SAP específicamente
+    sino su propio ERP custom o un sistema legacy (ej. Spring de EDO,
+    sistemas hechos a medida, hojas de cálculo del contador).
+
+    Columnas (ningún campo opcional, todo simple):
+      Fecha | Nro Asiento | Cuenta | Descripción Cuenta | Centro Costo |
+      Glosa | Debe | Haber
+
+    Una sola hoja, sin formatos fancy, sin fórmulas, sin merge cells.
+    Importable directamente a 99% de los ERPs del mercado.
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    plan        = _get_plan_cuentas(empresa=empresa)
+    tots        = _get_totales_periodo(periodo, empresa=empresa)
+    fecha       = (periodo.fecha_fin or date.today())
+    cc, emp_nom = _empresa_label(empresa)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Asiento Planilla"
+
+    TEAL     = "FF0D2B27"
+    HDR_FONT = Font(color="FFFFFFFF", bold=True, size=10)
+    HDR_FILL = PatternFill(fill_type="solid", fgColor=TEAL)
+
+    headers = [
+        "Fecha", "Nro Asiento", "Cuenta", "Descripción Cuenta",
+        "Centro Costo", "Glosa", "Debe", "Haber",
+    ]
+    for col, h in enumerate(headers, 1):
+        c           = ws.cell(row=1, column=col, value=h)
+        c.font      = HDR_FONT
+        c.fill      = HDR_FILL
+        c.alignment = Alignment(horizontal="center")
+
+    suf         = f"-{cc}" if cc else ""
+    nro_asiento = f"PL{periodo.anio}{periodo.mes:02d}{suf}"
+    glosa       = (
+        f"Planilla {periodo.mes_nombre} {periodo.anio}"
+        + (f" - {emp_nom}" if emp_nom else "")
+    )
+    cc_field    = cc or ""
+
+    filas = [
+        # (cuenta_key, debe, haber)
+        ("sueldos_debe",        tots["bruto"],       Decimal("0")),
+        ("essalud_debe",        tots["essalud"],     Decimal("0")),
+        ("gratif_debe",         tots["gratif_prov"], Decimal("0")),
+        ("rem_pagar_haber",     Decimal("0"),        tots["neto"]),
+        ("afp_pagar_haber",     Decimal("0"),        tots["afp"]),
+        ("onp_pagar_haber",     Decimal("0"),        tots["onp"]),
+        ("essalud_pagar_haber", Decimal("0"),        tots["essalud"]),
+    ]
+
+    # Cuadre de la provisión gratificación al haber (4151)
+    diferencia = (
+        tots["bruto"] + tots["essalud"] + tots["gratif_prov"]
+        - tots["neto"] - tots["afp"] - tots["onp"] - tots["essalud"]
+    )
+    if abs(diferencia) > Decimal("0.02"):
+        filas.append(("gratif_pagar_haber", Decimal("0"), diferencia))
+
+    row = 2
+    for cuenta_key, debe, haber in filas:
+        # Filtrar líneas en cero (más limpio)
+        if debe == 0 and haber == 0:
+            continue
+        cod, nom = plan.get(cuenta_key, ("0000", "—"))
+        ws.cell(row=row, column=1, value=fecha)
+        ws.cell(row=row, column=2, value=nro_asiento)
+        ws.cell(row=row, column=3, value=cod)
+        ws.cell(row=row, column=4, value=nom)
+        ws.cell(row=row, column=5, value=cc_field)
+        ws.cell(row=row, column=6, value=glosa)
+        ws.cell(row=row, column=7, value=float(debe) if debe else None)
+        ws.cell(row=row, column=8, value=float(haber) if haber else None)
+        row += 1
+
+    # Fila de TOTAL (sin fórmulas, valores estáticos — más portable)
+    total_debe  = sum(d for _, d, _ in filas)
+    total_haber = sum(h for _, _, h in filas)
+    if diferencia > Decimal("0.02"):
+        total_haber += diferencia
+    ws.cell(row=row, column=6, value="TOTAL").font = Font(bold=True)
+    ws.cell(row=row, column=7, value=float(total_debe)).font  = Font(bold=True)
+    ws.cell(row=row, column=8, value=float(total_haber)).font = Font(bold=True)
+
+    # Anchos de columna
+    widths = [12, 18, 10, 35, 14, 38, 13, 13]
+    for col, w in enumerate(widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = w
+
+    # Formato fecha y decimal
+    for r in range(2, row + 1):
+        ws.cell(row=r, column=1).number_format = "DD/MM/YYYY"
+        ws.cell(row=r, column=7).number_format = "#,##0.00"
+        ws.cell(row=r, column=8).number_format = "#,##0.00"
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue(), 1

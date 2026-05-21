@@ -460,6 +460,7 @@ def exportar_contable(request, formato):
         generar_asiento_concar, generar_asiento_sigo,
         generar_asiento_sap_excel, generar_sire_libro_diario,
         generar_asiento_siscont, generar_asiento_provisiones,
+        generar_asiento_excel_universal,
     )
 
     periodo_id = request.GET.get('periodo_id') or request.POST.get('periodo_id')
@@ -482,6 +483,7 @@ def exportar_contable(request, formato):
         'sire':         ('sire',         generar_sire_libro_diario, 'txt',  'text/plain; charset=utf-8',                                             '.txt'),
         'siscont':      ('siscont',      generar_asiento_siscont,   'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',     '.xlsx'),
         'provisiones':  ('provisiones',  generar_asiento_provisiones, 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',   '.xlsx'),
+        'universal':    ('universal',    generar_asiento_excel_universal, 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.xlsx'),
     }
 
     if formato not in FORMATO_MAP:
@@ -553,6 +555,7 @@ def exportar_contable(request, formato):
         'concar': 'CONCAR', 'sigo': 'SIGO',
         'sap': 'SAP_EXCEL', 'sire': 'SIRE_PLE',
         'siscont': 'SISCONT', 'provisiones': 'PROVISIONES',
+        'universal': 'EXCEL_UNIVERSAL',
     }
     LogExportacion.objects.create(
         tipo=TIPO_CONTABLE.get(formato, 'OTRO'),
