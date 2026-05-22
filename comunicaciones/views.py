@@ -668,3 +668,82 @@ def comunicado_confirmar(request, pk):
         confirmacion.save(update_fields=['confirmado', 'ip'])
 
     return JsonResponse({'ok': True, 'created': created})
+
+
+# ─────────────────────────────────────────────────────────────
+# Campañas masivas segmentadas
+# ─────────────────────────────────────────────────────────────
+
+@login_required
+def campanas_panel(request):
+    """Panel de campañas con filtros."""
+    from comunicaciones.models import CampanaComunicacion
+    estado = request.GET.get('estado', '')
+    canal = request.GET.get('canal', '')
+    qs = CampanaComunicacion.objects.all().order_by('-creado_en')
+    if estado:
+        qs = qs.filter(estado=estado)
+    if canal:
+        qs = qs.filter(canal=canal)
+    return render(request, 'comunicaciones/campana_panel.html', {
+        'titulo':    'Campañas de Comunicación',
+        'campanas':  qs[:50],
+        'filtro_estado': estado,
+        'filtro_canal':  canal,
+        'estado_choices': CampanaComunicacion.ESTADO_CHOICES,
+        'canal_choices':  CampanaComunicacion.CANAL_CHOICES,
+    })
+
+
+@login_required
+def campana_detalle(request, pk):
+    """Detalle de campaña + stats."""
+    from comunicaciones.models import CampanaComunicacion
+    campana = get_object_or_404(CampanaComunicacion, pk=pk)
+    # Notificaciones generadas (best-effort)
+    notifs = Notificacion.objects.filter(
+        metadata__modulo='comunicaciones',
+        metadata__campana_id=campana.pk,
+    ).order_by('-creado_en')[:50] if hasattr(Notificacion, 'metadata') else []
+    return render(request, 'comunicaciones/campana_detalle.html', {
+        'titulo':    f'Campaña — {campana.nombre}',
+        'campana':   campana,
+        'notifs':    notifs,
+    })
+
+
+@login_required
+def campana_preview_destinatarios(request):
+    """AJAX: cuenta destinatarios según filtros (para mostrar en form)."""
+    from comunicaciones.segmentacion import resolver_destinatarios
+    from comunicaciones.models import CampanaComunicacion
+
+    # Construir una campaña temporal con los filtros del GET
+    tmp = CampanaComunicacion(
+        filtro_area_ids=[int(x) for x in request.GET.get('area_ids', '').split(',') if x.strip().isdigit()],
+        filtro_subarea_ids=[int(x) for x in request.GET.get('subarea_ids', '').split(',') if x.strip().isdigit()],
+        filtro_cargo=request.GET.get('cargo', '').strip(),
+        filtro_grupo_tareo=request.GET.get('grupo_tareo', '').strip(),
+        filtro_empresa_ids=[int(x) for x in request.GET.get('empresa_ids', '').split(',') if x.strip().isdigit()],
+        filtro_solo_activos=request.GET.get('solo_activos', '1') == '1',
+    )
+    qs = resolver_destinatarios(tmp)
+    count = qs.count()
+    sample = list(qs.values('id', 'apellidos_nombres')[:5])
+    return JsonResponse({'count': count, 'sample': sample})
+
+
+@login_required
+@require_POST
+def campana_enviar(request, pk):
+    """Dispara envío de una campaña."""
+    from comunicaciones.models import CampanaComunicacion
+    from comunicaciones.campana_service import enviar_campana
+    campana = get_object_or_404(CampanaComunicacion, pk=pk)
+    if campana.estado in ('ENVIADA', 'ENVIANDO'):
+        return JsonResponse({'ok': False, 'error': 'Ya está enviada o en envío'}, status=400)
+    try:
+        result = enviar_campana(campana, request.user)
+        return JsonResponse({'ok': True, **result})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)

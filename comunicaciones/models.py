@@ -385,3 +385,89 @@ class ConfiguracionSMTP(models.Model):
             return True, "Conexión exitosa"
         except Exception as e:
             return False, str(e)
+
+
+# ─────────────────────────────────────────────────────────────
+# 5. CampanaComunicacion (campañas masivas segmentadas)
+# ─────────────────────────────────────────────────────────────
+
+class CampanaComunicacion(models.Model):
+    """Campaña masiva con segmentación dinámica.
+
+    Resuelve destinatarios via filtros (área, cargo, grupo, empresa)
+    y envía via NotificacionService + WhatsAppService.
+    """
+    CANAL_CHOICES = [
+        ('EMAIL',    'Email'),
+        ('WHATSAPP', 'WhatsApp'),
+        ('IN_APP',   'In-App'),
+        ('MULTI',    'Email + WhatsApp + In-App'),
+    ]
+    ESTADO_CHOICES = [
+        ('BORRADOR',   'Borrador'),
+        ('PROGRAMADA', 'Programada'),
+        ('ENVIANDO',   'Enviando'),
+        ('ENVIADA',    'Enviada'),
+        ('CANCELADA',  'Cancelada'),
+    ]
+
+    nombre = models.CharField(max_length=200, verbose_name='Nombre')
+    asunto = models.CharField(max_length=200, verbose_name='Asunto')
+    cuerpo = models.TextField(verbose_name='Cuerpo (HTML)')
+    canal = models.CharField(max_length=15, choices=CANAL_CHOICES,
+                              default='IN_APP', verbose_name='Canal de envío')
+    estado = models.CharField(max_length=12, choices=ESTADO_CHOICES,
+                               default='BORRADOR', verbose_name='Estado')
+
+    # Filtros de segmentación
+    filtro_area_ids = models.JSONField(default=list, blank=True,
+        verbose_name='IDs de áreas',
+        help_text='Lista de IDs de Area. Vacío = todas.')
+    filtro_subarea_ids = models.JSONField(default=list, blank=True,
+        verbose_name='IDs de subáreas')
+    filtro_cargo = models.CharField(max_length=100, blank=True, default='',
+        verbose_name='Cargo (substring)',
+        help_text='Substring match en cargo (icontains)')
+    filtro_grupo_tareo = models.CharField(max_length=20, blank=True, default='',
+        verbose_name='Grupo de tareo',
+        help_text='STAFF | RCO | vacío para todos')
+    filtro_empresa_ids = models.JSONField(default=list, blank=True,
+        verbose_name='IDs de empresas')
+    filtro_solo_activos = models.BooleanField(default=True,
+        verbose_name='Solo trabajadores activos')
+
+    programada_para = models.DateTimeField(null=True, blank=True,
+        verbose_name='Programada para')
+
+    # Stats
+    destinatarios_count = models.PositiveIntegerField(default=0,
+        verbose_name='Total destinatarios')
+    enviados_ok = models.PositiveIntegerField(default=0,
+        verbose_name='Enviados OK')
+    enviados_fallidos = models.PositiveIntegerField(default=0,
+        verbose_name='Fallidos')
+
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='campanas_creadas',
+        verbose_name='Creado por')
+    creado_en = models.DateTimeField(auto_now_add=True)
+    enviada_en = models.DateTimeField(null=True, blank=True,
+        verbose_name='Enviada en')
+
+    class Meta:
+        verbose_name = 'Campaña de Comunicación'
+        verbose_name_plural = 'Campañas de Comunicación'
+        ordering = ['-creado_en']
+        indexes = [
+            models.Index(fields=['estado'], name='com_campana_estado_idx'),
+            models.Index(fields=['-creado_en'], name='com_campana_creado_idx'),
+        ]
+
+    def __str__(self):
+        return f'[{self.get_estado_display()}] {self.nombre}'
+
+    @property
+    def tasa_exito_pct(self):
+        if not self.destinatarios_count:
+            return 0
+        return round(self.enviados_ok / self.destinatarios_count * 100, 1)

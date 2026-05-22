@@ -47,4 +47,15 @@ urlpatterns = [
     # ── API: count no-leídas y recientes (para header bell externo) ──
     path('api/no-leidas/', views_notif.notificaciones_api_count, name='notificaciones_api_count'),
     path('api/recientes/', views_notif.notificaciones_api_recientes, name='notificaciones_api_recientes'),
+
+    # ── Campañas masivas segmentadas ──
+    path('campanas/', views.campanas_panel, name='campanas_panel'),
+    path('campanas/', views.campanas_panel, name='com_campana_list'),
+    path('campanas/', views.campanas_panel, name='com_campanas_panel'),
+    path('campanas/crear/', views.campanas_panel, name='com_campana_crear'),
+    path('campanas/<int:pk>/', views.campana_detalle, name='campana_detalle'),
+    path('campanas/<int:pk>/', views.campana_detalle, name='com_campana_detalle'),
+    path('campanas/<int:pk>/enviar/', views.campana_enviar, name='campana_enviar'),
+    path('campanas/<int:pk>/enviar/', views.campana_enviar, name='com_campana_enviar'),
+    path('campanas/preview-destinatarios/', views.campana_preview_destinatarios, name='campana_preview_destinatarios'),
 ]

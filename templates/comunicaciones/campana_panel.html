@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Campañas de Comunicación{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-bullseye text-primary me-2"></i>{{ titulo }}</h2>
+        <p class="page-subtitle">Campañas masivas segmentadas multi-canal (Email + WhatsApp + In-App).</p>
+    </div>
+    <a href="{% url 'com_campana_crear' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i>Nueva Campaña
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-value text-primary">{{ total }}</div>
+            <div class="stat-label">Total</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-value text-success">{{ enviadas }}</div>
+            <div class="stat-label">Enviadas</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-value text-warning">{{ borradores }}</div>
+            <div class="stat-label">Borradores</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-value text-info">{{ programadas }}</div>
+            <div class="stat-label">Programadas</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small">Estado</label>
+                <select name="estado" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for v, l in estados %}
+                    <option value="{{ v }}" {% if filtro_estado == v %}selected{% endif %}>{{ l }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">Canal</label>
+                <select name="canal" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for v, l in canales %}
+                    <option value="{{ v }}" {% if filtro_canal == v %}selected{% endif %}>{{ l }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">Buscar</label>
+                <input type="search" name="q" value="{{ buscar }}" class="form-control form-control-sm" placeholder="Nombre o asunto">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary btn-sm w-100"><i class="fas fa-search me-1"></i>Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Canal</th>
+                    <th>Estado</th>
+                    <th class="text-end">Destinatarios</th>
+                    <th class="text-end">OK</th>
+                    <th class="text-end">Fallidos</th>
+                    <th>Creado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in campanas %}
+                <tr>
+                    <td>
+                        <a href="{% url 'com_campana_detalle' c.pk %}" class="text-decoration-none fw-semibold">{{ c.nombre }}</a>
+                        <div class="small text-muted">{{ c.asunto|truncatechars:50 }}</div>
+                    </td>
+                    <td><span class="badge bg-secondary-subtle text-secondary">{{ c.get_canal_display }}</span></td>
+                    <td>
+                        {% if c.estado == 'ENVIADA' %}
+                            <span class="badge bg-success">{{ c.get_estado_display }}</span>
+                        {% elif c.estado == 'BORRADOR' %}
+                            <span class="badge bg-warning text-dark">{{ c.get_estado_display }}</span>
+                        {% elif c.estado == 'PROGRAMADA' %}
+                            <span class="badge bg-info">{{ c.get_estado_display }}</span>
+                        {% elif c.estado == 'ENVIANDO' %}
+                            <span class="badge bg-primary">{{ c.get_estado_display }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ c.get_estado_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{{ c.destinatarios_count|intcomma }}</td>
+                    <td class="text-end text-success">{{ c.enviados_ok|intcomma }}</td>
+                    <td class="text-end {% if c.enviados_fallidos %}text-danger{% else %}text-muted{% endif %}">{{ c.enviados_fallidos|intcomma }}</td>
+                    <td><span class="small text-muted">{{ c.creado_en|naturaltime }}</span></td>
+                    <td class="text-end">
+                        <a href="{% url 'com_campana_detalle' c.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">
+                    Sin campañas. <a href="{% url 'com_campana_crear' %}">Crear la primera</a>.
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

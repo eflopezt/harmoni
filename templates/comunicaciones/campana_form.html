@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Campaña{% endblock %}
+
+{% block content %}
+<h2 class="mb-3"><i class="fas fa-bullseye text-primary me-2"></i>{{ titulo }}</h2>
+
+<form method="post" id="campana-form">
+    {% csrf_token %}
+
+    <div class="row g-3">
+        <!-- Contenido -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header"><strong>Contenido de la campaña</strong></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre interno *</label>
+                        <input type="text" name="nombre" class="form-control" required maxlength="200"
+                               placeholder="Ej: Comunicado cocineros Miraflores Mayo">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Asunto *</label>
+                        <input type="text" name="asunto" class="form-control" required maxlength="200">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Cuerpo (HTML básico permitido) *</label>
+                        <textarea name="cuerpo" class="form-control" rows="8" required></textarea>
+                        <small class="text-muted">Para WhatsApp, las etiquetas HTML se eliminan automáticamente.</small>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Canal *</label>
+                            <select name="canal" class="form-select" required>
+                                {% for v, l in canales %}
+                                <option value="{{ v }}">{{ l }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Programar envío</label>
+                            <input type="datetime-local" name="programada_para" class="form-control">
+                            <small class="text-muted">Dejar vacío para envío inmediato.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Segmentación + preview -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header"><strong><i class="fas fa-filter me-1"></i>Segmentación</strong></div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input type="checkbox" name="filtro_solo_activos" id="f-activos" class="form-check-input" checked>
+                        <label for="f-activos" class="form-check-label">Solo trabajadores activos</label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Áreas</label>
+                        <select name="filtro_area_ids" id="f-areas" class="form-select form-select-sm" multiple size="4">
+                            {% for a in areas %}
+                            <option value="{{ a.pk }}">{{ a.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Ctrl + click para multi-selección. Vacío = todas.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">SubÁreas</label>
+                        <select name="filtro_subarea_ids" id="f-subareas" class="form-select form-select-sm" multiple size="4">
+                            {% for s in subareas %}
+                            <option value="{{ s.pk }}" data-area="{{ s.area_id }}">{{ s.area.nombre }} / {{ s.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Cargo (substring)</label>
+                        <input type="text" name="filtro_cargo" id="f-cargo" class="form-control form-control-sm"
+                               placeholder="Ej: cocinero, mesero">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Grupo de tareo</label>
+                        <select name="filtro_grupo_tareo" id="f-grupo" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            {% for v, l in grupos_tareo %}
+                            <option value="{{ v }}">{{ l }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% if empresas %}
+                    <div class="mb-3">
+                        <label class="form-label small">Empresas</label>
+                        <select name="filtro_empresa_ids" id="f-empresas" class="form-select form-select-sm" multiple size="3">
+                            {% for e in empresas %}
+                            <option value="{{ e.pk }}">{{ e.razon_social }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <button type="button" id="btn-preview" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="fas fa-eye me-1"></i>Vista previa destinatarios
+                    </button>
+
+                    <div id="preview-result" class="mt-3" style="display:none;">
+                        <hr>
+                        <div class="fw-semibold mb-2">
+                            <i class="fas fa-users me-1"></i>
+                            Total: <span id="preview-total" class="text-primary">0</span>
+                        </div>
+                        <div class="small text-muted mb-1">Muestra (5):</div>
+                        <ul id="preview-sample" class="list-unstyled small mb-0"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3 d-flex gap-2 justify-content-end">
+        <a href="{% url 'com_campanas_panel' %}" class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" name="accion" value="borrador" class="btn btn-secondary">
+            <i class="fas fa-save me-1"></i>Guardar borrador
+        </button>
+        <button type="submit" name="accion" value="enviar" class="btn btn-primary"
+                onclick="return confirm('¿Enviar la campaña a todos los destinatarios resueltos?');">
+            <i class="fas fa-paper-plane me-1"></i>Enviar ahora
+        </button>
+    </div>
+</form>
+
+<script>
+(function() {
+    // Filtrar subáreas por área seleccionada
+    const fAreas = document.getElementById('f-areas');
+    const fSubareas = document.getElementById('f-subareas');
+
+    function filtrarSubareas() {
+        const seleccionadas = Array.from(fAreas.selectedOptions).map(o => o.value);
+        Array.from(fSubareas.options).forEach(opt => {
+            const areaId = opt.dataset.area;
+            if (seleccionadas.length === 0 || seleccionadas.includes(areaId)) {
+                opt.style.display = '';
+            } else {
+                opt.style.display = 'none';
+                opt.selected = false;
+            }
+        });
+    }
+    if (fAreas) fAreas.addEventListener('change', filtrarSubareas);
+
+    // AJAX preview
+    const btnPreview = document.getElementById('btn-preview');
+    btnPreview.addEventListener('click', async () => {
+        const form = document.getElementById('campana-form');
+        const fd = new FormData();
+        // Solo los campos de filtro
+        ['filtro_area_ids', 'filtro_subarea_ids', 'filtro_empresa_ids'].forEach(name => {
+            const sel = form.querySelector(`select[name="${name}"]`);
+            if (sel) Array.from(sel.selectedOptions).forEach(o => fd.append(name, o.value));
+        });
+        fd.append('filtro_cargo', form.querySelector('input[name="filtro_cargo"]').value);
+        const grupoSel = form.querySelector('select[name="filtro_grupo_tareo"]');
+        fd.append('filtro_grupo_tareo', grupoSel ? grupoSel.value : '');
+        if (form.querySelector('input[name="filtro_solo_activos"]').checked) {
+            fd.append('filtro_solo_activos', 'on');
+        }
+        fd.append('csrfmiddlewaretoken', form.querySelector('[name="csrfmiddlewaretoken"]').value);
+
+        btnPreview.disabled = true;
+        btnPreview.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Calculando...';
+
+        try {
+            const r = await fetch('{% url "com_campana_preview" %}', {
+                method: 'POST', body: fd, credentials: 'same-origin',
+            });
+            const data = await r.json();
+            document.getElementById('preview-total').textContent = data.total;
+            const ul = document.getElementById('preview-sample');
+            ul.innerHTML = '';
+            (data.sample || []).forEach(p => {
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="fas fa-user text-muted me-1"></i>${p.nombre} <span class="text-muted">— ${p.cargo}</span>`;
+                ul.appendChild(li);
+            });
+            if (!data.sample || data.sample.length === 0) {
+                ul.innerHTML = '<li class="text-muted">(sin coincidencias)</li>';
+            }
+            document.getElementById('preview-result').style.display = 'block';
+        } catch (e) {
+            alert('Error consultando preview: ' + e);
+        } finally {
+            btnPreview.disabled = false;
+            btnPreview.innerHTML = '<i class="fas fa-eye me-1"></i>Vista previa destinatarios';
+        }
+    });
+})();
+</script>
+{% endblock %}
