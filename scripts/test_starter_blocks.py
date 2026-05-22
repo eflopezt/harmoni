@@ -14,6 +14,7 @@ c.force_login(u)
 
 # URLs que DEBEN bloquear (302 → /upgrade/)
 test_urls_block = [
+    # Enterprise features
     '/personal/organigrama/',
     '/personal/contratos/',
     '/personal/roster/matricial/',
@@ -28,6 +29,17 @@ test_urls_block = [
     '/workflows/',
     '/salarios/',
     '/prestamos/',
+    # Portal del colaborador (Starter no lo incluye)
+    '/portal/',
+    '/mi-portal/',
+    '/mi-portal/mi-nomina/',
+    '/mi-portal/asistencia/',
+    '/documentos/boletas/mis/',
+    # Solicitudes HE (sin portal)
+    '/asistencia/solicitudes-he/',
+    # Notificaciones a trabajadores (sin envío de boletas)
+    '/nominas/boletas/1/notificar/',
+    '/documentos/vencimientos/notificar/',
 ]
 
 print('=' * 70)
@@ -54,6 +66,8 @@ test_urls_allow = [
     '/',
     '/personal/',
     '/asistencia/',
+    '/asistencia/papeletas/',          # Papeletas admin SÍ accesibles
+    '/asistencia/papeletas/crear/',
     '/nominas/',
     '/vacaciones/',
     '/upgrade/',
@@ -63,7 +77,8 @@ ok_allow = 0
 for url in test_urls_allow:
     try:
         r = c.get(url, follow=False, secure=True)
-        is_ok = r.status_code in (200, 301) or (r.status_code == 302 and '/upgrade/' not in r.get('Location', ''))
+        # 405 = solo POST permitido (no bloqueado por middleware, sí por método)
+        is_ok = r.status_code in (200, 301, 405) or (r.status_code == 302 and '/upgrade/' not in r.get('Location', ''))
         marker = 'OK' if is_ok else 'BLOCKED!!'
         if is_ok:
             ok_allow += 1

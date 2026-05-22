@@ -46,4 +46,9 @@ def plan_starter_context(request):
         'oculta_salarios':       es_starter,
         'oculta_prestamos':      es_starter,
         'oculta_reclutamiento':  es_starter,
+        # Portal y comunicación con el trabajador
+        'oculta_portal':         es_starter,   # Starter no tiene portal del colaborador
+        'oculta_horas_extras':   es_starter,   # Sin solicitudes de HE
+        'oculta_notificar':      es_starter,   # No se notifica/envía boletas
+        'oculta_solicitudes':    es_starter,   # Workflow de solicitudes deshabilitado
     }

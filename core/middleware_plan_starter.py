@@ -1,36 +1,34 @@
 """
 Middleware Plan Starter — restringe acceso a features enterprise.
 
-Para usuarios del Plan Starter (S/149/mes — 30 colaboradores), bloquea:
-- Reclutamiento (Pipeline, banco talento, comparar, etc.)
-- IA y AI features (predictor rotación, AI summary CV)
-- Evaluaciones 360
-- BI Excel + Dashboard Ejecutivo cross-modulo
-- Capacitaciones (entero — agencia pequeña no gestiona capacitación formal)
-- Pulse del Grupo / Briefing / Cuadrícula gastro
-- Workflows engine
-- Bandas salariales / Análisis equidad
-- Préstamos workflow
-- Comunicaciones masivas (campañas WhatsApp)
-- Onboarding gastronomía
-- Organigrama (gestión visual avanzada)
-- Calendario laboral (planning avanzado)
-- Contratos (gestión formal de contratos / renovaciones / adendas)
-- Roster matricial (vista avanzada — solo lista plana)
-- Disciplinaria (medidas formales con carta PDF)
-- Banco de horas
-- Documentos legajo PDF
-- PDFs de reportes (solo Excel/HTML para Starter)
-- División RCO/Staff (Starter solo maneja STAFF)
+═══════════════════════════════════════════════════════════════════════
+Plan Starter (S/149/mes — 30 colaboradores) — alcance mínimo:
+═══════════════════════════════════════════════════════════════════════
 
-Mantiene acceso a:
-- Personal (CRUD básico)
+✅ INCLUIDO (lo mínimo necesario para operar planilla):
+- Personal (CRUD básico, sin división RCO/Staff)
 - Asistencia (registro + 1 reporte matricial básico)
-- Planillas (boletas PDF — requisito legal)
-- Vacaciones (constancia PDF — requisito legal)
-- Portal del colaborador
+- Planilla mensual (cálculos completos: AFP/ONP, IGV, gratif, CTS, etc.)
+- Boleta PDF (generación local — no envío al trabajador)
+- Papeletas (admin entra permisos, licencias, vacaciones manuales)
+- Vacaciones (admin gestiona — sin solicitud del trabajador)
+- Exportes contables y SUNAT (legal)
 - Cuenta / configuración básica
 
+❌ NO INCLUIDO (todo lo demás):
+- Portal del colaborador (sin login de trabajadores)
+- Envío/notificación de boletas a trabajadores
+- Solicitudes de horas extras desde portal
+- Reclutamiento (Pipeline, banco talento, IA matching, scoring)
+- Capacitaciones / Evaluaciones 360 / Disciplinaria formal
+- Organigrama visual / Calendario laboral / Contratos formales
+- Roster matricial / Banco de horas / Workflows
+- Bandas salariales / Préstamos / Comunicaciones masivas
+- Pulse del Grupo / Briefing / Onboarding gastronomía
+- BI Excel cross-modulo / Dashboard Ejecutivo / IA Predictor Rotación
+- PDFs avanzados (solo boleta y constancia legal)
+
+═══════════════════════════════════════════════════════════════════════
 Usuarios identificados por:
 1. Username en STARTER_USERNAMES (hardcoded en settings o aquí)
 2. (Futuro) Atributo en perfil/empresa
@@ -111,6 +109,21 @@ STARTER_BLOCKED_PATTERNS = [
 
     # ─── Documentos legajo PDF ───
     r'^/documentos/legajo/\d+/pdf/',
+
+    # ─── Portal del colaborador (entero) — Starter no incluye portal ───
+    r'^/portal/',
+    r'^/mi-portal/',
+    r'^/documentos/boletas/mis/',
+    r'^/api/v1/portal/',
+
+    # ─── Solicitudes desde el portal (HE, vacaciones, papeletas worker) ───
+    r'^/asistencia/solicitudes-he/',
+
+    # ─── Notificaciones a trabajadores (sin portal, no se notifica) ───
+    r'^/nominas/boletas/\d+/notificar/',
+    r'^/nominas/notificar/',
+    r'^/documentos/vencimientos/notificar/',
+    r'^/disciplinaria/\d+/notificar/',
 
     # ─── PDFs de reportes avanzados (Starter no genera PDFs salvo boletas/constancias) ───
     r'^/reportes/planilla/pdf/',
