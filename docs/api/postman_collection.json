@@ -1,0 +1,345 @@
+{
+  "info": {
+    "_postman_id": "harmoni-reclutamiento-api-v1",
+    "name": "Harmoni — Reclutamiento API v1",
+    "description": "API REST DRF para integraciones externas y apps mobile.\n\nBase: https://demo.harmoni.pe/api/v1/\n\nLogin: admin/demo (demo)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://demo.harmoni.pe/api/v1" },
+    { "key": "token",    "value": "REPLACE_WITH_JWT_ACCESS_TOKEN" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Obtener token JWT",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "https://demo.harmoni.pe/api/token/",
+              "protocol": "https",
+              "host": ["demo", "harmoni", "pe"],
+              "path": ["api", "token", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"demo\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refrescar token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "https://demo.harmoni.pe/api/token/refresh/",
+              "protocol": "https",
+              "host": ["demo", "harmoni", "pe"],
+              "path": ["api", "token", "refresh", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vacantes",
+      "item": [
+        {
+          "name": "Listar vacantes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/vacantes/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "vacantes", ""]
+            }
+          }
+        },
+        {
+          "name": "Filtrar por estado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/vacantes/?estado=PUBLICADA",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "vacantes", ""],
+              "query": [{ "key": "estado", "value": "PUBLICADA" }]
+            }
+          }
+        },
+        {
+          "name": "Detalle vacante",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/vacantes/42/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "vacantes", "42", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Etapas Pipeline",
+      "item": [
+        {
+          "name": "Listar etapas activas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/etapas/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "etapas", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Postulaciones",
+      "item": [
+        {
+          "name": "Listar postulaciones",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", ""]
+            }
+          }
+        },
+        {
+          "name": "Filtrar por etapa + buscar",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/?etapa=3&search=lopez",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", ""],
+              "query": [
+                { "key": "etapa",  "value": "3" },
+                { "key": "search", "value": "lopez" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detalle postulación",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/100/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "100", ""]
+            }
+          }
+        },
+        {
+          "name": "Crear postulación",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vacante\": 42,\n  \"etapa\": 1,\n  \"nombre_completo\": \"Edwin López\",\n  \"email\": \"edwin@ejemplo.com\",\n  \"telefono\": \"987654321\",\n  \"experiencia_anos\": 5,\n  \"fuente\": \"LINKEDIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Actualizar (PATCH parcial)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/100/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "100", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notas\": \"Excelente candidato, programar segunda entrevista\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Postulaciones — Custom Actions",
+      "item": [
+        {
+          "name": "Mover etapa",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/100/mover-etapa/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "100", "mover-etapa", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"etapa_id\": 3,\n  \"comentario\": \"Pasa a entrevista técnica\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Descartar",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/100/descartar/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "100", "descartar", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"No cumple requisitos de experiencia mínima\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Toggle tag",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/100/toggle-tag/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "100", "toggle-tag", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tag\": \"top_talent\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Bulk mover",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/bulk/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "bulk", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [100, 101, 102, 103],\n  \"accion\": \"mover\",\n  \"etapa_id\": 3\n}"
+            }
+          }
+        },
+        {
+          "name": "Bulk descartar",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/bulk/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "bulk", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [100, 101],\n  \"accion\": \"descartar\",\n  \"motivo\": \"Posición congelada\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Bulk tag",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/bulk/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "bulk", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [100, 101, 102],\n  \"accion\": \"tag_add\",\n  \"tag\": \"seguimiento\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Bulk nota",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/bulk/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "bulk", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [100, 101],\n  \"accion\": \"nota\",\n  \"texto\": \"Coordinar entrevistas grupales el viernes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Funnel stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reclutamiento/postulaciones/funnel-stats/",
+              "host": ["{{base_url}}"],
+              "path": ["reclutamiento", "postulaciones", "funnel-stats", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAPI Schema",
+      "item": [
+        {
+          "name": "Schema JSON",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://demo.harmoni.pe/api/schema/",
+              "protocol": "https",
+              "host": ["demo", "harmoni", "pe"],
+              "path": ["api", "schema", ""]
+            }
+          }
+        },
+        {
+          "name": "Swagger UI (abrir en browser)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://demo.harmoni.pe/api/schema/swagger-ui/",
+              "protocol": "https",
+              "host": ["demo", "harmoni", "pe"],
+              "path": ["api", "schema", "swagger-ui", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
