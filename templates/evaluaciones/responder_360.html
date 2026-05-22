@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Responder 360°{% endblock %}
+
+{% block extra_css %}
+<style>
+.comp-card {
+    background: #fff; border-radius: 10px; padding: 1rem 1.1rem;
+    box-shadow: 0 1px 6px rgba(13,43,39,.07); margin-bottom: .8rem;
+    border-left: 4px solid #0f766e;
+}
+.comp-card h6 { color: #0d2b27; margin-bottom: .25rem; }
+.rating-row {
+    display: flex; gap: .35rem; margin: .5rem 0;
+}
+.rating-row input[type=radio] { display: none; }
+.rating-row label {
+    flex: 1; text-align: center; padding: .55rem .35rem;
+    border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer;
+    font-weight: 600; font-size: .9rem; transition: all .12s;
+}
+.rating-row input[type=radio]:checked + label {
+    background: #0f766e; color: #fff; border-color: #0f766e;
+    box-shadow: 0 2px 8px rgba(15,118,110,.25);
+}
+.rating-row label:hover { border-color: #0f766e; }
+.escala-leyenda { font-size: .72rem; color: #6b7280; display: flex; justify-content: space-between; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a href="{% url 'evaluacion_360_detalle' evaluacion.pk %}" class="text-decoration-none text-muted small"><i class="fas fa-arrow-left me-1"></i>Volver al detalle</a>
+        <h2 class="mb-0 mt-1">Responder evaluación 360°</h2>
+        <small class="text-muted">
+            Evaluado: <strong>{{ evaluacion.personal_evaluado.apellidos_nombres }}</strong> ·
+            Perspectiva: <strong>{{ participante.get_tipo_display }}</strong> ·
+            Período <strong>{{ evaluacion.periodo }}</strong>
+        </small>
+    </div>
+</div>
+
+{% if messages %}{% for m in messages %}<div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>{% endfor %}{% endif %}
+
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-1"></i>
+    <strong>Escala 0-5</strong>: 0=No aplica · 1=Crítico · 2=Bajo · 3=Cumple · 4=Excelente · 5=Sobresaliente.
+    Tus respuestas son confidenciales y se promedian con las de otros pares.
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    {% for item in items %}
+    <div class="comp-card">
+        <h6>{{ item.label }}</h6>
+        {% if item.descripcion %}<small class="text-muted d-block mb-1">{{ item.descripcion }}</small>{% endif %}
+        <div class="rating-row">
+            {% for val in "012345" %}
+            <input type="radio" id="p_{{ item.codigo }}_{{ val }}" name="puntaje_{{ item.codigo }}" value="{{ val }}" {% if item.puntaje|stringformat:'s' == val %}checked{% elif item.puntaje|floatformat:0 == val %}checked{% endif %}>
+            <label for="p_{{ item.codigo }}_{{ val }}">{{ val }}</label>
+            {% endfor %}
+        </div>
+        <div class="escala-leyenda"><span>No aplica</span><span>Sobresaliente</span></div>
+        <div class="mt-2">
+            <textarea name="comentario_{{ item.codigo }}" rows="2" class="form-control form-control-sm" placeholder="Comentario opcional (ejemplos, contexto)">{{ item.comentario }}</textarea>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <h6 class="text-secondary text-uppercase" style="font-size:.78rem; letter-spacing:.08em;">Comentarios cualitativos</h6>
+            <div class="mb-3">
+                <label class="form-label small">Fortalezas observadas</label>
+                <textarea name="fortalezas" rows="3" class="form-control" placeholder="Una por línea — qué hace bien y vale la pena reconocer.">{{ participante.fortalezas }}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small">Áreas de mejora</label>
+                <textarea name="areas_mejora" rows="3" class="form-control" placeholder="Una por línea — qué puede mejorar concretamente.">{{ participante.areas_mejora }}</textarea>
+            </div>
+            <div class="mb-1">
+                <label class="form-label small">Comentario general</label>
+                <textarea name="comentario_general" rows="2" class="form-control" placeholder="Observación global, contexto, sugerencias.">{{ participante.comentario_general }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary"><i class="fas fa-save me-1"></i>Guardar y enviar</button>
+        <a href="{% url 'evaluacion_360_detalle' evaluacion.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+</form>
+{% endblock %}

@@ -630,3 +630,263 @@ class CheckInOKR(models.Model):
 
     def __str__(self):
         return f'Check-in {self.fecha} — {self.resultado_clave.descripcion[:50]}'
+
+
+# ══════════════════════════════════════════════════════════════
+# EVALUACIONES 360° — MODELO DEDICADO
+# Distinto al Evaluacion genérico: agrupa todos los participantes
+# (auto / manager / peers / subordinados / clientes internos) en
+# torno a un único evaluado para análisis comparativo.
+# ══════════════════════════════════════════════════════════════
+
+# Competencias gastronomía sugeridas (codigo, nombre) — usadas como
+# fallback cuando no hay registros en Competencia y por el seed demo.
+COMPETENCIAS_GASTRO_360 = [
+    ('liderazgo',     'Liderazgo'),
+    ('equipo',        'Trabajo en Equipo'),
+    ('servicio',      'Calidad de Servicio'),
+    ('conflictos',    'Resolución de Conflictos'),
+    ('iniciativa',    'Iniciativa'),
+    ('comunicacion',  'Comunicación'),
+]
+
+
+class Evaluacion360(models.Model):
+    """
+    Evaluación 360° dedicada: agrupa todos los puntos de vista sobre
+    una persona (auto, manager, pares, subordinados, cliente interno)
+    para producir una vista comparativa y un plan de desarrollo.
+    """
+    ESTADO_CHOICES = [
+        ('BORRADOR',   'Borrador'),
+        ('EN_CURSO',   'En curso'),
+        ('CERRADA',    'Cerrada'),
+    ]
+
+    personal_evaluado = models.ForeignKey(
+        Personal, on_delete=models.CASCADE,
+        related_name='evaluaciones_360',
+        verbose_name='Evaluado',
+    )
+    periodo = models.CharField(
+        max_length=20,
+        help_text='Ej: 2026-Q2, 2026-Anual',
+    )
+    estado = models.CharField(
+        max_length=12, choices=ESTADO_CHOICES, default='BORRADOR',
+    )
+    fecha_inicio = models.DateField(null=True, blank=True)
+    fecha_cierre = models.DateField(null=True, blank=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Evaluación 360°'
+        verbose_name_plural = 'Evaluaciones 360°'
+        ordering = ['-creado_en']
+        indexes = [
+            models.Index(fields=['estado', 'periodo']),
+            models.Index(fields=['personal_evaluado', 'periodo']),
+        ]
+
+    def __str__(self):
+        try:
+            return f'360° {self.personal_evaluado.apellidos_nombres} — {self.periodo}'
+        except Exception:
+            return f'Evaluación 360° #{self.pk}'
+
+    # ── Helpers de agregación ──────────────────────────────────
+
+    @property
+    def total_participantes(self):
+        return self.participantes.count()
+
+    @property
+    def completadas(self):
+        return self.participantes.filter(completada=True).count()
+
+    @property
+    def porcentaje_avance(self):
+        total = self.total_participantes
+        if not total:
+            return 0
+        return round((self.completadas / total) * 100)
+
+    @property
+    def puntaje_global(self):
+        """Promedio simple de puntajes globales de participantes completados."""
+        from django.db.models import Avg
+        agg = self.participantes.filter(
+            completada=True, puntaje_global__isnull=False,
+        ).aggregate(p=Avg('puntaje_global'))
+        return agg['p']
+
+    def matriz_comparativa(self):
+        """
+        Construye matriz: { competencia_codigo: { tipo: {avg, label, count} } }
+        Útil para tabla comparativa y radar chart.
+        """
+        tipos_orden = ['AUTOEVALUACION', 'MANAGER', 'PEER', 'SUBORDINADO', 'CLIENTE_INTERNO']
+        matriz = {}
+        respuestas = RespuestaCompetencia360.objects.filter(
+            participante__evaluacion=self,
+            participante__completada=True,
+        ).select_related('participante')
+
+        for resp in respuestas:
+            cod = resp.competencia_codigo
+            label = resp.competencia_label
+            tipo = resp.participante.tipo
+            if cod not in matriz:
+                matriz[cod] = {'label': label, 'tipos': {}}
+            data = matriz[cod]['tipos'].setdefault(tipo, {'sum': Decimal('0'), 'count': 0})
+            data['sum'] += resp.puntaje
+            data['count'] += 1
+
+        # Promediar
+        out = {}
+        for cod, info in matriz.items():
+            promedios = {}
+            for tipo in tipos_orden:
+                if tipo in info['tipos']:
+                    d = info['tipos'][tipo]
+                    if d['count']:
+                        promedios[tipo] = round(d['sum'] / d['count'], 2)
+                    else:
+                        promedios[tipo] = None
+                else:
+                    promedios[tipo] = None
+            out[cod] = {
+                'label': info['label'],
+                'promedios': promedios,
+            }
+        return out
+
+    def gaps_auto_manager(self):
+        """
+        Detecta gaps autoevaluación vs manager por competencia.
+        Retorna lista [{competencia, auto, manager, gap, severidad}].
+        Severidad: 'critical' si |gap|>=2, 'warning' si |gap|>=1.5, else 'ok'.
+        """
+        matriz = self.matriz_comparativa()
+        gaps = []
+        for cod, info in matriz.items():
+            auto = info['promedios'].get('AUTOEVALUACION')
+            mgr = info['promedios'].get('MANAGER')
+            if auto is None or mgr is None:
+                continue
+            gap = Decimal(str(auto)) - Decimal(str(mgr))
+            severidad = 'ok'
+            abs_gap = abs(gap)
+            if abs_gap >= Decimal('2'):
+                severidad = 'critical'
+            elif abs_gap >= Decimal('1.5'):
+                severidad = 'warning'
+            gaps.append({
+                'codigo': cod,
+                'competencia': info['label'],
+                'auto': auto,
+                'manager': mgr,
+                'gap': gap,
+                'severidad': severidad,
+            })
+        # Ordenar por gap más grande primero
+        gaps.sort(key=lambda x: abs(x['gap']), reverse=True)
+        return gaps
+
+
+class ParticipanteEvaluacion360(models.Model):
+    """
+    Cada perspectiva (auto / manager / peer / subordinado / cliente)
+    es un participante distinto que llena su propio cuestionario.
+    """
+    TIPO_CHOICES = [
+        ('AUTOEVALUACION',  'Autoevaluación'),
+        ('MANAGER',         'Manager'),
+        ('PEER',            'Par / Colega'),
+        ('SUBORDINADO',     'Subordinado'),
+        ('CLIENTE_INTERNO', 'Cliente interno'),
+    ]
+
+    evaluacion = models.ForeignKey(
+        Evaluacion360, on_delete=models.CASCADE, related_name='participantes',
+    )
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    personal_evaluador = models.ForeignKey(
+        Personal, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='participaciones_360',
+        verbose_name='Evaluador',
+    )
+    completada = models.BooleanField(default=False)
+    puntaje_global = models.DecimalField(
+        max_digits=4, decimal_places=2, null=True, blank=True,
+        help_text='Promedio 0-5',
+    )
+    comentario_general = models.TextField(blank=True)
+    fortalezas = models.TextField(blank=True)
+    areas_mejora = models.TextField(blank=True)
+    fecha_completada = models.DateTimeField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Participante 360°'
+        verbose_name_plural = 'Participantes 360°'
+        ordering = ['tipo', 'creado_en']
+        indexes = [
+            models.Index(fields=['evaluacion', 'tipo']),
+            models.Index(fields=['personal_evaluador', 'completada']),
+        ]
+
+    def __str__(self):
+        return f'{self.get_tipo_display()} — {self.evaluacion_id}'
+
+    def calcular_puntaje_global(self, persist=True):
+        """Promedia respuestas de competencias."""
+        respuestas = self.respuestas.all()
+        if not respuestas.exists():
+            return None
+        total = sum((r.puntaje for r in respuestas), Decimal('0'))
+        promedio = total / Decimal(str(respuestas.count()))
+        # Redondeo a 2 decimales
+        promedio = promedio.quantize(Decimal('0.01'))
+        if persist:
+            self.puntaje_global = promedio
+            self.save(update_fields=['puntaje_global'])
+        return promedio
+
+
+class RespuestaCompetencia360(models.Model):
+    """
+    Respuesta por competencia dentro de un participante 360°.
+    Se almacena tanto el FK a Competencia (si existe) como
+    código + nombre snapshot por si la lista cambia con el tiempo.
+    """
+    participante = models.ForeignKey(
+        ParticipanteEvaluacion360, on_delete=models.CASCADE,
+        related_name='respuestas',
+    )
+    competencia = models.ForeignKey(
+        Competencia, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    competencia_codigo = models.SlugField(max_length=40)
+    competencia_label = models.CharField(max_length=120)
+    puntaje = models.DecimalField(
+        max_digits=3, decimal_places=1,
+        help_text='Escala 0-5',
+    )
+    comentario = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = 'Respuesta 360°'
+        verbose_name_plural = 'Respuestas 360°'
+        ordering = ['competencia_codigo']
+        unique_together = [('participante', 'competencia_codigo')]
+
+    def __str__(self):
+        return f'{self.competencia_label}: {self.puntaje}'
