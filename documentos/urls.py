@@ -13,10 +13,16 @@ urlpatterns = [
 
     # Legajo de un trabajador
     path('legajo/<int:personal_id>/', views.legajo_trabajador, name='documentos_legajo'),
+    path('legajo/<int:personal_pk>/pdf/', views.legajo_pdf, name='documentos_legajo_pdf'),
 
     # CRUD documentos
     path('subir/', views.documento_subir, name='documentos_subir'),
+    path('subir/<int:personal_pk>/', views.documento_subir_wizard, name='documentos_subir_wizard'),
     path('<int:pk>/eliminar/', views.documento_eliminar, name='documentos_eliminar'),
+
+    # Vencimientos
+    path('vencimientos/', views.vencimientos_panel, name='documentos_vencimientos'),
+    path('vencimientos/notificar/', views.vencimientos_notificar, name='documentos_vencimientos_notificar'),
 
     # Tipos de documento (admin config)
     path('tipos/', views.tipos_documento, name='documentos_tipos'),

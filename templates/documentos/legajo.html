@@ -36,6 +36,12 @@
         <a href="{% url 'timeline_empleado' empleado.pk %}" class="btn btn-outline-info btn-sm">
             <i class="fas fa-stream me-1"></i>Timeline
         </a>
+        <a href="{% url 'documentos_legajo_pdf' empleado.pk %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+            <i class="fas fa-file-pdf me-1"></i>Descargar legajo PDF
+        </a>
+        <a href="{% url 'documentos_subir_wizard' empleado.pk %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-magic me-1"></i>Wizard
+        </a>
         <button class="btn btn-primary btn-sm" onclick="abrirModalSubir()">
             <i class="fas fa-upload me-1"></i>Subir Documento
         </button>

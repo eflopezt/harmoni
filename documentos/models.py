@@ -47,6 +47,11 @@ class TipoDocumento(models.Model):
         default=False,
         help_text='Indica si este tipo de documento tiene fecha de vencimiento.',
     )
+    vigencia_dias = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text='Si tiene vencimiento, días de vigencia desde la fecha de emisión '
+                  '(usado para auto-calcular fecha_vencimiento al subir).',
+    )
     dias_alerta_vencimiento = models.PositiveSmallIntegerField(
         default=30,
         help_text='Días antes del vencimiento para generar alerta.',
@@ -213,11 +218,21 @@ class DocumentoTrabajador(models.Model):
         return f'{self.tipo.nombre} - {self.personal}'
 
     def save(self, *args, **kwargs):
+        from datetime import date, timedelta
         if not self.nombre_archivo and self.archivo:
             self.nombre_archivo = self.archivo.name.split('/')[-1]
+
+        # Auto-calcular fecha_vencimiento si tipo tiene vigencia_dias y hay fecha_emision
+        if (
+            self.tipo and self.tipo.vence
+            and self.fecha_emision
+            and not self.fecha_vencimiento
+            and getattr(self.tipo, 'vigencia_dias', None)
+        ):
+            self.fecha_vencimiento = self.fecha_emision + timedelta(days=self.tipo.vigencia_dias)
+
         # Auto-calcular estado basado en vencimiento
-        if self.tipo.vence and self.fecha_vencimiento:
-            from datetime import date, timedelta
+        if self.tipo and self.tipo.vence and self.fecha_vencimiento:
             hoy = date.today()
             if self.fecha_vencimiento < hoy:
                 self.estado = 'VENCIDO'
@@ -226,6 +241,32 @@ class DocumentoTrabajador(models.Model):
             else:
                 self.estado = 'VIGENTE'
         super().save(*args, **kwargs)
+
+    @property
+    def estado_vigencia(self):
+        """Devuelve VIGENTE / POR_VENCER / VENCIDO / SIN_VENCIMIENTO según la fecha actual.
+
+        A diferencia de `estado` (que también incluye ANULADO), este property
+        sólo refleja la situación de vigencia respecto a la fecha de vencimiento.
+        """
+        from datetime import date, timedelta
+        if not self.fecha_vencimiento or not (self.tipo and self.tipo.vence):
+            return 'SIN_VENCIMIENTO'
+        hoy = date.today()
+        alerta = getattr(self.tipo, 'dias_alerta_vencimiento', 30) or 30
+        if self.fecha_vencimiento < hoy:
+            return 'VENCIDO'
+        if self.fecha_vencimiento <= hoy + timedelta(days=alerta):
+            return 'POR_VENCER'
+        return 'VIGENTE'
+
+    @property
+    def dias_para_vencer(self):
+        """Días restantes hasta el vencimiento (negativo si ya venció, None si no aplica)."""
+        from datetime import date
+        if not self.fecha_vencimiento:
+            return None
+        return (self.fecha_vencimiento - date.today()).days
 
     @property
     def extension(self):
