@@ -79,6 +79,62 @@ def portal_alias(request):
     return redirect('portal_home', permanent=False)
 
 
+def demo_landing(request, demo_slug='demo'):
+    """
+    Landing pública por cada demo. Muestra brochure + botón "Entrar al demo"
+    que redirige a demo.harmoni.pe con credenciales pre-completadas.
+
+    Demos disponibles:
+    - demo:   Grupo EDO (gastronomía, 24 RUCs, 800 trabajadores)
+    - demo2:  Pixel Motion (diseño / audiovisual, 25 trabajadores)
+    """
+    DEMOS = {
+        'demo': {
+            'titulo':       'Grupo EDO — Gastronomía Premium',
+            'descripcion':  'Cadena gastronómica con 24 RUCs y ~800 trabajadores. Restaurantes, bares y catering.',
+            'plan':         'Enterprise (multi-empresa + integraciones)',
+            'trabajadores': 800,
+            'empresas':     24,
+            'usuario':      'admin',
+            'password':     'demo',
+            'features':     [
+                'Multi-empresa (24 RUCs consolidados)',
+                'Pipeline Reclutamiento Kanban',
+                'Briefing del Día (pre-shift)',
+                'Cuadrícula Semanal de turnos',
+                'BPM / HACCP tracking',
+                'Pulse del Grupo (multi-local)',
+                'Dashboard Ejecutivo',
+                'Predictor IA de Rotación',
+            ],
+            'color':        '#0f766e',
+        },
+        'demo2': {
+            'titulo':       'Pixel Motion — Agencia Diseño & Audiovisual',
+            'descripcion':  'Agencia creativa pequeña: diseño gráfico, motion graphics, post-producción. 25 trabajadores.',
+            'plan':         'Starter (S/ 149 + IGV / mes — hasta 30 colaboradores)',
+            'trabajadores': 25,
+            'empresas':     1,
+            'usuario':      'demo2',
+            'password':     'demo',
+            'features':     [
+                'Personal y contratos',
+                'Asistencia y tareo',
+                'Planillas básicas',
+                'Vacaciones y permisos',
+                'Portal del colaborador',
+                'Soporte por email',
+            ],
+            'color':        '#a855f7',
+        },
+    }
+    ctx = {
+        'demo_slug': demo_slug,
+        'demo':      DEMOS.get(demo_slug, DEMOS['demo']),
+    }
+    return render(request, 'demo_landing.html', ctx)
+
+
 urlpatterns = [
     path('offline/', offline_view, name='offline'),
     path('health/', health_check, name='health_check'),
@@ -88,6 +144,9 @@ urlpatterns = [
     path('status/json/', __import__('core.views_status', fromlist=['status_json']).status_json, name='status_json_public'),
     path('sitemap.xml', sitemap_xml, name='sitemap_xml'),
     path('portal/', portal_alias, name='portal_alias'),
+    # Demos comerciales públicas (brochure + login)
+    path('demo/',  lambda r: demo_landing(r, 'demo'),  name='demo_landing'),
+    path('demo2/', lambda r: demo_landing(r, 'demo2'), name='demo2_landing'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

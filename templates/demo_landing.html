@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ demo.titulo }} — Demo Harmoni</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: -apple-system, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: linear-gradient(135deg, #0d2b27 0%, #134e4a 100%);
+      min-height: 100vh;
+      margin: 0;
+      color: #1e293b;
+    }
+    .demo-wrap {
+      max-width: 980px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .logo-row {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo-row a {
+      color: #5eead4;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.4rem;
+      letter-spacing: -.02em;
+    }
+    .demo-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.3);
+      overflow: hidden;
+    }
+    .demo-hero {
+      background: linear-gradient(135deg, {{ demo.color }} 0%, {{ demo.color }}dd 100%);
+      color: #fff;
+      padding: 36px 40px 28px;
+    }
+    .demo-hero h1 {
+      font-weight: 800;
+      letter-spacing: -.02em;
+      font-size: 1.7rem;
+      margin: 0;
+    }
+    .demo-hero p {
+      color: rgba(255,255,255,.92);
+      font-size: 1rem;
+      margin: 8px 0 0;
+      max-width: 600px;
+    }
+    .demo-stats {
+      display: flex;
+      gap: 30px;
+      margin-top: 18px;
+    }
+    .demo-stat .num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #5eead4;
+      line-height: 1;
+    }
+    .demo-stat .lbl {
+      font-size: .72rem;
+      color: rgba(255,255,255,.75);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-top: 2px;
+    }
+    .demo-body {
+      padding: 32px 40px;
+    }
+    .plan-pill {
+      display: inline-block;
+      background: #f0fdf4;
+      color: #166534;
+      padding: 8px 16px;
+      border-radius: 24px;
+      font-size: .8rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+      border: 1px solid #bbf7d0;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      margin: 18px 0;
+    }
+    @media (max-width: 640px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .demo-hero { padding: 24px 22px 20px; }
+      .demo-body { padding: 24px 22px; }
+      .demo-stats { gap: 18px; }
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .9rem;
+      color: #334155;
+    }
+    .feature-item i {
+      color: #10b981;
+      font-size: .85rem;
+    }
+    .creds-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 24px 0;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .creds-box .icon {
+      width: 38px; height: 38px;
+      background: {{ demo.color }}15;
+      color: {{ demo.color }};
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .creds-box .info {
+      flex: 1; min-width: 200px;
+    }
+    .creds-box .lbl {
+      font-size: .68rem;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: .04em;
+      font-weight: 600;
+    }
+    .creds-box code {
+      font-family: 'SF Mono', Menlo, Monaco, monospace;
+      background: #1e293b;
+      color: #5eead4;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .btn-enter {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: {{ demo.color }};
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 1.02rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform .15s, box-shadow .15s, filter .15s;
+      box-shadow: 0 6px 20px {{ demo.color }}50;
+    }
+    .btn-enter:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+      box-shadow: 0 10px 28px {{ demo.color }}66;
+      color: #fff;
+    }
+    .footer-note {
+      font-size: .78rem;
+      color: #64748b;
+      margin-top: 24px;
+      text-align: center;
+    }
+    .footer-note a {
+      color: {{ demo.color }};
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-wrap">
+
+    <div class="logo-row">
+      <a href="/">
+        <i class="fas fa-cube me-2"></i>Harmoni
+      </a>
+    </div>
+
+    <div class="demo-card">
+      <div class="demo-hero">
+        <h1>{{ demo.titulo }}</h1>
+        <p>{{ demo.descripcion }}</p>
+
+        <div class="demo-stats">
+          <div class="demo-stat">
+            <div class="num">{{ demo.trabajadores }}</div>
+            <div class="lbl">Trabajadores</div>
+          </div>
+          {% if demo.empresas > 1 %}
+          <div class="demo-stat">
+            <div class="num">{{ demo.empresas }}</div>
+            <div class="lbl">Empresas / RUCs</div>
+          </div>
+          {% endif %}
+          <div class="demo-stat">
+            <div class="num">40+</div>
+            <div class="lbl">Features 2026</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-body">
+
+        <div class="plan-pill">
+          <i class="fas fa-tag me-1"></i>Plan: <strong>{{ demo.plan }}</strong>
+        </div>
+
+        <h5 class="fw-bold mb-1" style="color:#0d2b27;">
+          <i class="fas fa-check-circle me-1" style="color:#10b981;"></i>
+          Lo que incluye este demo
+        </h5>
+
+        <div class="features-grid">
+          {% for f in demo.features %}
+          <div class="feature-item">
+            <i class="fas fa-check"></i>
+            <span>{{ f }}</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="creds-box">
+          <div class="icon">
+            <i class="fas fa-key"></i>
+          </div>
+          <div class="info">
+            <div class="lbl">Credenciales del demo</div>
+            <div style="margin-top:6px;">
+              <span style="font-size:.85rem;color:#475569;">Usuario:</span>
+              <code>{{ demo.usuario }}</code>
+              &nbsp;
+              <span style="font-size:.85rem;color:#475569;">Password:</span>
+              <code>{{ demo.password }}</code>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align:center; margin-top: 28px;">
+          <a href="https://demo.harmoni.pe/login/?next=/&u={{ demo.usuario }}"
+             class="btn-enter"
+             target="_blank"
+             rel="noopener">
+            <i class="fas fa-rocket"></i>
+            Entrar al demo
+            <i class="fas fa-arrow-right" style="font-size:.85rem; margin-left:4px;"></i>
+          </a>
+        </div>
+
+        <div class="footer-note">
+          ¿Te interesa este plan?
+          <a href="mailto:ventas@harmoni.pe?subject=Plan%20{{ demo.plan|urlencode }}">
+            Habla con ventas
+          </a>
+          ·
+          <a href="/">Volver al inicio</a>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
