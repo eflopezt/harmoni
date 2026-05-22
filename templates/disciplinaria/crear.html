@@ -11,7 +11,7 @@
             {% csrf_token %}
             <div class="mb-3">
                 <label class="form-label">Trabajador</label>
-                <select name="personal_id" class="form-select" required>
+                <select name="personal_id" id="id_personal_id" class="form-select" required>
                     <option value="">Seleccionar...</option>
                     {% for p in personal_list %}
                     <option value="{{ p.pk }}">{{ p.apellidos_nombres }} ({{ p.nro_doc }})</option>
@@ -21,7 +21,7 @@
             <div class="row">
                 <div class="col-6 mb-3">
                     <label class="form-label">Tipo de Medida</label>
-                    <select name="tipo_medida" class="form-select" required>
+                    <select name="tipo_medida" id="id_tipo_medida" class="form-select" required>
                         <option value="VERBAL">Amonestación Verbal</option>
                         <option value="ESCRITA">Amonestación Escrita</option>
                         <option value="SUSPENSION">Suspensión</option>
@@ -30,13 +30,28 @@
                 </div>
                 <div class="col-6 mb-3">
                     <label class="form-label">Tipo de Falta</label>
-                    <select name="tipo_falta_id" class="form-select" required>
+                    <select name="tipo_falta_id" id="id_tipo_falta_id" class="form-select" required>
                         <option value="">Seleccionar...</option>
                         {% for t in tipos_falta %}
                         <option value="{{ t.pk }}">{{ t.nombre }} ({{ t.get_gravedad_display }})</option>
                         {% endfor %}
                     </select>
                 </div>
+            </div>
+
+            <!-- ── Sugerencia escalonada (AJAX) ── -->
+            <div id="sugerencia_box" class="alert alert-info py-2 px-3 mb-3"
+                 style="display:{% if sugerencia %}block{% else %}none{% endif %};font-size:.88rem;">
+                <i class="fas fa-lightbulb me-1"></i>
+                <strong>Próxima medida sugerida:</strong>
+                <span id="sugerencia_label">{% if sugerencia %}{{ sugerencia.label }}{% endif %}</span>
+                <span class="text-muted" id="sugerencia_meta">
+                    {% if sugerencia %}
+                    ({{ sugerencia.total_previas }} previa{{ sugerencia.total_previas|pluralize }} — escala {{ sugerencia.escala }})
+                    {% endif %}
+                </span>
+                <button type="button" class="btn btn-xs btn-link p-0 ms-2" id="aplicar_sugerencia"
+                        style="font-size:.85rem;">Aplicar</button>
             </div>
             <div class="mb-3">
                 <label class="form-label">Fecha de los Hechos</label>
@@ -65,4 +80,51 @@
 <div class="mt-3">
     <small class="text-muted"><i class="fas fa-balance-scale me-1"></i>Base legal: DS 003-97-TR Art. 24-28 (faltas graves), Art. 31 (procedimiento de despido — 6 días hábiles para descargo).</small>
 </div>
+
+<script>
+(function() {
+    const selPersonal = document.getElementById('id_personal_id');
+    const selTipoFalta = document.getElementById('id_tipo_falta_id');
+    const selTipoMedida = document.getElementById('id_tipo_medida');
+    const box = document.getElementById('sugerencia_box');
+    const lbl = document.getElementById('sugerencia_label');
+    const meta = document.getElementById('sugerencia_meta');
+    const aplicar = document.getElementById('aplicar_sugerencia');
+    let lastSugerencia = null;
+
+    function pedirSugerencia() {
+        if (!selPersonal.value || !selTipoFalta.value) {
+            box.style.display = 'none';
+            return;
+        }
+        const url = '{% url "disciplinaria_sugerir_medida" %}'
+            + '?personal_id=' + selPersonal.value
+            + '&tipo_falta_id=' + selTipoFalta.value;
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.ok) {
+                    lastSugerencia = data.sugerencia;
+                    lbl.textContent = data.sugerencia.label;
+                    meta.textContent = '(' + data.sugerencia.total_previas
+                        + ' previa(s) — escala ' + data.sugerencia.escala + ')';
+                    box.style.display = 'block';
+                }
+            })
+            .catch(() => { box.style.display = 'none'; });
+    }
+
+    if (selPersonal && selTipoFalta) {
+        selPersonal.addEventListener('change', pedirSugerencia);
+        selTipoFalta.addEventListener('change', pedirSugerencia);
+    }
+    if (aplicar) {
+        aplicar.addEventListener('click', function() {
+            if (lastSugerencia && lastSugerencia.tipo_medida) {
+                selTipoMedida.value = lastSugerencia.tipo_medida;
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}

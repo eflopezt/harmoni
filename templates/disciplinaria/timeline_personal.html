@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Timeline — {{ empleado.apellidos_nombres }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.t-line {
+    position: relative;
+    padding-left: 2.5rem;
+}
+.t-line::before {
+    content: '';
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #0f766e 0%, #f59e0b 50%, #ef4444 100%);
+    border-radius: 2px;
+}
+.t-item {
+    position: relative;
+    margin-bottom: 1.4rem;
+}
+.t-dot {
+    position: absolute;
+    left: -2.05rem;
+    top: 0.6rem;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 3px rgba(0,0,0,.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: .7rem;
+}
+.t-dot.verbal      { background: #3b82f6; }
+.t-dot.escrita     { background: #f59e0b; }
+.t-dot.suspension  { background: #ef4444; }
+.t-dot.despido     { background: #1f2937; }
+.t-dot.anulada     { background: #9ca3af; }
+.t-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: .5rem;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.t-card.anulada {
+    background: #f8fafc;
+    opacity: .65;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+}
+.t-meta {
+    font-size: .75rem;
+    color: #64748b;
+}
+.t-tipo-pill {
+    display: inline-block;
+    padding: .15rem .55rem;
+    border-radius: 1rem;
+    font-size: .72rem;
+    font-weight: 600;
+    color: #fff;
+}
+.t-tipo-pill.verbal      { background: #3b82f6; }
+.t-tipo-pill.escrita     { background: #f59e0b; }
+.t-tipo-pill.suspension  { background: #ef4444; }
+.t-tipo-pill.despido     { background: #1f2937; }
+.summary-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: .5rem;
+    padding: .9rem;
+    text-align: center;
+}
+.summary-num {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.summary-lbl {
+    font-size: .72rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    margin-top: .35rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-stream text-secondary me-2"></i>{{ titulo }}</h2>
+        <small class="text-muted">DNI {{ empleado.nro_doc }} — {{ empleado.cargo|default:"Sin cargo" }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'historial_disciplinario' empleado.pk %}"
+           class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-list me-1"></i>Historial Tabular
+        </a>
+        <a href="{% url 'disciplinaria_panel' %}" class="btn btn-sm btn-secondary">Volver</a>
+    </div>
+</div>
+
+<!-- ── Resumen ── -->
+<div class="row g-2 mb-4">
+    <div class="col-md-2 col-6">
+        <div class="summary-card">
+            <div class="summary-num text-info">{{ resumen.verbales }}</div>
+            <div class="summary-lbl">Verbales</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-card">
+            <div class="summary-num text-warning">{{ resumen.escritas }}</div>
+            <div class="summary-lbl">Escritas</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-card">
+            <div class="summary-num text-danger">{{ resumen.suspensiones }}</div>
+            <div class="summary-lbl">Suspensiones</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-card">
+            <div class="summary-num text-dark">{{ resumen.despidos }}</div>
+            <div class="summary-lbl">Despidos</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-card">
+            <div class="summary-num text-secondary">{{ resumen.borrador }}</div>
+            <div class="summary-lbl">Borrador</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-card">
+            <div class="summary-num" style="color:#0f766e">{{ resumen.total_activas }}</div>
+            <div class="summary-lbl">Total activas</div>
+        </div>
+    </div>
+</div>
+
+{% if sugerencia_default %}
+<div class="alert alert-warning d-flex align-items-center mb-4">
+    <i class="fas fa-lightbulb me-2 fa-lg"></i>
+    <div>
+        <strong>Próxima medida sugerida</strong> (escala {{ sugerencia_default.escala }}):
+        {{ sugerencia_default.label }}
+        — {{ sugerencia_default.total_previas }} medida{{ sugerencia_default.total_previas|pluralize }} previa{{ sugerencia_default.total_previas|pluralize }} en esta escala.
+        {% if sugerencia_default.escala_completa %}
+        <span class="badge bg-dark ms-1">Escala agotada</span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ── Timeline ── -->
+{% if medidas %}
+<div class="t-line">
+    {% for m in medidas %}
+    <div class="t-item">
+        <div class="t-dot {{ m.tipo_medida|lower }}">
+            {% if m.tipo_medida == 'VERBAL' %}<i class="fas fa-comment"></i>
+            {% elif m.tipo_medida == 'ESCRITA' %}<i class="fas fa-file-alt"></i>
+            {% elif m.tipo_medida == 'SUSPENSION' %}<i class="fas fa-pause"></i>
+            {% elif m.tipo_medida == 'DESPIDO' %}<i class="fas fa-door-open"></i>
+            {% else %}<i class="fas fa-gavel"></i>
+            {% endif %}
+        </div>
+        <div class="t-card {% if m.estado == 'ANULADA' %}anulada{% endif %}">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <div>
+                    <span class="t-tipo-pill {{ m.tipo_medida|lower }}">
+                        {{ m.get_tipo_medida_display }}
+                    </span>
+                    <strong class="ms-2">{{ m.tipo_falta.nombre }}</strong>
+                    {% if m.tipo_falta.gravedad == 'MUY_GRAVE' %}
+                    <span class="badge bg-dark ms-1">Muy Grave</span>
+                    {% elif m.tipo_falta.gravedad == 'GRAVE' %}
+                    <span class="badge bg-danger ms-1">Grave</span>
+                    {% elif m.tipo_falta.gravedad == 'LEVE' %}
+                    <span class="badge bg-warning text-dark ms-1">Leve</span>
+                    {% endif %}
+                </div>
+                <span class="t-meta"><i class="fas fa-calendar me-1"></i>{{ m.fecha_hechos|date:"d M Y" }}</span>
+            </div>
+            <div class="t-meta mb-2">
+                <i class="fas fa-flag me-1"></i>Estado: <strong>{{ m.get_estado_display }}</strong>
+                {% if m.dias_suspension %}— {{ m.dias_suspension }} día{{ m.dias_suspension|pluralize }} susp.{% endif %}
+                {% if m.fecha_resolucion %}— Resuelta {{ m.fecha_resolucion|date:"d/m/Y" }}{% endif %}
+            </div>
+            <div class="mb-2" style="font-size:.85rem;white-space:pre-line;">
+                {{ m.descripcion_hechos|truncatechars:280 }}
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'medida_detalle' m.pk %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye me-1"></i>Detalle
+                </a>
+                {% if m.estado != 'BORRADOR' and m.tipo_medida != 'VERBAL' %}
+                <a href="{% url 'medida_carta_pdf' m.pk %}" target="_blank" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-file-pdf me-1"></i>Carta PDF
+                </a>
+                {% endif %}
+                <a href="{% url 'disciplinaria_timeline' m.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-clock me-1"></i>Timeline legal
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-1"></i>
+    Este trabajador no tiene medidas disciplinarias registradas.
+</div>
+{% endif %}
+
+{% endblock %}

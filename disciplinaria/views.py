@@ -13,6 +13,14 @@ from django.views.decorators.http import require_POST
 
 from personal.models import Personal, Area
 from .models import TipoFalta, MedidaDisciplinaria, Descargo
+from .pdf_carta import carta_pdf_response
+from .workflow import (
+    ESCALAS,
+    NIVEL_LABELS,
+    descripcion_escala,
+    resolver_clave_escala,
+    sugerir_proxima_medida,
+)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -192,10 +200,23 @@ def medida_crear(request):
         except Exception as e:
             messages.error(request, f'Error: {e}')
 
+    # Pre-cálculo de sugerencia si el GET trae personal_id + tipo_falta_id
+    sugerencia = None
+    pre_personal = request.GET.get('personal_id')
+    pre_tipo = request.GET.get('tipo_falta_id')
+    if pre_personal and pre_tipo:
+        try:
+            p = Personal.objects.get(pk=pre_personal)
+            tf = TipoFalta.objects.get(pk=pre_tipo)
+            sugerencia = sugerir_proxima_medida(p, tf)
+        except Exception:
+            sugerencia = None
+
     context = {
         'titulo': 'Nueva Medida Disciplinaria',
         'personal_list': Personal.objects.filter(estado='Activo').order_by('apellidos_nombres'),
         'tipos_falta': TipoFalta.objects.filter(activo=True),
+        'sugerencia': sugerencia,
     }
     return render(request, 'disciplinaria/crear.html', context)
 
@@ -990,3 +1011,196 @@ def disciplinaria_reporte_area(request):
         'anio': anio,
         'total': sum(counts),
     })
+
+
+# ══════════════════════════════════════════════════════════════
+# WORKFLOW ESCALONADO — SUGERENCIA Y CARTAS PDF
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def sugerir_medida_ajax(request):
+    """
+    Endpoint AJAX que devuelve la próxima medida en escala basado en
+    historial del trabajador para el tipo de falta dado.
+
+    GET params:
+      - personal_id (int)
+      - tipo_falta_id (int)   ó   tipo (str: 'TARDANZA', etc.)
+    """
+    personal_id = request.GET.get('personal_id')
+    tipo_falta_id = request.GET.get('tipo_falta_id')
+    tipo_str = request.GET.get('tipo', '')
+
+    if not personal_id:
+        return JsonResponse({'ok': False, 'error': 'personal_id requerido'}, status=400)
+
+    try:
+        personal = Personal.objects.get(pk=personal_id)
+    except Personal.DoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'Trabajador no encontrado'}, status=404)
+
+    tipo_falta_obj = None
+    if tipo_falta_id:
+        try:
+            tipo_falta_obj = TipoFalta.objects.get(pk=tipo_falta_id)
+        except TipoFalta.DoesNotExist:
+            pass
+
+    base = tipo_falta_obj or tipo_str
+    try:
+        sug = sugerir_proxima_medida(personal, base)
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+    return JsonResponse({
+        'ok': True,
+        'personal': {
+            'id': personal.pk,
+            'nombre': personal.apellidos_nombres,
+        },
+        'tipo_falta': {
+            'id': tipo_falta_obj.pk if tipo_falta_obj else None,
+            'nombre': tipo_falta_obj.nombre if tipo_falta_obj else tipo_str,
+        },
+        'sugerencia': {
+            'nivel':           sug['nivel'],
+            'label':           sug['label'],
+            'tipo_medida':     sug['tipo_medida'],
+            'dias_suspension': sug['dias_suspension'],
+            'escala':          sug['escala'],
+            'index':           sug['index'],
+            'total_previas':   sug['total_previas'],
+            'escala_completa': sug['escala_completa'],
+        },
+        'escala_completa_def': descripcion_escala(sug['escala']),
+    })
+
+
+@login_required
+@solo_admin
+def medida_carta_pdf(request, pk):
+    """Descarga la carta disciplinaria en PDF (amonestación o suspensión)."""
+    medida = get_object_or_404(
+        MedidaDisciplinaria.objects.select_related('personal', 'tipo_falta'),
+        pk=pk,
+    )
+    return carta_pdf_response(medida)
+
+
+@login_required
+@solo_admin
+def timeline_personal(request, personal_pk):
+    """
+    Timeline visual con TODAS las medidas disciplinarias de un trabajador,
+    ordenadas cronológicamente. Útil para auditorías y casos de despido.
+    """
+    empleado = get_object_or_404(Personal, pk=personal_pk)
+    medidas = (
+        MedidaDisciplinaria.objects
+        .filter(personal=empleado)
+        .select_related('tipo_falta', 'registrado_por', 'resuelto_por')
+        .order_by('-fecha_hechos')
+    )
+
+    # Resumen por nivel/tipo
+    resumen = {
+        'verbales':     medidas.filter(tipo_medida='VERBAL').exclude(estado='ANULADA').count(),
+        'escritas':     medidas.filter(tipo_medida='ESCRITA').exclude(estado='ANULADA').count(),
+        'suspensiones': medidas.filter(tipo_medida='SUSPENSION').exclude(estado='ANULADA').count(),
+        'despidos':     medidas.filter(tipo_medida='DESPIDO').exclude(estado='ANULADA').count(),
+        'borrador':     medidas.filter(estado='BORRADOR').count(),
+        'anuladas':     medidas.filter(estado='ANULADA').count(),
+        'total_activas': medidas.exclude(estado='ANULADA').count(),
+    }
+
+    # Próxima medida sugerida (default escala incumplimiento si no hay tipo_falta)
+    sugerencia_default = None
+    primer_tipo_falta = medidas.first().tipo_falta if medidas.exists() else None
+    if primer_tipo_falta:
+        try:
+            sugerencia_default = sugerir_proxima_medida(empleado, primer_tipo_falta)
+        except Exception:
+            sugerencia_default = None
+
+    context = {
+        'titulo': f'Timeline Disciplinario — {empleado.apellidos_nombres}',
+        'empleado': empleado,
+        'medidas': medidas,
+        'resumen': resumen,
+        'sugerencia_default': sugerencia_default,
+    }
+    return render(request, 'disciplinaria/timeline_personal.html', context)
+
+
+# ══════════════════════════════════════════════════════════════
+# PORTAL TRABAJADOR — MIS MEDIDAS DISCIPLINARIAS
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+def mi_portal_disciplinaria(request):
+    """
+    Vista para el trabajador: lista sus medidas disciplinarias y permite
+    subir un descargo dentro del plazo.
+    """
+    empleado = getattr(request.user, 'personal_data', None)
+    if empleado is None:
+        return render(request, 'disciplinaria/mi_portal.html', {
+            'titulo': 'Mis Medidas Disciplinarias',
+            'empleado': None,
+            'medidas': [],
+        })
+
+    estados_visibles = ['NOTIFICADA', 'EN_DESCARGO', 'DESCARGO_RECIBIDO', 'RESUELTA']
+    medidas = (
+        MedidaDisciplinaria.objects
+        .filter(personal=empleado, estado__in=estados_visibles)
+        .select_related('tipo_falta')
+        .order_by('-fecha_hechos')
+    )
+
+    # POST: registrar descargo
+    if request.method == 'POST':
+        try:
+            medida_pk = request.POST.get('medida_id')
+            medida = get_object_or_404(
+                MedidaDisciplinaria, pk=medida_pk, personal=empleado,
+            )
+            if medida.estado in ('NOTIFICADA', 'EN_DESCARGO'):
+                descargo = Descargo.objects.create(
+                    medida=medida,
+                    personal=empleado,
+                    texto=request.POST.get('texto', '').strip() or '(sin texto)',
+                    fecha_presentacion=date.today(),
+                )
+                if request.FILES.get('adjuntos'):
+                    descargo.archivos_adjuntos = request.FILES['adjuntos']
+                    descargo.save(update_fields=['archivos_adjuntos'])
+                medida.estado = 'DESCARGO_RECIBIDO'
+                medida.save(update_fields=['estado'])
+                messages.success(request, 'Descargo registrado correctamente.')
+            else:
+                messages.warning(request, 'No es posible registrar descargo en este estado.')
+        except Exception as e:
+            messages.error(request, f'Error al registrar descargo: {e}')
+        return redirect('mi_portal_disciplinaria')
+
+    medidas_data = []
+    hoy = date.today()
+    for m in medidas:
+        dias_para_desc = None
+        if m.fecha_limite_descargo:
+            dias_para_desc = (m.fecha_limite_descargo - hoy).days
+        medidas_data.append({
+            'medida': m,
+            'dias_para_descargo': dias_para_desc,
+            'puede_descargar_carta': m.estado != 'BORRADOR',
+            'puede_subir_descargo': m.estado in ('NOTIFICADA', 'EN_DESCARGO'),
+        })
+
+    context = {
+        'titulo': 'Mis Medidas Disciplinarias',
+        'empleado': empleado,
+        'medidas': medidas_data,
+    }
+    return render(request, 'disciplinaria/mi_portal.html', context)

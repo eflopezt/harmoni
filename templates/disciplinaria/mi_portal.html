@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Mis Medidas Disciplinarias{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-gavel text-secondary me-2"></i>{{ titulo }}</h2>
+        <small class="text-muted">Resumen de las medidas disciplinarias notificadas a su persona</small>
+    </div>
+    <a href="{% url 'portal_home' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Mi Portal
+    </a>
+</div>
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if not empleado %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-1"></i>
+    Su usuario no está vinculado a un registro de trabajador.
+</div>
+{% elif not medidas %}
+<div class="alert alert-success">
+    <i class="fas fa-check-circle me-1"></i>
+    No tiene medidas disciplinarias activas en este momento.
+</div>
+{% else %}
+
+<div class="alert alert-info small">
+    <i class="fas fa-info-circle me-1"></i>
+    Conforme al DS 003-97-TR, usted dispone de 5 a 6 días hábiles desde la
+    notificación para presentar su descargo y aportar las pruebas que estime
+    pertinentes.
+</div>
+
+{% for item in medidas %}
+<div class="card mb-3 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <strong>{{ item.medida.tipo_falta.nombre }}</strong>
+            <span class="badge ms-2
+                {% if item.medida.tipo_medida == 'VERBAL' %}bg-info
+                {% elif item.medida.tipo_medida == 'ESCRITA' %}bg-warning text-dark
+                {% elif item.medida.tipo_medida == 'SUSPENSION' %}bg-danger
+                {% elif item.medida.tipo_medida == 'DESPIDO' %}bg-dark
+                {% endif %}">
+                {{ item.medida.get_tipo_medida_display }}
+            </span>
+        </div>
+        <span class="text-muted small">
+            <i class="fas fa-calendar me-1"></i>{{ item.medida.fecha_hechos|date:"d M Y" }}
+        </span>
+    </div>
+    <div class="card-body">
+        <p style="white-space:pre-line;">{{ item.medida.descripcion_hechos|truncatechars:400 }}</p>
+
+        <div class="row g-2 small text-muted mb-3">
+            <div class="col-md-4">
+                <i class="fas fa-flag me-1"></i>Estado:
+                <strong>{{ item.medida.get_estado_display }}</strong>
+            </div>
+            {% if item.medida.fecha_limite_descargo %}
+            <div class="col-md-4">
+                <i class="fas fa-hourglass-half me-1"></i>Plazo descargo:
+                <strong>{{ item.medida.fecha_limite_descargo|date:"d/m/Y" }}</strong>
+                {% if item.dias_para_descargo is not None %}
+                ({% if item.dias_para_descargo > 0 %}
+                    quedan {{ item.dias_para_descargo }} día{{ item.dias_para_descargo|pluralize }}
+                {% elif item.dias_para_descargo == 0 %}
+                    <span class="text-danger">vence hoy</span>
+                {% else %}
+                    <span class="text-danger">vencido</span>
+                {% endif %})
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if item.medida.dias_suspension %}
+            <div class="col-md-4">
+                <i class="fas fa-pause me-1"></i>Suspensión:
+                <strong>{{ item.medida.dias_suspension }} día{{ item.medida.dias_suspension|pluralize }}</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mb-3">
+            {% if item.puede_descargar_carta and item.medida.tipo_medida != 'VERBAL' %}
+            <a href="{% url 'medida_carta_pdf' item.medida.pk %}" target="_blank"
+               class="btn btn-sm btn-outline-success">
+                <i class="fas fa-file-pdf me-1"></i>Descargar Carta
+            </a>
+            {% endif %}
+        </div>
+
+        {% if item.puede_subir_descargo %}
+        <details>
+            <summary class="text-primary" style="cursor:pointer;">
+                <i class="fas fa-comment-dots me-1"></i>Presentar descargo
+            </summary>
+            <form method="post" enctype="multipart/form-data" class="mt-3 p-3 bg-light rounded">
+                {% csrf_token %}
+                <input type="hidden" name="medida_id" value="{{ item.medida.pk }}">
+                <div class="mb-2">
+                    <label class="form-label small">Texto del descargo</label>
+                    <textarea name="texto" rows="4" class="form-control" required
+                              placeholder="Explique los hechos desde su punto de vista, aporte pruebas si las tiene..."></textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Adjuntos (opcional)</label>
+                    <input type="file" name="adjuntos" class="form-control form-control-sm">
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="fas fa-paper-plane me-1"></i>Enviar descargo
+                </button>
+            </form>
+        </details>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+{% endif %}
+{% endblock %}
