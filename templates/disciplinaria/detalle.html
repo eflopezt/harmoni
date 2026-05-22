@@ -64,6 +64,16 @@
         <small class="text-muted">{{ medida.tipo_falta.nombre }} — {{ medida.fecha_hechos|date:"d/m/Y" }}</small>
     </div>
     <div class="d-flex gap-2">
+        {% if medida.estado != 'BORRADOR' and medida.tipo_medida != 'VERBAL' %}
+        <a href="{% url 'medida_carta_pdf' medida.pk %}" target="_blank"
+           class="btn btn-sm btn-success" title="Descargar carta disciplinaria en PDF">
+            <i class="fas fa-file-pdf me-1"></i>Descargar Carta PDF
+        </a>
+        {% endif %}
+        <a href="{% url 'disciplinaria_timeline_personal' medida.personal.pk %}"
+           class="btn btn-sm btn-outline-info" title="Timeline visual del trabajador">
+            <i class="fas fa-stream me-1"></i>Timeline trabajador
+        </a>
         <a href="{% url 'disciplinaria_exportar' %}" class="btn btn-sm btn-outline-success" title="Exportar reporte Excel">
             <i class="fas fa-file-excel me-1"></i>Exportar
         </a>

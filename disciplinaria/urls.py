@@ -32,4 +32,9 @@ urlpatterns = [
 
     # Reporte AJAX — por área (Chart.js)
     path('reporte-area/', views.disciplinaria_reporte_area, name='disciplinaria_reporte_area'),
+
+    # ── Workflow escalonado: PDF carta + sugerencia + timeline personal ──
+    path('<int:pk>/carta-pdf/', views.medida_carta_pdf, name='medida_carta_pdf'),
+    path('sugerir-medida/', views.sugerir_medida_ajax, name='disciplinaria_sugerir_medida'),
+    path('timeline/<int:personal_pk>/', views.timeline_personal, name='disciplinaria_timeline_personal'),
 ]

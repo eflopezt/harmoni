@@ -7,6 +7,7 @@ from . import api_views
 from calendario.views import mi_calendario, mi_calendario_eventos
 from onboarding.views import mi_onboarding as mi_onboarding_portal
 from salarios.views import mi_historial_salarial
+from disciplinaria.views import mi_portal_disciplinaria
 
 urlpatterns = [
     path('', views.portal_home, name='portal_home'),
@@ -47,6 +48,8 @@ urlpatterns = [
     path('mis-capacitaciones/', views.mis_capacitaciones, name='portal_mis_capacitaciones'),
     # Mis Vacaciones
     path('mis-vacaciones/', views.mis_vacaciones, name='portal_mis_vacaciones'),
+    # Mis medidas disciplinarias
+    path('disciplinaria/', mi_portal_disciplinaria, name='mi_portal_disciplinaria'),
     # Archivos HR
     path('mis-archivos/', views.mis_archivos_hr, name='mis_archivos_hr'),
     # ── API endpoints for mobile ──
