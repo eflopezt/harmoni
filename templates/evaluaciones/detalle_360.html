@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.score-hero {
+    background: linear-gradient(135deg, #0d2b27, #0f766e);
+    color: #fff; border-radius: 14px;
+    padding: 1.5rem 1.6rem; box-shadow: 0 4px 18px rgba(13,43,39,.18);
+}
+.score-hero .score-big { font-size: 4rem; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+.score-hero .score-label { font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.score-hero .meta { font-size: .85rem; opacity: .9; }
+
+.compare-table th { background: #0d2b27; color: #fff; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+.compare-table td.score-cell { text-align: center; font-weight: 700; min-width: 90px; }
+.compare-table td.score-cell.empty { color: #cbd5e1; font-weight: 400; }
+.compare-table tr:hover { background: #f0fdf4; }
+.score-pill {
+    display: inline-block; padding: .25rem .55rem; border-radius: 6px;
+    font-size: .85rem; font-weight: 700; min-width: 42px;
+}
+.score-pill.s-5 { background: #15803d; color: #fff; }
+.score-pill.s-4 { background: #65a30d; color: #fff; }
+.score-pill.s-3 { background: #0f766e; color: #fff; }
+.score-pill.s-2 { background: #d97706; color: #fff; }
+.score-pill.s-1 { background: #b91c1c; color: #fff; }
+
+.gap-row.critical { background: #fef2f2; }
+.gap-row.warning { background: #fffbeb; }
+.gap-row.ok { background: #ecfdf5; }
+.gap-pill {
+    display: inline-block; padding: .15rem .5rem; border-radius: 999px;
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+}
+.gap-pill.critical { background: #b91c1c; color: #fff; }
+.gap-pill.warning  { background: #f59e0b; color: #fff; }
+.gap-pill.ok       { background: #15803d; color: #fff; }
+
+.participante-card {
+    background: #fff; border-radius: 10px; padding: .8rem 1rem;
+    box-shadow: 0 1px 4px rgba(13,43,39,.06); display: flex; gap: .6rem; align-items: center;
+    border-left: 4px solid #0f766e;
+}
+.participante-card.completada { border-left-color: #15803d; }
+.participante-card.pendiente { border-left-color: #f59e0b; }
+.participante-card.completada .estado-ico { color: #15803d; }
+.participante-card.pendiente  .estado-ico { color: #f59e0b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a href="{% url 'evaluacion_360_panel' %}" class="text-decoration-none text-muted small"><i class="fas fa-arrow-left me-1"></i>Evaluaciones 360°</a>
+        <h2 class="mb-0 mt-1">{{ evaluacion.personal_evaluado.apellidos_nombres }}</h2>
+        <small class="text-muted">
+            {% if evaluacion.personal_evaluado.cargo %}{{ evaluacion.personal_evaluado.cargo }} · {% endif %}
+            Período <strong>{{ evaluacion.periodo }}</strong> ·
+            <span class="badge bg-{% if evaluacion.estado == 'CERRADA' %}success{% elif evaluacion.estado == 'EN_CURSO' %}warning{% else %}secondary{% endif %}">{{ evaluacion.get_estado_display }}</span>
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'evaluacion_360_pdf' evaluacion.pk %}" class="btn btn-outline-secondary" target="_blank"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+        {% if evaluacion.estado != 'CERRADA' %}
+        <form method="post" action="{% url 'evaluacion_360_cerrar' evaluacion.pk %}" class="d-inline" onsubmit="return confirm('¿Cerrar esta evaluación 360°?');">
+            {% csrf_token %}
+            <button class="btn btn-success"><i class="fas fa-check me-1"></i>Cerrar 360°</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% if messages %}
+{% for m in messages %}<div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>{% endfor %}
+{% endif %}
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-4">
+        <div class="score-hero">
+            <div class="score-label">Score global agregado</div>
+            <div class="score-big">{% if puntaje_global %}{{ puntaje_global|floatformat:2 }}{% else %}—{% endif %}</div>
+            <div class="meta mt-2">
+                Avance: <strong>{{ porcentaje_avance }}%</strong> ·
+                {{ evaluacion.completadas }} / {{ evaluacion.total_participantes }} participantes
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase text-muted mb-2" style="font-size:.7rem; letter-spacing:.1em;">Radar comparativo</h6>
+                <canvas id="radar360" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-white">
+        <strong><i class="fas fa-table text-secondary me-1"></i>Tabla comparativa</strong>
+        <span class="small text-muted ms-2">Promedios por competencia y tipo de evaluador (escala 0-5)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table compare-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Competencia</th>
+                        {% for tipo in tipos_orden %}
+                        <th class="text-center">
+                            {% if tipo == 'AUTOEVALUACION' %}Auto
+                            {% elif tipo == 'MANAGER' %}Manager
+                            {% elif tipo == 'PEER' %}Peers
+                            {% elif tipo == 'SUBORDINADO' %}Subord.
+                            {% elif tipo == 'CLIENTE_INTERNO' %}Cliente
+                            {% endif %}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas %}
+                    <tr>
+                        <td><strong>{{ fila.label }}</strong></td>
+                        {% for v in fila.valores %}
+                        <td class="score-cell {% if v.valor is None %}empty{% endif %}">
+                            {% if v.valor is not None %}
+                                {% if v.valor >= 4.5 %}<span class="score-pill s-5">{{ v.valor|floatformat:1 }}</span>
+                                {% elif v.valor >= 4 %}<span class="score-pill s-4">{{ v.valor|floatformat:1 }}</span>
+                                {% elif v.valor >= 3 %}<span class="score-pill s-3">{{ v.valor|floatformat:1 }}</span>
+                                {% elif v.valor >= 2 %}<span class="score-pill s-2">{{ v.valor|floatformat:1 }}</span>
+                                {% else %}<span class="score-pill s-1">{{ v.valor|floatformat:1 }}</span>
+                                {% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Sin respuestas registradas aún.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if gaps %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-white">
+        <strong><i class="fas fa-exchange-alt text-secondary me-1"></i>Brechas Autoevaluación vs Manager</strong>
+        <span class="small text-muted ms-2">Gap &ge; 1.5 = alerta · Gap &ge; 2 = crítico</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Competencia</th>
+                    <th class="text-center">Auto</th>
+                    <th class="text-center">Manager</th>
+                    <th class="text-center">Gap</th>
+                    <th class="text-center">Severidad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in gaps %}
+                <tr class="gap-row {{ g.severidad }}">
+                    <td>{{ g.competencia }}</td>
+                    <td class="text-center">{{ g.auto|floatformat:1 }}</td>
+                    <td class="text-center">{{ g.manager|floatformat:1 }}</td>
+                    <td class="text-center"><strong>{% if g.gap > 0 %}+{% endif %}{{ g.gap|floatformat:2 }}</strong></td>
+                    <td class="text-center">
+                        <span class="gap-pill {{ g.severidad }}">
+                            {% if g.severidad == 'critical' %}Crítico{% elif g.severidad == 'warning' %}Alerta{% else %}OK{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-white">
+        <strong><i class="fas fa-users text-secondary me-1"></i>Participantes</strong>
+    </div>
+    <div class="card-body">
+        <div class="row g-2">
+            {% for p in participantes %}
+            <div class="col-md-6 col-lg-4">
+                <div class="participante-card {% if p.completada %}completada{% else %}pendiente{% endif %}">
+                    <i class="fas fa-{% if p.completada %}check-circle{% else %}clock{% endif %} estado-ico fa-lg"></i>
+                    <div class="flex-grow-1">
+                        <div><strong>{{ p.display }}</strong></div>
+                        <small class="text-muted">{{ p.tipo_label }}{% if p.puntaje %} · <strong>{{ p.puntaje|floatformat:2 }}/5</strong>{% endif %}</small>
+                    </div>
+                    {% if not p.completada %}
+                    <a href="{% url 'evaluacion_360_responder' evaluacion.pk p.pk %}" class="btn btn-sm btn-primary">Responder</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    var labels = {{ radar_labels_json|safe }};
+    var datasets = {{ radar_datasets_json|safe }};
+    if (!labels.length) return;
+    var ctx = document.getElementById('radar360');
+    if (!ctx || typeof Chart === 'undefined') return;
+    new Chart(ctx, {
+        type: 'radar',
+        data: { labels: labels, datasets: datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+            },
+            scales: {
+                r: {
+                    suggestedMin: 0, suggestedMax: 5,
+                    ticks: { stepSize: 1, font: { size: 9 } },
+                    pointLabels: { font: { size: 10, weight: '600' } },
+                }
+            },
+        },
+    });
+})();
+</script>
+{% endblock %}

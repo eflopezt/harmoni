@@ -1,8 +1,18 @@
 from django.urls import path
 from . import views
 from . import views_okr
+from . import views_360
 
 urlpatterns = [
+    # ── Evaluaciones 360° (módulo dedicado) ──
+    path('360/', views_360.panel_360, name='evaluacion_360_panel'),
+    path('360/crear/', views_360.crear_360, name='evaluacion_360_crear'),
+    path('360/<int:pk>/', views_360.detalle_360, name='evaluacion_360_detalle'),
+    path('360/<int:pk>/pdf/', views_360.pdf_360, name='evaluacion_360_pdf'),
+    path('360/<int:pk>/cerrar/', views_360.cerrar_360, name='evaluacion_360_cerrar'),
+    path('360/<int:pk>/responder/<int:participante_pk>/', views_360.responder_360,
+         name='evaluacion_360_responder'),
+
     # Dashboard ejecutivo
     path('dashboard/', views.evaluaciones_dashboard, name='evaluaciones_dashboard'),
 

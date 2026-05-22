@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Evaluaciones 360°{% endblock %}
+
+{% block extra_css %}
+<style>
+.kpi-360 {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 1px 6px rgba(13,43,39,.08);
+    border-left: 4px solid #0f766e;
+    display: flex; align-items: center; gap: 1rem;
+}
+.kpi-360 .icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: #f0fdf4; color: #0f766e;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem;
+}
+.kpi-360 .value { font-size: 1.55rem; font-weight: 700; line-height: 1; color: #0d2b27; }
+.kpi-360 .label { font-size: .7rem; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; }
+.kpi-360.borrador { border-left-color: #94a3b8; }
+.kpi-360.borrador .icon { background: #f1f5f9; color: #475569; }
+.kpi-360.curso { border-left-color: #f59e0b; }
+.kpi-360.curso .icon { background: #fffbeb; color: #d97706; }
+.kpi-360.cerrada { border-left-color: #15803d; }
+.kpi-360.cerrada .icon { background: #ecfdf5; color: #15803d; }
+
+.badge-estado-borrador { background: #94a3b8; color: #fff; }
+.badge-estado-en_curso { background: #f59e0b; color: #fff; }
+.badge-estado-cerrada  { background: #15803d; color: #fff; }
+
+.progress-360 { height: 6px; border-radius: 3px; background: #e5e7eb; overflow: hidden; }
+.progress-360 .bar { height: 100%; background: linear-gradient(90deg, #0f766e, #5eead4); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-bullseye text-secondary me-2"></i>Evaluaciones 360°</h2>
+        <small class="text-muted">Vista comparativa de 5 perspectivas: auto, manager, peers, subordinados, cliente interno.</small>
+    </div>
+    <a href="{% url 'evaluacion_360_crear' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>Nueva 360°
+    </a>
+</div>
+
+{% if messages %}
+{% for m in messages %}
+<div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show">{{ m }}<button class="btn-close" data-bs-dismiss="alert"></button></div>
+{% endfor %}
+{% endif %}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="kpi-360"><div class="icon"><i class="fas fa-bullseye"></i></div><div><div class="value">{{ kpis.total }}</div><div class="label">Total</div></div></div></div>
+    <div class="col-md-3"><div class="kpi-360 borrador"><div class="icon"><i class="fas fa-pen"></i></div><div><div class="value">{{ kpis.borradores }}</div><div class="label">Borradores</div></div></div></div>
+    <div class="col-md-3"><div class="kpi-360 curso"><div class="icon"><i class="fas fa-play"></i></div><div><div class="value">{{ kpis.en_curso }}</div><div class="label">En curso</div></div></div></div>
+    <div class="col-md-3"><div class="kpi-360 cerrada"><div class="icon"><i class="fas fa-check"></i></div><div><div class="value">{{ kpis.cerradas }}</div><div class="label">Cerradas</div></div></div></div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Buscar evaluado</label>
+                <input type="text" name="q" value="{{ filtro_q }}" class="form-control form-control-sm" placeholder="Nombre o apellido">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Estado</label>
+                <select name="estado" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for code, label in estado_choices %}
+                    <option value="{{ code }}" {% if code == filtro_estado %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Período</label>
+                <input type="text" name="periodo" value="{{ filtro_periodo }}" class="form-control form-control-sm" placeholder="Ej: 2026-Q2" list="periodos_lista">
+                <datalist id="periodos_lista">
+                    {% for p in periodos_disponibles %}<option value="{{ p }}">{% endfor %}
+                </datalist>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i>Filtrar</button>
+                <a href="{% url 'evaluacion_360_panel' %}" class="btn btn-sm btn-outline-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Evaluado</th>
+                        <th>Período</th>
+                        <th>Estado</th>
+                        <th>Participantes</th>
+                        <th style="width: 180px;">Avance</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in evaluaciones %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'evaluacion_360_detalle' e.pk %}" class="text-decoration-none">
+                                <strong>{{ e.personal_evaluado.apellidos_nombres }}</strong>
+                            </a>
+                            {% if e.personal_evaluado.cargo %}<br><small class="text-muted">{{ e.personal_evaluado.cargo }}</small>{% endif %}
+                        </td>
+                        <td><span class="badge bg-secondary">{{ e.periodo }}</span></td>
+                        <td><span class="badge badge-estado-{{ e.estado|lower }}">{{ e.get_estado_display }}</span></td>
+                        <td><small>{{ e.completadas }}/{{ e.total_participantes }} completados</small></td>
+                        <td>
+                            <div class="progress-360"><div class="bar" style="width: {{ e.porcentaje_avance }}%"></div></div>
+                            <small class="text-muted">{{ e.porcentaje_avance }}%</small>
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'evaluacion_360_detalle' e.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
+                            <a href="{% url 'evaluacion_360_pdf' e.pk %}" class="btn btn-sm btn-outline-secondary" target="_blank"><i class="fas fa-file-pdf"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Sin evaluaciones 360° registradas. <a href="{% url 'evaluacion_360_crear' %}">Crear primera</a>.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
