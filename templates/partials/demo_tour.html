@@ -1,0 +1,133 @@
+{# Tour guiado interactivo — solo cuando DEMO_MODE o ?tour=1
+   Usa Driver.js desde CDN. Incluir en base.html justo antes de </body>. #}
+
+{% if DEMO_MODE or request.GET.tour %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+
+<!-- Botón flotante "Iniciar tour" -->
+<button id="harmoni-tour-btn"
+        style="position:fixed;bottom:24px;right:24px;z-index:9999;background:linear-gradient(135deg,#0f766e,#0d2b27);color:#fff;padding:12px 22px;border:none;border-radius:50px;font-weight:700;font-size:.9rem;cursor:pointer;box-shadow:0 8px 24px rgba(15,118,110,.35);display:flex;align-items:center;gap:8px;">
+  <i class="fas fa-route"></i>
+  <span>Tour guiado</span>
+</button>
+
+<script>
+(function(){
+  const driver = window.driver.js.driver;
+
+  // Steps del tour — ordenados de mayor a menor impacto
+  const steps = [
+    {
+      popover: {
+        title: '<i class="fas fa-rocket me-2" style="color:#5eead4"></i>Bienvenida al tour de Harmoni',
+        description: '<p>Te voy a llevar por las <strong>10 features estrella</strong> en 4 minutos. Cliquea <strong>Siguiente</strong> para empezar.</p>',
+        side: 'over',
+        align: 'center',
+      }
+    },
+    {
+      element: '[href="/comando/"], a[href*="comando"]',
+      popover: {
+        title: '🎯 Centro de Comando',
+        description: 'Una sola pantalla con todo lo que el dueño necesita: alertas priorizadas, salud de cada local, briefings de hoy. Lo primero que abre cada mañana.',
+      }
+    },
+    {
+      element: '[href="/empresas/pulse/"], a[href*="pulse"]',
+      popover: {
+        title: '📊 Pulse del Grupo',
+        description: 'Termómetro semanal de los 9 locales. Quién está bien, quién pide atención. <strong>Decisiones basadas en data, no intuición.</strong>',
+      }
+    },
+    {
+      element: '[href*="briefing"]',
+      popover: {
+        title: '📋 Briefing del Día',
+        description: 'Handover pre-shift entre cocina y salón. El chef escribe el briefing, el mozo lo lee al entrar. Cero info perdida entre turnos.',
+      }
+    },
+    {
+      element: '[href*="reclutamiento"]',
+      popover: {
+        title: '🤖 Pipeline IA Reclutamiento',
+        description: 'Kanban con score IA de match al perfil. Bulk actions, plantillas email, banco de talento. Encuentra al mozo perfecto en horas, no semanas.',
+      }
+    },
+    {
+      element: '[href*="dashboard/ejecutivo"], [href*="dashboard_ejecutivo"]',
+      popover: {
+        title: '📈 Dashboard Ejecutivo',
+        description: 'KPIs cross-empresa: rotación, attrition, costo planilla, salud cultural. Para el CEO/dueño.',
+      }
+    },
+    {
+      element: '[href="/nominas/"], [href*="/nominas/"]',
+      popover: {
+        title: '💰 Planilla en 2 minutos',
+        description: 'Cálculos peruanos completos: AFP/ONP, gratificaciones, CTS, IR 5ta. PLAME, T-Registro, AFPnet automáticos. Lo que toma 2 días, ahora 2 minutos.',
+      }
+    },
+    {
+      element: '[href*="analytics/predictive"], [href*="predictor"]',
+      popover: {
+        title: '🔮 Predictor IA de Rotación',
+        description: 'Modelo de ML que identifica workers con riesgo alto de irse — proactivo, no reactivo. Conserva talento antes de perderlo.',
+      }
+    },
+    {
+      element: '[href="/roi/"], a[href*="roi"]',
+      popover: {
+        title: '🧮 Calculadora ROI',
+        description: 'Calcula cuánto te ahorra Harmoni vs tu proceso actual. Cifras concretas, no promesas vagas.',
+      }
+    },
+    {
+      element: '[href="/qr-demo/"], a[href*="qr-demo"]',
+      popover: {
+        title: '📱 QR para demo mobile',
+        description: 'Durante la presentación, el cliente escanea un QR y ve el portal en su celular. De "te muestro" pasa a "úsala en tu mano".',
+      }
+    },
+    {
+      popover: {
+        title: '🎉 Listo',
+        description: '<p>Ya viste lo esencial. Si quieres probar más:</p><ul style="margin:8px 0;padding-left:20px;"><li><a href="/tour/edo/">Tour completo (12 features)</a></li><li><a href="/comando/">Centro de Comando</a></li><li><a href="/roi/">Calculadora ROI</a></li></ul><p style="margin-top:12px;">¿Listo para conversar? <a href="https://wa.me/51906602313" target="_blank" style="color:#16a34a;font-weight:700;">WhatsApp +51 906 602 313</a></p>',
+      }
+    },
+  ];
+
+  const driverObj = driver({
+    showProgress: true,
+    progressText: {% verbatim %}'Paso {{current}} de {{total}}'{% endverbatim %},
+    nextBtnText: 'Siguiente →',
+    prevBtnText: '← Anterior',
+    doneBtnText: '🎉 Finalizar',
+    steps: steps,
+    onDestroyStarted: function(){
+      if (!driverObj.hasNextStep() || confirm('¿Salir del tour?')) {
+        driverObj.destroy();
+      }
+    },
+  });
+
+  document.getElementById('harmoni-tour-btn').addEventListener('click', function(){
+    driverObj.drive();
+  });
+
+  // Auto-launch si ?tour=1
+  const url = new URL(window.location);
+  if (url.searchParams.get('tour') === '1') {
+    setTimeout(() => driverObj.drive(), 500);
+  }
+})();
+</script>
+
+<style>
+  /* Hide tour button on mobile during landing/login pages */
+  @media (max-width: 640px) {
+    #harmoni-tour-btn span { display: none; }
+    #harmoni-tour-btn { padding: 14px 16px; }
+  }
+</style>
+{% endif %}
