@@ -5,11 +5,14 @@ Operaciones:
 1. Wrappear sección MI PORTAL completa con {% if not es_plan_starter %}
 2. Wrappear sección COMUNICACIONES completa
 3. Wrappear sección ANALYTICS completa
-4. Wrappear links sueltos: organigrama_erp, roster_matricial, calendario_view,
+4. Wrappear sección DISCIPLINARIA completa
+5. Wrappear links sueltos: organigrama_erp, roster_matricial, calendario_view,
    contratos_panel, asistencia_solicitudes_he, integraciones_panel
-5. Wrappear sub-link mi_portal_disciplinaria
+6. Insertar badge "Plan Starter" en sidebar header
+7. Insertar banner amarillo arriba del main para users Starter
 
-Idempotente: detecta si ya se aplicaron los wrappers y no los duplica.
+Idempotente: detecta si ya se aplicaron los wrappers (marker `starter-gate-*`)
+y no los duplica.
 
 Uso:
     python scripts/patch_sidebar_starter.py /opt/harmoni-demo/app/templates/base.html
@@ -86,26 +89,70 @@ def wrap_link(content, url_name):
     return content[:match.start()] + wrapped + content[match.end():], True
 
 
+def insert_starter_badge(content):
+    """Inserta badge 'Plan Starter' debajo del sidebar-brand-subtitle."""
+    if 'starter-plan-badge-marker' in content:
+        return content, False
+    needle = '{% else %}Sistema RRHH{% endif %}\n                </div>\n            </div>\n        </a>'
+    if needle not in content:
+        return content, False
+    inject = needle + '''
+        {% if es_plan_starter %}
+        <div class="px-3 mt-2" data-marker="starter-plan-badge-marker">
+            <a href="{% url 'upgrade_plan' %}" style="display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff;padding:3px 10px;border-radius:10px;font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;">
+                <i class="fas fa-circle" style="font-size:.45rem;"></i>
+                Plan Starter
+                <i class="fas fa-arrow-up" style="font-size:.55rem;opacity:.7;margin-left:2px;"></i>
+            </a>
+        </div>
+        {% endif %}'''
+    return content.replace(needle, inject, 1), True
+
+
+def insert_starter_banner(content):
+    """Banner amarillo arriba del <main class='harmoni-content'>."""
+    if 'starter-topbar-banner' in content:
+        return content, False
+    needle = '    <main class="harmoni-content">'
+    if needle not in content:
+        return content, False
+    inject = '''    {% if es_plan_starter %}
+    <div data-marker="starter-topbar-banner" style="background:linear-gradient(90deg,#fef3c7,#fde68a);border-bottom:1px solid #fcd34d;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:.82rem;">
+        <div style="color:#78350f;">
+            <i class="fas fa-info-circle me-1"></i>
+            <strong>Plan Starter</strong> — hasta 30 colaboradores. Algunas funciones avanzadas no están disponibles en este plan.
+        </div>
+        <a href="{% url 'upgrade_plan' %}" style="background:#0f766e;color:#fff;padding:5px 14px;border-radius:8px;font-weight:600;font-size:.78rem;text-decoration:none;flex-shrink:0;">
+            Ver planes superiores →
+        </a>
+    </div>
+    {% endif %}
+''' + needle
+    return content.replace(needle, inject, 1), True
+
+
 def main(path):
     with open(path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    if already_patched(content):
-        print(f"⚠ {path} ya tiene patches aplicados — abortando para evitar duplicación")
-        return
-
     changes = []
 
-    # Secciones enteras
-    for section in (
-        '<!-- ══ MI PORTAL ══',
-        '<!-- ══ COMUNICACIONES ══',
-        '<!-- ══ ANALYTICS ══',
-    ):
-        content, ok = wrap_section(content, section)
-        changes.append((section, ok))
+    if not already_patched(content):
+        # Secciones enteras (solo en primera aplicación)
+        for section in (
+            '<!-- ══ MI PORTAL ══',
+            '<!-- ══ COMUNICACIONES ══',
+            '<!-- ══ ANALYTICS ══',
+            '<!-- ══ DISCIPLINARIA ══',
+        ):
+            content, ok = wrap_section(content, section)
+            changes.append((section, ok))
+    else:
+        print(f"⚠ Secciones ya wrappeadas — saltando (idempotente)")
 
-    # Links sueltos
+    # Links sueltos (saltar si ya está patched para no duplicar)
+    if not already_patched(content):
+        pass  # ya patched
     for url_name in (
         'organigrama_erp',
         'roster_matricial',
@@ -114,10 +161,16 @@ def main(path):
         'asistencia_solicitudes_he',
         'integraciones_panel',
         'mi_portal_disciplinaria',
-        'evaluacion_360_dashboard',  # por si existe
+        'evaluacion_360_dashboard',
     ):
         content, ok = wrap_link(content, url_name)
         changes.append((url_name, ok))
+
+    # Badge sidebar + banner topbar (idempotentes individualmente)
+    content, ok = insert_starter_badge(content)
+    changes.append(('starter-plan-badge', ok))
+    content, ok = insert_starter_banner(content)
+    changes.append(('starter-topbar-banner', ok))
 
     with open(path, 'w', encoding='utf-8') as f:
         f.write(content)
