@@ -59,16 +59,30 @@ STARTER_BLOCKED_PATTERNS = [
     r'^/reclutamiento/',
     r'^/api/v1/reclutamiento/',
 
-    # ─── Analytics / IA / BI ───
-    r'^/analytics/predictor-rotacion/',
+    # ─── BI / Dashboard Ejecutivo (sistema) ───
     r'^/sistema/dashboard/ejecutivo/',
     r'^/sistema/reporte-bi-mensual/',
 
-    # ─── Evaluaciones 360 ───
-    r'^/evaluaciones/360/',
+    # ─── Evaluaciones (entero) — HR avanzado, no es Starter ───
+    r'^/evaluaciones/',
 
     # ─── Capacitaciones (entero) ───
     r'^/capacitaciones/',
+
+    # ─── Encuestas (entero) — sin portal, sin encuestas ───
+    r'^/encuestas/',
+
+    # ─── Analytics (entero) — KPIs avanzados son Profesional+ ───
+    r'^/analytics/',
+
+    # ─── Integraciones externas (Synkro, SAP, etc.) — enterprise ───
+    r'^/integraciones/',
+
+    # ─── Viáticos — módulo adicional, no core de planilla ───
+    r'^/viaticos/',
+
+    # ─── Comunicaciones (entero) — sin portal no hay comunicación interna ───
+    r'^/comunicaciones/',
 
     # ─── Onboarding gastronomía ───
     r'^/onboarding/gastro/',
@@ -78,17 +92,11 @@ STARTER_BLOCKED_PATTERNS = [
     r'^/asistencia/briefing/',
     r'^/roster/gastro/',
     r'^/personal/roster/gastro/',
-    r'^/encuestas/pulse/',
-
     # ─── Workflows / Salarios / Préstamos / Disciplinaria ───
     r'^/workflows/',
     r'^/salarios/',
     r'^/prestamos/',
     r'^/disciplinaria/',
-
-    # ─── Comunicaciones masivas ───
-    r'^/comunicaciones/campanas/',
-    r'^/comunicaciones/whatsapp/',
 
     # ─── Organigrama (gestión visual avanzada) ───
     r'^/personal/organigrama/',
@@ -130,10 +138,14 @@ STARTER_BLOCKED_PATTERNS = [
     r'^/reportes/personal/pdf/',
     r'^/reportes/asistencia/pdf/',
     r'^/reportes/vacaciones/pdf/',
-    r'^/asistencia/reportes/areas/pdf/',
-    r'^/asistencia/reportes/pivote/pdf/',
-    r'^/asistencia/reportes/\d+/pdf/',
-    r'^/asistencia/reportes/masivo/',
+    # ─── Reportes avanzados de asistencia (solo matricial básico para Starter) ───
+    r'^/asistencia/reportes/areas/',          # Reporte por áreas + envío email
+    r'^/asistencia/reportes/pivote/',         # Pivote cross-empresa
+    r'^/asistencia/reportes/kpis-cross/',     # KPIs cross-empresa
+    r'^/asistencia/reportes/\d+/pdf/',        # PDF individual
+    r'^/asistencia/reportes/\d+/enviar/',     # Envío por email
+    r'^/asistencia/reportes/masivo/',         # PDF masivo
+    r'^/asistencia/reportes/enviar-masivo/',  # Envío masivo
 ]
 
 # Compilar patterns una vez

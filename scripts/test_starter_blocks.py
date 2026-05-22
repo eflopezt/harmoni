@@ -40,6 +40,18 @@ test_urls_block = [
     # Notificaciones a trabajadores (sin envío de boletas)
     '/nominas/boletas/1/notificar/',
     '/documentos/vencimientos/notificar/',
+    # Módulos enteros bloqueados (acción 1 del review)
+    '/evaluaciones/',
+    '/encuestas/',
+    '/analytics/',
+    '/integraciones/',
+    '/viaticos/',
+    '/comunicaciones/',
+    # Reportes avanzados asistencia (solo matricial básico permitido)
+    '/asistencia/reportes/areas/',
+    '/asistencia/reportes/pivote/',
+    '/asistencia/reportes/kpis-cross/',
+    '/asistencia/reportes/masivo/',
 ]
 
 print('=' * 70)
