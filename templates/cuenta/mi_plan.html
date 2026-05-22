@@ -1,10 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Mi Plan — {{ plan_info.nombre }}{% endblock %}
+{% block extra_css %}
+<style>
+  @media (max-width: 640px) {
+    .mc-hero { flex-direction: column !important; text-align: center !important; gap: 14px !important; }
+    .mc-hero-precio { text-align: center !important; }
+    .mc-cta { flex-direction: column !important; text-align: center !important; }
+    .mc-cta a { width: 100%; text-align: center; }
+  }
+</style>
+{% endblock %}
 {% block content %}
 <div style="max-width:980px;margin:0 auto;">
 
   <!-- Hero del plan actual -->
-  <div style="background:linear-gradient(135deg,#0d2b27,#134e4a);color:#fff;padding:30px 28px;border-radius:14px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+  <div class="mc-hero" style="background:linear-gradient(135deg,#0d2b27,#134e4a);color:#fff;padding:30px 28px;border-radius:14px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
     <div>
       <div style="font-size:.75rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">
         Tu plan actual
@@ -19,7 +29,7 @@
       </p>
       {% endif %}
     </div>
-    <div style="text-align:right;">
+    <div class="mc-hero-precio" style="text-align:right;">
       {% if plan_info.precio_mensual %}
       <div style="font-size:2.4rem;font-weight:900;line-height:1;">S/ {{ plan_info.precio_mensual }}</div>
       <div style="font-size:.85rem;opacity:.85;">+ IGV / mes</div>
@@ -92,7 +102,7 @@
 
   <!-- CTA contextual -->
   {% if plan_code != 'ENTERPRISE' %}
-  <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:12px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+  <div class="mc-cta" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:12px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
     <div>
       <h4 style="margin:0;color:#78350f;font-weight:800;">
         {% if workers_pct >= 80 %}

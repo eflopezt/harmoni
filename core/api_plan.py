@@ -23,6 +23,7 @@ Devuelve:
 - Mostrar info en topbar / cuenta del cliente
 - Validar antes de invocar features (cliente puede esconder UI)
 """
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -63,6 +64,55 @@ FEATURES_BLOQUEADAS_POR_PLAN = {
 }
 
 
+@extend_schema(
+    summary='Plan comercial del usuario actual',
+    description=(
+        'Devuelve el plan vigente del user autenticado: tier, cap de '
+        'trabajadores, count actual, features bloqueadas y datos de la '
+        'empresa asociada (si la hay).\n\n'
+        'Útil para integraciones que necesitan saber qué pueden hacer, '
+        'o para clientes que quieren mostrar info de plan en su UI.'
+    ),
+    tags=['plan-billing'],
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'plan':                  {'type': 'string', 'enum': ['STARTER', 'PROFESIONAL', 'BUSINESS', 'ENTERPRISE']},
+                'plan_display':          {'type': 'string'},
+                'max_trabajadores':      {'type': 'integer', 'nullable': True},
+                'trabajadores_actuales': {'type': 'integer'},
+                'es_starter':            {'type': 'boolean'},
+                'features_bloqueadas':   {'type': 'array', 'items': {'type': 'string'}},
+                'upgrade_url':           {'type': 'string'},
+                'empresa': {
+                    'type': 'object',
+                    'nullable': True,
+                    'properties': {
+                        'ruc':          {'type': 'string'},
+                        'razon_social': {'type': 'string'},
+                    },
+                },
+            },
+        },
+    },
+    examples=[
+        OpenApiExample(
+            'Cliente Starter (Pixel Motion)',
+            value={
+                'plan': 'STARTER',
+                'plan_display': 'Starter — S/ 149/mes (hasta 30 colaboradores)',
+                'max_trabajadores': 30,
+                'trabajadores_actuales': 25,
+                'es_starter': True,
+                'features_bloqueadas': ['reclutamiento', 'portal', 'capacitaciones', 'evaluaciones'],
+                'upgrade_url': '/upgrade/',
+                'empresa': {'ruc': '20612345678', 'razon_social': 'Pixel Motion Design S.A.C.'},
+            },
+            response_only=True,
+        ),
+    ],
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_me_plan(request):

@@ -101,3 +101,11 @@ docs/manual_capturas/
 /.reporte_*.pdf
 /.boleta_*.pdf
 /.constancia_*.pdf
+
+# Módulos experimentales WhatsApp (no listos para producción)
+/wa_marketing/
+/harmoni-wa-bot/
+/templates/wa_marketing/
+
+# Logos en raíz (vivir en static/img/ si se versionan)
+/LOGO HARMONI*.png
