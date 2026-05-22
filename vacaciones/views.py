@@ -1087,3 +1087,329 @@ def venta_vacaciones_crear(request):
     return render(request, 'vacaciones/venta_crear.html', {
         'empleados': empleados,
     })
+
+
+# ══════════════════════════════════════════════════════════════
+# WORKFLOW EXTENDIDO — calendario anual, PDF constancia, wizard
+# ══════════════════════════════════════════════════════════════
+
+def _notificar_in_app(personal, asunto, cuerpo, metadata=None):
+    """Envía notificación IN_APP al trabajador. Falla silenciosa si comunicaciones falla."""
+    try:
+        from comunicaciones.models import Notificacion
+        Notificacion.objects.create(
+            destinatario=personal,
+            asunto=asunto[:200],
+            cuerpo=cuerpo,
+            tipo='IN_APP',
+            estado='PENDIENTE',
+            metadata=metadata or {},
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _notificar_managers(solicitud):
+    """Notifica a los superusers + supervisor directo (si existe) que hay
+    una nueva solicitud pendiente de aprobación.
+    """
+    try:
+        from comunicaciones.models import Notificacion
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        asunto = f"Solicitud de vacaciones pendiente — {solicitud.personal.apellidos_nombres}"
+        cuerpo = (
+            f"<p>{solicitud.personal.apellidos_nombres} solicita vacaciones "
+            f"del <b>{solicitud.fecha_inicio:%d/%m/%Y}</b> al "
+            f"<b>{solicitud.fecha_fin:%d/%m/%Y}</b> "
+            f"({solicitud.dias_calendario} días).</p>"
+            f"<p>Motivo: {solicitud.motivo or '—'}</p>"
+        )
+
+        # Destinatario: supervisor del trabajador si existe, o todos los superusers
+        destinatarios_personal = set()
+        supervisor = getattr(solicitud.personal, 'supervisor_directo', None)
+        if supervisor:
+            destinatarios_personal.add(supervisor)
+
+        # Crear notif para cada manager con personal vinculado
+        for sup in destinatarios_personal:
+            Notificacion.objects.create(
+                destinatario=sup,
+                asunto=asunto[:200],
+                cuerpo=cuerpo,
+                tipo='IN_APP',
+                metadata={'solicitud_id': solicitud.pk, 'tipo': 'vacacion_pendiente'},
+            )
+
+        # Si no hay supervisor, crear notif sin destinatario_personal pero con
+        # email de los superusers — saltamos esta vía si falla
+        if not destinatarios_personal:
+            admins = User.objects.filter(is_superuser=True, is_active=True)[:5]
+            for adm in admins:
+                if adm.email:
+                    Notificacion.objects.create(
+                        destinatario=None,
+                        destinatario_email=adm.email,
+                        asunto=asunto[:200],
+                        cuerpo=cuerpo,
+                        tipo='IN_APP',
+                        metadata={'solicitud_id': solicitud.pk, 'tipo': 'vacacion_pendiente'},
+                    )
+    except Exception:
+        pass  # Notificación es best-effort
+
+
+@login_required
+@solo_admin
+def vacaciones_calendario_anual(request):
+    """Calendario anual con grilla 12 meses × 31 días.
+
+    Cada día muestra cuántos trabajadores están de vacaciones y de qué áreas.
+    Útil para planeación: el manager evita autorizar varios trabajadores de la
+    misma área simultáneamente.
+
+    Filtros: ?anio=2026&area=X
+    """
+    import calendar as cal_mod
+    hoy = date.today()
+    try:
+        anio = int(request.GET.get('anio', hoy.year))
+    except (ValueError, TypeError):
+        anio = hoy.year
+
+    area_id = request.GET.get('area', '').strip()
+
+    inicio_anio = date(anio, 1, 1)
+    fin_anio = date(anio, 12, 31)
+
+    vac_qs = SolicitudVacacion.objects.select_related(
+        'personal', 'personal__subarea', 'personal__subarea__area'
+    ).filter(
+        estado__in=['APROBADA', 'EN_GOCE', 'COMPLETADA'],
+        fecha_inicio__lte=fin_anio,
+        fecha_fin__gte=inicio_anio,
+    )
+    if area_id:
+        try:
+            vac_qs = vac_qs.filter(personal__subarea__area_id=int(area_id))
+        except (ValueError, TypeError):
+            pass
+
+    # Construir grilla: dict[mes][dia] = list de trabajadores
+    grilla = {m: {d: [] for d in range(1, 32)} for m in range(1, 13)}
+    total_dias = 0
+
+    for sol in vac_qs:
+        f = sol.fecha_inicio
+        while f <= sol.fecha_fin:
+            if f.year == anio:
+                area_nombre = '—'
+                if sol.personal.subarea and sol.personal.subarea.area:
+                    area_nombre = sol.personal.subarea.area.nombre
+                grilla[f.month][f.day].append({
+                    'nombre': sol.personal.apellidos_nombres,
+                    'area': area_nombre,
+                    'sol_id': sol.pk,
+                })
+                total_dias += 1
+            f += timedelta(days=1)
+
+    # Pre-renderizar lista de filas por mes
+    meses_data = []
+    nombres_meses = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    ]
+    for m in range(1, 13):
+        dias_en_mes = cal_mod.monthrange(anio, m)[1]
+        dias = []
+        for d in range(1, 32):
+            personas = grilla[m][d]
+            valido = d <= dias_en_mes
+            dias.append({
+                'dia': d,
+                'valido': valido,
+                'personas': personas,
+                'count': len(personas),
+                'fecha_iso': date(anio, m, d).isoformat() if valido else '',
+            })
+        meses_data.append({
+            'numero': m,
+            'nombre': nombres_meses[m - 1],
+            'dias': dias,
+        })
+
+    # Áreas para filtro
+    areas = []
+    try:
+        from personal.models import Area
+        areas = Area.objects.all().order_by('nombre')
+    except Exception:
+        pass
+
+    context = {
+        'titulo': f'Calendario Anual de Vacaciones — {anio}',
+        'anio': anio,
+        'anio_ant': anio - 1,
+        'anio_sig': anio + 1,
+        'meses_data': meses_data,
+        'total_solicitudes': vac_qs.count(),
+        'total_dias': total_dias,
+        'areas': areas,
+        'area_filtro': area_id,
+    }
+    return render(request, 'vacaciones/calendario_anual.html', context)
+
+
+@login_required
+def vacacion_constancia_pdf(request, pk):
+    """Descarga la Constancia de Vacaciones PDF para una solicitud APROBADA.
+
+    Accesible tanto por el trabajador (solo la suya) como por admin (cualquiera).
+    """
+    solicitud = get_object_or_404(
+        SolicitudVacacion.objects.select_related('personal', 'aprobado_por'),
+        pk=pk,
+    )
+
+    # Permisos: admin total o el dueño
+    if not (request.user.is_superuser or request.user.is_staff):
+        from portal.views import _get_empleado
+        empleado = _get_empleado(request.user)
+        if not empleado or empleado.pk != solicitud.personal.pk:
+            messages.error(request, 'No tienes permiso para ver esta constancia.')
+            return redirect('mis_vacaciones')
+
+    if solicitud.estado not in ('APROBADA', 'EN_GOCE', 'COMPLETADA'):
+        messages.error(
+            request,
+            'La constancia sólo se genera para solicitudes aprobadas.'
+        )
+        # Redirigir según rol
+        if request.user.is_superuser or request.user.is_staff:
+            return redirect('vacaciones_panel')
+        return redirect('mis_vacaciones')
+
+    from .constancia_pdf import generar_constancia_vacaciones_pdf
+    pdf_bytes = generar_constancia_vacaciones_pdf(solicitud)
+
+    filename = (
+        f"constancia_vacaciones_{solicitud.personal.nro_doc}_"
+        f"{solicitud.fecha_inicio:%Y%m%d}.pdf"
+    )
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
+
+
+@login_required
+def vacacion_solicitar_wizard(request):
+    """Wizard del trabajador para solicitar vacaciones.
+
+    Muestra el saldo calculado con calcular_saldo_vacaciones() y valida
+    la solicitud antes de pasarla a estado PENDIENTE.
+
+    Endpoint: /vacaciones/mis/solicitar-wizard/  o  /mi-portal/vacaciones/solicitar/
+    """
+    from portal.views import _get_empleado
+    from .calculadora_saldo import calcular_saldo_vacaciones, validar_solicitud
+
+    empleado = _get_empleado(request.user)
+
+    if not empleado:
+        messages.error(request, 'No tienes un perfil de empleado vinculado.')
+        return redirect('mis_vacaciones')
+
+    saldo_info = calcular_saldo_vacaciones(empleado)
+
+    if request.method == 'POST':
+        try:
+            fecha_inicio_s = request.POST['fecha_inicio']
+            fecha_fin_s = request.POST['fecha_fin']
+            motivo = request.POST.get('motivo', '').strip()
+
+            f_ini = date.fromisoformat(fecha_inicio_s)
+            f_fin = date.fromisoformat(fecha_fin_s)
+
+            validacion = validar_solicitud(empleado, f_ini, f_fin)
+
+            if not validacion['ok']:
+                for err in validacion['errores']:
+                    messages.error(request, err)
+                for av in validacion['avisos']:
+                    messages.warning(request, av)
+                return render(request, 'vacaciones/solicitar_wizard.html', {
+                    'titulo': 'Solicitar Vacaciones',
+                    'empleado': empleado,
+                    'saldo': saldo_info,
+                    'fecha_inicio_prev': fecha_inicio_s,
+                    'fecha_fin_prev': fecha_fin_s,
+                    'motivo_prev': motivo,
+                })
+
+            # Localizar saldo vacacional vinculable
+            saldo_obj = SaldoVacacional.objects.filter(
+                personal=empleado,
+                estado__in=['PENDIENTE', 'PARCIAL'],
+            ).order_by('periodo_inicio').first()
+
+            solicitud = SolicitudVacacion(
+                personal=empleado,
+                saldo=saldo_obj,
+                fecha_inicio=f_ini,
+                fecha_fin=f_fin,
+                dias_calendario=0,  # se calcula en save()
+                motivo=motivo,
+                estado='PENDIENTE',
+                solicitado_por=request.user,
+            )
+            solicitud.save()
+
+            # Avisar al manager
+            _notificar_managers(solicitud)
+
+            # Avisar al trabajador (confirmación)
+            _notificar_in_app(
+                empleado,
+                'Tu solicitud de vacaciones fue enviada',
+                f'<p>Solicitud #{solicitud.pk:06d} — '
+                f'{solicitud.dias_calendario} días del '
+                f'{f_ini:%d/%m/%Y} al {f_fin:%d/%m/%Y}. '
+                f'Recibirás una nueva notificación cuando sea revisada.</p>',
+                metadata={'solicitud_id': solicitud.pk},
+            )
+
+            messages.success(
+                request,
+                f'Solicitud #{solicitud.pk:06d} enviada ({solicitud.dias_calendario} días). '
+                'Recibirás una notificación cuando sea revisada.'
+            )
+            return redirect('mis_vacaciones')
+        except (KeyError, ValueError) as e:
+            messages.error(request, f'Error en el formulario: {e}')
+        except Exception as e:
+            messages.error(request, f'Error inesperado: {e}')
+
+    context = {
+        'titulo': 'Solicitar Vacaciones',
+        'empleado': empleado,
+        'saldo': saldo_info,
+    }
+    return render(request, 'vacaciones/solicitar_wizard.html', context)
+
+
+@login_required
+@solo_admin
+def vacaciones_admin_lista(request):
+    """Vista admin/manager: lista de solicitudes con filtros y acciones rápidas.
+
+    Endpoint: /vacaciones/admin/
+
+    Wrapper sobre vacaciones_panel pero con un template más enfocado en gestión.
+    Reutiliza la misma lógica de filtrado de vacaciones_panel.
+    """
+    return vacaciones_panel(request)
+
