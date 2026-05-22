@@ -6,13 +6,22 @@ from .models_billing import Plan, Suscripcion, HistorialPago
 
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
-    list_display  = ('razon_social', 'ruc', 'subdominio', 'regimen_laboral', 'sector', 'activa', 'es_principal')
-    list_filter   = ('activa', 'es_principal', 'regimen_laboral', 'sector')
+    list_display  = ('razon_social', 'ruc', 'plan', 'subdominio', 'regimen_laboral', 'sector', 'activa', 'es_principal')
+    list_filter   = ('plan', 'activa', 'es_principal', 'regimen_laboral', 'sector')
+    list_editable = ('plan',)  # cambiable inline desde la lista
     search_fields = ('ruc', 'razon_social', 'nombre_comercial', 'subdominio')
     readonly_fields = ('creado_en', 'actualizado_en', 'creado_por')
     fieldsets = (
         ('Identificación', {
             'fields': ('ruc', 'razon_social', 'nombre_comercial', 'subdominio', 'codigo_empleador'),
+        }),
+        ('Plan comercial', {
+            'fields': ('plan',),
+            'description': (
+                'Tier comercial de Harmoni para esta empresa. STARTER (S/149/mes) '
+                'restringe features enterprise via PlanStarterMiddleware. '
+                'Hard cap: 30 trabajadores activos en Personal.'
+            ),
         }),
         ('Dirección', {
             'fields': ('direccion', 'ubigeo', 'distrito', 'provincia', 'departamento'),

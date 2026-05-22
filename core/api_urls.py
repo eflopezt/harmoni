@@ -38,6 +38,9 @@ urlpatterns = [
     path('docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
+    # ── Plan / billing ──
+    path('me/plan/', __import__('core.api_plan', fromlist=['api_me_plan']).api_me_plan, name='api_me_plan'),
+
     # ── Module APIs ──
     path('personal/', include('personal.api_urls')),
     path('asistencia/', include('asistencia.api_urls')),

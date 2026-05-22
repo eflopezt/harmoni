@@ -109,11 +109,17 @@ class Command(BaseCommand):
                 'sector':              'PRIVADO',
                 'actividad_economica': '74100 — Actividades de diseño especializado',
                 'activa':              True,
+                'plan':                'STARTER',  # Plan Starter (S/149/mes)
                 'subdominio':          'pixel-motion',
             },
         )
+        # Asegurar plan='STARTER' aunque la empresa ya existiera (idempotente
+        # contra el reset_demo nightly que no recrea la empresa).
+        if empresa.plan != 'STARTER':
+            empresa.plan = 'STARTER'
+            empresa.save(update_fields=['plan', 'actualizado_en'])
         self.stdout.write(
-            self.style.SUCCESS(f"{'✓ Creada' if created else '~ Existente'}: {empresa.razon_social}")
+            self.style.SUCCESS(f"{'✓ Creada' if created else '~ Existente'}: {empresa.razon_social} (plan={empresa.plan})")
         )
 
         # ── 2. Áreas ──

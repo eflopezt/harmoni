@@ -1657,6 +1657,117 @@ Definir los horarios de trabajo y tolerancias:
 
 ---
 
+## 20.5 Planes Comerciales (Starter / Profesional / Business / Enterprise)
+
+Harmoni tiene 4 planes según el tamaño de tu empresa:
+
+| Plan | Precio (S/) | Colaboradores | Para |
+|---|---:|---:|---|
+| **Starter** | 149/mes | hasta 30 | Empresas pequeñas, planilla básica |
+| **Profesional** | 399/mes | hasta 100 | PYMEs con reclutamiento y capacitación |
+| **Business** | 799/mes | hasta 300 | Empresas medianas con IA y BI |
+| **Enterprise** | Personalizado | 300+ | Holdings multi-empresa |
+
+### ¿Qué incluye el Plan Starter (S/149/mes)?
+
+**Sí incluye** (lo mínimo necesario para correr planilla):
+- Personal — alta, baja, edición básica
+- Asistencia y papeletas — el administrador registra permisos/licencias manualmente
+- Planilla mensual completa con cálculos peruanos (AFP/ONP, IGV, gratificaciones, CTS, 5ta categoría)
+- Boleta de pago en PDF — descarga local (no envío automático)
+- Vacaciones — gestión desde el panel admin
+- Exportes contables (Concar, Siscont, Excel Universal)
+- AFPnet (TXT) y PLAME (CSV) para SUNAT
+- Cierre mensual y comparativo histórico
+- Soporte por email
+
+**No incluye** (disponible en planes superiores):
+- Portal del trabajador (sin self-service)
+- Envío/notificación automática de boletas
+- Solicitudes de horas extras desde el portal
+- Reclutamiento + Pipeline IA, CV parser, predictor de rotación
+- Capacitaciones / Evaluaciones 360 / Disciplinaria formal
+- Organigrama visual / Calendario laboral / Contratos formales con renovación
+- Roster matricial / Banco de horas
+- Workflows de aprobación / Bandas salariales / Préstamos
+- Comunicaciones masivas (campañas, WhatsApp)
+- Pulse del Grupo, Briefing del Día, Cuadrícula Semanal (gastronomía)
+- Dashboard Ejecutivo, BI Excel, Analytics
+- PDFs avanzados (solo boleta y constancia legal)
+- Multi-empresa (1 RUC en Starter)
+
+### Cómo activar el Plan Starter para un cliente
+
+**Desde Django admin (UI):**
+1. Ir a `/admin/empresas/empresa/`
+2. Editar la empresa del cliente
+3. En la sección **Plan comercial**, seleccionar `STARTER`
+4. Guardar — el cambio aplica inmediatamente (no requiere redeploy)
+
+**Desde CLI (recomendado para bulk o automatización):**
+```bash
+docker exec harmoni-web python manage.py set_empresa_plan <RUC> STARTER
+
+# Listar planes actuales de todas las empresas:
+docker exec harmoni-web python manage.py set_empresa_plan --list
+```
+
+### Hard cap de trabajadores
+
+Cada plan tiene un tope:
+- Starter: 30 trabajadores activos
+- Profesional: 100
+- Business: 300
+- Enterprise: sin tope
+
+Si intentas dar de alta el worker #31 en una empresa Starter, el sistema bloquea
+con un `ValidationError` que apunta a `/upgrade/`. Para superar el tope, hay que
+cambiar el plan a uno superior.
+
+### Página de upgrade
+
+Cuando un user del Plan Starter intenta acceder a una feature bloqueada
+(ej. `/reclutamiento/`), es redirigido automáticamente a `/upgrade/`, donde puede:
+- Ver comparativa de los 4 planes
+- Hacer clic en "Quiero este plan" → abre WhatsApp con mensaje pre-llenado
+- O enviar email a ventas@harmoni.pe
+
+### Demos comerciales con auto-login
+
+Para presentar Harmoni a un prospecto sin que tenga que teclear credenciales:
+
+| URL | Plan | Caso de uso |
+|---|---|---|
+| `https://demo.harmoni.pe/d/starter/` | Starter | Demo Pixel Motion (agencia 25 personas) |
+| `https://demo.harmoni.pe/d/enterprise/` | Enterprise | Demo Grupo EDO (gastronomía, 24 RUCs) |
+
+Estos links logean automáticamente al user demo correcto y redirigen al home.
+Útiles para WhatsApp / email de ventas — un solo clic.
+
+### API: consultar el plan vigente
+
+```http
+GET /api/v1/me/plan/
+Authorization: Bearer <jwt>
+
+Response 200:
+{
+    "plan": "STARTER",
+    "plan_display": "Starter — S/ 149/mes (hasta 30 colaboradores)",
+    "max_trabajadores": 30,
+    "trabajadores_actuales": 25,
+    "es_starter": true,
+    "features_bloqueadas": ["reclutamiento", "portal", ...],
+    "upgrade_url": "/upgrade/",
+    "empresa": { "ruc": "20612345678", "razon_social": "..." }
+}
+```
+
+Útil para integraciones que necesiten saber qué features están disponibles
+antes de invocarlas.
+
+---
+
 ## 21. Atajos de Teclado y Tips
 
 ### Atajos de teclado
