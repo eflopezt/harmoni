@@ -51,12 +51,15 @@ class TipoPrestamo(models.Model):
 
 
 class Prestamo(models.Model):
+    # Workflow: BORRADOR -> PENDIENTE (solicitado) -> APROBADO -> EN_CURSO (desembolsado)
+    # -> PAGADO  /  RECHAZADO  /  CANCELADO
     ESTADO_CHOICES = [
         ('BORRADOR', 'Borrador'),
         ('PENDIENTE', 'Pendiente Aprobación'),
         ('APROBADO', 'Aprobado'),
-        ('EN_CURSO', 'En Curso'),
+        ('EN_CURSO', 'Desembolsado / En Curso'),
         ('PAGADO', 'Pagado'),
+        ('RECHAZADO', 'Rechazado'),
         ('CANCELADO', 'Cancelado'),
     ]
 
@@ -93,6 +96,11 @@ class Prestamo(models.Model):
 
     fecha_solicitud = models.DateField(default=date.today, verbose_name="Fecha Solicitud")
     fecha_aprobacion = models.DateField(null=True, blank=True)
+    fecha_desembolso = models.DateField(
+        null=True, blank=True,
+        verbose_name="Fecha de Desembolso",
+        help_text="Fecha en la que se entregó el dinero al trabajador"
+    )
     fecha_primer_descuento = models.DateField(
         null=True, blank=True,
         verbose_name="Inicio Descuento",
@@ -101,6 +109,11 @@ class Prestamo(models.Model):
 
     estado = models.CharField(max_length=12, choices=ESTADO_CHOICES, default='BORRADOR')
     motivo = models.TextField(blank=True, verbose_name="Motivo")
+    motivo_rechazo = models.TextField(
+        blank=True,
+        verbose_name="Motivo del Rechazo",
+        help_text="Si fue rechazado, motivo dado por el aprobador",
+    )
     observaciones = models.TextField(blank=True)
 
     solicitado_por = models.ForeignKey(
@@ -179,11 +192,19 @@ class Prestamo(models.Model):
         self.cuota_mensual = cuota_base
         self.save(update_fields=['cuota_mensual'])
 
-    def aprobar(self, usuario, monto_aprobado=None, fecha_descuento=None):
+    def aprobar(self, usuario, monto_aprobado=None, fecha_descuento=None,
+                num_cuotas=None):
+        """Workflow corto: aprueba + genera cuotas (preserva tests existentes).
+
+        Para el workflow largo BORRADOR→PENDIENTE→APROBADO→DESEMBOLSADO usar
+        ``marcar_aprobado()`` + ``desembolsar()``.
+        """
         self.estado = 'EN_CURSO'
         self.aprobado_por = usuario
         self.fecha_aprobacion = date.today()
         self.monto_aprobado = monto_aprobado or self.monto_solicitado
+        if num_cuotas:
+            self.num_cuotas = int(num_cuotas)
         self.tasa_interes = self.tipo.tasa_interes_mensual
         if fecha_descuento:
             # Asegurar tipo date
@@ -191,16 +212,64 @@ class Prestamo(models.Model):
                 from datetime import datetime
                 fecha_descuento = datetime.strptime(fecha_descuento, '%Y-%m-%d').date()
             self.fecha_primer_descuento = fecha_descuento
+        if not self.fecha_desembolso:
+            self.fecha_desembolso = date.today()
         self.save()
         self.refresh_from_db()  # Garantizar tipos correctos
         self.generar_cuotas()
+
+    def marcar_aprobado(self, usuario, monto_aprobado=None, num_cuotas=None):
+        """Workflow largo paso 1: APROBADO (sin desembolsar ni generar cuotas)."""
+        if self.estado not in ('BORRADOR', 'PENDIENTE'):
+            raise ValueError(f'No se puede aprobar desde estado {self.estado}')
+        self.estado = 'APROBADO'
+        self.aprobado_por = usuario
+        self.fecha_aprobacion = date.today()
+        self.monto_aprobado = monto_aprobado or self.monto_solicitado
+        if num_cuotas:
+            self.num_cuotas = int(num_cuotas)
+        self.tasa_interes = self.tipo.tasa_interes_mensual
+        self.save()
+
+    def desembolsar(self, usuario, fecha_desembolso=None, fecha_descuento=None):
+        """Workflow largo paso 2: DESEMBOLSADO (EN_CURSO) + genera cuotas."""
+        if self.estado not in ('APROBADO', 'PENDIENTE', 'BORRADOR'):
+            raise ValueError(f'No se puede desembolsar desde estado {self.estado}')
+        if self.estado != 'APROBADO':
+            self.marcar_aprobado(usuario)
+        fecha_desembolso = fecha_desembolso or date.today()
+        if isinstance(fecha_desembolso, str):
+            from datetime import datetime
+            fecha_desembolso = datetime.strptime(fecha_desembolso, '%Y-%m-%d').date()
+        if fecha_descuento and isinstance(fecha_descuento, str):
+            from datetime import datetime
+            fecha_descuento = datetime.strptime(fecha_descuento, '%Y-%m-%d').date()
+        self.fecha_desembolso = fecha_desembolso
+        if fecha_descuento:
+            self.fecha_primer_descuento = fecha_descuento
+        self.estado = 'EN_CURSO'
+        self.save()
+        self.refresh_from_db()
+        self.generar_cuotas()
+
+    def rechazar(self, usuario, motivo=''):
+        """Rechaza préstamo en BORRADOR/PENDIENTE."""
+        if self.estado not in ('BORRADOR', 'PENDIENTE'):
+            raise ValueError(f'No se puede rechazar desde estado {self.estado}')
+        self.estado = 'RECHAZADO'
+        self.aprobado_por = usuario
+        self.fecha_aprobacion = date.today()
+        self.motivo_rechazo = motivo or ''
+        self.save()
 
 
 class CuotaPrestamo(models.Model):
     ESTADO_CHOICES = [
         ('PENDIENTE', 'Pendiente'),
+        ('DESCONTADA', 'Descontada en planilla'),
         ('PAGADO', 'Pagado'),
         ('PARCIAL', 'Pago Parcial'),
+        ('VENCIDA', 'Vencida'),
         ('CONDONADO', 'Condonado'),
     ]
 
@@ -216,6 +285,11 @@ class CuotaPrestamo(models.Model):
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='PENDIENTE')
     fecha_pago = models.DateField(null=True, blank=True)
     referencia_nomina = models.CharField(max_length=100, blank=True)
+    descuento_planilla = models.ForeignKey(
+        'descuentos.DescuentoPlanilla', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='cuotas_prestamo',
+        help_text='Si se descontó en una planilla específica (DescuentoPlanilla)',
+    )
 
     class Meta:
         verbose_name = "Cuota"
@@ -226,10 +300,32 @@ class CuotaPrestamo(models.Model):
     def __str__(self):
         return f"Cuota {self.numero}/{self.prestamo.num_cuotas} — S/ {self.monto}"
 
-    def registrar_pago(self, monto=None, fecha=None, referencia=''):
+    @property
+    def fecha_vencimiento(self):
+        """Alias semántico de ``periodo``."""
+        return self.periodo
+
+    @property
+    def esta_vencida(self):
+        if self.estado in ('PAGADO', 'CONDONADO', 'DESCONTADA'):
+            return False
+        return self.periodo < date.today()
+
+    def actualizar_estado_vencimiento(self):
+        """Marca como VENCIDA si pendiente y fecha pasada. Idempotente."""
+        if self.estado == 'PENDIENTE' and self.esta_vencida:
+            self.estado = 'VENCIDA'
+            self.save(update_fields=['estado'])
+            return True
+        return False
+
+    def registrar_pago(self, monto=None, fecha=None, referencia='',
+                       descuento_planilla=None):
         self.monto_pagado = monto or self.monto
         self.fecha_pago = fecha or date.today()
         self.referencia_nomina = referencia
+        if descuento_planilla is not None:
+            self.descuento_planilla = descuento_planilla
         self.estado = 'PAGADO' if self.monto_pagado >= self.monto else 'PARCIAL'
         self.save()
         # Auto-cerrar préstamo si todas las cuotas están pagadas

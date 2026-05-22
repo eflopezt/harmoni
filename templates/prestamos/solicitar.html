@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Solicitar Préstamo{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'mis_prestamos' %}" class="text-muted text-decoration-none small">
+        <i class="fas fa-arrow-left me-1"></i>Mis Préstamos
+    </a>
+</div>
+
+<h3><i class="fas fa-hand-holding-usd text-primary me-2"></i>Solicitar Préstamo</h3>
+<p class="text-muted">RRHH revisará tu solicitud y te notificará la decisión.</p>
+
+<div class="card shadow-sm" style="max-width:720px;">
+    <div class="card-body">
+        <form method="post" id="solicitudForm">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Tipo de préstamo</label>
+                <select name="tipo_id" id="tipoId" class="form-select" required>
+                    <option value="">-- Selecciona --</option>
+                    {% for t in tipos %}
+                    <option value="{{ t.pk }}"
+                            data-max-cuotas="{{ t.max_cuotas }}"
+                            data-monto-max="{{ t.monto_maximo|default_if_none:'' }}"
+                            data-interes="{{ t.tasa_interes_mensual }}">
+                        {{ t.nombre }}{% if t.monto_maximo %} — hasta S/ {{ t.monto_maximo|floatformat:0|intcomma }}{% endif %} ({{ t.max_cuotas }} cuotas máx.)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Monto (S/)</label>
+                    <input type="number" name="monto" min="1" step="0.01" class="form-control" required>
+                    <small class="text-muted" id="hintMonto">—</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">N° de cuotas</label>
+                    <input type="number" name="num_cuotas" min="1" max="60" class="form-control" required>
+                    <small class="text-muted" id="hintCuotas">—</small>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Motivo</label>
+                <textarea name="motivo" class="form-control" rows="3" required
+                          placeholder="Ej: emergencia familiar, gasto médico, mejora de vivienda…"></textarea>
+            </div>
+
+            <div class="alert alert-info py-2 mb-3 d-none" id="previewBox">
+                <i class="fas fa-info-circle me-2"></i>
+                Cuota estimada: <strong>S/ <span id="previewCuota">—</span></strong> al mes.
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane me-1"></i>Enviar solicitud
+                </button>
+                <a href="{% url 'mis_prestamos' %}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function(){
+    const sel = document.getElementById('tipoId');
+    const monto = document.querySelector('[name=monto]');
+    const cuotas = document.querySelector('[name=num_cuotas]');
+    const hintMonto = document.getElementById('hintMonto');
+    const hintCuotas = document.getElementById('hintCuotas');
+    const previewBox = document.getElementById('previewBox');
+    const previewCuota = document.getElementById('previewCuota');
+
+    function update() {
+        const opt = sel.options[sel.selectedIndex];
+        if (!opt || !opt.value) {
+            hintMonto.textContent = '—'; hintCuotas.textContent = '—';
+            previewBox.classList.add('d-none'); return;
+        }
+        const maxC = parseInt(opt.dataset.maxCuotas);
+        const maxM = opt.dataset.montoMax;
+        cuotas.max = maxC;
+        hintCuotas.textContent = `Hasta ${maxC} cuotas.`;
+        hintMonto.textContent = maxM ? `Máximo S/ ${parseFloat(maxM).toLocaleString()}` : 'Sin tope';
+        if (monto.value && cuotas.value && parseInt(cuotas.value) > 0) {
+            const m = parseFloat(monto.value), n = parseInt(cuotas.value);
+            previewCuota.textContent = (m/n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+            previewBox.classList.remove('d-none');
+        } else {
+            previewBox.classList.add('d-none');
+        }
+    }
+    sel.addEventListener('change', update);
+    monto.addEventListener('input', update);
+    cuotas.addEventListener('input', update);
+})();
+</script>
+{% endblock %}
