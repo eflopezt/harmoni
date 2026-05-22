@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.pivote-wrap {
+    overflow-x: auto;
+    max-height: 75vh;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+.pivote-table {
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    min-width: 100%;
+    background: #fff;
+}
+.pivote-table th, .pivote-table td {
+    border: 1px solid #e2e6ea;
+    padding: 3px 5px;
+    text-align: center;
+    white-space: nowrap;
+}
+.pivote-table thead th {
+    background: #0F766E;
+    color: #fff;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+.pivote-table thead th.col-fecha-fds { background: #115E59; }
+.pivote-table tbody tr:nth-child(even) { background: #f8fafa; }
+.pivote-table tbody td.nombre {
+    text-align: left;
+    font-weight: 500;
+    position: sticky;
+    left: 0;
+    background: inherit;
+    min-width: 220px;
+    z-index: 1;
+}
+.pivote-table tbody td.dni {
+    color: #555;
+    position: sticky;
+    left: 220px;
+    background: inherit;
+    z-index: 1;
+}
+.pivote-table tbody td.fds { opacity: .85; }
+.pivote-table tbody td.cell-estado { font-weight: 700; font-size: .78rem; }
+.pivote-table tfoot td {
+    background: #e9ecef;
+    font-weight: 600;
+    border-top: 2px solid #0F766E;
+}
+.leyenda-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 14px;
+    border: 1px solid #ccc;
+    font-size: 0.78rem;
+    margin-right: 6px;
+    margin-bottom: 4px;
+}
+.leyenda-chip .badge-letra {
+    display: inline-block;
+    width: 22px;
+    text-align: center;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 1px 0;
+}
+.kpi-pivote {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    border-left: 4px solid #0F766E;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.kpi-pivote .label { color: #6c757d; font-size: .75rem; text-transform: uppercase; }
+.kpi-pivote .value { font-size: 1.25rem; font-weight: 700; color: #0F766E; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h2 class="mb-0">
+        <i class="fas fa-th text-success me-2"></i>{{ titulo }}
+    </h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'asistencia_reporte_pivote_excel' %}?{{ querystring }}"
+           class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Excel
+        </a>
+        <a href="{% url 'asistencia_reporte_pivote_pdf' %}?{{ querystring }}"
+           class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf me-1"></i>PDF
+        </a>
+        <a href="{% url 'asistencia_kpis_cross' %}?{{ querystring }}"
+           class="btn btn-info btn-sm text-white">
+            <i class="fas fa-chart-bar me-1"></i>KPIs
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<form method="get" class="card mb-3 border-0 shadow-sm">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold">Desde</label>
+                <input type="date" name="desde" value="{{ filtros.desde|date:'Y-m-d' }}"
+                       class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold">Hasta</label>
+                <input type="date" name="hasta" value="{{ filtros.hasta|date:'Y-m-d' }}"
+                       class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Empresas (IDs)</label>
+                <select name="empresa_ids_select" class="form-select form-select-sm" multiple disabled style="display:none">
+                </select>
+                <input type="text" name="empresa_ids"
+                       value="{% for id in filtros.empresa_ids %}{{ id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                       placeholder="ej. 1,2,3 (vacío = todas)"
+                       class="form-control form-control-sm">
+                <small class="text-muted">
+                    {% for e in empresas %}<span title="{{ e.razon_social }}">{{ e.id }}={{ e.razon_social|truncatechars:18 }}</span>{% if not forloop.last %} · {% endif %}{% endfor %}
+                </small>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold">Grupo</label>
+                <select name="grupo" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    <option value="STAFF" {% if filtros.grupo_tareo == 'STAFF' %}selected{% endif %}>STAFF</option>
+                    <option value="RCO" {% if filtros.grupo_tareo == 'RCO' %}selected{% endif %}>RCO</option>
+                    <option value="OTRO" {% if filtros.grupo_tareo == 'OTRO' %}selected{% endif %}>OTRO</option>
+                </select>
+            </div>
+            <div class="col-md-3 text-end">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-filter me-1"></i>Aplicar
+                </button>
+                <a href="{% url 'asistencia_reporte_pivote' %}" class="btn btn-outline-secondary btn-sm">
+                    Limpiar
+                </a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- KPIs rápidos -->
+<div class="row g-2 mb-3">
+    <div class="col-md-2 col-6"><div class="kpi-pivote">
+        <div class="label">Trabajadores</div><div class="value">{{ total_trabajadores }}</div>
+    </div></div>
+    <div class="col-md-2 col-6"><div class="kpi-pivote" style="border-color:#198754">
+        <div class="label">Asistencias</div>
+        <div class="value" style="color:#198754">{{ totales_globales.A|default:0 }}</div>
+    </div></div>
+    <div class="col-md-2 col-6"><div class="kpi-pivote" style="border-color:#dc3545">
+        <div class="label">Faltas</div>
+        <div class="value" style="color:#dc3545">{{ totales_globales.F|default:0 }}</div>
+    </div></div>
+    <div class="col-md-2 col-6"><div class="kpi-pivote" style="border-color:#ffc107">
+        <div class="label">Tardanzas</div>
+        <div class="value" style="color:#b48400">{{ totales_globales.T|default:0 }}</div>
+    </div></div>
+    <div class="col-md-2 col-6"><div class="kpi-pivote" style="border-color:#0d6efd">
+        <div class="label">Vacaciones</div>
+        <div class="value" style="color:#0d6efd">{{ totales_globales.V|default:0 }}</div>
+    </div></div>
+    <div class="col-md-2 col-6"><div class="kpi-pivote" style="border-color:#6f42c1">
+        <div class="label">Permisos</div>
+        <div class="value" style="color:#6f42c1">{{ totales_globales.P|default:0 }}</div>
+    </div></div>
+</div>
+
+<!-- Leyenda -->
+<div class="mb-2">
+    {% for codigo, label, color in leyenda %}
+    <span class="leyenda-chip">
+        <span class="badge-letra" style="background:{{ color }}">{{ codigo }}</span>
+        {{ label }}
+    </span>
+    {% endfor %}
+</div>
+
+<!-- Tabla Pivote -->
+{% if trabajadores %}
+<div class="pivote-wrap">
+    <table class="pivote-table">
+        <thead>
+            <tr>
+                <th rowspan="2" style="left:0;position:sticky;z-index:3">Trabajador</th>
+                <th rowspan="2" style="left:220px;position:sticky;z-index:3">DNI</th>
+                <th rowspan="2">Empresa</th>
+                <th colspan="{{ fechas|length }}">Días</th>
+                <th colspan="5">Totales</th>
+            </tr>
+            <tr>
+                {% for fecha in fechas %}
+                <th class="{% if fecha.weekday >= 5 %}col-fecha-fds{% endif %}" title="{{ fecha|date:'l d/m/Y' }}">
+                    {{ fecha|date:'d' }}
+                </th>
+                {% endfor %}
+                <th title="Días trabajados">T</th>
+                <th title="Faltas">F</th>
+                <th title="Tardanzas">Td</th>
+                <th title="Vacaciones">V</th>
+                <th title="Permisos">P</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in trabajadores %}
+            <tr>
+                <td class="nombre">{{ t.personal.apellidos_nombres|truncatechars:32 }}</td>
+                <td class="dni">{{ t.personal.nro_doc }}</td>
+                <td><small>{{ t.empresa_nombre|truncatechars:18 }}</small></td>
+                {% for d in t.dias_render %}
+                <td class="cell-estado {% if d.es_fin_semana %}fds{% endif %}"
+                    style="background:{{ d.color }}"
+                    title="{{ d.fecha|date:'l d/m' }}: {{ d.label }}">
+                    {{ d.codigo }}
+                </td>
+                {% endfor %}
+                <td><strong class="text-success">{{ t.total_trabajados }}</strong></td>
+                <td><strong class="text-danger">{{ t.total_faltas }}</strong></td>
+                <td><strong style="color:#b48400">{{ t.total_tardanzas }}</strong></td>
+                <td><strong class="text-primary">{{ t.total_vacaciones }}</strong></td>
+                <td><strong style="color:#6f42c1">{{ t.total_permisos }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-end">Total Presentes / día →</td>
+                {% for td in totales_dia %}
+                <td title="Presentes: {{ td.presentes }} | Faltas: {{ td.faltas }}">
+                    <strong>{{ td.presentes }}</strong>
+                </td>
+                {% endfor %}
+                <td colspan="5"></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+<p class="text-muted small mt-2">
+    Mostrando {{ trabajadores|length }} trabajadores · Período: {{ filtros.desde|date:'d/m/Y' }} → {{ filtros.hasta|date:'d/m/Y' }}
+</p>
+{% else %}
+<div class="alert alert-warning">
+    <i class="fas fa-info-circle me-1"></i>No hay trabajadores que coincidan con los filtros.
+</div>
+{% endif %}
+
+{% endblock %}

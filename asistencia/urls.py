@@ -10,6 +10,12 @@ from asistencia.views.reportes_area import (
     gestionar_emails, reporte_horario_simple, reporte_excel_areas,
     reporte_pdf_area,
 )
+from asistencia.views.reportes_avanzados import (
+    reporte_pivote_view,
+    reporte_pivote_excel,
+    reporte_pivote_pdf,
+    reporte_kpis_cross_view,
+)
 
 urlpatterns = [
     # Dashboard principal
@@ -142,6 +148,12 @@ urlpatterns = [
     # acciones consistentes. Las URLs legacy debajo siguen vivas para
     # mantener compatibilidad con código existente.
     path('reportes/', reportes_unificado.panel, name='asistencia_reportes_unificado'),
+
+    # ── Reporte Pivote Cross-Empresa ──
+    path('reportes/pivote/', reporte_pivote_view, name='asistencia_reporte_pivote'),
+    path('reportes/pivote/excel/', reporte_pivote_excel, name='asistencia_reporte_pivote_excel'),
+    path('reportes/pivote/pdf/', reporte_pivote_pdf, name='asistencia_reporte_pivote_pdf'),
+    path('reportes/kpis-cross/', reporte_kpis_cross_view, name='asistencia_kpis_cross'),
 
     # Reportes Individuales — listado de empleados (legacy panel)
     path('reportes/listado/', views.reporte_panel, name='asistencia_reportes'),
