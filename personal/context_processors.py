@@ -160,6 +160,21 @@ def _get_config_context(user) -> dict:
                     'mod_capacitaciones', 'mod_reclutamiento', 'mod_encuestas', 'mod_salarios',
                     'mod_roster'):
             result[mod] = True
+
+    # ── Override Plan Starter ──
+    # Aunque sea superuser, si la empresa es Starter (S/149/mes), ocultar
+    # módulos enterprise en el sidebar. El middleware también bloquea las URLs,
+    # pero esto evita que los menús lleven a /upgrade/ (mejor UX).
+    try:
+        from core.middleware_plan_starter import is_starter_user
+        if is_starter_user(user):
+            for mod in ('mod_evaluaciones', 'mod_capacitaciones', 'mod_reclutamiento',
+                        'mod_encuestas', 'mod_salarios', 'mod_roster',
+                        'mod_viaticos', 'mod_prestamos'):
+                result[mod] = False
+    except Exception:
+        pass
+
     return result
 
 

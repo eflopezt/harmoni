@@ -216,6 +216,25 @@ class Empresa(models.Model):
         help_text='Empresa principal/default del sistema'
     )
 
+    # ── Plan / tier comercial de Harmoni ─────────────────────────────
+    PLAN_CHOICES = [
+        ('STARTER',     'Starter — S/ 149/mes (hasta 30 colaboradores)'),
+        ('PROFESIONAL', 'Profesional — S/ 399/mes (hasta 100 colaboradores)'),
+        ('BUSINESS',    'Business — S/ 799/mes (hasta 300 colaboradores)'),
+        ('ENTERPRISE',  'Enterprise — Personalizado (300+ colaboradores)'),
+    ]
+    plan = models.CharField(
+        max_length=20,
+        choices=PLAN_CHOICES,
+        default='PROFESIONAL',
+        verbose_name='Plan Harmoni',
+        help_text=(
+            'Plan contratado por esta empresa. Determina qué módulos y '
+            'features están habilitados. El middleware PlanStarterMiddleware '
+            'restringe acceso para empresas con plan=STARTER.'
+        ),
+    )
+
     creado_en      = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
     creado_por     = models.ForeignKey(

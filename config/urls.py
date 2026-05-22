@@ -150,6 +150,9 @@ urlpatterns = [
     path('demo2/', lambda r: demo_landing(r, 'demo2'), name='demo2_landing'),
     # Upgrade plan (mostrado al usuario Starter cuando intenta feature bloqueada)
     path('upgrade/', __import__('core.views_upgrade', fromlist=['upgrade_plan']).upgrade_plan, name='upgrade_plan'),
+    # Auto-login para demos comerciales (link directo sin teclear credenciales)
+    # Solo funciona en hosts demo.*
+    path('d/<str:slug>/', __import__('core.views_demo_autologin', fromlist=['demo_autologin']).demo_autologin, name='demo_autologin'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
@@ -182,6 +185,7 @@ urlpatterns = [
     path('nominas/', include('nominas.urls')),
     path('empresas/', include('empresas.urls')),
     path('workflows/', include('workflows.urls')),
+    path('', include('wa_marketing.urls')),
 ]
 
 # Add debug toolbar URLs in development

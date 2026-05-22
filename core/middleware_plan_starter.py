@@ -47,8 +47,9 @@ from django.urls import reverse
 logger = logging.getLogger('core.plan_starter')
 
 
-# Usuarios identificados como Plan Starter
-# (en producción esto vendría de Empresa.plan o User.profile.plan)
+# Usuarios identificados como Plan Starter (fallback / legacy).
+# La identificación PRIMARIA es vía Empresa.plan == 'STARTER' (Personal → Empresa).
+# Este whitelist queda como fallback para demo users que no tengan Personal asociado.
 STARTER_USERNAMES = ['demo2']
 
 
@@ -153,9 +154,27 @@ STARTER_BLOCKED_RE = [re.compile(p) for p in STARTER_BLOCKED_PATTERNS]
 
 
 def is_starter_user(user):
-    """Devuelve True si el user está en plan Starter."""
+    """
+    Devuelve True si el user pertenece a una empresa con Plan Starter.
+
+    Resolución (en orden de prioridad):
+    1. Empresa.plan == 'STARTER' via Personal.empresa  (caso producción)
+    2. Username en STARTER_USERNAMES                    (caso demo / fallback)
+    """
     if not user.is_authenticated:
         return False
+
+    # 1. Resolver via Personal → Empresa.plan
+    try:
+        personal = getattr(user, 'personal', None)
+        if personal and getattr(personal, 'empresa', None):
+            if personal.empresa.plan == 'STARTER':
+                return True
+    except Exception:
+        # Si el modelo Personal no existe aún, o la relación falla → fallback
+        pass
+
+    # 2. Fallback por username (demos)
     return user.username in STARTER_USERNAMES
 
 
