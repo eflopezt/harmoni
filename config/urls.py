@@ -173,6 +173,8 @@ urlpatterns = [
     path('faq/', __import__('core.views_faq', fromlist=['faq_publica']).faq_publica, name='faq_publica'),
     # Caso de uso comercial — Grupo EDO (público, sin login)
     path('casos/edo/', __import__('core.views_caso_edo', fromlist=['caso_edo']).caso_edo, name='caso_edo'),
+    # Página pública de precios (los 4 planes)
+    path('precios/', __import__('core.views_precios', fromlist=['precios']).precios, name='precios_publico'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

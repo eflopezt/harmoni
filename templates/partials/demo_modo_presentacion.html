@@ -1,0 +1,72 @@
+{# Modo presentación — oculta sidebar y topbar para pantalla limpia.
+   Activación: Ctrl+Shift+P o ?present=1 #}
+{% if DEMO_MODE and user.is_authenticated %}
+<style>
+body.demo-presentation .harmoni-sidebar { display: none !important; }
+body.demo-presentation .harmoni-topbar { display: none !important; }
+body.demo-presentation .harmoni-main { margin-left: 0 !important; }
+body.demo-presentation .harmoni-content { padding-top: 20px !important; max-width: 1400px; margin: 0 auto; }
+body.demo-presentation .demo-banner { display: none !important; }
+
+#presentation-exit {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10000;
+    background: #0d2b27;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: .8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25);
+}
+body.demo-presentation #presentation-exit { display: block; }
+</style>
+
+<button id="presentation-exit" title="Salir modo presentación (Esc)">
+  <i class="fas fa-times me-1"></i> Salir presentación
+</button>
+
+<script>
+(function(){
+  const body = document.body;
+
+  function enter(){
+    body.classList.add('demo-presentation');
+    sessionStorage.setItem('presentation_mode', '1');
+  }
+  function exit(){
+    body.classList.remove('demo-presentation');
+    sessionStorage.removeItem('presentation_mode');
+  }
+  function toggle(){
+    if (body.classList.contains('demo-presentation')) exit();
+    else enter();
+  }
+
+  // Atajo Ctrl+Shift+P
+  document.addEventListener('keydown', function(e){
+    if (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+      e.preventDefault();
+      toggle();
+    }
+    if (e.key === 'Escape' && body.classList.contains('demo-presentation')) {
+      exit();
+    }
+  });
+
+  // Botón exit
+  document.getElementById('presentation-exit').addEventListener('click', exit);
+
+  // Auto-launch si ?present=1
+  const url = new URL(window.location);
+  if (url.searchParams.get('present') === '1' || sessionStorage.getItem('presentation_mode') === '1') {
+    enter();
+  }
+})();
+</script>
+{% endif %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Planes y precios — Harmoni{% endblock %}
+{% block content %}
+<div style="max-width:1180px;margin:0 auto;">
+
+  <!-- HERO -->
+  <div style="text-align:center;margin-bottom:36px;">
+    <div style="display:inline-block;background:#f0fdf4;color:#16a34a;padding:6px 16px;border-radius:20px;font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;">
+      <i class="fas fa-tag me-1"></i> Precios transparentes · Sin contratos largos
+    </div>
+    <h1 style="margin:0 0 12px;font-weight:900;color:#0d2b27;letter-spacing:-.02em;font-size:2.4rem;">
+      Elige el plan que se adapta a tu empresa
+    </h1>
+    <p style="color:#475569;font-size:1.05rem;max-width:720px;margin:0 auto;">
+      4 planes diseñados para diferentes tamaños y necesidades.
+      Cambia o cancela cuando quieras. <strong>30 días gratis sin tarjeta</strong>.
+    </p>
+  </div>
+
+  <!-- PLANES GRID -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:48px;">
+    {% for p in planes %}
+    <div style="background:#fff;border-radius:16px;padding:28px 22px;border:{% if p.destacado %}2px solid {{ p.color }}{% else %}1px solid #e2e8f0{% endif %};{% if p.destacado %}transform:translateY(-8px);box-shadow:0 16px 40px rgba(15,118,110,.16);{% else %}box-shadow:0 1px 3px rgba(0,0,0,.04);{% endif %}position:relative;">
+
+      {% if p.destacado %}
+      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#5eead4,#0f766e);color:#fff;padding:5px 16px;border-radius:14px;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">
+        ⭐ Más popular
+      </div>
+      {% endif %}
+
+      <h3 style="margin:0 0 4px;font-weight:800;font-size:1.4rem;color:{{ p.color }};">{{ p.nombre }}</h3>
+      <p style="margin:0 0 16px;font-size:.78rem;color:#94a3b8;">{{ p.tagline }}</p>
+
+      <div style="margin-bottom:16px;">
+        {% if p.precio %}
+        <div style="font-size:2.6rem;font-weight:900;color:#0d2b27;line-height:1;">
+          S/ {{ p.precio }}<span style="font-size:.85rem;color:#64748b;font-weight:500;">/mes</span>
+        </div>
+        <div style="font-size:.74rem;color:#64748b;">+ IGV · {{ p.colaboradores }} colaboradores</div>
+        {% else %}
+        <div style="font-size:1.6rem;font-weight:800;color:#0d2b27;line-height:1;">{{ p.precio_label }}</div>
+        <div style="font-size:.74rem;color:#64748b;margin-top:4px;">{{ p.colaboradores }} colaboradores</div>
+        {% endif %}
+      </div>
+
+      <ul style="list-style:none;padding:0;margin:0 0 14px;">
+        {% for f in p.features %}
+        <li style="padding:5px 0 5px 22px;position:relative;font-size:.83rem;color:#334155;line-height:1.4;">
+          <span style="position:absolute;left:0;color:#16a34a;font-weight:700;">✓</span>
+          {{ f }}
+        </li>
+        {% endfor %}
+      </ul>
+
+      {% if p.features_no %}
+      <hr style="border:none;border-top:1px dashed #e2e8f0;margin:12px 0;">
+      <ul style="list-style:none;padding:0;margin:0 0 18px;">
+        {% for f in p.features_no %}
+        <li style="padding:4px 0 4px 22px;position:relative;font-size:.78rem;color:#94a3b8;text-decoration:line-through;line-height:1.4;">
+          <span style="position:absolute;left:0;color:#cbd5e1;">✗</span>
+          {{ f }}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if p.codigo == 'STARTER' %}
+      <a href="/onboarding/starter/" data-confetti="1" style="display:block;text-align:center;background:{{ p.color }};color:#fff;padding:13px;border-radius:10px;font-weight:700;text-decoration:none;font-size:.92rem;">
+        Empieza gratis →
+      </a>
+      {% elif p.codigo == 'ENTERPRISE' %}
+      <a href="https://wa.me/51906602313?text=Hola,%20me%20interesa%20el%20Plan%20Enterprise%20de%20Harmoni." target="_blank" style="display:block;text-align:center;background:{{ p.color }};color:#fff;padding:13px;border-radius:10px;font-weight:700;text-decoration:none;font-size:.92rem;">
+        <i class="fab fa-whatsapp"></i> Solicitar cotización
+      </a>
+      {% else %}
+      <a href="https://wa.me/51906602313?text=Hola,%20quiero%20el%20Plan%20{{ p.nombre|urlencode }}%20de%20Harmoni." target="_blank" style="display:block;text-align:center;background:{{ p.color }};color:#fff;padding:13px;border-radius:10px;font-weight:700;text-decoration:none;font-size:.92rem;">
+        Empezar 30 días gratis
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- COMPARATIVA contra Spring/Buk -->
+  <div style="background:#f8fafc;border-radius:14px;padding:32px;margin-bottom:36px;">
+    <h2 style="text-align:center;color:#0d2b27;font-weight:800;margin:0 0 24px;">Comparamos lo importante</h2>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
+      <thead>
+        <tr style="background:#0d2b27;color:#fff;">
+          <th style="text-align:left;padding:12px;">Feature</th>
+          <th style="text-align:center;padding:12px;background:#0f766e;">Harmoni</th>
+          <th style="text-align:center;padding:12px;">Spring</th>
+          <th style="text-align:center;padding:12px;">Buk</th>
+          <th style="text-align:center;padding:12px;">Excel</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">Multi-empresa (24+ RUCs)</td><td style="text-align:center;background:#f0fdf4;font-weight:700;">✓</td><td style="text-align:center;color:#dc2626;">✗ Limitado</td><td style="text-align:center;color:#dc2626;">✗</td><td style="text-align:center;color:#dc2626;">✗</td></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">Propinas + recargo consumo</td><td style="text-align:center;background:#f0fdf4;font-weight:700;">✓ Nativo</td><td style="text-align:center;color:#f59e0b;">⚠ Manual</td><td style="text-align:center;color:#f59e0b;">⚠ Custom</td><td style="text-align:center;color:#dc2626;">✗</td></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">Jornada nocturna 22-06h</td><td style="text-align:center;background:#f0fdf4;font-weight:700;">✓ Automático</td><td style="text-align:center;color:#f59e0b;">⚠ Manual</td><td style="text-align:center;background:#f0fdf4;">✓</td><td style="text-align:center;color:#dc2626;">✗</td></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">Portal mobile trabajador</td><td style="text-align:center;background:#f0fdf4;font-weight:700;">✓ PWA</td><td style="text-align:center;color:#dc2626;">✗</td><td style="text-align:center;background:#f0fdf4;">✓</td><td style="text-align:center;color:#dc2626;">✗</td></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">QR público en boleta</td><td style="text-align:center;background:#f0fdf4;font-weight:700;">✓</td><td style="text-align:center;color:#dc2626;">✗</td><td style="text-align:center;color:#dc2626;">✗</td><td style="text-align:center;color:#dc2626;">✗</td></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">Reclutamiento con IA</td><td style="text-align:center;background:#f0fdf4;font-weight:700;">✓ 5 modelos</td><td style="text-align:center;color:#dc2626;">✗</td><td style="text-align:center;color:#f59e0b;">⚠ Básico</td><td style="text-align:center;color:#dc2626;">✗</td></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">Briefing del Día (gastro)</td><td style="text-align:center;background:#f0fdf4;font-weight:700;">✓</td><td style="text-align:center;color:#dc2626;">✗</td><td style="text-align:center;color:#dc2626;">✗</td><td style="text-align:center;color:#dc2626;">✗</td></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">PLAME / T-Registro auto</td><td style="text-align:center;background:#f0fdf4;font-weight:700;">✓ 1-click</td><td style="text-align:center;background:#f0fdf4;">✓</td><td style="text-align:center;background:#f0fdf4;">✓</td><td style="text-align:center;color:#dc2626;">✗</td></tr>
+        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:600;">Precio mensual (100 colab.)</td><td style="text-align:center;background:#f0fdf4;font-weight:700;color:#16a34a;">S/ 399</td><td style="text-align:center;">S/ ~800</td><td style="text-align:center;">S/ ~600</td><td style="text-align:center;">$0</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- FAQs -->
+  <h2 style="text-align:center;color:#0d2b27;font-weight:800;margin:0 0 22px;">Preguntas sobre precios</h2>
+  <div style="max-width:760px;margin:0 auto 36px;">
+    {% for f in faqs %}
+    <details style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin-bottom:10px;cursor:pointer;">
+      <summary style="font-weight:700;color:#0d2b27;font-size:.95rem;list-style:none;">{{ f.q }}</summary>
+      <p style="margin:10px 0 0;color:#475569;font-size:.88rem;line-height:1.6;">{{ f.a }}</p>
+    </details>
+    {% endfor %}
+  </div>
+
+  <!-- CTA final -->
+  <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;border-radius:14px;padding:36px;text-align:center;">
+    <h2 style="margin:0 0 8px;font-weight:800;">¿Sigues con dudas?</h2>
+    <p style="margin:0 0 18px;color:rgba(255,255,255,.85);">Hablemos 15 minutos. Te recomendamos el plan correcto sin compromiso.</p>
+    <a href="https://wa.me/51906602313?text=Hola,%20quiero%20conversar%20sobre%20Harmoni%20—%20qué%20plan%20me%20conviene." target="_blank" style="background:#16a34a;color:#fff;padding:14px 30px;border-radius:10px;font-weight:700;text-decoration:none;display:inline-block;">
+      <i class="fab fa-whatsapp"></i> Hablar por WhatsApp ahora
+    </a>
+  </div>
+
+</div>
+
+<style>
+details summary::-webkit-details-marker { display: none; }
+details summary::after { content: '+'; float: right; color: #94a3b8; font-size: 1.2rem; }
+details[open] summary::after { content: '−'; }
+</style>
+{% endblock %}
