@@ -2,6 +2,7 @@
 from django.urls import path
 from core import views
 from core import views_audit
+from core import views_bi
 from core import views_dashboard
 from core import views_reports
 
@@ -29,4 +30,7 @@ urlpatterns = [
     path('reportes/personal/pdf/', views_reports.reporte_personal_pdf, name='reporte_personal_pdf'),
     path('reportes/asistencia/pdf/', views_reports.reporte_asistencia_pdf, name='reporte_asistencia_pdf'),
     path('reportes/vacaciones/pdf/', views_reports.reporte_vacaciones_pdf, name='reporte_vacaciones_pdf'),
+
+    # Reporte BI Excel mensual cross-modulo
+    path('reporte-bi-mensual/', views_bi.reporte_bi_mensual, name='reporte_bi_mensual'),
 ]

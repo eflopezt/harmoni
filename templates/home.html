@@ -183,10 +183,30 @@
     </div>
   </div>
   {% if user.is_superuser %}
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
     <a href="{% url 'dashboard_ejecutivo' %}" class="btn btn-sm" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;font-weight:600;box-shadow:0 2px 8px rgba(245,158,11,.35);">
       <i class="fas fa-chart-pie me-1"></i>Dashboard Ejecutivo
     </a>
+
+    {# Reporte BI Mensual — Excel ejecutivo cross-modulo #}
+    <form method="get" action="{% url 'reporte_bi_mensual' %}"
+          style="display:inline-flex;gap:4px;align-items:center;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:3px 8px;backdrop-filter:blur(4px);">
+      <i class="fas fa-file-excel" style="color:#fff;font-size:.85rem;"></i>
+      <select name="mes" class="form-select form-select-sm" style="font-size:.75rem;padding:2px 4px;background:transparent;color:#fff;border:none;width:auto;" aria-label="Mes">
+        <option value="1">Ene</option><option value="2">Feb</option>
+        <option value="3">Mar</option><option value="4">Abr</option>
+        <option value="5" selected>May</option><option value="6">Jun</option>
+        <option value="7">Jul</option><option value="8">Ago</option>
+        <option value="9">Sep</option><option value="10">Oct</option>
+        <option value="11">Nov</option><option value="12">Dic</option>
+      </select>
+      <input type="number" name="anio" value="2026" min="2020" max="2100"
+             style="width:62px;font-size:.75rem;padding:2px 4px;background:transparent;color:#fff;border:none;text-align:center;" aria-label="Año">
+      <button type="submit" class="btn btn-sm" style="background:rgba(255,255,255,.25);color:#fff;border:none;font-weight:600;padding:2px 10px;font-size:.75rem;">
+        📊 Reporte BI Mensual
+      </button>
+    </form>
+
     <a href="{% url 'personal_create' %}" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(4px);">
       <i class="fas fa-user-plus me-1"></i>Nuevo Empleado
     </a>
