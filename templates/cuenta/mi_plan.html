@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Mi Plan — {{ plan_info.nombre }}{% endblock %}
+{% block content %}
+<div style="max-width:980px;margin:0 auto;">
+
+  <!-- Hero del plan actual -->
+  <div style="background:linear-gradient(135deg,#0d2b27,#134e4a);color:#fff;padding:30px 28px;border-radius:14px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+    <div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">
+        Tu plan actual
+      </div>
+      <h2 style="margin:0;font-weight:800;">
+        <i class="fas {{ plan_info.icon }} me-2" style="color:{{ plan_info.color }};"></i>
+        Plan {{ plan_info.nombre }}
+      </h2>
+      {% if empresa %}
+      <p style="margin:8px 0 0;color:rgba(255,255,255,.85);">
+        {{ empresa.razon_social }} · RUC {{ empresa.ruc }}
+      </p>
+      {% endif %}
+    </div>
+    <div style="text-align:right;">
+      {% if plan_info.precio_mensual %}
+      <div style="font-size:2.4rem;font-weight:900;line-height:1;">S/ {{ plan_info.precio_mensual }}</div>
+      <div style="font-size:.85rem;opacity:.85;">+ IGV / mes</div>
+      {% else %}
+      <div style="font-size:1.6rem;font-weight:700;">Personalizado</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:20px;">
+
+    <!-- Workers -->
+    <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <i class="fas fa-users" style="color:#0f766e;font-size:1.2rem;"></i>
+        <strong style="color:#0d2b27;">Trabajadores</strong>
+      </div>
+      <div style="font-size:2rem;font-weight:900;color:#0d2b27;line-height:1;">
+        {{ workers_total }}{% if plan_info.cap_workers %}<span style="font-size:1rem;color:#64748b;font-weight:500;"> / {{ plan_info.cap_workers }}</span>{% endif %}
+      </div>
+      {% if plan_info.cap_workers %}
+      <div style="background:#f1f5f9;height:8px;border-radius:6px;margin-top:10px;overflow:hidden;">
+        <div style="background:{{ progress_color }};height:100%;width:{{ workers_pct }}%;transition:width .3s;"></div>
+      </div>
+      <div style="font-size:.78rem;color:#64748b;margin-top:6px;">{{ workers_pct }}% — {{ progress_text }}</div>
+      {% else %}
+      <div style="font-size:.78rem;color:#64748b;margin-top:10px;">Sin tope (Plan Enterprise)</div>
+      {% endif %}
+    </div>
+
+    <!-- Periodos -->
+    <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <i class="fas fa-calendar-check" style="color:#0891b2;font-size:1.2rem;"></i>
+        <strong style="color:#0d2b27;">Períodos generados</strong>
+      </div>
+      <div style="font-size:2rem;font-weight:900;color:#0d2b27;line-height:1;">{{ periodos_count }}</div>
+      <div style="font-size:.78rem;color:#64748b;margin-top:10px;">Histórico total</div>
+    </div>
+
+    <!-- Boletas -->
+    <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <i class="fas fa-file-invoice-dollar" style="color:#7c3aed;font-size:1.2rem;"></i>
+        <strong style="color:#0d2b27;">Boletas emitidas</strong>
+      </div>
+      <div style="font-size:2rem;font-weight:900;color:#0d2b27;line-height:1;">{{ boletas_count }}</div>
+      <div style="font-size:.78rem;color:#64748b;margin-top:10px;">~{{ storage_mb }} MB en PDFs</div>
+    </div>
+
+    <!-- Próximo pago / Suscripción -->
+    <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <i class="fas fa-credit-card" style="color:#16a34a;font-size:1.2rem;"></i>
+        <strong style="color:#0d2b27;">Próximo pago</strong>
+      </div>
+      {% if suscripcion %}
+      <div style="font-size:1.2rem;font-weight:800;color:#0d2b27;">
+        {{ suscripcion.proximo_pago|default:"Sin programar" }}
+      </div>
+      <div style="font-size:.78rem;color:#64748b;margin-top:8px;">
+        Ciclo: {{ suscripcion.get_ciclo_display|default:"-" }}
+      </div>
+      {% else %}
+      <div style="color:#64748b;font-size:.9rem;">Sin información de suscripción</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- CTA contextual -->
+  {% if plan_code != 'ENTERPRISE' %}
+  <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:12px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+    <div>
+      <h4 style="margin:0;color:#78350f;font-weight:800;">
+        {% if workers_pct >= 80 %}
+        🚨 Estás cerca del límite de tu plan
+        {% else %}
+        💡 ¿Necesitas más funcionalidades?
+        {% endif %}
+      </h4>
+      <p style="margin:6px 0 0;color:#78350f;font-size:.9rem;">
+        {% if workers_pct >= 80 %}
+        Tienes {{ workers_total }} de {{ plan_info.cap_workers }} trabajadores. Considera subir a un plan superior antes de llegar al tope.
+        {% else %}
+        Desbloquea reclutamiento con IA, portal del colaborador, dashboard ejecutivo y más.
+        {% endif %}
+      </p>
+    </div>
+    <a href="{% url 'upgrade_plan' %}" style="background:#0f766e;color:#fff;padding:11px 22px;border-radius:10px;font-weight:700;text-decoration:none;white-space:nowrap;">
+      Ver opciones →
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

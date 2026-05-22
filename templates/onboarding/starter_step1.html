@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Onboarding Plan Starter — Paso 1{% endblock %}
+{% block content %}
+<div style="max-width:680px;margin:40px auto;">
+  <div style="background:linear-gradient(135deg,#0d2b27,#134e4a);color:#fff;padding:30px 28px;border-radius:14px;text-align:center;">
+    <h2 style="margin:0;font-weight:800;">
+      <i class="fas fa-rocket me-2" style="color:#5eead4"></i>
+      Onboarding Plan Starter
+    </h2>
+    <p style="margin:8px 0 0;color:rgba(255,255,255,.85);">
+      Paso {{ step }} de {{ total_steps }} — Datos de tu empresa
+    </p>
+    <div style="background:rgba(255,255,255,.15);height:8px;border-radius:6px;margin-top:18px;overflow:hidden;">
+      <div style="background:#5eead4;height:100%;width:{{ step|stringformat:'s' }}3.33%;"></div>
+    </div>
+  </div>
+
+  {% if errors %}
+  <div style="background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;padding:12px 16px;border-radius:10px;margin-top:18px;">
+    <strong>Por favor corrige:</strong>
+    <ul style="margin:6px 0 0;padding-left:22px;">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="post" style="background:#fff;padding:28px;border-radius:14px;margin-top:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label style="font-weight:600;display:block;margin-bottom:4px;">RUC <span style="color:#dc2626">*</span></label>
+      <input type="text" name="ruc" value="{{ data.ruc }}" maxlength="11" class="form-control" placeholder="20XXXXXXXXX" required>
+    </div>
+    <div class="mb-3">
+      <label style="font-weight:600;display:block;margin-bottom:4px;">Razón social <span style="color:#dc2626">*</span></label>
+      <input type="text" name="razon_social" value="{{ data.razon_social }}" class="form-control" required>
+    </div>
+    <div class="row">
+      <div class="col-md-7 mb-3">
+        <label style="font-weight:600;display:block;margin-bottom:4px;">Email de RRHH</label>
+        <input type="email" name="email_rrhh" value="{{ data.email_rrhh }}" class="form-control" placeholder="rrhh@empresa.pe">
+      </div>
+      <div class="col-md-5 mb-3">
+        <label style="font-weight:600;display:block;margin-bottom:4px;">Teléfono</label>
+        <input type="text" name="telefono" value="{{ data.telefono }}" class="form-control" placeholder="+51 ...">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success" style="background:#0f766e;border-color:#0f766e;width:100%;padding:11px;font-weight:600;">
+      Continuar al paso 2 →
+    </button>
+  </form>
+</div>
+{% endblock %}

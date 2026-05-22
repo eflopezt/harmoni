@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Onboarding Plan Starter — Paso 2{% endblock %}
+{% block content %}
+<div style="max-width:680px;margin:40px auto;">
+  <div style="background:linear-gradient(135deg,#0d2b27,#134e4a);color:#fff;padding:30px 28px;border-radius:14px;text-align:center;">
+    <h2 style="margin:0;font-weight:800;">
+      <i class="fas fa-user-shield me-2" style="color:#5eead4"></i>
+      Crear tu usuario administrador
+    </h2>
+    <p style="margin:8px 0 0;color:rgba(255,255,255,.85);">
+      Paso {{ step }} de {{ total_steps }} — Será quien gestione la planilla
+    </p>
+    <div style="background:rgba(255,255,255,.15);height:8px;border-radius:6px;margin-top:18px;overflow:hidden;">
+      <div style="background:#5eead4;height:100%;width:66.66%;"></div>
+    </div>
+  </div>
+
+  {% if errors %}
+  <div style="background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;padding:12px 16px;border-radius:10px;margin-top:18px;">
+    <strong>Por favor corrige:</strong>
+    <ul style="margin:6px 0 0;padding-left:22px;">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="post" style="background:#fff;padding:28px;border-radius:14px;margin-top:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label style="font-weight:600;display:block;margin-bottom:4px;">Nombres <span style="color:#dc2626">*</span></label>
+        <input type="text" name="first_name" value="{{ data.first_name }}" class="form-control" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label style="font-weight:600;display:block;margin-bottom:4px;">Apellidos <span style="color:#dc2626">*</span></label>
+        <input type="text" name="last_name" value="{{ data.last_name }}" class="form-control" required>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label style="font-weight:600;display:block;margin-bottom:4px;">Email <span style="color:#dc2626">*</span></label>
+      <input type="email" name="email" value="{{ data.email }}" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label style="font-weight:600;display:block;margin-bottom:4px;">Nombre de usuario <span style="color:#dc2626">*</span></label>
+      <input type="text" name="username" value="{{ data.username }}" class="form-control" placeholder="ej. admin" pattern="[a-z0-9_-]+" required>
+      <small style="color:#64748b;">Solo letras minúsculas, números, guiones</small>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label style="font-weight:600;display:block;margin-bottom:4px;">Contraseña <span style="color:#dc2626">*</span></label>
+        <input type="password" name="password" class="form-control" minlength="8" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label style="font-weight:600;display:block;margin-bottom:4px;">Confirmar contraseña <span style="color:#dc2626">*</span></label>
+        <input type="password" name="password_confirm" class="form-control" minlength="8" required>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <a href="{% url 'onboarding_starter_step1' %}" class="btn btn-outline-secondary" style="flex:1;padding:11px;">← Atrás</a>
+      <button type="submit" class="btn btn-success" style="background:#0f766e;border-color:#0f766e;flex:2;padding:11px;font-weight:600;">
+        Continuar al paso 3 →
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -153,6 +153,12 @@ urlpatterns = [
     # Auto-login para demos comerciales (link directo sin teclear credenciales)
     # Solo funciona en hosts demo.*
     path('d/<str:slug>/', __import__('core.views_demo_autologin', fromlist=['demo_autologin']).demo_autologin, name='demo_autologin'),
+    # Onboarding Plan Starter — wizard 3 pasos
+    path('onboarding/starter/',       __import__('core.views_onboarding_starter', fromlist=['onboarding_starter_step1']).onboarding_starter_step1, name='onboarding_starter_step1'),
+    path('onboarding/starter/admin/', __import__('core.views_onboarding_starter', fromlist=['onboarding_starter_step2']).onboarding_starter_step2, name='onboarding_starter_step2'),
+    path('onboarding/starter/listo/', __import__('core.views_onboarding_starter', fromlist=['onboarding_starter_step3']).onboarding_starter_step3, name='onboarding_starter_step3'),
+    # Mi cuenta — dashboard del plan vigente
+    path('cuenta/plan/', __import__('core.views_mi_cuenta', fromlist=['mi_cuenta_plan']).mi_cuenta_plan, name='mi_cuenta_plan'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

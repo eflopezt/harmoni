@@ -12,14 +12,49 @@ Seguridad:
     - No usar este patrón en producción.
 """
 import logging
+import time
 
 from django.conf import settings
 from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.backends import ModelBackend
-from django.http import Http404
+from django.core.cache import cache
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
 
 logger = logging.getLogger('core.demo_autologin')
+
+
+# Rate-limit: máximo N hits por IP por ventana de tiempo (segundos)
+RATE_LIMIT_HITS    = 10    # hits
+RATE_LIMIT_WINDOW  = 60    # segundos (1 minuto)
+
+
+def _check_rate_limit(request):
+    """
+    Devuelve True si la IP excedió el rate limit, False si está OK.
+    Usa Django cache (Redis en prod) con TTL = ventana.
+    """
+    # Extraer IP (considerar X-Forwarded-For si está detrás de proxy)
+    ip = (
+        request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+        or request.META.get('REMOTE_ADDR', '0.0.0.0')
+    )
+    key = f'autologin_rl:{ip}'
+    hits = cache.get(key, 0)
+    if hits >= RATE_LIMIT_HITS:
+        logger.warning(
+            f"Rate limit excedido — IP={ip} hits={hits} ventana={RATE_LIMIT_WINDOW}s"
+        )
+        return True
+    # Incrementar contador (set initial con TTL si era 0)
+    if hits == 0:
+        cache.set(key, 1, timeout=RATE_LIMIT_WINDOW)
+    else:
+        try:
+            cache.incr(key)
+        except ValueError:
+            cache.set(key, hits + 1, timeout=RATE_LIMIT_WINDOW)
+    return False
 
 
 # Map slug → username del demo
@@ -58,6 +93,14 @@ def demo_autologin(request, slug):
             f"Intento de auto-login en host no-demo: {request.get_host()} slug={slug}"
         )
         raise Http404("Auto-login solo disponible en host demo.")
+
+    # Rate-limit por IP (10 hits / 60s)
+    if _check_rate_limit(request):
+        return HttpResponse(
+            'Demasiados intentos. Espera un momento antes de reintentar.',
+            status=429,
+            content_type='text/plain; charset=utf-8',
+        )
 
     username = DEMO_AUTOLOGIN_USERS.get(slug.lower())
     if not username:
