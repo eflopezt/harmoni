@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Día — Reclutamiento{% endblock %}
+
+{% block extra_css %}
+<style>
+.mi-dia-hero {
+    background: linear-gradient(135deg, #0d2b27, #134e4a);
+    color: #fff;
+    padding: 24px 28px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 20px rgba(13,43,39,.15);
+}
+.mi-dia-hero h2 { margin: 0; font-weight: 700; }
+.mi-dia-hero .subtitle {
+    color: #b6d4d0; font-size: .92rem; margin-top: 4px;
+}
+.kpi-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    border-left: 4px solid #5eead4;
+    height: 100%;
+}
+.kpi-card .num {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #0d2b27;
+    line-height: 1;
+}
+.kpi-card .lbl {
+    color: #64748b;
+    font-size: .72rem;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.entrev-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: #fff;
+    border-left: 4px solid #5eead4;
+    transition: transform .12s;
+}
+.entrev-row:hover { transform: translateX(2px); }
+.entrev-row .hora {
+    background: #0f766e;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: .85rem;
+    margin-right: 14px;
+    min-width: 64px;
+    text-align: center;
+}
+.entrev-row .info { flex: 1; }
+.entrev-row .info h6 { margin: 0; font-size: .9rem; }
+.entrev-row .info small { color: #64748b; }
+.entrev-row .tipo-badge {
+    font-size: .68rem;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-weight: 600;
+    margin-left: 10px;
+}
+.tipo-RRHH       { background:#ccfbf1; color:#0f766e; }
+.tipo-TECNICA    { background:#dbeafe; color:#1e40af; }
+.tipo-GERENCIAL  { background:#e9d5ff; color:#7e22ce; }
+.tipo-GRUPAL     { background:#fef3c7; color:#92400e; }
+
+.cand-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.cand-row:hover { background: #f8fafc; }
+.cand-row .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5eead4, #0f766e);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .8rem;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+.cand-row .name { flex: 1; min-width: 0; }
+.cand-row .name strong {
+    display: block;
+    font-size: .85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cand-row .name small { color: #94a3b8; font-size: .7rem; }
+.cand-row .meta { display: flex; gap: 6px; align-items: center; }
+.dias-pill {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 2px 7px;
+    border-radius: 8px;
+    font-size: .65rem;
+    font-weight: 700;
+}
+.dias-pill.warning { background:#fed7aa; color:#9a3412; }
+.dias-pill.critical { background:#fecaca; color:#991b1b; }
+
+.tarea-card {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .12s;
+}
+.tarea-card:hover { transform: translateX(2px); background: #fef3c7; }
+.tarea-card .icon {
+    width: 32px; height: 32px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-right: 10px;
+    color: #f59e0b;
+    flex-shrink: 0;
+}
+.tarea-card .text {
+    font-size: .82rem;
+    color: #78350f;
+}
+
+.section-header {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #0d2b27;
+    margin: 18px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #5eead4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.empty-mini {
+    color: #94a3b8;
+    font-size: .82rem;
+    text-align: center;
+    padding: 12px;
+    font-style: italic;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero personalizado -->
+<div class="mi-dia-hero">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h2>
+                <i class="fas fa-sun me-2" style="color:#fbbf24"></i>
+                Buenos días, {{ usuario.first_name|default:usuario.username }}
+            </h2>
+            <div class="subtitle">
+                {{ hoy|date:"l, j \d\e F" }} · Tu día de reclutamiento
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'pipeline_panel' %}" class="btn btn-sm btn-light">
+                <i class="fas fa-columns me-1"></i>Pipeline
+            </a>
+            <a href="{% url 'calendario_entrevistas' %}" class="btn btn-sm btn-light">
+                <i class="fas fa-calendar-alt me-1"></i>Calendario
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- KPIs del mes -->
+<div class="row mb-3">
+    <div class="col-md-3 col-6 mb-2">
+        <div class="kpi-card">
+            <div class="num text-primary">{{ mes_entrevistas }}</div>
+            <div class="lbl">Entrevistas mes</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <div class="kpi-card" style="border-left-color:#10b981;">
+            <div class="num text-success">{{ mes_aprobadas }}</div>
+            <div class="lbl">Aprobadas mes</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <div class="kpi-card" style="border-left-color:#3b82f6;">
+            <div class="num text-info">{{ mes_notas }}</div>
+            <div class="lbl">Notas escritas</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <div class="kpi-card" style="border-left-color:#a855f7;">
+            <div class="num" style="color:#7e22ce">{{ mes_contratados }}</div>
+            <div class="lbl">Contratados mes</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Columna principal -->
+    <div class="col-md-7 mb-3">
+        <!-- Entrevistas hoy -->
+        <h6 class="section-header">
+            <i class="fas fa-fire" style="color:#f59e0b"></i>
+            Entrevistas de HOY ({{ entrevistas_hoy|length }})
+        </h6>
+        {% if entrevistas_hoy %}
+            {% for e in entrevistas_hoy %}
+            <div class="entrev-row">
+                <div class="hora">{{ e.fecha_hora|date:"H:i" }}</div>
+                <div class="info">
+                    <h6>{{ e.postulacion.nombre_completo }}</h6>
+                    <small>{{ e.postulacion.vacante.titulo|truncatechars:36 }} · {{ e.get_modalidad_display }}</small>
+                </div>
+                <span class="tipo-badge tipo-{{ e.tipo }}">{{ e.get_tipo_display }}</span>
+                <a href="{% url 'postulacion_detalle' e.postulacion.pk %}" class="btn btn-sm btn-outline-primary ms-2">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-mini">
+            <i class="fas fa-coffee me-2"></i>Sin entrevistas hoy. Día tranquilo para hacer screening.
+        </div>
+        {% endif %}
+
+        <!-- Próximas 7 días -->
+        <h6 class="section-header">
+            <i class="fas fa-calendar-week" style="color:#0f766e"></i>
+            Próximas 7 días ({{ entrevistas_proximas|length }})
+        </h6>
+        {% if entrevistas_proximas %}
+            {% for e in entrevistas_proximas %}
+            <div class="entrev-row" style="border-left-color:#94a3b8;">
+                <div class="hora" style="background:#475569;">{{ e.fecha_hora|date:"d/m" }}</div>
+                <div class="info">
+                    <h6>{{ e.postulacion.nombre_completo }}</h6>
+                    <small>{{ e.fecha_hora|date:"l H:i" }} · {{ e.postulacion.vacante.titulo|truncatechars:36 }}</small>
+                </div>
+                <span class="tipo-badge tipo-{{ e.tipo }}">{{ e.get_tipo_display }}</span>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-mini">No tienes entrevistas programadas en los próximos 7 días.</div>
+        {% endif %}
+
+        <!-- Mis candidatos activos -->
+        <h6 class="section-header">
+            <i class="fas fa-users" style="color:#0f766e"></i>
+            Mis candidatos activos ({{ mis_candidatos|length }})
+        </h6>
+        {% if mis_candidatos %}
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                {% for p in mis_candidatos %}
+                <a href="{% url 'postulacion_detalle' p.pk %}" class="cand-row text-decoration-none">
+                    <div class="avatar">{{ p.nombre_completo|slice:":1"|upper }}</div>
+                    <div class="name">
+                        <strong style="color:#1e293b">{{ p.nombre_completo }}</strong>
+                        <small>{{ p.vacante.titulo|truncatechars:30 }} · {{ p.etapa.nombre }}</small>
+                    </div>
+                    <div class="meta">
+                        {% if p.cv_score %}
+                        <span class="badge" style="background:{% if p.cv_score >= 80 %}#10b981{% elif p.cv_score >= 60 %}#f59e0b{% else %}#94a3b8{% endif %};color:#fff;font-size:.65rem;">
+                            ★ {{ p.cv_score }}
+                        </span>
+                        {% endif %}
+                        <span class="dias-pill {% if p.dias_en_etapa > 30 %}critical{% elif p.dias_en_etapa > 14 %}warning{% endif %}">
+                            {{ p.dias_en_etapa }}d
+                        </span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-mini">
+            Aún no has tocado candidatos. Ve al pipeline y comienza a evaluar.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Columna lateral -->
+    <div class="col-md-5 mb-3">
+        <!-- Tareas pendientes -->
+        <h6 class="section-header">
+            <i class="fas fa-bell" style="color:#f59e0b"></i>
+            Tareas pendientes ({{ tareas|length }})
+        </h6>
+        {% if tareas %}
+            {% for t in tareas %}
+            <a href="{{ t.url }}" class="tarea-card" style="border-left-color:{{ t.color }};">
+                <div class="icon" style="color:{{ t.color }};">
+                    <i class="fas {{ t.icono }}"></i>
+                </div>
+                <div class="text">{{ t.mensaje }}</div>
+            </a>
+            {% endfor %}
+        {% else %}
+        <div class="empty-mini">
+            <i class="fas fa-check-circle me-2" style="color:#10b981"></i>
+            Sin tareas pendientes. ¡Buen trabajo!
+        </div>
+        {% endif %}
+
+        <!-- Estancados propios -->
+        <h6 class="section-header">
+            <i class="fas fa-fire-alt" style="color:#dc2626"></i>
+            Mis estancados ({{ estancados_propios|length }})
+        </h6>
+        {% if estancados_propios %}
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    {% for p in estancados_propios %}
+                    <a href="{% url 'postulacion_detalle' p.pk %}" class="cand-row text-decoration-none">
+                        <div class="avatar" style="background:linear-gradient(135deg,#dc2626,#f97316);">
+                            {{ p.dias_en_etapa }}
+                        </div>
+                        <div class="name">
+                            <strong style="color:#1e293b">{{ p.nombre_completo|truncatechars:24 }}</strong>
+                            <small>{{ p.etapa.nombre }} · {{ p.dias_en_etapa }} días</small>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+        <div class="empty-mini">Sin candidatos estancados. ✓</div>
+        {% endif %}
+
+        <!-- Quick links -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                <h6 class="mb-2"><i class="fas fa-bolt me-1" style="color:#f59e0b"></i>Acciones rápidas</h6>
+                <div class="d-grid gap-1">
+                    <a href="{% url 'subir_cv_express' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-upload me-1"></i>Subir CV
+                    </a>
+                    <a href="{% url 'candidatos_bulk_import' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-file-import me-1"></i>Bulk import
+                    </a>
+                    <a href="{% url 'banco_de_talento' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-archive me-1"></i>Banco de Talento
+                    </a>
+                    <a href="{% url 'funnel_reclutamiento' %}" class="btn btn-sm btn-outline-info">
+                        <i class="fas fa-funnel-dollar me-1"></i>Funnel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

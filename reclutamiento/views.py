@@ -750,6 +750,162 @@ def pipeline_bulk_action(request):
 
 
 # ══════════════════════════════════════════════════════════════
+# ADMIN — Mi Día (home personalizado del reclutador)
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def mi_dia_reclutador(request):
+    """
+    Home personalizado para el reclutador logueado.
+
+    Secciones:
+    - Entrevistas de hoy
+    - Próximas entrevistas (próximos 7 días)
+    - Candidatos que estoy moviendo (notas o entrevistas mías recientes)
+    - Estancados en mis candidatos (>14 días sin actividad)
+    - KPIs personales del mes
+    """
+    from datetime import timedelta
+    from django.db.models import Count, Q
+
+    user = request.user
+    hoy_dt = timezone.now().date()
+
+    # 1. Entrevistas de hoy
+    entrevistas_hoy = (
+        EntrevistaPrograma.objects
+        .filter(
+            entrevistador=user,
+            fecha_hora__date=hoy_dt,
+            resultado='PENDIENTE',
+        )
+        .select_related('postulacion__vacante')
+        .order_by('fecha_hora')
+    )
+
+    # 2. Próximas entrevistas (próximos 7 días, excl hoy)
+    entrevistas_proximas = (
+        EntrevistaPrograma.objects
+        .filter(
+            entrevistador=user,
+            fecha_hora__date__gt=hoy_dt,
+            fecha_hora__date__lte=hoy_dt + timedelta(days=7),
+            resultado='PENDIENTE',
+        )
+        .select_related('postulacion__vacante')
+        .order_by('fecha_hora')
+    )
+
+    # 3. Mis candidatos (postulaciones donde he creado nota o entrevista)
+    mis_post_ids = set(
+        NotaPostulacion.objects
+        .filter(autor=user)
+        .values_list('postulacion_id', flat=True)
+    )
+    mis_post_ids.update(
+        EntrevistaPrograma.objects
+        .filter(entrevistador=user)
+        .values_list('postulacion_id', flat=True)
+    )
+
+    mis_candidatos = (
+        Postulacion.objects
+        .filter(pk__in=mis_post_ids, estado='ACTIVA')
+        .select_related('vacante', 'etapa')
+        .order_by('-fecha_postulacion')[:20]
+    )
+
+    # 4. Calcular dias en etapa para identificar estancados
+    from django.db.models import Max as _Max
+    ultimas_notas = dict(
+        NotaPostulacion.objects.filter(
+            postulacion__in=mis_candidatos,
+        ).values('postulacion_id').annotate(
+            ultima=_Max('fecha'),
+        ).values_list('postulacion_id', 'ultima')
+    )
+
+    candidatos_con_dias = []
+    estancados_propios = []
+    for p in mis_candidatos:
+        ultima = ultimas_notas.get(p.pk)
+        if ultima:
+            ref = ultima.date() if hasattr(ultima, 'date') else ultima
+        else:
+            ref = p.fecha_postulacion.date() if hasattr(p.fecha_postulacion, 'date') else p.fecha_postulacion
+        p.dias_en_etapa = max((hoy_dt - ref).days, 0)
+        candidatos_con_dias.append(p)
+        if p.dias_en_etapa > 14:
+            estancados_propios.append(p)
+
+    # 5. KPIs del mes
+    inicio_mes = hoy_dt.replace(day=1)
+    mes_entrevistas = EntrevistaPrograma.objects.filter(
+        entrevistador=user,
+        creado_en__date__gte=inicio_mes,
+    ).count()
+    mes_aprobadas = EntrevistaPrograma.objects.filter(
+        entrevistador=user,
+        creado_en__date__gte=inicio_mes,
+        resultado='APROBADO',
+    ).count()
+    mes_notas = NotaPostulacion.objects.filter(
+        autor=user,
+        fecha__date__gte=inicio_mes,
+    ).count()
+    mes_contratados = Postulacion.objects.filter(
+        estado='CONTRATADA',
+        fecha_postulacion__gte=inicio_mes,
+        entrevistas__entrevistador=user,
+    ).distinct().count()
+
+    # 6. Tareas pendientes auto-detectadas
+    tareas = []
+    # - Entrevistas sin calificar (con resultado != PENDIENTE pero sin calificacion)
+    sin_calificar = EntrevistaPrograma.objects.filter(
+        entrevistador=user,
+        fecha_hora__date__lt=hoy_dt,
+        resultado__in=['APROBADO', 'RECHAZADO'],
+        calificacion__isnull=True,
+    )[:5]
+    for e in sin_calificar:
+        tareas.append({
+            'tipo':   'sin_calificar',
+            'icono':  'fa-star',
+            'color':  '#f59e0b',
+            'mensaje': f'Calificar entrevista a {e.postulacion.nombre_completo} ({e.fecha_hora.strftime("%d/%m")})',
+            'url':    f'/reclutamiento/postulacion/{e.postulacion.pk}/',
+        })
+
+    # - Candidatos sin nota en >7 días que toqué hace poco
+    for p in estancados_propios[:5]:
+        tareas.append({
+            'tipo':   'estancado',
+            'icono':  'fa-fire-alt',
+            'color':  '#dc2626',
+            'mensaje': f'{p.nombre_completo} lleva {p.dias_en_etapa} días en {p.etapa.nombre}',
+            'url':    f'/reclutamiento/postulacion/{p.pk}/',
+        })
+
+    context = {
+        'titulo':                'Mi Día — Reclutamiento',
+        'usuario':               user,
+        'entrevistas_hoy':       entrevistas_hoy,
+        'entrevistas_proximas':  entrevistas_proximas,
+        'mis_candidatos':        candidatos_con_dias[:15],
+        'estancados_propios':    estancados_propios[:5],
+        'tareas':                tareas[:8],
+        'mes_entrevistas':       mes_entrevistas,
+        'mes_aprobadas':         mes_aprobadas,
+        'mes_notas':             mes_notas,
+        'mes_contratados':       mes_contratados,
+        'hoy':                   hoy_dt,
+    }
+    return render(request, 'reclutamiento/mi_dia.html', context)
+
+
+# ══════════════════════════════════════════════════════════════
 # ADMIN — Stats por reclutador: PDF export
 # ══════════════════════════════════════════════════════════════
 
