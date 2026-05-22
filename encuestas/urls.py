@@ -20,4 +20,9 @@ urlpatterns = [
     # Portal
     path('mis-encuestas/', views.mis_encuestas, name='mis_encuestas'),
     path('responder/<int:pk>/', views.responder_encuesta, name='responder_encuesta'),
+
+    # ── Pulse Semanal ──
+    path('pulse/', views.pulse_dashboard, name='pulse_dashboard'),
+    path('pulse/historico/', views.pulse_historico, name='pulse_historico'),
+    path('pulse/responder/', views.pulse_responder, name='pulse_responder'),
 ]

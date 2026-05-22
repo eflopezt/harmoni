@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Histórico Pulse Semanal{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h4 fw-bold mb-0">
+      <i class="fas fa-history text-primary me-2"></i>Histórico Pulse Semanal
+      <small class="text-muted fw-normal">· {{ total }} respuesta{{ total|pluralize:"s" }}</small>
+    </h1>
+    <a href="{% url 'pulse_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  <form method="get" class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small text-muted mb-1">Local</label>
+          <select name="empresa" class="form-select form-select-sm">
+            <option value="">— Todos —</option>
+            {% for e in empresas %}
+              <option value="{{ e.pk }}" {% if empresa_id == e.pk|stringformat:"s" %}selected{% endif %}>{{ e.nombre_comercial|default:e.razon_social }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted mb-1">Área</label>
+          <select name="area" class="form-select form-select-sm">
+            <option value="">— Todas —</option>
+            {% for a in areas %}
+              <option value="{{ a.pk }}" {% if area_id == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small text-muted mb-1">Año</label>
+          <input type="number" name="anio" value="{{ anio_filtro|default:'' }}" class="form-control form-control-sm" placeholder="2026">
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-sm btn-primary w-100">
+            <i class="fas fa-filter me-1"></i>Filtrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Año</th>
+              <th>Semana</th>
+              <th>Local</th>
+              <th class="text-center">Respuestas</th>
+              <th class="text-center">Ánimo Avg</th>
+              <th class="text-center">NPS Avg</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in agregado %}
+              <tr>
+                <td>{{ r.anio }}</td>
+                <td class="fw-bold">S{{ r.semana }}</td>
+                <td>{{ r.empresa__nombre_comercial|default:r.empresa__razon_social|default:"— Sin local —" }}</td>
+                <td class="text-center">{{ r.respuestas }}</td>
+                <td class="text-center">
+                  {% if r.animo_avg %}
+                    <strong>{{ r.animo_avg|floatformat:2 }}</strong>
+                    {% if r.animo_avg >= 4 %}<span class="badge bg-success ms-1">Alto</span>
+                    {% elif r.animo_avg >= 3 %}<span class="badge bg-warning text-dark ms-1">Medio</span>
+                    {% else %}<span class="badge bg-danger ms-1">Bajo</span>{% endif %}
+                  {% else %}—{% endif %}
+                </td>
+                <td class="text-center">{% if r.nps_avg %}{{ r.nps_avg|floatformat:1 }}{% else %}—{% endif %}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="text-center text-muted py-3">Sin datos para los filtros seleccionados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -8,6 +8,7 @@ from calendario.views import mi_calendario, mi_calendario_eventos
 from onboarding.views import mi_onboarding as mi_onboarding_portal
 from salarios.views import mi_historial_salarial
 from disciplinaria.views import mi_portal_disciplinaria
+from encuestas.views import pulse_responder as encuesta_pulse_responder
 
 urlpatterns = [
     path('', views.portal_home, name='portal_home'),
@@ -52,6 +53,8 @@ urlpatterns = [
     path('disciplinaria/', mi_portal_disciplinaria, name='mi_portal_disciplinaria'),
     # Archivos HR
     path('mis-archivos/', views.mis_archivos_hr, name='mis_archivos_hr'),
+    # Pulse Semanal (alias /mi-portal/pulse/)
+    path('pulse/', encuesta_pulse_responder, name='portal_pulse_responder'),
     # ── API endpoints for mobile ──
     path('api/me/', api_views.api_portal_me, name='api_portal_me'),
     path('api/boletas/', api_views.api_portal_boletas, name='api_portal_boletas'),

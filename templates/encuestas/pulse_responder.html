@@ -1,0 +1,155 @@
+{% extends 'portal/base_portal.html' %}
+
+{% block title %}Pulse Semanal{% endblock %}
+{% block mobile_title %}Pulse Semanal{% endblock %}
+{% block page_title %}
+<h1 class="topbar-h1"><i class="fas fa-heart-pulse text-primary me-2"></i>Pulse Semanal</h1>
+{% endblock %}
+
+{% block portal_extra_css %}
+<style>
+.pulse-form {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.4rem;
+  border: 1px solid #e2e8f0;
+}
+.animo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: .55rem;
+}
+.animo-btn {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: .75rem .3rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  font-size: .72rem;
+  color: #475569;
+  font-weight: 600;
+}
+.animo-btn:hover { border-color: #5eead4; background: #f0fdfa; }
+.animo-btn .emoji { display: block; font-size: 1.75rem; line-height: 1.1; margin-bottom: .25rem; }
+.animo-btn input { display: none; }
+.animo-btn.selected { border-color: #0f766e; background: #ccfbf1; color: #0f766e; }
+
+.nps-grid {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: .25rem;
+}
+.nps-btn {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: .55rem 0;
+  text-align: center;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 700;
+  color: #475569;
+  transition: all .12s;
+}
+.nps-btn:hover { transform: translateY(-1px); }
+.nps-btn[data-v="0"], .nps-btn[data-v="1"], .nps-btn[data-v="2"], .nps-btn[data-v="3"], .nps-btn[data-v="4"], .nps-btn[data-v="5"], .nps-btn[data-v="6"] { border-color: #fecaca; }
+.nps-btn[data-v="7"], .nps-btn[data-v="8"] { border-color: #fde68a; }
+.nps-btn[data-v="9"], .nps-btn[data-v="10"] { border-color: #86efac; }
+.nps-btn.selected { background: #0f766e; color: #fff; border-color: #0f766e; }
+.nps-btn input { display: none; }
+
+.field-label { font-size: .78rem; font-weight: 700; color: #0f172a; margin-bottom: .35rem; text-transform: uppercase; letter-spacing: .03em; }
+.field-help { font-size: .72rem; color: #64748b; margin-bottom: .65rem; }
+</style>
+{% endblock %}
+
+{% block portal_content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+  <i class="fas fa-heart-pulse text-primary fa-2x"></i>
+  <div>
+    <h2 class="h5 fw-bold mb-0">Pulse Semanal</h2>
+    <div class="small text-muted">Semana {{ semana }} · {{ anio }} · {{ empleado.apellidos_nombres }}</div>
+  </div>
+</div>
+
+<div class="alert alert-info py-2 small">
+  <i class="fas fa-shield-alt me-1"></i>
+  Tu respuesta se usa <strong>en agregado</strong> para mejorar el ambiente de trabajo. No se muestra tu nombre.
+</div>
+
+<form method="post" class="pulse-form">
+  {% csrf_token %}
+
+  <!-- 1. Ánimo -->
+  <div class="mb-4">
+    <div class="field-label">1. ¿Cómo te sentiste esta semana?</div>
+    <div class="field-help">Toca el ícono que mejor refleje tu sentir.</div>
+    <div class="animo-grid">
+      {% for val, lbl in animo_choices %}
+        <label class="animo-btn" data-v="{{ val }}">
+          <input type="radio" name="animo" value="{{ val }}" required>
+          <span class="emoji">{{ lbl|slice:":1" }}</span>
+          {{ lbl|slice:"2:"|default:"-" }}
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 2. Qué falta -->
+  <div class="mb-4">
+    <label for="que_falta" class="field-label">2. ¿Qué falta para mejorar?</label>
+    <div class="field-help">Cualquier cosa que sientas que falte: equipo, comunicación, recursos…</div>
+    <textarea id="que_falta" name="que_falta" rows="3" maxlength="2000" class="form-control" placeholder="Opcional"></textarea>
+  </div>
+
+  <!-- 3. Propuesta -->
+  <div class="mb-4">
+    <label for="propuestas" class="field-label">3. Una propuesta concreta</label>
+    <div class="field-help">Algo específico que podríamos hacer la próxima semana.</div>
+    <textarea id="propuestas" name="propuestas" rows="3" maxlength="2000" class="form-control" placeholder="Opcional"></textarea>
+  </div>
+
+  <!-- NPS -->
+  <div class="mb-4">
+    <div class="field-label">4. ¿Recomendarías trabajar aquí? (opcional)</div>
+    <div class="field-help">0 = nada probable · 10 = totalmente lo recomendaría</div>
+    <div class="nps-grid">
+      {% for v in "0123456789" %}
+        <label class="nps-btn" data-v="{{ v }}">
+          <input type="radio" name="nps" value="{{ v }}">{{ v }}
+        </label>
+      {% endfor %}
+      <label class="nps-btn" data-v="10">
+        <input type="radio" name="nps" value="10">10
+      </label>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 justify-content-end">
+    <a href="{% url 'portal_home' %}" class="btn btn-outline-secondary">Cancelar</a>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-paper-plane me-1"></i>Enviar Pulse
+    </button>
+  </div>
+</form>
+
+<script>
+(function() {
+  function bindGroup(selector, inputName) {
+    var btns = document.querySelectorAll(selector);
+    btns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        btns.forEach(function(b) { b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        var input = btn.querySelector('input');
+        if (input) input.checked = true;
+      });
+    });
+  }
+  bindGroup('.animo-btn', 'animo');
+  bindGroup('.nps-btn', 'nps');
+})();
+</script>
+{% endblock %}
