@@ -28,6 +28,7 @@ urlpatterns = [
     # Nuevas vistas analíticas
     path('simulador-comparativo/', views.simulacion_comparativa, name='simulacion_comparativa'),
     path('equidad/', views.equidad_salarial, name='equidad_salarial'),
+    path('equidad/simular-ajuste/', views.simular_ajuste_equidad, name='simular_ajuste_equidad'),
 
     # Portal
     path('mi-historial/', views.mi_historial_salarial, name='mi_historial_salarial'),
