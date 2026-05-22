@@ -155,7 +155,11 @@
         <i class="fas fa-rocket me-2" style="color:#5eead4"></i>
         Mejora tu plan
     </h2>
+    {% if plan_actual == 'Starter' %}
+    <p>Estás en el plan más económico. Sube a Profesional o superior para desbloquear portal del trabajador, reclutamiento con IA, dashboard ejecutivo y más.</p>
+    {% else %}
     <p>Desbloquea más funcionalidades para tu equipo.</p>
+    {% endif %}
     <div class="upg-actual">
         <i class="fas fa-circle me-1" style="color:#5eead4"></i>
         Plan actual: <strong>{{ plan_actual }}</strong>
@@ -199,10 +203,15 @@
             <i class="fas fa-check me-1"></i>Plan actual
         </span>
         {% else %}
-        <a href="mailto:ventas@harmoni.pe?subject=Upgrade%20a%20Plan%20{{ plan.nombre|urlencode }}&body=Hola,%20quiero%20conocer%20m%C3%A1s%20del%20Plan%20{{ plan.nombre|urlencode }}."
+        <a href="https://wa.me/51906602313?text=Hola,%20me%20interesa%20el%20Plan%20{{ plan.nombre|urlencode }}%20de%20Harmoni."
+           target="_blank" rel="noopener"
            class="plan-cta {% if plan.destacado %}primary{% else %}outline{% endif %}">
-            <i class="fas fa-envelope me-1"></i>
-            {% if plan.codigo == 'ENTERPRISE' %}Solicitar cotización{% else %}Hablar con ventas{% endif %}
+            <i class="fab fa-whatsapp me-1"></i>
+            {% if plan.codigo == 'ENTERPRISE' %}Solicitar cotización{% else %}Quiero este plan{% endif %}
+        </a>
+        <a href="mailto:ventas@harmoni.pe?subject=Upgrade%20a%20Plan%20{{ plan.nombre|urlencode }}&body=Hola,%20quiero%20conocer%20m%C3%A1s%20del%20Plan%20{{ plan.nombre|urlencode }}."
+           class="plan-cta outline" style="margin-top:6px; padding:7px 14px; font-size:.78rem;">
+            <i class="fas fa-envelope me-1"></i>O por email
         </a>
         {% endif %}
     </div>

@@ -864,7 +864,38 @@ class Personal(models.Model):
                 minimo=0,
                 maximo=999999.99
             )
-    
+
+        # ── Hard cap por plan comercial ──
+        # Plan Starter (S/149/mes) tope 30 trabajadores activos.
+        # Bloqueamos altas (pk=None) cuando ya hay 30 en la empresa.
+        # Aplica solo si la empresa tiene plan='STARTER'.
+        if self.pk is None and self.empresa_id and self.estado != 'Inactivo':
+            try:
+                plan = getattr(self.empresa, 'plan', None)
+            except Exception:
+                plan = None
+            limites = {
+                'STARTER':     30,
+                'PROFESIONAL': 100,
+                'BUSINESS':    300,
+                # ENTERPRISE: sin tope
+            }
+            tope = limites.get(plan)
+            if tope is not None:
+                from django.core.exceptions import ValidationError
+                actuales = Personal.objects.filter(
+                    empresa=self.empresa,
+                    estado='Activo',
+                ).count()
+                if actuales >= tope:
+                    raise ValidationError({
+                        'empresa': (
+                            f'El Plan {plan} permite hasta {tope} trabajadores activos. '
+                            f'Esta empresa ya tiene {actuales}. '
+                            f'Actualiza a un plan superior en /upgrade/ para agregar más.'
+                        )
+                    })
+
     @property
     def esta_activo(self):
         return self.estado == 'Activo'
