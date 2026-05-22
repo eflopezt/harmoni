@@ -269,11 +269,37 @@
                     {% endfor %}
                 </select>
             </div>
+            <div>
+                <label class="form-label small mb-0 fw-semibold">Estancados</label>
+                <select name="dias_min" class="form-select form-select-sm" style="width:130px">
+                    <option value="">—</option>
+                    <option value="7"  {% if filtro_dias_min == '7' %}selected{% endif %}>≥ 7 días</option>
+                    <option value="14" {% if filtro_dias_min == '14' %}selected{% endif %}>≥ 14 días</option>
+                    <option value="30" {% if filtro_dias_min == '30' %}selected{% endif %}>≥ 30 días 🔥</option>
+                </select>
+            </div>
             <button class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i>Filtrar</button>
-            {% if filtro_vacante or filtro_score_min or filtro_fuente or filtro_tag %}
+            {% if filtro_vacante or filtro_score_min or filtro_fuente or filtro_tag or filtro_dias_min %}
             <a href="{% url 'pipeline_panel' %}" class="btn btn-sm btn-outline-secondary">
                 <i class="fas fa-times me-1"></i>Limpiar
             </a>
+            {% endif %}
+
+            {% if estancados_count > 0 %}
+            <div class="ms-auto d-flex gap-2 align-items-center">
+                {% if criticos_count > 0 %}
+                <a href="?dias_min=30" class="badge text-decoration-none"
+                   style="background:#dc2626; color:#fff; font-size:.72rem; padding:5px 10px;"
+                   title="Click para filtrar críticos (≥30 días)">
+                    🔥 {{ criticos_count }} crítico{{ criticos_count|pluralize }}
+                </a>
+                {% endif %}
+                <a href="?dias_min=14" class="badge text-decoration-none"
+                   style="background:#f97316; color:#fff; font-size:.72rem; padding:5px 10px;"
+                   title="Click para filtrar estancados (≥14 días)">
+                    ⏱️ {{ estancados_count }} estancado{{ estancados_count|pluralize }}
+                </a>
+            </div>
             {% endif %}
         </form>
     </div>

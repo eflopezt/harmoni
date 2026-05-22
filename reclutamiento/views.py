@@ -526,6 +526,7 @@ def pipeline_panel(request):
     score_min = request.GET.get('score_min', '')
     fuente_filtro = request.GET.get('fuente', '')
     tag_filtro = request.GET.get('tag', '')
+    dias_min = request.GET.get('dias_min', '')
 
     postulaciones = Postulacion.objects.filter(
         estado='ACTIVA',
@@ -562,6 +563,18 @@ def pipeline_panel(request):
             ref = p.fecha_postulacion.date() if hasattr(p.fecha_postulacion, 'date') else p.fecha_postulacion
         p.dias_en_etapa = max((hoy_dt_pl - ref).days, 0)
 
+    # Filtro post-cálculo: días mínimos en etapa (estancados)
+    if dias_min:
+        try:
+            d = int(dias_min)
+            postulaciones = [p for p in postulaciones if p.dias_en_etapa >= d]
+        except ValueError:
+            pass
+
+    # Contar candidatos estancados (>14 días) y críticos (>30 días) para stats
+    estancados_count = sum(1 for p in postulaciones if p.dias_en_etapa > 14)
+    criticos_count = sum(1 for p in postulaciones if p.dias_en_etapa > 30)
+
     # Organizar por etapa
     pipeline = []
     for etapa in etapas:
@@ -585,6 +598,9 @@ def pipeline_panel(request):
         'filtro_score_min': score_min,
         'filtro_fuente':    fuente_filtro,
         'filtro_tag':       tag_filtro,
+        'filtro_dias_min':  dias_min,
+        'estancados_count': estancados_count,
+        'criticos_count':   criticos_count,
         'fuentes_choices':  Postulacion.FUENTE_CHOICES,
         'tags_choices':     Postulacion.TAG_CHOICES,
     }
