@@ -159,6 +159,8 @@ urlpatterns = [
     path('onboarding/starter/listo/', __import__('core.views_onboarding_starter', fromlist=['onboarding_starter_step3']).onboarding_starter_step3, name='onboarding_starter_step3'),
     # Mi cuenta — dashboard del plan vigente
     path('cuenta/plan/', __import__('core.views_mi_cuenta', fromlist=['mi_cuenta_plan']).mi_cuenta_plan, name='mi_cuenta_plan'),
+    # Tour interactivo demo EDO Enterprise
+    path('tour/edo/', __import__('core.views_tour_edo', fromlist=['tour_edo']).tour_edo, name='tour_edo'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
