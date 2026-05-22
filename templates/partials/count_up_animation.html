@@ -1,0 +1,73 @@
+{# Count-up animation para KPIs — anima números desde 0 al valor real.
+   Usar agregando class="count-up" a cualquier elemento con un número como contenido.
+   Ej: <span class="count-up">94</span> — animará 0→94 al cargar.
+#}
+<script>
+(function(){
+  function easeOutQuad(t) { return t * (2 - t); }
+
+  function animateCount(el, target, duration) {
+    duration = duration || 1200;
+    const startTime = performance.now();
+    const start = 0;
+    const isDecimal = target.toString().includes('.');
+    const isCurrency = el.dataset.currency === '1';
+
+    function step(now){
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutQuad(progress);
+      const value = start + (target - start) * eased;
+
+      let formatted;
+      if (isCurrency) {
+        formatted = 'S/ ' + Math.floor(value).toLocaleString('es-PE');
+      } else if (isDecimal) {
+        formatted = value.toFixed(1);
+      } else {
+        formatted = Math.floor(value).toLocaleString('es-PE');
+      }
+      el.textContent = formatted;
+
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Buscar todos los elementos .count-up al cargar
+  function initCountUp(){
+    document.querySelectorAll('.count-up').forEach(el => {
+      // Si ya se animó, saltar
+      if (el.dataset.animated === '1') return;
+
+      const raw = el.textContent.trim().replace(/[^\d.-]/g, '');
+      const target = parseFloat(raw);
+      if (isNaN(target)) return;
+
+      el.dataset.animated = '1';
+      el.textContent = '0';
+
+      // Trigger when visible
+      if ('IntersectionObserver' in window) {
+        const obs = new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              animateCount(el, target, parseInt(el.dataset.duration) || 1200);
+              observer.unobserve(el);
+            }
+          });
+        });
+        obs.observe(el);
+      } else {
+        animateCount(el, target);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCountUp);
+  } else {
+    initCountUp();
+  }
+})();
+</script>

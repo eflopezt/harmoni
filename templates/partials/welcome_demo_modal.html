@@ -1,0 +1,67 @@
+{# Welcome modal — primera visita al demo. Solo aparece 1 vez por session. #}
+{% if DEMO_MODE %}
+<div id="welcome-demo-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,43,39,.85);z-index:10000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);">
+  <div style="background:#fff;border-radius:18px;max-width:580px;width:100%;padding:40px 36px;box-shadow:0 24px 60px rgba(0,0,0,.4);position:relative;">
+
+    <button onclick="document.getElementById('welcome-demo-modal').style.display='none';sessionStorage.setItem('welcome_seen','1');" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">×</button>
+
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="display:inline-block;background:linear-gradient(135deg,#5eead4,#0f766e);width:68px;height:68px;border-radius:18px;color:#fff;font-size:2rem;line-height:68px;margin-bottom:12px;">
+        🎯
+      </div>
+      <h3 style="margin:0;font-weight:800;color:#0d2b27;font-size:1.6rem;">Bienvenido al Demo de Harmoni</h3>
+      <p style="margin:8px 0 0;color:#64748b;font-size:.95rem;">
+        Estás navegando en <strong>modo demo</strong> con datos del Grupo EDO (gastronomía premium).
+        Cualquier cambio se reinicia cada noche a las 3 AM.
+      </p>
+    </div>
+
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px 18px;border-radius:10px;margin-bottom:20px;">
+      <strong style="color:#0d2b27;">⚡ ¿Por dónde empiezo?</strong>
+      <p style="margin:6px 0 0;color:#475569;font-size:.85rem;">
+        Te recomendamos arrancar por uno de estos 3:
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
+      <a href="/comando/" style="background:#0d2b27;color:#fff;padding:14px 12px;border-radius:11px;text-align:center;text-decoration:none;font-weight:700;font-size:.85rem;">
+        <i class="fas fa-broadcast-tower d-block mb-1" style="font-size:1.2rem;color:#5eead4;"></i>
+        Centro de Comando
+      </a>
+      <a href="?tour=1" style="background:#0f766e;color:#fff;padding:14px 12px;border-radius:11px;text-align:center;text-decoration:none;font-weight:700;font-size:.85rem;">
+        <i class="fas fa-route d-block mb-1" style="font-size:1.2rem;color:#5eead4;"></i>
+        Tour guiado
+      </a>
+      <a href="/roi/" style="background:#16a34a;color:#fff;padding:14px 12px;border-radius:11px;text-align:center;text-decoration:none;font-weight:700;font-size:.85rem;">
+        <i class="fas fa-calculator d-block mb-1" style="font-size:1.2rem;"></i>
+        Calculadora ROI
+      </a>
+    </div>
+
+    <div style="text-align:center;font-size:.78rem;color:#94a3b8;">
+      <strong>O explora libre.</strong> El botón 🛤️ flotante (abajo derecha) inicia el tour guiado en cualquier momento.
+    </div>
+
+    <button onclick="document.getElementById('welcome-demo-modal').style.display='none';sessionStorage.setItem('welcome_seen','1');" style="display:block;margin:18px auto 0;background:none;border:1px solid #e2e8f0;color:#64748b;padding:8px 22px;border-radius:8px;cursor:pointer;font-size:.85rem;">
+      Cerrar y explorar libre
+    </button>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  // Mostrar solo si no se ha visto en esta sesión y es la home
+  const path = window.location.pathname;
+  const isHome = path === '/' || path === '/home/';
+  const seen = sessionStorage.getItem('welcome_seen');
+
+  if (isHome && !seen) {
+    setTimeout(() => {
+      const m = document.getElementById('welcome-demo-modal');
+      if (m) m.style.display = 'flex';
+    }, 800);
+  }
+})();
+</script>
+{% endif %}

@@ -1,0 +1,116 @@
+{# Widget "Pregúntale a Harmoni IA" — chat flotante #}
+{% if DEMO_MODE and user.is_authenticated %}
+
+<!-- Botón flotante -->
+<button id="ai-widget-toggle"
+        style="position:fixed;bottom:24px;left:24px;z-index:9999;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;width:60px;height:60px;border:none;border-radius:50%;font-size:1.4rem;cursor:pointer;box-shadow:0 8px 24px rgba(168,85,247,.4);transition:transform .2s;"
+        onmouseover="this.style.transform='scale(1.1)'"
+        onmouseout="this.style.transform='scale(1)'"
+        title="Pregúntale a Harmoni IA">
+  <i class="fas fa-brain"></i>
+</button>
+
+<!-- Panel chat -->
+<div id="ai-widget-panel"
+     style="display:none;position:fixed;bottom:96px;left:24px;z-index:9998;width:380px;max-width:calc(100vw - 48px);background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);overflow:hidden;">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px;">
+    <div style="background:rgba(255,255,255,.2);width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+      <i class="fas fa-brain" style="font-size:1.2rem;"></i>
+    </div>
+    <div style="flex:1;">
+      <div style="font-weight:800;">Harmoni IA</div>
+      <div style="font-size:.72rem;opacity:.85;">Pregúntame sobre tu grupo</div>
+    </div>
+    <button onclick="document.getElementById('ai-widget-panel').style.display='none'" style="background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;">×</button>
+  </div>
+
+  <!-- Mensajes -->
+  <div id="ai-messages" style="padding:18px 20px;max-height:340px;overflow-y:auto;font-size:.88rem;">
+    <div style="background:#f5f3ff;padding:12px 14px;border-radius:12px;margin-bottom:10px;color:#0d2b27;">
+      👋 <strong>Hola, soy Harmoni IA.</strong> Pregúntame algo del grupo.
+      <div style="margin-top:8px;font-size:.78rem;color:#64748b;">Ejemplos: "¿cuánto subió mi planilla?" · "¿quiénes están en riesgo de irse?" · "¿qué local performa peor?"</div>
+    </div>
+  </div>
+
+  <!-- Quick prompts -->
+  <div style="padding:0 20px 12px;">
+    <div style="font-size:.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Preguntas rápidas:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      <button class="ai-prompt-btn" data-q="planilla" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#0d2b27;padding:6px 12px;border-radius:18px;font-size:.74rem;font-weight:600;cursor:pointer;">📊 Planilla del mes</button>
+      <button class="ai-prompt-btn" data-q="rotacion" style="background:#fef3c7;border:1px solid #fcd34d;color:#0d2b27;padding:6px 12px;border-radius:18px;font-size:.74rem;font-weight:600;cursor:pointer;">⚠️ Riesgo rotación</button>
+      <button class="ai-prompt-btn" data-q="local" style="background:#f0f9ff;border:1px solid #bae6fd;color:#0d2b27;padding:6px 12px;border-radius:18px;font-size:.74rem;font-weight:600;cursor:pointer;">🏪 Peor local</button>
+      <button class="ai-prompt-btn" data-q="contratos" style="background:#fee2e2;border:1px solid #fecaca;color:#0d2b27;padding:6px 12px;border-radius:18px;font-size:.74rem;font-weight:600;cursor:pointer;">📋 Contratos</button>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div style="padding:14px 20px;border-top:1px solid #e2e8f0;background:#fafbfc;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="text" id="ai-input" placeholder="Pregúntale algo..." style="flex:1;border:1px solid #e2e8f0;padding:9px 12px;border-radius:8px;font-size:.85rem;outline:none;" disabled>
+      <button id="ai-send" disabled style="background:#a855f7;color:#fff;border:none;padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem;">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+    <div style="font-size:.68rem;color:#94a3b8;margin-top:6px;text-align:center;">
+      💡 Demo: usa los botones de arriba. Texto libre requiere API key.
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const respuestas = {
+    'planilla': {
+      q: '¿Cuánto fue la planilla este mes?',
+      a: '<strong>S/ 287,450</strong> en mayo 2026 (+8.3% vs abril, +12% YoY).<br><br>📊 Desglose:<br>• Sueldos base: S/ 198,200<br>• Gratificación: S/ 12,500<br>• Aportes ESSALUD/AFP: S/ 35,800<br>• Provisiones CTS: S/ 22,400<br>• Otros: S/ 18,550<br><br>🚨 <strong>Alerta:</strong> EDO Nikkei subió 18% por contratación de 2 sushimen senior. Revisar bandas salariales.'
+    },
+    'rotacion': {
+      q: '¿Quiénes están en riesgo de irse?',
+      a: '<strong>3 trabajadores con riesgo alto</strong> (>70%) según el modelo predictivo:<br><br>🔴 <strong>Carlos Mendoza</strong> (Bartender, EDO Sushi) — 87% riesgo<br>&nbsp;&nbsp;&nbsp;Sueldo bajo banda, 2 papeletas último mes<br><br>🔴 <strong>María García</strong> (Mozo, EDO Premium) — 78%<br>&nbsp;&nbsp;&nbsp;Sin promoción en 18 meses<br><br>🟡 <strong>Roberto Sanchez</strong> (Cocinero, EDO Nikkei) — 71%<br>&nbsp;&nbsp;&nbsp;Pulse semanal en baja consistente<br><br>💡 Recomendación: <a href="/analytics/predictive/" style="color:#a855f7;">ver predictor completo</a>'
+    },
+    'local': {
+      q: '¿Qué local performa peor este mes?',
+      a: '<strong>EDO Vinos S.A.C.</strong> tiene el score de salud más bajo (62/100).<br><br>📉 Razones:<br>• Pulse promedio últimas 2 semanas: 6.2 (target 7.5)<br>• Ausentismo: 12% (vs 6% promedio grupo)<br>• Rotación últimos 3 meses: 3 ceses (28%)<br><br>🎯 <strong>Acción sugerida:</strong> Visita del Gerente Operativo + 1on1 con líder local. <a href="/empresas/pulse/" style="color:#a855f7;">Ver Pulse del Grupo</a>'
+    },
+    'contratos': {
+      q: '¿Cuántos contratos vencen pronto?',
+      a: '<strong>12 contratos vencen en los próximos 30 días.</strong><br><br>🔴 Esta semana: 3<br>🟡 Próxima semana: 5<br>🟢 Resto del mes: 4<br><br>Distribución:<br>• EDO Sushi: 5<br>• EDO Premium: 4<br>• EDO Nikkei: 3<br><br>💡 <a href="/contratos/" style="color:#a855f7;">Ver contratos por vencer</a> para iniciar proceso de renovación o cierre.'
+    },
+  };
+
+  function showMsg(text, who){
+    const msgs = document.getElementById('ai-messages');
+    if (who === 'user') {
+      msgs.insertAdjacentHTML('beforeend', `<div style="background:#a855f7;color:#fff;padding:10px 14px;border-radius:12px;margin-bottom:8px;margin-left:auto;max-width:80%;text-align:right;width:fit-content;">${text}</div>`);
+    } else {
+      msgs.insertAdjacentHTML('beforeend', `<div style="background:#f5f3ff;padding:12px 14px;border-radius:12px;margin-bottom:10px;color:#0d2b27;max-width:90%;line-height:1.5;">${text}</div>`);
+    }
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  document.getElementById('ai-widget-toggle').addEventListener('click', function(){
+    const p = document.getElementById('ai-widget-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.querySelectorAll('.ai-prompt-btn').forEach(btn => {
+    btn.addEventListener('click', function(){
+      const key = this.dataset.q;
+      const r = respuestas[key];
+      if (r) {
+        showMsg(r.q, 'user');
+        setTimeout(() => showMsg('<em>Pensando...</em>', 'ai'), 100);
+        setTimeout(() => {
+          // Quitar el "pensando" y mostrar respuesta real
+          const msgs = document.getElementById('ai-messages');
+          msgs.lastElementChild.remove();
+          showMsg(r.a, 'ai');
+        }, 900);
+      }
+    });
+  });
+})();
+</script>
+{% endif %}

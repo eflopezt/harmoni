@@ -231,22 +231,24 @@
     <div class="cmd-stats">
         <div class="cmd-stat">
             <div class="cmd-stat-label">Colaboradores activos</div>
-            <div class="cmd-stat-value">{{ total_workers }}</div>
+            <div class="cmd-stat-value count-up">{{ total_workers }}</div>
         </div>
         <div class="cmd-stat">
             <div class="cmd-stat-label">Locales operando</div>
-            <div class="cmd-stat-value">{{ total_empresas }}</div>
+            <div class="cmd-stat-value count-up">{{ total_empresas }}</div>
         </div>
         <div class="cmd-stat">
             <div class="cmd-stat-label">Costo planilla est./mes</div>
-            <div class="cmd-stat-value">S/ {{ costo_planilla_estimado|floatformat:0|intcomma }}</div>
+            <div class="cmd-stat-value count-up" data-currency="1">{{ costo_planilla_estimado|floatformat:0 }}</div>
         </div>
         <div class="cmd-stat">
             <div class="cmd-stat-label">Alertas activas</div>
-            <div class="cmd-stat-value">{{ alertas|length }}</div>
+            <div class="cmd-stat-value count-up">{{ alertas|length }}</div>
         </div>
     </div>
 </div>
+
+{% include "partials/count_up_animation.html" %}
 
 <!-- TOP ALERT ──────────────────────────────────── -->
 {% if alerta_top %}
