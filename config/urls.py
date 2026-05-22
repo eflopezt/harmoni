@@ -83,6 +83,9 @@ urlpatterns = [
     path('offline/', offline_view, name='offline'),
     path('health/', health_check, name='health_check'),
     path('robots.txt', robots_txt, name='robots_txt'),
+    # Status page público (sin prefijo /sistema/)
+    path('status/', __import__('core.views_status', fromlist=['status_page']).status_page, name='status_page_public'),
+    path('status/json/', __import__('core.views_status', fromlist=['status_json']).status_json, name='status_json_public'),
     path('sitemap.xml', sitemap_xml, name='sitemap_xml'),
     path('portal/', portal_alias, name='portal_alias'),
     path('admin/', admin.site.urls),

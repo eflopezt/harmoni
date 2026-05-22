@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Status — {{ app_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-hero {
+    background: linear-gradient(135deg, #0d2b27, #134e4a);
+    color: #fff;
+    padding: 40px 30px;
+    border-radius: 14px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.status-hero h1 { margin: 0 0 8px; font-weight: 800; font-size: 2rem; }
+.status-hero .subtitle { color: #b6d4d0; font-size: 1rem; }
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: .85rem;
+    background: rgba(94,234,212,.2);
+    color: #5eead4;
+    border: 1px solid rgba(94,234,212,.3);
+}
+.status-pill .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,.6); }
+    50% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+}
+
+.check-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    text-align: center;
+}
+.check-card .icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+.check-card.ok .icon  { background: #d1fae5; color: #065f46; }
+.check-card.fail .icon { background: #fee2e2; color: #991b1b; }
+.check-card .name { font-weight: 700; color: #0d2b27; font-size: .95rem; }
+.check-card .status { font-size: .8rem; margin-top: 4px; }
+.check-card.ok   .status { color: #065f46; }
+.check-card.fail .status { color: #991b1b; }
+
+.metadata-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+}
+.metadata-row strong { color: #475569; }
+.metadata-row span { font-family: monospace; color: #0d2b27; }
+
+.feature-item {
+    padding: 7px 12px;
+    background: #f0fdf4;
+    border-left: 3px solid #5eead4;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: .82rem;
+    color: #064e3b;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:900px; margin:0 auto;">
+
+<div class="status-hero">
+    <h1>🚀 {{ app_name }}</h1>
+    <div class="subtitle mb-3">Sistema operacional · Demo público</div>
+    {% if db_ok %}
+    <span class="status-pill"><span class="dot"></span>Todos los servicios operativos</span>
+    {% else %}
+    <span class="status-pill" style="background:rgba(239,68,68,.2);color:#fca5a5;border-color:rgba(239,68,68,.3);">
+        <span class="dot" style="background:#dc2626"></span>Servicio degradado
+    </span>
+    {% endif %}
+</div>
+
+<!-- Health Checks -->
+<div class="row mb-3">
+    <div class="col-md-4 col-6 mb-2">
+        <div class="check-card {% if db_ok %}ok{% else %}fail{% endif %}">
+            <div class="icon"><i class="fas fa-database"></i></div>
+            <div class="name">PostgreSQL</div>
+            <div class="status">{% if db_ok %}✓ Conectado{% else %}✗ Sin conexión{% endif %}</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6 mb-2">
+        <div class="check-card {% if redis_ok %}ok{% else %}fail{% endif %}">
+            <div class="icon"><i class="fas fa-bolt"></i></div>
+            <div class="name">Redis Cache</div>
+            <div class="status">{% if redis_ok %}✓ Conectado{% else %}✗ Sin conexión{% endif %}</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6 mb-2">
+        <div class="check-card {% if smtp_ok %}ok{% else %}fail{% endif %}">
+            <div class="icon"><i class="fas fa-envelope"></i></div>
+            <div class="name">SMTP Email</div>
+            <div class="status">{% if smtp_ok %}✓ Configurado{% else %}⚠ No configurado{% endif %}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Metadata -->
+<div class="card shadow-sm mb-3">
+    <div class="card-header py-2">
+        <strong><i class="fas fa-info-circle me-1"></i>Información del sistema</strong>
+    </div>
+    <div class="card-body p-0">
+        <div class="metadata-row">
+            <strong>Commit actual</strong>
+            <span>{{ git_commit }}</span>
+        </div>
+        <div class="metadata-row">
+            <strong>Último deploy</strong>
+            <span>{% if git_date %}{{ git_date|date:"d/m/Y H:i" }}{% else %}—{% endif %}</span>
+        </div>
+        <div class="metadata-row">
+            <strong>Hora servidor</strong>
+            <span>{{ ahora|date:"d/m/Y H:i:s" }}</span>
+        </div>
+        <div class="metadata-row">
+            <strong>Features 2026</strong>
+            <span>{{ features_count }} entregadas</span>
+        </div>
+        <div class="metadata-row">
+            <strong>URL demo</strong>
+            <span><a href="{{ demo_url }}">{{ demo_url }}</a></span>
+        </div>
+        <div class="metadata-row" style="border-bottom:none">
+            <strong>API REST</strong>
+            <span><a href="/api/schema/swagger-ui/">/api/schema/swagger-ui/</a></span>
+        </div>
+    </div>
+</div>
+
+<!-- Features list -->
+<div class="card shadow-sm mb-3">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <strong><i class="fas fa-rocket me-1"></i>Features entregadas en 2026</strong>
+        <span class="badge bg-success">{{ features_count }}</span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for f in features_list %}
+            <div class="col-md-6">
+                <div class="feature-item">
+                    <i class="fas fa-check me-1" style="color:#10b981"></i>{{ f }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="text-center text-muted small py-3">
+    <p>Status cacheado 60s · <a href="/status/json/">JSON endpoint</a> · <a href="/">Volver a Harmoni</a></p>
+</div>
+
+</div>
+{% endblock %}
