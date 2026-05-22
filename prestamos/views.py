@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q, Sum, Count
 from django.db.models.functions import Coalesce
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 
 from personal.models import Personal
@@ -405,6 +405,117 @@ def cuota_pagar(request, pk):
     return JsonResponse({'ok': False, 'error': 'No se puede pagar esta cuota'})
 
 
+# ── Workflow extendido: desembolsar / rechazar / cronograma / contrato ──
+@login_required
+@solo_admin
+def prestamo_desembolsar(request, pk):
+    """Marca un préstamo APROBADO como DESEMBOLSADO (EN_CURSO) y genera cuotas."""
+    prestamo = get_object_or_404(Prestamo, pk=pk)
+    if request.method != 'POST':
+        return redirect('prestamo_detalle', pk=pk)
+    if prestamo.estado not in ('APROBADO', 'PENDIENTE', 'BORRADOR'):
+        messages.error(request,
+                       f'No se puede desembolsar desde estado {prestamo.get_estado_display()}.')
+        return redirect('prestamo_detalle', pk=pk)
+
+    fecha_desembolso = request.POST.get('fecha_desembolso') or None
+    fecha_descuento = request.POST.get('fecha_descuento') or None
+    try:
+        prestamo.desembolsar(request.user,
+                             fecha_desembolso=fecha_desembolso,
+                             fecha_descuento=fecha_descuento)
+    except (ValueError, TypeError) as e:
+        messages.error(request, f'Error al desembolsar: {e}')
+        return redirect('prestamo_detalle', pk=pk)
+
+    try:
+        from core.audit import log_update
+        log_update(request, prestamo,
+                   {'estado': {'old': 'APROBADO', 'new': 'EN_CURSO'}},
+                   f'Préstamo desembolsado: S/ {prestamo.monto_efectivo} — '
+                   f'{prestamo.num_cuotas} cuotas')
+    except Exception:
+        pass
+
+    messages.success(request,
+                     f'Préstamo desembolsado. {prestamo.num_cuotas} cuotas generadas.')
+    return redirect('prestamo_detalle', pk=pk)
+
+
+@login_required
+@solo_admin
+def prestamo_rechazar(request, pk):
+    """Rechaza un préstamo solicitado."""
+    prestamo = get_object_or_404(Prestamo, pk=pk)
+    if request.method != 'POST':
+        return redirect('prestamo_detalle', pk=pk)
+    motivo = request.POST.get('motivo_rechazo', '').strip()
+    try:
+        prestamo.rechazar(request.user, motivo=motivo)
+    except ValueError as e:
+        messages.error(request, str(e))
+        return redirect('prestamo_detalle', pk=pk)
+    try:
+        from core.audit import log_update
+        log_update(request, prestamo,
+                   {'estado': {'old': 'PENDIENTE', 'new': 'RECHAZADO'}},
+                   f'Préstamo rechazado. Motivo: {motivo}')
+    except Exception:
+        pass
+    messages.warning(request, 'Préstamo rechazado.')
+    return redirect('prestamo_detalle', pk=pk)
+
+
+@login_required
+@solo_admin
+def prestamo_cronograma(request, pk):
+    """Vista del cronograma de cuotas (pendientes, vencidas, pagadas)."""
+    prestamo = get_object_or_404(
+        Prestamo.objects.select_related('personal', 'tipo'), pk=pk
+    )
+
+    # Refresca estado vencimiento
+    hoy = date.today()
+    for c in prestamo.cuotas.filter(estado='PENDIENTE', periodo__lt=hoy):
+        c.estado = 'VENCIDA'
+        c.save(update_fields=['estado'])
+
+    cuotas = prestamo.cuotas.select_related('descuento_planilla').all()
+    resumen = {
+        'total': cuotas.count(),
+        'pagadas': cuotas.filter(estado__in=['PAGADO', 'CONDONADO']).count(),
+        'descontadas': cuotas.filter(estado='DESCONTADA').count(),
+        'pendientes': cuotas.filter(estado='PENDIENTE').count(),
+        'vencidas': cuotas.filter(estado='VENCIDA').count(),
+        'monto_total': sum((c.monto for c in cuotas), Decimal('0.00')),
+        'monto_pagado': sum((c.monto_pagado for c in cuotas if c.estado == 'PAGADO'),
+                            Decimal('0.00')),
+    }
+
+    return render(request, 'prestamos/cronograma.html', {
+        'titulo': f'Cronograma — Préstamo #{prestamo.pk}',
+        'p': prestamo,
+        'cuotas': cuotas,
+        'resumen': resumen,
+        'today': hoy,
+    })
+
+
+@login_required
+@solo_admin
+def prestamo_contrato_pdf(request, pk):
+    """Descarga el PDF del contrato de préstamo."""
+    prestamo = get_object_or_404(
+        Prestamo.objects.select_related('personal', 'tipo'), pk=pk
+    )
+    from .pdf_contrato import generar_contrato_prestamo_pdf
+    pdf_bytes = generar_contrato_prestamo_pdf(prestamo)
+    filename = f'contrato_prestamo_{prestamo.pk}_{prestamo.personal.nro_doc}.pdf'
+    resp = HttpResponse(pdf_bytes, content_type='application/pdf')
+    resp['Content-Disposition'] = f'inline; filename="{filename}"'
+    return resp
+
+
 # ── Portal del trabajador ──
 @login_required
 def mis_prestamos(request):
@@ -422,5 +533,66 @@ def mis_prestamos(request):
         'titulo': 'Mis Préstamos',
         'empleado': empleado,
         'prestamos': prestamos,
+        'tipos_solicitables': TipoPrestamo.objects.filter(activo=True),
     }
     return render(request, 'prestamos/mis_prestamos.html', context)
+
+
+@login_required
+def mis_prestamos_solicitar(request):
+    """Wizard del trabajador para solicitar un préstamo. Crea en PENDIENTE."""
+    from portal.views import _get_empleado
+    empleado = _get_empleado(request.user)
+    if not empleado:
+        messages.error(request, 'Tu usuario no está vinculado a un trabajador.')
+        return redirect('mis_prestamos')
+
+    tipos = TipoPrestamo.objects.filter(activo=True).order_by('nombre')
+
+    if request.method == 'POST':
+        try:
+            tipo = get_object_or_404(TipoPrestamo,
+                                     pk=request.POST['tipo_id'], activo=True)
+            monto = Decimal(request.POST['monto'])
+            cuotas = int(request.POST['num_cuotas'])
+            motivo = request.POST.get('motivo', '').strip()
+
+            if monto <= 0:
+                raise ValueError('El monto debe ser positivo.')
+            if cuotas < 1 or cuotas > tipo.max_cuotas:
+                raise ValueError(f'Cuotas debe estar entre 1 y {tipo.max_cuotas}.')
+            if tipo.monto_maximo and monto > tipo.monto_maximo:
+                raise ValueError(
+                    f'El monto excede el máximo permitido (S/ {tipo.monto_maximo}).')
+            if not motivo:
+                raise ValueError('Debes indicar el motivo de la solicitud.')
+
+            prestamo = Prestamo.objects.create(
+                personal=empleado,
+                tipo=tipo,
+                monto_solicitado=monto,
+                num_cuotas=cuotas,
+                motivo=motivo,
+                solicitado_por=request.user,
+                estado='PENDIENTE',
+            )
+
+            try:
+                from core.audit import log_create
+                log_create(request, prestamo,
+                           f'Solicitud de préstamo {tipo.nombre} '
+                           f'por S/ {monto} ({empleado.apellidos_nombres})')
+            except Exception:
+                pass
+
+            messages.success(request,
+                             'Solicitud enviada. RRHH revisará tu préstamo.')
+            return redirect('mis_prestamos')
+        except (ValueError, KeyError) as e:
+            messages.error(request, f'No se pudo enviar la solicitud: {e}')
+
+    return render(request, 'prestamos/solicitar.html', {
+        'titulo': 'Solicitar Préstamo',
+        'empleado': empleado,
+        'tipos': tipos,
+    })
