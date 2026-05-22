@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Subir documento — {{ empleado.apellidos_nombres }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.step { display:none; }
+.step.active { display:block; }
+.step-indicator { display:flex; gap:6px; margin-bottom:1.5rem; }
+.step-pill { flex:1; padding:6px 12px; border-radius:6px; background:#e5e7eb; color:#6b7280;
+             font-size:.75rem; font-weight:600; text-align:center; }
+.step-pill.active { background:#0F766E; color:#fff; }
+.step-pill.done { background:#5EEAD4; color:#0D2B27; }
+.tipo-card { border:1px solid #e5e7eb; border-radius:6px; padding:8px 12px; cursor:pointer;
+             margin-bottom:6px; transition:background .15s; font-size:.85rem; }
+.tipo-card:hover { background:#F0FDF9; border-color:#0F766E; }
+.tipo-card.selected { background:#5EEAD4; border-color:#0F766E; font-weight:600; }
+.tipo-card .badge-mini { font-size:.65rem; padding:1px 6px; }
+.cat-block { margin-bottom:1rem; }
+.cat-title { font-size:.85rem; font-weight:700; color:#0F766E; text-transform:uppercase;
+             border-bottom:2px solid #0F766E; padding-bottom:4px; margin-bottom:8px; }
+.confirm-table { font-size:.85rem; }
+.confirm-table dt { font-weight:600; color:#6b7280; font-size:.75rem; }
+.confirm-table dd { margin-bottom:8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <a href="{% url 'documentos_legajo' empleado.pk %}" class="text-muted text-decoration-none small">
+      <i class="fas fa-arrow-left me-1"></i>Legajo
+    </a>
+    <h2 class="mb-0 mt-1"><i class="fas fa-upload text-secondary me-2"></i>Subir Documento</h2>
+    <small class="text-muted">{{ empleado.apellidos_nombres }} · {{ empleado.nro_doc }}</small>
+  </div>
+</div>
+
+{% if messages %}
+  {% for m in messages %}
+  <div class="alert alert-{{ m.tags|default:'info' }} py-2 small">{{ m }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="step-indicator">
+      <div class="step-pill active" data-pill="1">1 · Tipo</div>
+      <div class="step-pill"        data-pill="2">2 · Archivo</div>
+      <div class="step-pill"        data-pill="3">3 · Confirmar</div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="wizardForm" action="{% url 'documentos_subir_wizard' empleado.pk %}">
+      {% csrf_token %}
+
+      <!-- Step 1: Tipo -->
+      <div class="step active" data-step="1">
+        <h5 class="mb-3">¿Qué tipo de documento vas a subir?</h5>
+        {% for cat_nombre, tipos in categorias_dict.items %}
+        <div class="cat-block">
+          <div class="cat-title">{{ cat_nombre }}</div>
+          {% for t in tipos %}
+          <div class="tipo-card d-flex justify-content-between align-items-center"
+               data-tipo-id="{{ t.pk }}" data-tipo-nombre="{{ t.nombre }}"
+               data-vence="{{ t.vence|yesno:'1,0' }}"
+               data-vigencia="{{ t.vigencia_dias|default:'' }}">
+            <div>
+              <i class="fas fa-file me-2 text-muted"></i>{{ t.nombre }}
+              {% if t.obligatorio %}<span class="badge bg-warning text-dark badge-mini ms-1">Obligatorio</span>{% endif %}
+              {% if t.vence %}<span class="badge bg-info badge-mini ms-1">Vence</span>{% endif %}
+            </div>
+            <i class="fas fa-chevron-right text-muted"></i>
+          </div>
+          {% endfor %}
+        </div>
+        {% empty %}
+        <p class="text-muted">No hay tipos de documento aplicables a este trabajador.</p>
+        {% endfor %}
+        <input type="hidden" name="tipo_id" id="tipo_id" required>
+      </div>
+
+      <!-- Step 2: Archivo + fecha emisión -->
+      <div class="step" data-step="2">
+        <h5 class="mb-3">Subir archivo del documento</h5>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Tipo seleccionado</label>
+          <div class="form-control-plaintext small" id="tipoSeleccionado">—</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Archivo <span class="text-danger">*</span></label>
+          <input type="file" name="archivo" id="archivoInput" class="form-control form-control-sm"
+                 accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx" required>
+          <small class="text-muted">PDF, imagen, Word o Excel. Máximo 10 MB.</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nombre descriptivo</label>
+          <input type="text" name="nombre_archivo" class="form-control form-control-sm"
+                 placeholder="(opcional — por defecto el nombre del archivo)">
+        </div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label fw-semibold">Fecha de Emisión</label>
+            <input type="date" name="fecha_emision" id="fechaEmisionInput" class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold">Fecha de Vencimiento</label>
+            <input type="date" name="fecha_vencimiento" id="fechaVencimientoInput" class="form-control form-control-sm">
+            <small class="text-muted" id="vencHint" style="display:none">Auto-calculado desde emisión + vigencia del tipo.</small>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label fw-semibold">Notas</label>
+          <textarea name="notas" class="form-control form-control-sm" rows="2"
+                    placeholder="Notas adicionales (opcional)"></textarea>
+        </div>
+      </div>
+
+      <!-- Step 3: Confirmación -->
+      <div class="step" data-step="3">
+        <h5 class="mb-3">Confirmar y subir</h5>
+        <dl class="confirm-table">
+          <dt>Trabajador</dt><dd>{{ empleado.apellidos_nombres }} ({{ empleado.nro_doc }})</dd>
+          <dt>Tipo</dt><dd id="confTipo">—</dd>
+          <dt>Archivo</dt><dd id="confArchivo">—</dd>
+          <dt>Fecha emisión</dt><dd id="confEmision">—</dd>
+          <dt>Fecha vencimiento</dt><dd id="confVencimiento">—</dd>
+        </dl>
+      </div>
+
+      <div class="d-flex justify-content-between mt-4">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPrev" disabled>
+          <i class="fas fa-arrow-left me-1"></i>Atrás
+        </button>
+        <div>
+          <a href="{% url 'documentos_legajo' empleado.pk %}" class="btn btn-link btn-sm text-muted">Cancelar</a>
+          <button type="button" class="btn btn-primary btn-sm" id="btnNext">
+            Siguiente <i class="fas fa-arrow-right ms-1"></i>
+          </button>
+          <button type="submit" class="btn btn-success btn-sm" id="btnSubmit" style="display:none">
+            <i class="fas fa-upload me-1"></i>Subir documento
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  let step = 1;
+  const totalSteps = 3;
+  const pills = document.querySelectorAll('.step-pill');
+  const steps = document.querySelectorAll('.step');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const btnSubmit = document.getElementById('btnSubmit');
+  const tipoInput = document.getElementById('tipo_id');
+  const emisionInput = document.getElementById('fechaEmisionInput');
+  const vencInput = document.getElementById('fechaVencimientoInput');
+  const vencHint = document.getElementById('vencHint');
+
+  let tipoData = null;
+
+  document.querySelectorAll('.tipo-card').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.tipo-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      tipoInput.value = el.dataset.tipoId;
+      tipoData = {
+        nombre: el.dataset.tipoNombre,
+        vence: el.dataset.vence === '1',
+        vigencia: el.dataset.vigencia ? parseInt(el.dataset.vigencia) : null,
+      };
+      document.getElementById('tipoSeleccionado').textContent = tipoData.nombre;
+      document.getElementById('confTipo').textContent = tipoData.nombre;
+      vencHint.style.display = tipoData.vence && tipoData.vigencia ? '' : 'none';
+    });
+  });
+
+  emisionInput?.addEventListener('change', () => {
+    if (tipoData && tipoData.vence && tipoData.vigencia && emisionInput.value && !vencInput.value) {
+      const d = new Date(emisionInput.value);
+      d.setDate(d.getDate() + tipoData.vigencia);
+      vencInput.value = d.toISOString().slice(0, 10);
+    }
+  });
+
+  function showStep(n) {
+    steps.forEach((s, i) => s.classList.toggle('active', i === n - 1));
+    pills.forEach((p, i) => {
+      p.classList.toggle('active', i === n - 1);
+      p.classList.toggle('done', i < n - 1);
+    });
+    btnPrev.disabled = n === 1;
+    btnNext.style.display = n === totalSteps ? 'none' : '';
+    btnSubmit.style.display = n === totalSteps ? '' : 'none';
+
+    if (n === 3) {
+      const f = document.getElementById('archivoInput').files[0];
+      document.getElementById('confArchivo').textContent = f ? `${f.name} (${(f.size/1024).toFixed(1)} KB)` : '—';
+      document.getElementById('confEmision').textContent = emisionInput.value || '—';
+      document.getElementById('confVencimiento').textContent = vencInput.value || '—';
+    }
+  }
+
+  btnNext.addEventListener('click', () => {
+    if (step === 1 && !tipoInput.value) {
+      alert('Selecciona un tipo de documento.');
+      return;
+    }
+    if (step === 2 && !document.getElementById('archivoInput').files.length) {
+      alert('Selecciona un archivo.');
+      return;
+    }
+    if (step < totalSteps) { step++; showStep(step); }
+  });
+
+  btnPrev.addEventListener('click', () => {
+    if (step > 1) { step--; showStep(step); }
+  });
+})();
+</script>
+{% endblock %}

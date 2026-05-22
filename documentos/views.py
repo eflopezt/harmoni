@@ -2012,3 +2012,274 @@ def archivo_hr_descargar(request, pk):
     except Exception:
         messages.error(request, 'Error al descargar el archivo.')
         return redirect('mis_archivos_hr')
+
+
+# ══════════════════════════════════════════════════════════════════
+# LEGAJO DIGITAL — Wizard de subida + PDF completo + Vencimientos
+# ══════════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def documento_subir_wizard(request, personal_pk):
+    """
+    Wizard de subida de documento al legajo de un trabajador.
+    GET: muestra formulario con tipos jerárquicos por categoría.
+    POST: valida + crea el DocumentoTrabajador (auto-calcula fecha_vencimiento
+          si el TipoDocumento tiene vigencia_dias).
+    """
+    from django.contrib import messages as _msg
+    from personal.models import Personal
+
+    personal = get_object_or_404(Personal, pk=personal_pk)
+
+    if request.method == 'POST':
+        try:
+            tipo = get_object_or_404(TipoDocumento, pk=request.POST.get('tipo_id'))
+            archivo = request.FILES.get('archivo')
+            if not archivo:
+                _msg.error(request, 'Debe seleccionar un archivo.')
+                return redirect('documentos_subir_wizard', personal_pk=personal.pk)
+
+            # Validar tamaño (10 MB)
+            if archivo.size > 10 * 1024 * 1024:
+                _msg.error(request, 'El archivo no puede superar 10 MB.')
+                return redirect('documentos_subir_wizard', personal_pk=personal.pk)
+
+            # Validar tipo MIME / extensión permitida
+            ext = archivo.name.rsplit('.', 1)[-1].lower() if '.' in archivo.name else ''
+            permitidas = {'pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'doc', 'docx',
+                          'xls', 'xlsx'}
+            if ext not in permitidas:
+                _msg.error(
+                    request,
+                    f'Extensión .{ext} no permitida. Solo: {", ".join(sorted(permitidas))}.',
+                )
+                return redirect('documentos_subir_wizard', personal_pk=personal.pk)
+
+            fecha_emision = request.POST.get('fecha_emision') or None
+            fecha_vencimiento = request.POST.get('fecha_vencimiento') or None
+            try:
+                fecha_emision_d = date.fromisoformat(fecha_emision) if fecha_emision else None
+            except ValueError:
+                fecha_emision_d = None
+            try:
+                fecha_vencimiento_d = date.fromisoformat(fecha_vencimiento) if fecha_vencimiento else None
+            except ValueError:
+                fecha_vencimiento_d = None
+
+            ultima_version = DocumentoTrabajador.objects.filter(
+                personal=personal, tipo=tipo,
+            ).order_by('-version').values_list('version', flat=True).first() or 0
+
+            doc = DocumentoTrabajador.objects.create(
+                personal=personal,
+                tipo=tipo,
+                archivo=archivo,
+                nombre_archivo=(request.POST.get('nombre_archivo') or '').strip() or archivo.name,
+                fecha_emision=fecha_emision_d,
+                fecha_vencimiento=fecha_vencimiento_d,
+                notas=(request.POST.get('notas') or '').strip(),
+                version=ultima_version + 1,
+                subido_por=request.user,
+            )
+            try:
+                from core.audit import log_create
+                log_create(request, doc, f'Documento subido: {doc.tipo.nombre} '
+                                         f'para {personal.apellidos_nombres}')
+            except Exception:
+                pass
+
+            _msg.success(
+                request,
+                f'Documento "{doc.tipo.nombre}" cargado correctamente '
+                f'(v{doc.version}, estado: {doc.get_estado_display()}).',
+            )
+            return redirect('documentos_legajo', personal_id=personal.pk)
+        except Exception as exc:
+            _msg.error(request, f'Error al subir documento: {exc}')
+            return redirect('documentos_subir_wizard', personal_pk=personal.pk)
+
+    # GET — armar tipos jerárquicos por categoría
+    tipos = TipoDocumento.objects.filter(activo=True).select_related('categoria')
+    if personal.grupo_tareo == 'STAFF':
+        tipos = tipos.filter(aplica_staff=True)
+    else:
+        tipos = tipos.filter(aplica_rco=True)
+
+    categorias_dict: dict[str, list] = {}
+    for t in tipos:
+        cat = t.categoria.nombre if t.categoria else 'Sin Categoría'
+        categorias_dict.setdefault(cat, []).append(t)
+
+    context = {
+        'titulo': f'Subir documento — {personal.apellidos_nombres}',
+        'empleado': personal,
+        'personal': personal,
+        'categorias_dict': categorias_dict,
+    }
+    return render(request, 'documentos/subir_wizard.html', context)
+
+
+@login_required
+@solo_admin
+def legajo_pdf(request, personal_pk):
+    """Descarga el PDF completo del legajo del trabajador."""
+    from personal.models import Personal
+    from documentos.pdf_legajo import build_legajo_pdf
+
+    personal = get_object_or_404(Personal, pk=personal_pk)
+    autorizado_por = (
+        request.user.get_full_name() or request.user.username
+        if request.user.is_authenticated else 'Recursos Humanos'
+    )
+    buf = build_legajo_pdf(personal, autorizado_por=autorizado_por)
+
+    filename = f'legajo_{personal.nro_doc or personal.pk}.pdf'
+    response = HttpResponse(buf.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+@solo_admin
+def vencimientos_panel(request):
+    """
+    Panel admin de documentos vencidos / por vencer.
+
+    Filtros vía ?dias=7|15|30|60 (por defecto 30).
+    """
+    _recalcular_vencimientos()
+
+    try:
+        dias_filtro = int(request.GET.get('dias', 30))
+    except (TypeError, ValueError):
+        dias_filtro = 30
+    if dias_filtro not in (7, 15, 30, 60):
+        dias_filtro = 30
+
+    hoy = date.today()
+    limite = hoy + timedelta(days=dias_filtro)
+
+    por_vencer = (
+        DocumentoTrabajador.objects
+        .filter(
+            tipo__vence=True,
+            fecha_vencimiento__gte=hoy,
+            fecha_vencimiento__lte=limite,
+        )
+        .exclude(estado='ANULADO')
+        .select_related('personal', 'tipo', 'tipo__categoria')
+        .order_by('fecha_vencimiento')
+    )
+
+    vencidos = (
+        DocumentoTrabajador.objects
+        .filter(
+            tipo__vence=True,
+            fecha_vencimiento__lt=hoy,
+        )
+        .exclude(estado='ANULADO')
+        .select_related('personal', 'tipo', 'tipo__categoria')
+        .order_by('fecha_vencimiento')
+    )
+
+    context = {
+        'titulo': 'Vencimientos de Documentos',
+        'dias_filtro': dias_filtro,
+        'por_vencer': por_vencer,
+        'vencidos': vencidos,
+        'total_por_vencer': por_vencer.count(),
+        'total_vencidos': vencidos.count(),
+        'hoy': hoy,
+    }
+    return render(request, 'documentos/vencimientos.html', context)
+
+
+@login_required
+@solo_admin
+@require_POST
+def vencimientos_notificar(request):
+    """
+    Notifica via Notificacion IN_APP a los trabajadores con documentos
+    vencidos o por vencer. Idempotente: agrupa por personal.
+    """
+    _recalcular_vencimientos()
+    hoy = date.today()
+    try:
+        dias = int(request.POST.get('dias', 30))
+    except (TypeError, ValueError):
+        dias = 30
+
+    qs = (
+        DocumentoTrabajador.objects
+        .filter(tipo__vence=True)
+        .filter(
+            Q(fecha_vencimiento__lt=hoy)
+            | Q(
+                fecha_vencimiento__gte=hoy,
+                fecha_vencimiento__lte=hoy + timedelta(days=dias),
+            )
+        )
+        .exclude(estado='ANULADO')
+        .select_related('personal', 'tipo')
+    )
+
+    # Agrupar por personal
+    por_personal: dict[int, list] = {}
+    for d in qs:
+        por_personal.setdefault(d.personal_id, []).append(d)
+
+    creadas = 0
+    fallidas = 0
+    try:
+        from comunicaciones.models import Notificacion
+        for personal_id, docs in por_personal.items():
+            personal = docs[0].personal
+            vencidos = [d for d in docs if d.fecha_vencimiento and d.fecha_vencimiento < hoy]
+            pv = [d for d in docs if d.fecha_vencimiento and d.fecha_vencimiento >= hoy]
+
+            partes_html = ['<p>Estimado/a trabajador/a,</p>',
+                           '<p>Tienes documentos del legajo que requieren atención:</p>',
+                           '<ul>']
+            for d in vencidos:
+                partes_html.append(
+                    f'<li><b>VENCIDO</b>: {d.tipo.nombre} — venció el '
+                    f'{d.fecha_vencimiento.strftime("%d/%m/%Y")}</li>'
+                )
+            for d in pv:
+                partes_html.append(
+                    f'<li><b>POR VENCER</b>: {d.tipo.nombre} — vence el '
+                    f'{d.fecha_vencimiento.strftime("%d/%m/%Y")}</li>'
+                )
+            partes_html.append('</ul>')
+            partes_html.append(
+                '<p>Por favor coordina con RRHH la actualización de tu documentación.</p>'
+            )
+            try:
+                Notificacion.objects.create(
+                    destinatario=personal,
+                    asunto=f'Documentos del legajo por actualizar ({len(docs)})',
+                    cuerpo=''.join(partes_html),
+                    tipo='IN_APP',
+                    estado='PENDIENTE',
+                    metadata={
+                        'fuente': 'documentos.vencimientos',
+                        'total_vencidos': len(vencidos),
+                        'total_por_vencer': len(pv),
+                    },
+                )
+                creadas += 1
+            except Exception:
+                fallidas += 1
+    except ImportError:
+        return JsonResponse({
+            'ok': False,
+            'error': 'Módulo comunicaciones no disponible.',
+        }, status=503)
+
+    return JsonResponse({
+        'ok': True,
+        'notificaciones_creadas': creadas,
+        'fallidas': fallidas,
+        'total_personal': len(por_personal),
+    })

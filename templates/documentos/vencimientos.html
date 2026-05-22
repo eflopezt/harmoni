@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Vencimientos de Documentos{% endblock %}
+
+{% block extra_css %}
+<style>
+.tab-pill { padding:6px 14px; border-radius:20px; background:#e5e7eb; color:#4b5563;
+            font-size:.85rem; font-weight:600; text-decoration:none; }
+.tab-pill.active { background:#0F766E; color:#fff; }
+.tab-pill:hover { background:#5EEAD4; color:#0D2B27; }
+.estado-vencido    { color:#dc2626; font-weight:600; }
+.estado-por-vencer { color:#d97706; font-weight:600; }
+.estado-vigente    { color:#059669; }
+.dias-badge { font-size:.7rem; padding:2px 8px; border-radius:10px; }
+.dias-vencido    { background:#fee2e2; color:#991b1b; }
+.dias-por-vencer { background:#fef3c7; color:#92400e; }
+.kpi { background:#f0fdf9; border-radius:8px; padding:1rem 1.25rem; }
+.kpi .num { font-size:1.6rem; font-weight:700; color:#0F766E; }
+.kpi .lbl { color:#6b7280; font-size:.8rem; text-transform:uppercase; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <a href="{% url 'documentos_panel' %}" class="text-muted text-decoration-none small">
+      <i class="fas fa-arrow-left me-1"></i>Documentos
+    </a>
+    <h2 class="mb-0 mt-1"><i class="fas fa-calendar-alt text-secondary me-2"></i>Vencimientos</h2>
+    <small class="text-muted">Documentos vencidos y próximos a vencer.</small>
+  </div>
+  <div>
+    <button class="btn btn-outline-warning btn-sm" onclick="notificar()">
+      <i class="fas fa-bell me-1"></i>Notificar trabajadores
+    </button>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-4">
+    <div class="kpi">
+      <div class="lbl">Vencidos</div>
+      <div class="num text-danger">{{ total_vencidos }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="kpi">
+      <div class="lbl">Por vencer (≤ {{ dias_filtro }} días)</div>
+      <div class="num text-warning">{{ total_por_vencer }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="kpi">
+      <div class="lbl">Total documentos críticos</div>
+      <div class="num">{{ total_vencidos|add:total_por_vencer }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros de ventana -->
+<div class="d-flex gap-2 mb-3">
+  <span class="text-muted small me-1 align-self-center">Ventana:</span>
+  <a href="?dias=7"  class="tab-pill {% if dias_filtro == 7 %}active{% endif %}">7 días</a>
+  <a href="?dias=15" class="tab-pill {% if dias_filtro == 15 %}active{% endif %}">15 días</a>
+  <a href="?dias=30" class="tab-pill {% if dias_filtro == 30 %}active{% endif %}">30 días</a>
+  <a href="?dias=60" class="tab-pill {% if dias_filtro == 60 %}active{% endif %}">60 días</a>
+</div>
+
+<!-- Vencidos -->
+<div class="card shadow-sm mb-3">
+  <div class="card-header py-2 bg-danger bg-opacity-10">
+    <h6 class="mb-0 text-danger"><i class="fas fa-times-circle me-2"></i>Documentos Vencidos ({{ total_vencidos }})</h6>
+  </div>
+  <div class="card-body p-0">
+    {% if vencidos %}
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Trabajador</th>
+          <th>Documento</th>
+          <th>Categoría</th>
+          <th>Vencimiento</th>
+          <th>Días</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in vencidos %}
+        <tr>
+          <td><a href="{% url 'documentos_legajo' d.personal.pk %}">{{ d.personal.apellidos_nombres }}</a>
+              <br><small class="text-muted">{{ d.personal.nro_doc }}</small></td>
+          <td>{{ d.tipo.nombre }}</td>
+          <td><small>{{ d.tipo.categoria.nombre|default:"—" }}</small></td>
+          <td>{{ d.fecha_vencimiento|date:"d/m/Y" }}</td>
+          <td><span class="dias-badge dias-vencido">{{ d.dias_para_vencer }} d</span></td>
+          <td class="text-end">
+            <a href="{% url 'documentos_subir_wizard' d.personal.pk %}" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size:.7rem">
+              <i class="fas fa-redo me-1"></i>Renovar
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center text-muted py-4">
+      <i class="fas fa-check-circle text-success me-1"></i>No hay documentos vencidos.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Por vencer -->
+<div class="card shadow-sm">
+  <div class="card-header py-2 bg-warning bg-opacity-10">
+    <h6 class="mb-0 text-warning"><i class="fas fa-clock me-2"></i>Por Vencer en ≤ {{ dias_filtro }} días ({{ total_por_vencer }})</h6>
+  </div>
+  <div class="card-body p-0">
+    {% if por_vencer %}
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Trabajador</th>
+          <th>Documento</th>
+          <th>Categoría</th>
+          <th>Vencimiento</th>
+          <th>Días</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in por_vencer %}
+        <tr>
+          <td><a href="{% url 'documentos_legajo' d.personal.pk %}">{{ d.personal.apellidos_nombres }}</a>
+              <br><small class="text-muted">{{ d.personal.nro_doc }}</small></td>
+          <td>{{ d.tipo.nombre }}</td>
+          <td><small>{{ d.tipo.categoria.nombre|default:"—" }}</small></td>
+          <td>{{ d.fecha_vencimiento|date:"d/m/Y" }}</td>
+          <td><span class="dias-badge dias-por-vencer">{{ d.dias_para_vencer }} d</span></td>
+          <td class="text-end">
+            <a href="{% url 'documentos_subir_wizard' d.personal.pk %}" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size:.7rem">
+              <i class="fas fa-redo me-1"></i>Renovar
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center text-muted py-4">
+      Sin documentos próximos a vencer en esta ventana.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+
+async function notificar() {
+  if (!confirm('¿Enviar notificación in-app a cada trabajador con documentos vencidos o por vencer?')) return;
+  const fd = new FormData();
+  fd.append('dias', '{{ dias_filtro }}');
+  try {
+    const r = await fetch('{% url "documentos_vencimientos_notificar" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF },
+      body: fd,
+    });
+    const data = await r.json();
+    if (data.ok) {
+      alert(`Notificaciones creadas: ${data.notificaciones_creadas} (trabajadores únicos: ${data.total_personal}).`);
+    } else {
+      alert('Error: ' + (data.error || 'desconocido'));
+    }
+  } catch (e) {
+    alert('Error de red al notificar.');
+  }
+}
+</script>
+{% endblock %}
