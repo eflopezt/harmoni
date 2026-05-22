@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}FAQ — Preguntas frecuentes gastronomía{% endblock %}
+{% block content %}
+<div style="max-width:880px;margin:0 auto;">
+
+  <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;padding:32px;border-radius:16px;margin-bottom:24px;text-align:center;">
+    <h2 style="margin:0;font-weight:800;">
+      <i class="fas fa-question-circle me-2"></i>
+      Preguntas frecuentes — Gastronomía
+    </h2>
+    <p style="margin:10px 0 0;color:rgba(255,255,255,.85);">
+      Las {{ total_preguntas }} preguntas que más nos hacen los grupos gastronómicos peruanos.
+      Diseñado para vos.
+    </p>
+  </div>
+
+  {% for cat in categorias %}
+  <details {% if forloop.first %}open{% endif %}
+           style="background:#fff;border-radius:14px;padding:20px 24px;margin-bottom:14px;border:1px solid #e2e8f0;cursor:pointer;">
+    <summary style="font-weight:800;color:#0d2b27;font-size:1.1rem;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+      <span>{{ cat.categoria }}</span>
+      <span style="font-size:.75rem;color:#94a3b8;font-weight:500;">{{ cat.items|length }} pregunta{{ cat.items|length|pluralize:"s" }}</span>
+    </summary>
+    <div style="margin-top:16px;">
+      {% for it in cat.items %}
+      <div style="margin-bottom:18px;padding-bottom:14px;{% if not forloop.last %}border-bottom:1px dashed #e2e8f0;{% endif %}">
+        <div style="color:#0d2b27;font-weight:700;font-size:.95rem;margin-bottom:6px;">
+          <i class="fas fa-circle-question me-1" style="color:#0f766e;font-size:.8rem;"></i>
+          {{ it.q }}
+        </div>
+        <div style="color:#475569;font-size:.88rem;line-height:1.6;padding-left:18px;">
+          {{ it.a }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </details>
+  {% endfor %}
+
+  <!-- CTA cierre -->
+  <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:14px;padding:24px;text-align:center;margin-top:24px;">
+    <h4 style="margin:0 0 6px;color:#78350f;font-weight:800;">¿Tu pregunta no está aquí?</h4>
+    <p style="margin:0 0 14px;color:#78350f;font-size:.88rem;">Hablemos por WhatsApp — respondemos rápido.</p>
+    <a href="https://wa.me/51906602313?text=Hola,%20tengo%20una%20pregunta%20sobre%20Harmoni%20para%20gastronomía." target="_blank"
+       style="background:#16a34a;color:#fff;padding:11px 24px;border-radius:10px;font-weight:700;text-decoration:none;">
+      <i class="fab fa-whatsapp"></i> Pregúntanos por WhatsApp
+    </a>
+  </div>
+
+</div>
+
+<style>
+details summary::-webkit-details-marker { display: none; }
+details summary::after {
+    content: '+';
+    font-size: 1.4rem;
+    color: #94a3b8;
+    transition: transform .2s;
+}
+details[open] summary::after { content: '−'; }
+</style>
+{% endblock %}

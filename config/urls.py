@@ -169,6 +169,8 @@ urlpatterns = [
     path('qr-demo/', __import__('core.views_qr_demo', fromlist=['qr_demo']).qr_demo, name='qr_demo'),
     # Reporte ejecutivo PDF — "El Grupo en 1 página"
     path('reportes/grupo-ejecutivo/', __import__('core.views_reporte_ejecutivo_grupo', fromlist=['reporte_grupo_ejecutivo']).reporte_grupo_ejecutivo, name='reporte_grupo_ejecutivo'),
+    # FAQ pública gastronomía
+    path('faq/', __import__('core.views_faq', fromlist=['faq_publica']).faq_publica, name='faq_publica'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
