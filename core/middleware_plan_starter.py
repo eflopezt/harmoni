@@ -6,13 +6,30 @@ Para usuarios del Plan Starter (S/149/mes — 30 colaboradores), bloquea:
 - IA y AI features (predictor rotación, AI summary CV)
 - Evaluaciones 360
 - BI Excel + Dashboard Ejecutivo cross-modulo
-- Capacitaciones gastro BPM/HACCP
+- Capacitaciones (entero — agencia pequeña no gestiona capacitación formal)
 - Pulse del Grupo / Briefing / Cuadrícula gastro
 - Workflows engine
 - Bandas salariales / Análisis equidad
 - Préstamos workflow
 - Comunicaciones masivas (campañas WhatsApp)
 - Onboarding gastronomía
+- Organigrama (gestión visual avanzada)
+- Calendario laboral (planning avanzado)
+- Contratos (gestión formal de contratos / renovaciones / adendas)
+- Roster matricial (vista avanzada — solo lista plana)
+- Disciplinaria (medidas formales con carta PDF)
+- Banco de horas
+- Documentos legajo PDF
+- PDFs de reportes (solo Excel/HTML para Starter)
+- División RCO/Staff (Starter solo maneja STAFF)
+
+Mantiene acceso a:
+- Personal (CRUD básico)
+- Asistencia (registro + 1 reporte matricial básico)
+- Planillas (boletas PDF — requisito legal)
+- Vacaciones (constancia PDF — requisito legal)
+- Portal del colaborador
+- Cuenta / configuración básica
 
 Usuarios identificados por:
 1. Username en STARTER_USERNAMES (hardcoded en settings o aquí)
@@ -40,40 +57,70 @@ STARTER_USERNAMES = ['demo2']
 # Prefijos URL bloqueados para Plan Starter
 # Match con re.match al inicio de request.path
 STARTER_BLOCKED_PATTERNS = [
-    # Reclutamiento — entero NO incluido en Starter
+    # ─── Reclutamiento (entero) ───
     r'^/reclutamiento/',
-    # Analytics IA
-    r'^/analytics/predictor-rotacion/',
-    # Evaluaciones 360 (la 360 sí, lo básico está OK)
-    r'^/evaluaciones/360/',
-    # Dashboard Ejecutivo cross-modulo
-    r'^/sistema/dashboard/ejecutivo/',
-    # BI Excel mensual
-    r'^/sistema/reporte-bi-mensual/',
-    # Capacitaciones gastro
-    r'^/capacitaciones/gastro/',
-    # Onboarding gastronomía
-    r'^/onboarding/gastro/',
-    # Pulse del Grupo (es para multi-local)
-    r'^/empresas/pulse/',
-    # Briefing del día (gastro)
-    r'^/asistencia/briefing/',
-    # Workflows engine
-    r'^/workflows/',
-    # Salarios (bandas + equidad)
-    r'^/salarios/',
-    # Comunicaciones masivas
-    r'^/comunicaciones/campanas/',
-    # WhatsApp
-    r'^/comunicaciones/whatsapp/',
-    # Préstamos (no en starter)
-    r'^/prestamos/',
-    # Roster Quincenal Gastro
-    r'^/roster/gastro/',
-    # Encuestas Pulse semanales (gastro)
-    r'^/encuestas/pulse/',
-    # API REST avanzada
     r'^/api/v1/reclutamiento/',
+
+    # ─── Analytics / IA / BI ───
+    r'^/analytics/predictor-rotacion/',
+    r'^/sistema/dashboard/ejecutivo/',
+    r'^/sistema/reporte-bi-mensual/',
+
+    # ─── Evaluaciones 360 ───
+    r'^/evaluaciones/360/',
+
+    # ─── Capacitaciones (entero) ───
+    r'^/capacitaciones/',
+
+    # ─── Onboarding gastronomía ───
+    r'^/onboarding/gastro/',
+
+    # ─── Multi-empresa / Pulse / Briefing / Roster gastro ───
+    r'^/empresas/pulse/',
+    r'^/asistencia/briefing/',
+    r'^/roster/gastro/',
+    r'^/personal/roster/gastro/',
+    r'^/encuestas/pulse/',
+
+    # ─── Workflows / Salarios / Préstamos / Disciplinaria ───
+    r'^/workflows/',
+    r'^/salarios/',
+    r'^/prestamos/',
+    r'^/disciplinaria/',
+
+    # ─── Comunicaciones masivas ───
+    r'^/comunicaciones/campanas/',
+    r'^/comunicaciones/whatsapp/',
+
+    # ─── Organigrama (gestión visual avanzada) ───
+    r'^/personal/organigrama/',
+    r'^/personal/api/organigrama',
+    r'^/portal/organigrama/',
+
+    # ─── Calendario laboral (entero) ───
+    r'^/calendario/',
+
+    # ─── Contratos (gestión formal — bloqueado para Starter) ───
+    r'^/personal/contratos/',
+
+    # ─── Roster matricial (vista avanzada — solo lista plana) ───
+    r'^/personal/roster/matricial/',
+
+    # ─── Banco de horas ───
+    r'^/asistencia/banco-horas/',
+
+    # ─── Documentos legajo PDF ───
+    r'^/documentos/legajo/\d+/pdf/',
+
+    # ─── PDFs de reportes avanzados (Starter no genera PDFs salvo boletas/constancias) ───
+    r'^/reportes/planilla/pdf/',
+    r'^/reportes/personal/pdf/',
+    r'^/reportes/asistencia/pdf/',
+    r'^/reportes/vacaciones/pdf/',
+    r'^/asistencia/reportes/areas/pdf/',
+    r'^/asistencia/reportes/pivote/pdf/',
+    r'^/asistencia/reportes/\d+/pdf/',
+    r'^/asistencia/reportes/masivo/',
 ]
 
 # Compilar patterns una vez

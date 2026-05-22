@@ -1,0 +1,68 @@
+# =============================================================================
+# Harmoni ERP — Plan Starter (contenedor aislado para clientes Starter)
+#
+# Uso:
+#   - Cada cliente Starter (S/149/mes) corre en su propio contenedor.
+#   - Aislamiento por DB (schema o instancia distinta).
+#   - Puerto distinto (8100, 8101, 8102…) detrás de nginx con subpath o subdom.
+#   - Variable HARMONI_PLAN=STARTER bloquea features enterprise (middleware).
+#   - Sin Celery worker dedicado (Starter no usa workflows pesados).
+#
+# Deploy manual:
+#   cd /opt/harmoni-starter-<cliente>/
+#   docker compose -f docker-compose.starter.yml up -d --build
+#
+# Para el demo público /demo2/ (path en el container principal de demo.harmoni.pe)
+# NO se usa este file — el middleware PlanStarterMiddleware basta.
+# Este file es para PRODUCCIÓN de clientes Starter reales con aislamiento de datos.
+# =============================================================================
+
+services:
+  web-starter:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: harmoni-starter-${CLIENT_SLUG:-default}
+    restart: unless-stopped
+    env_file: .env.starter
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - HARMONI_PLAN=STARTER
+      - HARMONI_MAX_TRABAJADORES=30
+      - HARMONI_CLIENT_SLUG=${CLIENT_SLUG:-default}
+    ports:
+      # Cada cliente Starter tiene su puerto (8100-8199 reservados)
+      - "${STARTER_PORT:-8100}:8000"
+    volumes:
+      - /opt/harmoni-starter/${CLIENT_SLUG:-default}/staticfiles:/app/staticfiles
+      - /opt/harmoni-starter/${CLIENT_SLUG:-default}/media:/app/media
+      - /opt/harmoni-starter/${CLIENT_SLUG:-default}/logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import http.client; c=http.client.HTTPConnection('localhost',8000,timeout=5); c.request('GET','/health/'); r=c.getresponse(); exit(0 if r.status in (200,301,302) else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    # Container Starter es más ligero: 2 workers, 1 thread (menos tráfico)
+    command: >
+      gunicorn config.wsgi:application
+        --bind 0.0.0.0:8000
+        --workers 2
+        --threads 1
+        --worker-class gthread
+        --max-requests 500
+        --max-requests-jitter 50
+        --timeout 120
+        --graceful-timeout 30
+        --preload
+        --access-logfile -
+        --error-logfile -
+        --log-level warning
+
+  # NOTA: Starter NO incluye celery worker independiente.
+  # Las tareas pesadas (PDFs masivos, exports BI) están bloqueadas por middleware.
+  # Si se requieren tareas async básicas (envío de email, notifs), se ejecutan
+  # inline con Django mail backend síncrono — suficiente para 30 trabajadores.
+
+# Si en algún momento Starter necesita Celery beat (cron interno):
+# Descomentar y agregar bloque celery-beat-starter aquí.
