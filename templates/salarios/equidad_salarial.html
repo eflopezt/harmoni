@@ -75,6 +75,51 @@
         <a href="{% url 'simulacion_comparativa' %}" class="btn btn-sm btn-outline-light">
             <i class="fas fa-scale-balanced me-1"></i>Simulador
         </a>
+        <a href="{% url 'simular_ajuste_equidad' %}" class="btn btn-sm btn-light fw-semibold" style="color:#0d2b27;">
+            <i class="fas fa-balance-scale-right me-1"></i>Simular Ajuste
+        </a>
+    </div>
+</div>
+
+<!-- ══ STATS DE EQUIDAD: BRECHA + OUTLIERS + SIN-BANDA ══ -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="eq-stat {% if brecha_genero is not None and brecha_genero > 15 %}danger{% elif brecha_genero is not None and brecha_genero > 5 %}warning{% else %}success{% endif %}">
+            <div class="lbl">Brecha género</div>
+            <div class="val">
+                {% if brecha_genero is not None %}{{ brecha_genero }}%{% else %}—{% endif %}
+            </div>
+            <div style="font-size:.72rem;color:#9ca3af;">
+                M vs F (positivo = M gana más)
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="eq-stat {% if n_outliers_alto > 0 %}warning{% else %}success{% endif %}">
+            <div class="lbl">Outliers alto</div>
+            <div class="val">{{ n_outliers_alto|default:0 }}</div>
+            <div style="font-size:.72rem;color:#9ca3af;">
+                sueldo &gt; máximo de banda
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="eq-stat {% if n_outliers_bajo > 0 %}danger{% else %}success{% endif %}">
+            <div class="lbl">Outliers bajo</div>
+            <div class="val">{{ n_outliers_bajo|default:0 }}</div>
+            <div style="font-size:.72rem;color:#9ca3af;">
+                sueldo &lt; mínimo de banda
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="eq-stat {% if n_sin_banda > 0 %}warning{% else %}success{% endif %}">
+            <div class="lbl">Sin banda</div>
+            <div class="val">{{ n_sin_banda|default:0 }}</div>
+            <div style="font-size:.72rem;color:#9ca3af;">
+                cargo sin banda definida
+            </div>
+        </div>
     </div>
 </div>
 
@@ -296,6 +341,175 @@
 {% else %}
 <div class="alert alert-info">Sin datos suficientes para graficar por área.</div>
 {% endif %}
+
+<!-- ══ SECCIÓN 4: DISTRIBUCIÓN POR PERCENTILES ══ -->
+<h5 class="mb-3 mt-4 fw-semibold" style="color:#0d2b27;">
+    <i class="fas fa-chart-pie me-2" style="color:#0f766e;"></i>Distribución por Percentiles
+</h5>
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="eq-stat">
+            <div class="lbl">&lt; P25</div>
+            <div class="val">{{ distribucion_bandas.p25_below|default:0 }}</div>
+            <div style="font-size:.72rem;color:#9ca3af;">debajo de S/ {{ stats_eq.p25|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="eq-stat">
+            <div class="lbl">P25 – P50</div>
+            <div class="val">{{ distribucion_bandas.p25_p50|default:0 }}</div>
+            <div style="font-size:.72rem;color:#9ca3af;">hasta la mediana S/ {{ stats_eq.median|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="eq-stat">
+            <div class="lbl">P50 – P75</div>
+            <div class="val">{{ distribucion_bandas.p50_p75|default:0 }}</div>
+            <div style="font-size:.72rem;color:#9ca3af;">hasta S/ {{ stats_eq.p75|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="eq-stat success">
+            <div class="lbl">&gt; P75</div>
+            <div class="val">{{ distribucion_bandas.p75_above|default:0 }}</div>
+            <div style="font-size:.72rem;color:#9ca3af;">arriba del Q3</div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ SECCIÓN 5: OUTLIERS ALTOS (sobrepago) ══ -->
+{% if outliers_alto %}
+<h5 class="mb-3 mt-4 fw-semibold" style="color:#0d2b27;">
+    <i class="fas fa-arrow-up me-2" style="color:#d97706;"></i>
+    Outliers Alto · sueldo &gt; máximo de banda
+    <small class="text-muted fw-normal" style="font-size:.8rem;">(top 20)</small>
+</h5>
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 tbl-areas">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Trabajador</th>
+                        <th>Cargo</th>
+                        <th>Banda (máx)</th>
+                        <th class="text-end">Sueldo actual</th>
+                        <th class="text-end">Exceso S/</th>
+                        <th class="text-center">% exceso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in outliers_alto %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ o.personal.apellidos_nombres }}</td>
+                        <td>{{ o.personal.cargo|default:"—" }}</td>
+                        <td class="text-muted">S/ {{ o.banda.maximo|floatformat:2|intcomma }}</td>
+                        <td class="text-end fw-bold">S/ {{ o.sueldo|floatformat:2|intcomma }}</td>
+                        <td class="text-end" style="color:#d97706;font-weight:600;">
+                            +S/ {{ o.exceso|floatformat:2|intcomma }}
+                        </td>
+                        <td class="text-center">
+                            <span class="brecha-warn">+{{ o.exceso_pct }}%</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ══ SECCIÓN 6: OUTLIERS BAJOS (subpago) ══ -->
+{% if outliers_bajo %}
+<h5 class="mb-3 mt-4 fw-semibold" style="color:#0d2b27;">
+    <i class="fas fa-arrow-down me-2" style="color:#dc2626;"></i>
+    Outliers Bajo · sueldo &lt; mínimo de banda
+    <small class="text-muted fw-normal" style="font-size:.8rem;">(top 20)</small>
+    <a href="{% url 'simular_ajuste_equidad' %}" class="btn btn-sm btn-outline-primary ms-2">
+        <i class="fas fa-balance-scale-right me-1"></i>Simular ajuste a banda
+    </a>
+</h5>
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 tbl-areas">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Trabajador</th>
+                        <th>Cargo</th>
+                        <th>Banda (mín)</th>
+                        <th class="text-end">Sueldo actual</th>
+                        <th class="text-end">Déficit S/</th>
+                        <th class="text-center">% déficit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in outliers_bajo %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ o.personal.apellidos_nombres }}</td>
+                        <td>{{ o.personal.cargo|default:"—" }}</td>
+                        <td class="text-muted">S/ {{ o.banda.minimo|floatformat:2|intcomma }}</td>
+                        <td class="text-end fw-bold">S/ {{ o.sueldo|floatformat:2|intcomma }}</td>
+                        <td class="text-end" style="color:#dc2626;font-weight:600;">
+                            −S/ {{ o.deficit|floatformat:2|intcomma }}
+                        </td>
+                        <td class="text-center">
+                            <span class="brecha-danger">−{{ o.deficit_pct }}%</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ══ SECCIÓN 7: SIN BANDA ASIGNADA ══ -->
+{% if sin_banda %}
+<h5 class="mb-3 mt-4 fw-semibold" style="color:#0d2b27;">
+    <i class="fas fa-question-circle me-2" style="color:#d97706;"></i>
+    Personal sin banda definida
+    <small class="text-muted fw-normal" style="font-size:.8rem;">
+        (top 20 · gap de policy: definir banda para estos cargos)
+    </small>
+</h5>
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 tbl-areas">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Trabajador</th>
+                        <th>Cargo</th>
+                        <th class="text-end">Sueldo actual</th>
+                        <th class="text-center">Acción sugerida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sin_banda %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ s.personal.apellidos_nombres }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ s.cargo }}</span>
+                        </td>
+                        <td class="text-end fw-bold">S/ {{ s.sueldo|floatformat:2|intcomma }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'bandas_panel' %}?cargo={{ s.cargo|urlencode }}"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-plus me-1"></i>Definir banda
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}

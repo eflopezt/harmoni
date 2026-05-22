@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 
 from core.audit import log_create, log_update
 from personal.models import Personal
+from .analisis_equidad import analizar_equidad_salarial, simular_ajuste_outliers
 from .models import BandaSalarial, HistorialSalarial, SimulacionIncremento, DetalleSimulacion
 
 solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
@@ -1274,6 +1275,21 @@ def equidad_salarial(request):
         })
 
     import json
+    # ── Motor de análisis: outliers + sin_banda + distribución ──
+    try:
+        analisis = analizar_equidad_salarial(
+            area_id=filtro_area or None,
+            grupo_tareo=filtro_grupo or None,
+        )
+    except Exception:
+        analisis = {
+            'outliers_alto': [], 'outliers_bajo': [], 'sin_banda': [],
+            'distribucion_bandas': {'p25_below': 0, 'p25_p50': 0,
+                                    'p50_p75': 0, 'p75_above': 0},
+            'stats_generales': {'avg_sueldo': 0, 'median': 0, 'p25': 0,
+                                'p75': 0, 'total_planilla': 0, 'n': 0},
+        }
+
     context = {
         'titulo': 'Análisis de Equidad Salarial',
         'areas': areas_qs,
@@ -1289,5 +1305,62 @@ def equidad_salarial(request):
         'chart_prom_total_json': json.dumps(chart_prom_total),
         'total_analizados': empleados.count(),
         'grupos_choices': Personal.GRUPO_TAREO_CHOICES,
+        # Nuevos: outliers / sin-banda / distribución
+        'outliers_alto': analisis['outliers_alto'][:20],
+        'outliers_bajo': analisis['outliers_bajo'][:20],
+        'sin_banda': analisis['sin_banda'][:20],
+        'n_outliers_alto': len(analisis['outliers_alto']),
+        'n_outliers_bajo': len(analisis['outliers_bajo']),
+        'n_sin_banda': len(analisis['sin_banda']),
+        'distribucion_bandas': analisis['distribucion_bandas'],
+        'stats_eq': analisis['stats_generales'],
     }
     return render(request, 'salarios/equidad_salarial.html', context)
+
+
+# ══════════════════════════════════════════════════════════════
+# ADMIN — SIMULADOR DE AJUSTE DE EQUIDAD
+# ══════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def simular_ajuste_equidad(request):
+    """
+    Simulador de ajuste para outliers_bajo: calcula el impacto en planilla
+    de subir a todos los subpagados al mínimo / mediana / máximo de su banda.
+
+    NO aplica los cambios — solo genera propuestas para revisión.
+    """
+    objetivo = request.GET.get('objetivo', 'mediana')
+    if objetivo not in ('minimo', 'mediana', 'maximo'):
+        objetivo = 'mediana'
+
+    try:
+        sim = simular_ajuste_outliers(objetivo=objetivo)
+    except Exception as e:
+        messages.error(request, f'Error en la simulación: {e}')
+        sim = {
+            'propuestas': [],
+            'impacto': {
+                'incremento_mensual_total': Decimal('0'),
+                'incremento_anual_total': Decimal('0'),
+                'planilla_actual': Decimal('0'),
+                'planilla_nueva': Decimal('0'),
+                'incremento_pct_planilla': Decimal('0'),
+                'n_afectados': 0,
+            },
+            'objetivo': objetivo,
+        }
+
+    context = {
+        'titulo': 'Simulador de Ajuste de Equidad',
+        'objetivo': objetivo,
+        'propuestas': sim['propuestas'],
+        'impacto': sim['impacto'],
+        'objetivos_choices': [
+            ('minimo',  'Mínimo de banda'),
+            ('mediana', 'Mediana (midpoint)'),
+            ('maximo',  'Máximo de banda'),
+        ],
+    }
+    return render(request, 'salarios/simular_ajuste.html', context)
