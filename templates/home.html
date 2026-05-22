@@ -910,6 +910,199 @@
 
 </div>{# /bottom grid #}
 
+{% if user.is_superuser or user.is_staff %}
+{# ───────────────────────────────────────────────────────
+   FEATURES 2026 — Tiles a herramientas avanzadas
+   ─────────────────────────────────────────────────────── #}
+<div style="margin-top:1.5rem;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:.85rem;">
+    <i class="fas fa-rocket" style="color:#0f766e;font-size:1.05rem;"></i>
+    <h6 style="margin:0;font-weight:700;color:#0d2b27;letter-spacing:-.01em;">Herramientas avanzadas</h6>
+    <span style="background:linear-gradient(135deg,#5eead4,#0f766e);color:#fff;padding:2px 8px;border-radius:8px;font-size:.62rem;font-weight:700;letter-spacing:.05em;">2026</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:10px;">
+
+    {# Reclutamiento — Pipeline #}
+    <a href="{% url 'pipeline_panel' %}" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s, box-shadow .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-columns"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Pipeline Reclutamiento</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Kanban con tags + score</small>
+      </div>
+    </a>
+
+    {# Mi Día #}
+    <a href="{% url 'mi_dia_reclutador' %}" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fef3c7;color:#92400e;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-sun"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Mi Día Reclutador</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Home personalizado</small>
+      </div>
+    </a>
+
+    {# Banco de Talento #}
+    <a href="{% url 'banco_de_talento' %}" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#e0e7ff;color:#3730a3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-archive"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Banco de Talento</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Rescatar descartados</small>
+      </div>
+    </a>
+
+    {# Comparar candidatos #}
+    <a href="{% url 'comparar_candidatos' %}" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#dbeafe;color:#1e40af;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-balance-scale"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Comparar Candidatos</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Side-by-side hasta 4</small>
+      </div>
+    </a>
+
+    {# Calendario entrevistas #}
+    <a href="{% url 'calendario_entrevistas' %}" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-calendar-alt"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Calendario Entrevistas</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Vista mensual</small>
+      </div>
+    </a>
+
+    {# Stats Reclutadores #}
+    <a href="{% url 'stats_reclutadores' %}" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fce7f3;color:#be185d;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-chart-line"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Stats Reclutadores</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Ranking + medallas</small>
+      </div>
+    </a>
+
+    {# Onboarding Gastro #}
+    <a href="/onboarding/gastro/" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fed7aa;color:#9a3412;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-utensils"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Onboarding Gastro</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Checklist 30/60/90</small>
+      </div>
+    </a>
+
+    {# Predictor Rotacion #}
+    <a href="/analytics/predictor-rotacion/" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fee2e2;color:#991b1b;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-fire-alt"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Predictor Rotación</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Score 0-100 IA</small>
+      </div>
+    </a>
+
+    {# Capacitaciones gastro BPM/HACCP #}
+    <a href="/capacitaciones/gastro/" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#cffafe;color:#0e7490;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-shield-virus"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">BPM / HACCP</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Certs gastro</small>
+      </div>
+    </a>
+
+    {# Eval 360 #}
+    <a href="/evaluaciones/360/" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#e9d5ff;color:#7e22ce;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-star-half-alt"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Evaluaciones 360</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Radar comparativo</small>
+      </div>
+    </a>
+
+    {# Equidad salarial #}
+    <a href="/salarios/equidad/" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#d1fae5;color:#065f46;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-balance-scale-right"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Equidad Salarial</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Gaps + outliers</small>
+      </div>
+    </a>
+
+    {# Pulse del Grupo #}
+    <a href="/empresas/pulse/" class="ft-tile" style="
+        display:flex;align-items:center;gap:10px;padding:14px;
+        background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+        text-decoration:none;color:inherit;transition:transform .15s;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fef3c7;color:#a16207;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-heartbeat"></i>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:600;font-size:.84rem;color:#0d2b27;">Pulse del Grupo</div>
+        <small style="color:#94a3b8;font-size:.7rem;">Multi-local</small>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<style>
+.ft-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(13,43,39,.08);
+  border-color: #5eead4 !important;
+}
+</style>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
