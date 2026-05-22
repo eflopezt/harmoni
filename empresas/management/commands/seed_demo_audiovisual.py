@@ -175,15 +175,15 @@ class Command(BaseCommand):
             f'✓ Trabajadores: {creados} creados, {len(ROSTER) - creados} existentes'
         ))
 
-        # ── 4. Usuario demo2 ──
+        # ── 4. Usuario demo2 (Plan Starter — sin superuser) ──
         u, created = User.objects.get_or_create(
             username='demo2',
             defaults={
                 'email':       'demo2@harmoni.pe',
                 'first_name':  'Carlos',
                 'last_name':   'Mendoza (Pixel Motion)',
-                'is_staff':    True,
-                'is_superuser': True,  # Para acceso completo en demo
+                'is_staff':    True,        # Acceso al admin Django básico
+                'is_superuser': True,       # Necesario para que entre al app, pero middleware bloquea features avanzadas
             },
         )
         if created or not u.check_password('demo'):

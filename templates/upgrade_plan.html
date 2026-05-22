@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Mejora tu plan — Harmoni{% endblock %}
+
+{% block extra_css %}
+<style>
+.upg-hero {
+    background: linear-gradient(135deg, #0d2b27, #134e4a);
+    color: #fff;
+    padding: 32px 28px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    text-align: center;
+}
+.upg-hero h2 { margin: 0; font-weight: 800; }
+.upg-hero p {
+    color: rgba(255,255,255,.85);
+    margin: 10px 0 0;
+    font-size: 1rem;
+}
+.upg-actual {
+    display: inline-block;
+    background: rgba(94,234,212,.2);
+    color: #5eead4;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 600;
+    margin-top: 12px;
+}
+
+.plan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.plan-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px 22px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    transition: transform .2s, box-shadow .2s;
+}
+.plan-card.destacado {
+    border: 2px solid;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(15,118,110,.15);
+}
+.plan-card.destacado::before {
+    content: '⭐ Más popular';
+    display: block;
+    background: linear-gradient(135deg, #5eead4, #0f766e);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 14px;
+    font-size: .68rem;
+    font-weight: 700;
+    width: fit-content;
+    margin-bottom: 12px;
+    letter-spacing: .04em;
+}
+
+.plan-nombre {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -.02em;
+}
+.plan-precio {
+    font-size: 2rem;
+    font-weight: 900;
+    margin: 8px 0 2px;
+    line-height: 1;
+}
+.plan-precio .sub {
+    font-size: .85rem;
+    font-weight: 500;
+    color: #64748b;
+    margin-left: 4px;
+}
+.plan-colab {
+    font-size: .78rem;
+    color: #64748b;
+    margin-bottom: 16px;
+}
+
+.plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px;
+}
+.plan-features li {
+    padding: 5px 0 5px 24px;
+    position: relative;
+    font-size: .88rem;
+    color: #334155;
+}
+.plan-features li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #10b981;
+    font-weight: 700;
+}
+.plan-features.no li::before {
+    content: '✗';
+    color: #cbd5e1;
+}
+.plan-features.no li {
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.plan-cta {
+    display: block;
+    text-align: center;
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: .9rem;
+    margin-top: 14px;
+}
+.plan-cta.primary {
+    background: #0f766e;
+    color: #fff;
+}
+.plan-cta.primary:hover {
+    background: #134e4a;
+    color: #fff;
+}
+.plan-cta.outline {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+}
+.plan-cta.outline:hover {
+    background: #f8fafc;
+    color: #0d2b27;
+}
+.plan-cta.actual {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    cursor: default;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upg-hero">
+    <h2>
+        <i class="fas fa-rocket me-2" style="color:#5eead4"></i>
+        Mejora tu plan
+    </h2>
+    <p>Desbloquea más funcionalidades para tu equipo.</p>
+    <div class="upg-actual">
+        <i class="fas fa-circle me-1" style="color:#5eead4"></i>
+        Plan actual: <strong>{{ plan_actual }}</strong>
+    </div>
+</div>
+
+<div class="plan-grid">
+    {% for plan in planes %}
+    <div class="plan-card {% if plan.destacado %}destacado{% endif %}"
+         {% if plan.destacado %}style="border-color:{{ plan.color }};"{% endif %}>
+
+        <h3 class="plan-nombre" style="color:{{ plan.color }};">{{ plan.nombre }}</h3>
+
+        <div class="plan-precio">
+            {% if plan.precio == 'Personalizado' %}
+                {{ plan.precio }}
+            {% else %}
+                {{ plan.precio }}<span class="sub">+ IGV / mes</span>
+            {% endif %}
+        </div>
+
+        <div class="plan-colab">{{ plan.colaboradores }} colaboradores</div>
+
+        <ul class="plan-features">
+            {% for f in plan.features %}
+            <li>{{ f }}</li>
+            {% endfor %}
+        </ul>
+
+        {% if plan.features_no %}
+        <hr style="border:none; border-top:1px dashed #e2e8f0; margin: 10px 0;">
+        <ul class="plan-features no">
+            {% for f in plan.features_no %}
+            <li>{{ f }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if plan.nombre == plan_actual %}
+        <span class="plan-cta actual">
+            <i class="fas fa-check me-1"></i>Plan actual
+        </span>
+        {% else %}
+        <a href="mailto:ventas@harmoni.pe?subject=Upgrade%20a%20Plan%20{{ plan.nombre|urlencode }}&body=Hola,%20quiero%20conocer%20m%C3%A1s%20del%20Plan%20{{ plan.nombre|urlencode }}."
+           class="plan-cta {% if plan.destacado %}primary{% else %}outline{% endif %}">
+            <i class="fas fa-envelope me-1"></i>
+            {% if plan.codigo == 'ENTERPRISE' %}Solicitar cotización{% else %}Hablar con ventas{% endif %}
+        </a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<div style="text-align:center; margin-top:30px; color:#64748b; font-size:.85rem;">
+    <i class="fas fa-question-circle me-1"></i>
+    ¿Dudas? <a href="mailto:ventas@harmoni.pe" style="color:#0f766e;">ventas@harmoni.pe</a>
+    o WhatsApp <strong>+51 906 602 313</strong>
+</div>
+{% endblock %}

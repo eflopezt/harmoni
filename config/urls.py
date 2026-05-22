@@ -147,6 +147,8 @@ urlpatterns = [
     # Demos comerciales públicas (brochure + login)
     path('demo/',  lambda r: demo_landing(r, 'demo'),  name='demo_landing'),
     path('demo2/', lambda r: demo_landing(r, 'demo2'), name='demo2_landing'),
+    # Upgrade plan (mostrado al usuario Starter cuando intenta feature bloqueada)
+    path('upgrade/', __import__('core.views_upgrade', fromlist=['upgrade_plan']).upgrade_plan, name='upgrade_plan'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

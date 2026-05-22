@@ -578,7 +578,7 @@
             {% endif %}
 
             <!-- ══ RECLUTAMIENTO ══ -->
-            {% if mod_reclutamiento %}
+            {% if mod_reclutamiento and not es_plan_starter %}
             <div class="nav-section" data-section="reclutamiento" data-group="talento">
                 <button class="nav-section-toggle" type="button">
                     <i class="fas fa-briefcase section-icon"></i>

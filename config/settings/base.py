@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'empresas.apps.EmpresasConfig',
     'workflows.apps.WorkflowsConfig',
     'descuentos.apps.DescuentosConfig',
+    'wa_marketing.apps.WaMarketingConfig',
 ]
 
 MIDDLEWARE = [
@@ -86,6 +87,8 @@ MIDDLEWARE = [
     # Restringe trabajadores a URLs del portal (defensa profunda).
     # Debe ir DESPUÉS de auth+empresa+billing para tener el contexto completo.
     'core.middleware_worker_access.WorkerAccessRestrictionMiddleware',
+    # Restringe usuarios Plan Starter a features básicas (sin IA, sin reclutamiento)
+    'core.middleware_plan_starter.PlanStarterMiddleware',
     'core.middleware.AuditMiddleware',
 ]
 
@@ -107,6 +110,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'personal.context_processors.harmoni_context',
+                'core.context_processors.plan_starter_context',
             ],
         },
     },
