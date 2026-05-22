@@ -586,27 +586,42 @@
                     <i class="fas fa-chevron-right toggle-chevron"></i>
                 </button>
                 <div class="nav-section-body">
-                    <a href="{% url 'vacantes_panel' %}" class="nav-item" data-match="^/reclutamiento/$">
-                        <i class="fas fa-briefcase"></i><span>Vacantes</span>
-                    </a>
-                    <a href="{% url 'subir_cv_express' %}" class="nav-item" data-match="/reclutamiento/cv/express">
-                        <i class="fas fa-file-pdf"></i><span>CV Express</span>
-                    </a>
-                    <a href="{% url 'funnel_reclutamiento' %}" class="nav-item" data-match="/reclutamiento/funnel">
-                        <i class="fas fa-funnel-dollar"></i><span>Funnel</span>
-                    </a>
-                    <a href="{% url 'candidatos_bulk_import' %}" class="nav-item" data-match="/reclutamiento/candidatos/bulk">
-                        <i class="fas fa-file-import"></i><span>Bulk Import</span>
+                    <a href="{% url 'mi_dia_reclutador' %}" class="nav-item" data-match="/reclutamiento/mi-dia">
+                        <i class="fas fa-sun"></i><span>Mi Día ☀️</span>
                     </a>
                     <a href="{% url 'pipeline_panel' %}" class="nav-item" data-match="/reclutamiento/pipeline">
                         <i class="fas fa-columns"></i><span>Pipeline Kanban</span>
                     </a>
+                    <a href="{% url 'vacantes_panel' %}" class="nav-item" data-match="^/reclutamiento/$">
+                        <i class="fas fa-briefcase"></i><span>Vacantes</span>
+                    </a>
+                    <a href="{% url 'calendario_entrevistas' %}" class="nav-item" data-match="/reclutamiento/calendario">
+                        <i class="fas fa-calendar-alt"></i><span>Calendario</span>
+                    </a>
+                    <a href="{% url 'banco_de_talento' %}" class="nav-item" data-match="/reclutamiento/banco-talento">
+                        <i class="fas fa-archive"></i><span>Banco de Talento</span>
+                    </a>
+                    <a href="{% url 'comparar_candidatos' %}" class="nav-item" data-match="/reclutamiento/comparar">
+                        <i class="fas fa-balance-scale"></i><span>Comparar</span>
+                    </a>
+                    <a href="{% url 'subir_cv_express' %}" class="nav-item" data-match="/reclutamiento/cv/express">
+                        <i class="fas fa-file-pdf"></i><span>CV Express</span>
+                    </a>
+                    <a href="{% url 'candidatos_bulk_import' %}" class="nav-item" data-match="/reclutamiento/candidatos/bulk">
+                        <i class="fas fa-file-import"></i><span>Bulk Import</span>
+                    </a>
+                    <a href="{% url 'funnel_reclutamiento' %}" class="nav-item" data-match="/reclutamiento/funnel">
+                        <i class="fas fa-funnel-dollar"></i><span>Funnel</span>
+                    </a>
+                    <a href="{% url 'stats_reclutadores' %}" class="nav-item" data-match="/reclutamiento/stats-reclutadores">
+                        <i class="fas fa-trophy"></i><span>Stats Reclutadores</span>
+                    </a>
                     <a href="{% url 'reclutamiento_dashboard' %}" class="nav-item" data-match="/reclutamiento/dashboard">
-                        <i class="fas fa-chart-bar"></i><span>Dashboard Recruiter</span>
+                        <i class="fas fa-chart-bar"></i><span>Dashboard Legacy</span>
                     </a>
                     {% if user.is_superuser %}
                     <a href="{% url 'etapas_config' %}" class="nav-item" data-match="/reclutamiento/etapas">
-                        <i class="fas fa-layer-group"></i><span>Etapas</span>
+                        <i class="fas fa-layer-group"></i><span>Etapas Config</span>
                     </a>
                     {% endif %}
                 </div>
@@ -661,6 +676,9 @@
                     <a href="{% url 'ciclos_panel' %}" class="nav-item" data-match="^/evaluaciones/$">
                         <i class="fas fa-star-half-alt"></i><span>Ciclos</span>
                     </a>
+                    <a href="/evaluaciones/360/" class="nav-item" data-match="/evaluaciones/360">
+                        <i class="fas fa-users"></i><span>360 Comparativa 🆕</span>
+                    </a>
                     <a href="{% url 'okr_panel' %}" class="nav-item" data-match="/evaluaciones/okrs">
                         <i class="fas fa-bullseye"></i><span>OKRs</span>
                     </a>
@@ -690,6 +708,9 @@
                 <div class="nav-section-body">
                     <a href="{% url 'capacitaciones_panel' %}" class="nav-item" data-match="^/capacitaciones/$">
                         <i class="fas fa-chalkboard-teacher"></i><span>Capacitaciones</span>
+                    </a>
+                    <a href="/capacitaciones/gastro/" class="nav-item" data-match="/capacitaciones/gastro">
+                        <i class="fas fa-shield-virus"></i><span>BPM / HACCP 🆕</span>
                     </a>
                     <a href="{% url 'requerimientos_panel' %}" class="nav-item" data-match="/capacitaciones/requerimientos">
                         <i class="fas fa-tasks"></i><span>Requerimientos</span>
