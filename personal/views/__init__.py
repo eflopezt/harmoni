@@ -25,6 +25,11 @@ from .roster import (
     roster_export, roster_import, roster_update_cell,
 )
 
+from .roster_gastro import (
+    roster_gastro_grid, roster_gastro_asignar, roster_gastro_asignar_bulk,
+    roster_gastro_pdf, roster_gastro_validar,
+)
+
 from .aprobaciones import (
     dashboard_aprobaciones, cambios_pendientes,
     aprobar_cambio, rechazar_cambio,

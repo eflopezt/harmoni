@@ -1,0 +1,456 @@
+{% extends 'base.html' %}
+
+{% block title %}Roster Gastronomico Q{{ sub_quincena }} {{ mes }}/{{ anio }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.rg-wrap { display:flex; gap:12px; align-items:flex-start; }
+.rg-paleta { width:220px; flex-shrink:0; position:sticky; top:80px; }
+.rg-paleta .turno-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px; margin-bottom:6px; border-radius:6px;
+    color:#fff; cursor:grab; font-weight:600; font-size:13px;
+    box-shadow:0 1px 2px rgba(0,0,0,.1); user-select:none;
+}
+.rg-paleta .turno-item:active { cursor:grabbing; }
+.rg-paleta .turno-item.libre { background:#94a3b8; color:#fff; }
+.rg-paleta .turno-item .horario { font-size:11px; font-weight:400; opacity:.9; }
+.rg-paleta .turno-item.borrar { background:#dc2626; }
+
+.rg-grid-wrap { flex:1; overflow-x:auto; }
+.rg-grid { border-collapse:separate; border-spacing:0; font-size:12px; min-width:100%; }
+.rg-grid th, .rg-grid td {
+    border:1px solid #e2e8f0; padding:4px 6px; text-align:center;
+    background:#fff; min-width:48px;
+}
+.rg-grid thead th {
+    background:#0f766e; color:#fff; position:sticky; top:0; z-index:5;
+    font-weight:600;
+}
+.rg-grid td.trab-cell {
+    text-align:left; padding:6px 8px; min-width:200px;
+    background:#f8fafc; font-weight:500; position:sticky; left:0; z-index:3;
+}
+.rg-grid th.trab-head {
+    position:sticky; left:0; z-index:6; background:#0f766e;
+}
+.rg-grid td.cell-dia { position:relative; height:42px; cursor:pointer; }
+.rg-grid td.cell-dia.dow-6 { background:#fef3c7; } /* domingo */
+.rg-grid td.cell-dia.dow-5 { background:#fef9c3; } /* sabado */
+.rg-grid td.cell-dia.warning { box-shadow:inset 0 0 0 3px #dc2626; }
+.rg-grid td.cell-dia.amber { box-shadow:inset 0 0 0 3px #f59e0b; }
+.rg-grid td.cell-dia.drag-over { background:#bae6fd !important; }
+.rg-grid td.cell-dia .badge-turno {
+    display:inline-block; padding:3px 6px; border-radius:4px;
+    color:#fff; font-size:11px; font-weight:700; line-height:1.1;
+}
+.rg-grid td.cell-dia.libre .label-libre { color:#94a3b8; font-weight:700; }
+.rg-warning-row { color:#dc2626; font-size:10px; }
+.rg-toolbar { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+.rg-toolbar .btn { font-size:13px; }
+.rg-legend { font-size:12px; color:#475569; margin-top:4px; }
+.cell-menu {
+    position:absolute; z-index:1000; background:#fff;
+    border:1px solid #cbd5e1; border-radius:6px;
+    box-shadow:0 4px 12px rgba(0,0,0,.15); min-width:160px;
+}
+.cell-menu .item {
+    padding:6px 10px; cursor:pointer; font-size:13px;
+}
+.cell-menu .item:hover { background:#f1f5f9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <h3 class="mb-3">
+        Roster Quincenal Gastronomico
+        <small class="text-muted">— Q{{ sub_quincena }} {{ mes }}/{{ anio }}
+            ({{ fecha_ini|date:"d/m" }} - {{ fecha_fin|date:"d/m/Y" }})</small>
+    </h3>
+
+    <!-- Toolbar -->
+    <form method="get" class="rg-toolbar mb-2">
+        <a class="btn btn-outline-secondary btn-sm"
+           href="?anio={{ prev_anio }}&quincena={{ prev_q }}">
+            &larr; Quincena anterior
+        </a>
+        <a class="btn btn-primary btn-sm" href="?">Hoy</a>
+        <a class="btn btn-outline-secondary btn-sm"
+           href="?anio={{ next_anio }}&quincena={{ next_q }}">
+            Quincena siguiente &rarr;
+        </a>
+
+        <span class="vr mx-2"></span>
+
+        <input type="number" name="anio" value="{{ anio }}" min="2020" max="2099"
+               class="form-control form-control-sm" style="width:90px;">
+        <select name="quincena" class="form-select form-select-sm" style="width:160px;">
+            {% for q in "123456789012345678901234"|make_list %}{% endfor %}
+            <option value="1" {% if quincena == 1 %}selected{% endif %}>Ene Q1</option>
+            <option value="2" {% if quincena == 2 %}selected{% endif %}>Ene Q2</option>
+            <option value="3" {% if quincena == 3 %}selected{% endif %}>Feb Q1</option>
+            <option value="4" {% if quincena == 4 %}selected{% endif %}>Feb Q2</option>
+            <option value="5" {% if quincena == 5 %}selected{% endif %}>Mar Q1</option>
+            <option value="6" {% if quincena == 6 %}selected{% endif %}>Mar Q2</option>
+            <option value="7" {% if quincena == 7 %}selected{% endif %}>Abr Q1</option>
+            <option value="8" {% if quincena == 8 %}selected{% endif %}>Abr Q2</option>
+            <option value="9" {% if quincena == 9 %}selected{% endif %}>May Q1</option>
+            <option value="10" {% if quincena == 10 %}selected{% endif %}>May Q2</option>
+            <option value="11" {% if quincena == 11 %}selected{% endif %}>Jun Q1</option>
+            <option value="12" {% if quincena == 12 %}selected{% endif %}>Jun Q2</option>
+            <option value="13" {% if quincena == 13 %}selected{% endif %}>Jul Q1</option>
+            <option value="14" {% if quincena == 14 %}selected{% endif %}>Jul Q2</option>
+            <option value="15" {% if quincena == 15 %}selected{% endif %}>Ago Q1</option>
+            <option value="16" {% if quincena == 16 %}selected{% endif %}>Ago Q2</option>
+            <option value="17" {% if quincena == 17 %}selected{% endif %}>Sep Q1</option>
+            <option value="18" {% if quincena == 18 %}selected{% endif %}>Sep Q2</option>
+            <option value="19" {% if quincena == 19 %}selected{% endif %}>Oct Q1</option>
+            <option value="20" {% if quincena == 20 %}selected{% endif %}>Oct Q2</option>
+            <option value="21" {% if quincena == 21 %}selected{% endif %}>Nov Q1</option>
+            <option value="22" {% if quincena == 22 %}selected{% endif %}>Nov Q2</option>
+            <option value="23" {% if quincena == 23 %}selected{% endif %}>Dic Q1</option>
+            <option value="24" {% if quincena == 24 %}selected{% endif %}>Dic Q2</option>
+        </select>
+        <select name="area" class="form-select form-select-sm" style="width:200px;">
+            <option value="">Todas las areas</option>
+            {% for sa in subareas %}
+            <option value="{{ sa.id }}" {% if sa.id|stringformat:"s" == subarea_id %}selected{% endif %}>
+                {{ sa.area.nombre }} - {{ sa.nombre }}
+            </option>
+            {% endfor %}
+        </select>
+        <input type="text" name="buscar" value="{{ buscar }}" placeholder="DNI o nombre..."
+               class="form-control form-control-sm" style="width:200px;">
+        <button type="submit" class="btn btn-secondary btn-sm">Filtrar</button>
+
+        <span class="vr mx-2"></span>
+
+        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                data-bs-target="#bulkAssignModal">
+            <i class="fas fa-magic"></i> Bulk Assign
+        </button>
+        <a class="btn btn-outline-danger btn-sm"
+           href="{% url 'roster_gastro_pdf' %}?anio={{ anio }}&quincena={{ quincena }}{% if empresa_id %}&empresa={{ empresa_id }}{% endif %}"
+           target="_blank">
+            <i class="fas fa-file-pdf"></i> PDF
+        </a>
+    </form>
+
+    <div class="rg-legend mb-2">
+        <span class="text-danger fw-bold">Rojo:</span> 7 dias consecutivos sin descanso (DS 003-97-TR).
+        Drag&drop turnos desde la paleta. Click derecho en celda para opciones.
+    </div>
+
+    <div class="rg-wrap">
+        <!-- Paleta lateral -->
+        <div class="rg-paleta">
+            <div class="card">
+                <div class="card-body p-2">
+                    <h6 class="mb-2">Paleta de turnos</h6>
+                    {% for t in turnos %}
+                    <div class="turno-item" draggable="true"
+                         data-turno-id="{{ t.id }}"
+                         style="background:{{ t.color }};">
+                        <span>{{ t.codigo }}</span>
+                        <span class="horario">{{ t.label_horario }}</span>
+                    </div>
+                    {% endfor %}
+                    <div class="turno-item libre" draggable="true" data-turno-id="libre">
+                        <span>LIBRE</span>
+                        <span class="horario">Dia descanso</span>
+                    </div>
+                    <div class="turno-item borrar" draggable="true" data-turno-id="">
+                        <span>BORRAR</span>
+                        <span class="horario">Quitar asig.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid -->
+        <div class="rg-grid-wrap">
+            <table class="rg-grid">
+                <thead>
+                    <tr>
+                        <th class="trab-head">Trabajador</th>
+                        {% for f in fechas %}
+                        <th>
+                            <div>{{ f|date:"D"|slice:":2"|upper }}</div>
+                            <div style="font-size:14px;">{{ f|date:"d" }}</div>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas %}
+                    <tr data-personal-id="{{ fila.personal.id }}">
+                        <td class="trab-cell">
+                            <div>{{ fila.personal.apellidos_nombres }}</div>
+                            <small class="text-muted">{{ fila.personal.nro_doc }}</small>
+                            {% if not fila.valido %}
+                            <div class="rg-warning-row">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                {{ fila.errores_count }} alerta(s)
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% for c in fila.celdas %}
+                        <td class="cell-dia dow-{{ c.dow }}{% if c.warning %} warning{% endif %}{% if c.es_libre %} libre{% endif %}"
+                            data-personal-id="{{ fila.personal.id }}"
+                            data-fecha="{{ c.fecha_iso }}"
+                            {% if c.warning %}title="Validacion: 7+ dias consecutivos sin descanso"{% endif %}>
+                            {% if c.turno %}
+                            <span class="badge-turno" style="background:{{ c.turno.color }};"
+                                  title="{{ c.turno.nombre }} ({{ c.turno.label_horario }})">
+                                {{ c.turno.codigo }}
+                            </span>
+                            {% elif c.es_libre %}
+                            <span class="label-libre">—</span>
+                            {% else %}
+                            <span class="text-muted">·</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="{{ fechas|length|add:1 }}" class="text-center text-muted py-4">
+                        Sin trabajadores que mostrar.
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Bulk Assign -->
+<div class="modal fade" id="bulkAssignModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Asignacion masiva</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Trabajadores</label>
+                    <select id="bulk-personal" class="form-select" multiple size="8">
+                        {% for fila in filas %}
+                        <option value="{{ fila.personal.id }}">
+                            {{ fila.personal.apellidos_nombres }} ({{ fila.personal.nro_doc }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Ctrl/Cmd-click para seleccionar varios.</small>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha inicio</label>
+                        <input type="date" id="bulk-fini" class="form-control"
+                               value="{{ fecha_ini|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha fin</label>
+                        <input type="date" id="bulk-ffin" class="form-control"
+                               value="{{ fecha_fin|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Turno</label>
+                        <select id="bulk-turno" class="form-select">
+                            <option value="libre">— Libre —</option>
+                            {% for t in turnos %}
+                            <option value="{{ t.id }}">{{ t.codigo }} ({{ t.label_horario }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="bulk-solo-vacios" checked>
+                    <label class="form-check-label" for="bulk-solo-vacios">
+                        Solo aplicar a celdas vacias (no sobrescribir asignaciones existentes)
+                    </label>
+                </div>
+                <div id="bulk-msg" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="bulk-aplicar">Aplicar a todos</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context menu placeholder -->
+<div class="cell-menu" id="cell-menu" style="display:none;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const CSRF = '{{ csrf_token }}';
+    const URL_ASIGNAR = '{% url "roster_gastro_asignar" %}';
+    const URL_BULK = '{% url "roster_gastro_asignar_bulk" %}';
+    const TURNOS = {
+        {% for t in turnos %}
+        '{{ t.id }}': {
+            id: {{ t.id }}, codigo: '{{ t.codigo|escapejs }}',
+            nombre: '{{ t.nombre|escapejs }}',
+            color: '{{ t.color }}',
+            horario: '{{ t.label_horario }}',
+        },
+        {% endfor %}
+    };
+
+    // Drag&drop nativo
+    document.querySelectorAll('.turno-item').forEach(el => {
+        el.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/turno-id', el.dataset.turnoId);
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+    });
+
+    document.querySelectorAll('.cell-dia').forEach(cell => {
+        cell.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            cell.classList.add('drag-over');
+        });
+        cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+        cell.addEventListener('drop', e => {
+            e.preventDefault();
+            cell.classList.remove('drag-over');
+            const turnoId = e.dataTransfer.getData('text/turno-id');
+            asignar(cell, turnoId);
+        });
+
+        // Click derecho -> menu
+        cell.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            showContextMenu(e.pageX, e.pageY, cell);
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.getElementById('cell-menu').style.display = 'none';
+    });
+
+    function showContextMenu(x, y, cell) {
+        const menu = document.getElementById('cell-menu');
+        menu.innerHTML = '';
+        Object.values(TURNOS).forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'item';
+            item.innerHTML = `<span class="badge-turno" style="background:${t.color}">${t.codigo}</span> ${t.nombre}`;
+            item.addEventListener('click', () => asignar(cell, t.id));
+            menu.appendChild(item);
+        });
+        const itemLibre = document.createElement('div');
+        itemLibre.className = 'item';
+        itemLibre.innerHTML = '<b>— Marcar libre</b>';
+        itemLibre.addEventListener('click', () => asignar(cell, 'libre'));
+        menu.appendChild(itemLibre);
+
+        const itemBorrar = document.createElement('div');
+        itemBorrar.className = 'item text-danger';
+        itemBorrar.innerHTML = '<b>Borrar asignacion</b>';
+        itemBorrar.addEventListener('click', () => asignar(cell, ''));
+        menu.appendChild(itemBorrar);
+
+        menu.style.display = 'block';
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+    }
+
+    async function asignar(cell, turnoId) {
+        const personalId = cell.dataset.personalId;
+        const fecha = cell.dataset.fecha;
+        try {
+            const res = await fetch(URL_ASIGNAR, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF,
+                },
+                body: JSON.stringify({
+                    personal_id: personalId,
+                    fecha: fecha,
+                    turno_id: turnoId === '' ? null : turnoId,
+                }),
+            });
+            const data = await res.json();
+            if (!data.success) {
+                alert('Error: ' + (data.error || 'desconocido'));
+                return;
+            }
+            renderCell(cell, data);
+        } catch (err) {
+            alert('Error de red: ' + err);
+        }
+    }
+
+    function renderCell(cell, data) {
+        cell.classList.remove('libre');
+        if (data.accion === 'borrado' || (!data.turno && !data.es_libre)) {
+            cell.innerHTML = '<span class="text-muted">·</span>';
+        } else if (data.es_libre) {
+            cell.classList.add('libre');
+            cell.innerHTML = '<span class="label-libre">—</span>';
+        } else if (data.turno) {
+            const t = data.turno;
+            cell.innerHTML = `<span class="badge-turno" style="background:${t.color}" title="${t.nombre} (${t.horario})">${t.codigo}</span>`;
+        }
+        // Resaltar warnings: si hay errores en validacion, marcar las celdas
+        cell.classList.remove('warning');
+        if (data.validacion && data.validacion.errores) {
+            data.validacion.errores.forEach(e => {
+                const sel = `td.cell-dia[data-personal-id="${cell.dataset.personalId}"][data-fecha="${e.fecha}"]`;
+                const c = document.querySelector(sel);
+                if (c) {
+                    c.classList.add('warning');
+                    c.title = e.mensaje;
+                }
+            });
+        }
+    }
+
+    // Bulk assign
+    document.getElementById('bulk-aplicar').addEventListener('click', async () => {
+        const ids = Array.from(document.getElementById('bulk-personal').selectedOptions).map(o => parseInt(o.value));
+        const fini = document.getElementById('bulk-fini').value;
+        const ffin = document.getElementById('bulk-ffin').value;
+        const turnoId = document.getElementById('bulk-turno').value;
+        const soloVacios = document.getElementById('bulk-solo-vacios').checked;
+        const msg = document.getElementById('bulk-msg');
+
+        if (!ids.length) {
+            msg.innerHTML = '<div class="alert alert-warning">Selecciona al menos un trabajador.</div>';
+            return;
+        }
+        msg.innerHTML = '<div class="alert alert-info">Procesando...</div>';
+        try {
+            const res = await fetch(URL_BULK, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                body: JSON.stringify({
+                    personal_ids: ids, fecha_inicio: fini, fecha_fin: ffin,
+                    turno_id: turnoId, solo_vacios: soloVacios,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                msg.innerHTML = `<div class="alert alert-success">
+                    Creadas: ${data.creadas} · Actualizadas: ${data.actualizadas} · Saltadas: ${data.saltadas}.
+                    <br><small>Refresca para ver los cambios.</small>
+                </div>`;
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                msg.innerHTML = `<div class="alert alert-danger">Error: ${data.error || '?'}</div>`;
+            }
+        } catch (e) {
+            msg.innerHTML = `<div class="alert alert-danger">Error de red: ${e}</div>`;
+        }
+    });
+})();
+</script>
+{% endblock %}

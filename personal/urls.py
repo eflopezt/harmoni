@@ -97,6 +97,13 @@ urlpatterns = [
     path('roster/exportar/', views.roster_export, name='roster_export'),
     path('roster/importar/', views.roster_import, name='roster_import'),
     path('roster/update-cell/', views.roster_update_cell, name='roster_update_cell'),
+
+    # Roster Quincenal Gastronomico (drag&drop)
+    path('roster/gastro/', views.roster_gastro_grid, name='roster_gastro_grid'),
+    path('roster/gastro/asignar/', views.roster_gastro_asignar, name='roster_gastro_asignar'),
+    path('roster/gastro/asignar-bulk/', views.roster_gastro_asignar_bulk, name='roster_gastro_asignar_bulk'),
+    path('roster/gastro/validar/', views.roster_gastro_validar, name='roster_gastro_validar'),
+    path('roster/gastro/pdf/', views.roster_gastro_pdf, name='roster_gastro_pdf'),
     
     # Sistema de Aprobaciones
     path('aprobaciones/', views.dashboard_aprobaciones, name='dashboard_aprobaciones'),

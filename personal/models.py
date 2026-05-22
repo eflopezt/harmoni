@@ -1527,3 +1527,87 @@ class ActivoAsignado(models.Model):
     @property
     def pendiente_devolucion(self):
         return self.estado == 'ASIGNADO'
+
+
+# ═══════════════════════════════════════════════════════════
+#  ROSTER QUINCENAL GASTRONOMICO
+#  Turnos rotativos visuales con drag&drop + validacion 6+1
+#  (DS 003-97-TR Art. 25 — minimo 1 dia libre cada 7 dias)
+# ═══════════════════════════════════════════════════════════
+
+class TurnoGastronomia(models.Model):
+    """Definicion de turno gastronomico (Desayuno, Almuerzo, Cena, etc.)."""
+    codigo = models.CharField(max_length=10, unique=True, verbose_name='Codigo')
+    nombre = models.CharField(max_length=80, verbose_name='Nombre')
+    hora_entrada = models.TimeField(verbose_name='Hora entrada')
+    hora_salida = models.TimeField(verbose_name='Hora salida')
+    color = models.CharField(
+        max_length=7, default='#0f766e',
+        verbose_name='Color',
+        help_text='HEX color para badge en el grid (ej: #0f766e)'
+    )
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Turno Gastronomia'
+        verbose_name_plural = 'Turnos Gastronomia'
+        ordering = ['hora_entrada', 'codigo']
+        indexes = [
+            models.Index(fields=['activo']),
+        ]
+
+    def __str__(self):
+        return f'{self.codigo} - {self.nombre}'
+
+    @property
+    def label_horario(self):
+        return f'{self.hora_entrada.strftime("%H:%M")}-{self.hora_salida.strftime("%H:%M")}'
+
+
+class AsignacionRosterQuincena(models.Model):
+    """Asignacion de turno a un trabajador para una fecha (1 fila = 1 dia)."""
+    personal = models.ForeignKey(
+        Personal,
+        on_delete=models.CASCADE,
+        related_name='asignaciones_roster',
+        verbose_name='Personal',
+    )
+    fecha = models.DateField(verbose_name='Fecha')
+    turno = models.ForeignKey(
+        TurnoGastronomia,
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='asignaciones',
+        verbose_name='Turno',
+        help_text='Null = dia libre',
+    )
+    notas = models.TextField(blank=True, default='', verbose_name='Notas')
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+    creado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='asignaciones_roster_creadas',
+        verbose_name='Creado por',
+    )
+
+    class Meta:
+        verbose_name = 'Asignacion Roster Quincena'
+        verbose_name_plural = 'Asignaciones Roster Quincena'
+        unique_together = [('personal', 'fecha')]
+        ordering = ['fecha', 'personal']
+        indexes = [
+            models.Index(fields=['fecha']),
+            models.Index(fields=['personal', 'fecha']),
+        ]
+
+    def __str__(self):
+        t = self.turno.codigo if self.turno else 'LIBRE'
+        return f'{self.personal} - {self.fecha} - {t}'
+
+    @property
+    def es_libre(self):
+        return self.turno_id is None
