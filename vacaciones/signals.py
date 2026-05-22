@@ -7,11 +7,63 @@ Responsabilidades:
   - Cuando se aprueba una SolicitudPermiso de tipo bajada (codigo=bajada-dl / bajada-dla),
     crear automáticamente las entradas de Roster correspondientes.
 """
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 import logging
 
 logger = logging.getLogger('personal.business')
+
+
+# Estado previo cacheado para detectar transiciones BORRADOR/PENDIENTE → APROBADA/RECHAZADA
+_estados_previos = {}
+
+
+@receiver(pre_save, sender='vacaciones.SolicitudVacacion')
+def cachear_estado_previo_vacacion(sender, instance, **kwargs):
+    """Cachea el estado anterior antes de guardar — usado por el post_save
+    para detectar transiciones y enviar notificaciones al trabajador.
+    """
+    if instance.pk:
+        try:
+            prev = sender.objects.only('estado').get(pk=instance.pk)
+            _estados_previos[instance.pk] = prev.estado
+        except sender.DoesNotExist:
+            _estados_previos[instance.pk] = None
+
+
+def _notif_trabajador_vacacion(solicitud, estado_anterior):
+    """Crea notificación IN_APP al trabajador al cambiar el estado de su solicitud."""
+    try:
+        from comunicaciones.models import Notificacion
+        if solicitud.estado == 'APROBADA' and estado_anterior in ('BORRADOR', 'PENDIENTE'):
+            Notificacion.objects.create(
+                destinatario=solicitud.personal,
+                asunto=f'Tu solicitud de vacaciones fue APROBADA',
+                cuerpo=(
+                    f'<p>Tu solicitud del '
+                    f'<b>{solicitud.fecha_inicio:%d/%m/%Y}</b> al '
+                    f'<b>{solicitud.fecha_fin:%d/%m/%Y}</b> '
+                    f'({solicitud.dias_calendario} días) ha sido aprobada.</p>'
+                    f'<p>Puedes descargar tu constancia de vacaciones desde el portal.</p>'
+                ),
+                tipo='IN_APP',
+                metadata={'solicitud_id': solicitud.pk, 'tipo': 'vacacion_aprobada'},
+            )
+        elif solicitud.estado == 'RECHAZADA' and estado_anterior in ('BORRADOR', 'PENDIENTE'):
+            Notificacion.objects.create(
+                destinatario=solicitud.personal,
+                asunto='Tu solicitud de vacaciones fue rechazada',
+                cuerpo=(
+                    f'<p>Tu solicitud del '
+                    f'<b>{solicitud.fecha_inicio:%d/%m/%Y}</b> al '
+                    f'<b>{solicitud.fecha_fin:%d/%m/%Y}</b> fue rechazada.</p>'
+                    f'<p>Motivo: {solicitud.motivo_rechazo or "sin especificar"}</p>'
+                ),
+                tipo='IN_APP',
+                metadata={'solicitud_id': solicitud.pk, 'tipo': 'vacacion_rechazada'},
+            )
+    except Exception:
+        pass  # Best-effort
 
 
 def _invalidar_badge_superusers():
@@ -31,8 +83,13 @@ def _invalidar_badge_superusers():
 
 @receiver(post_save, sender='vacaciones.SolicitudVacacion')
 def badge_solicitud_vacacion(sender, instance, **kwargs):
-    """Invalida badge al crear/modificar una solicitud de vacación."""
+    """Invalida badge al crear/modificar una solicitud de vacación.
+    También dispara notif IN_APP al trabajador en transiciones de estado.
+    """
     _invalidar_badge_superusers()
+    estado_anterior = _estados_previos.pop(instance.pk, None)
+    if estado_anterior and estado_anterior != instance.estado:
+        _notif_trabajador_vacacion(instance, estado_anterior)
 
 
 # ── Solicitudes de Permiso ─────────────────────────────────────────────────────

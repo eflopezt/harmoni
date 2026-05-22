@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Calendario Anual {{ anio }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.cal-anual-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+.cal-anual-grid th,
+.cal-anual-grid td {
+    border: 1px solid #e5e7eb;
+    padding: 0;
+    text-align: center;
+    height: 24px;
+    width: 24px;
+    min-width: 24px;
+    vertical-align: middle;
+}
+.cal-anual-grid th {
+    background: #0d2b27;
+    color: #fff;
+    font-weight: 600;
+    height: 30px;
+}
+.cal-anual-grid th.mes-label {
+    background: #f8fafc;
+    color: #0d2b27;
+    text-align: left;
+    padding-left: 8px;
+    font-weight: 700;
+    width: 90px;
+    min-width: 90px;
+}
+.cal-anual-grid td.dia-vacio {
+    background: #fafafa;
+    color: #d1d5db;
+}
+.cal-anual-grid td.dia-libre {
+    background: #ffffff;
+    cursor: default;
+}
+.cal-anual-grid td.dia-vac-1 { background: #d1fae5; cursor: pointer; }
+.cal-anual-grid td.dia-vac-2 { background: #6ee7b7; cursor: pointer; }
+.cal-anual-grid td.dia-vac-3 { background: #34d399; cursor: pointer; color: #fff; }
+.cal-anual-grid td.dia-vac-4 { background: #10b981; cursor: pointer; color: #fff; font-weight: 700; }
+.cal-anual-grid td.dia-vac-5 { background: #047857; cursor: pointer; color: #fff; font-weight: 700; }
+.dia-personas {
+    display: none;
+    position: absolute;
+    background: #0d2b27;
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    z-index: 1000;
+    max-width: 240px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.cal-anual-grid td:hover .dia-personas {
+    display: block;
+}
+.cal-legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 12px;
+}
+.cal-legend-box {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-0">
+            <i class="fas fa-calendar-alt text-secondary me-2"></i>
+            {{ titulo }}
+        </h2>
+        <small class="text-muted">
+            {{ total_solicitudes }} solicitud(es) ·
+            {{ total_dias }} día-persona acumulados
+        </small>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <a href="?anio={{ anio_ant }}{% if area_filtro %}&area={{ area_filtro }}{% endif %}"
+           class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-chevron-left me-1"></i>{{ anio_ant }}
+        </a>
+        <span class="fw-bold fs-5" style="color: #0f766e;">{{ anio }}</span>
+        <a href="?anio={{ anio_sig }}{% if area_filtro %}&area={{ area_filtro }}{% endif %}"
+           class="btn btn-sm btn-outline-secondary">
+            {{ anio_sig }}<i class="fas fa-chevron-right ms-1"></i>
+        </a>
+        <a href="{% url 'vacaciones_calendario' %}"
+           class="btn btn-sm btn-outline-info">
+            <i class="fas fa-calendar-day me-1"></i>Vista mes
+        </a>
+        <a href="{% url 'vacaciones_panel' %}"
+           class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-list me-1"></i>Panel
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+            <div>
+                <label class="form-label small mb-0">Año</label>
+                <input type="number" name="anio" value="{{ anio }}"
+                       class="form-control form-control-sm" style="width: 90px">
+            </div>
+            <div>
+                <label class="form-label small mb-0">Área</label>
+                <select name="area" class="form-select form-select-sm"
+                        style="width: 200px">
+                    <option value="">Todas</option>
+                    {% for a in areas %}
+                    <option value="{{ a.pk }}"
+                            {% if area_filtro == a.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ a.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-sm btn-primary">
+                <i class="fas fa-filter me-1"></i>Filtrar
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Grid anual -->
+<div class="card shadow-sm">
+    <div class="card-body" style="overflow-x: auto;">
+        <table class="cal-anual-grid">
+            <thead>
+                <tr>
+                    <th class="mes-label">Mes</th>
+                    {% for d in "123456789012345678901234567890_" %}
+                    {% if forloop.counter <= 31 %}
+                    <th>{{ forloop.counter }}</th>
+                    {% endif %}
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for mes in meses_data %}
+                <tr>
+                    <th class="mes-label">{{ mes.nombre }}</th>
+                    {% for d in mes.dias %}
+                    {% if not d.valido %}
+                    <td class="dia-vacio">·</td>
+                    {% elif d.count == 0 %}
+                    <td class="dia-libre" title="{{ d.fecha_iso }}"></td>
+                    {% else %}
+                    <td class="dia-vac-{% if d.count > 5 %}5{% else %}{{ d.count }}{% endif %}"
+                        title="{{ d.fecha_iso }}"
+                        style="position: relative;">
+                        {{ d.count }}
+                        <div class="dia-personas text-start">
+                            <strong>{{ d.fecha_iso }} — {{ d.count }} persona(s)</strong>
+                            {% for p in d.personas %}
+                            <div>• {{ p.nombre }} <small>({{ p.area }})</small></div>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer">
+        <div class="cal-legend">
+            <span><strong>Leyenda:</strong></span>
+            <span><span class="cal-legend-box" style="background: #fff;"></span> Sin vacaciones</span>
+            <span><span class="cal-legend-box" style="background: #d1fae5;"></span> 1 persona</span>
+            <span><span class="cal-legend-box" style="background: #6ee7b7;"></span> 2</span>
+            <span><span class="cal-legend-box" style="background: #34d399;"></span> 3</span>
+            <span><span class="cal-legend-box" style="background: #10b981;"></span> 4</span>
+            <span><span class="cal-legend-box" style="background: #047857;"></span> 5+</span>
+            <span><span class="cal-legend-box" style="background: #fafafa;"></span> Día inexistente</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

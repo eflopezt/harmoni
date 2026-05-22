@@ -19,8 +19,13 @@ urlpatterns = [
     path('saldos/generar/', views.saldo_generar_masivo, name='saldo_generar_masivo'),
     path('saldos/exportar/', views.saldos_exportar_excel, name='saldos_exportar_excel'),
 
-    # Admin — Calendario
+    # Admin — Calendario (mensual existente + anual nuevo)
     path('calendario/', views.vacaciones_calendario, name='vacaciones_calendario'),
+    path('calendario/anual/', views.vacaciones_calendario_anual,
+         name='vacaciones_calendario_anual'),
+
+    # Admin — Vista enfocada en gestión (alias de panel)
+    path('admin/', views.vacaciones_admin_lista, name='vacaciones_admin'),
 
     # Admin — Config tipos
     path('tipos-permiso/', views.tipos_permiso, name='tipos_permiso'),
@@ -30,6 +35,13 @@ urlpatterns = [
     # Portal trabajador
     path('mis/', views.mis_vacaciones, name='mis_vacaciones'),
     path('mis/solicitar/', views.vacacion_solicitar, name='vacacion_solicitar'),
+    path('mis/solicitar-wizard/', views.vacacion_solicitar_wizard,
+         name='vacacion_solicitar_wizard'),
+
+    # PDF Constancia de Vacaciones (post-aprobacion)
+    path('<int:pk>/constancia/', views.vacacion_constancia_pdf,
+         name='vacacion_constancia_pdf'),
+
     path('mis-permisos/', views.mis_permisos, name='mis_permisos'),
     path('mis-permisos/solicitar/', views.permiso_solicitar, name='permiso_solicitar'),
     path('anular/<str:tipo>/<int:pk>/', views.solicitud_anular, name='solicitud_anular'),
