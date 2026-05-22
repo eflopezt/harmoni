@@ -81,6 +81,7 @@ WORKER_ALLOWED_PATTERNS = [
     r'^/evaluaciones/mis',
     r'^/encuestas/mis',
     r'^/encuestas/responder/',
+    r'^/encuestas/pulse/responder/',  # Pulse semanal del trabajador
 
     # Comunicaciones
     r'^/comunicaciones/mis-',

@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% load humanize harmoni_tags %}
+
+{% block title %}Pulse Semanal{% endblock %}
+
+{% block extra_css %}
+<style>
+  .pulse-stat {
+    background: #fff;
+    border-radius: .75rem;
+    border: 1px solid #e5e7eb;
+    padding: 1rem 1.25rem;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .pulse-stat-lbl { font-size: .68rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .25rem; }
+  .pulse-stat-val { font-size: 1.85rem; font-weight: 800; line-height: 1; color: #0f766e; letter-spacing: -1px; }
+  .pulse-stat-sub { font-size: .72rem; color: #6b7280; margin-top: .4rem; }
+
+  .pulse-heatmap { display: grid; gap: 2px; }
+  .pulse-heatmap .row-label {
+    font-size: .78rem;
+    color: #374151;
+    padding: .25rem .5rem;
+    display: flex;
+    align-items: center;
+    background: #f9fafb;
+    border-radius: 4px;
+  }
+  .pulse-heatmap .cell {
+    aspect-ratio: 1.6 / 1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .72rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 1px rgba(0,0,0,.2);
+  }
+  .pulse-heatmap .cell.c-empty { background: #f1f5f9; color: #94a3b8; text-shadow: none; }
+  .pulse-heatmap .cell.c-red    { background: #dc2626; }
+  .pulse-heatmap .cell.c-orange { background: #f97316; }
+  .pulse-heatmap .cell.c-yellow { background: #eab308; }
+  .pulse-heatmap .cell.c-green  { background: #16a34a; }
+  .pulse-heatmap .col-label {
+    font-size: .68rem;
+    color: #6b7280;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .propuesta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    border-radius: 999px;
+    padding: .25rem .75rem;
+    font-size: .78rem;
+    font-weight: 600;
+    margin: .15rem .2rem;
+  }
+  .propuesta-chip .chip-count {
+    background: #0f766e;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0 .45rem;
+    font-size: .68rem;
+    line-height: 1.4;
+  }
+
+  .texto-item {
+    background: #fafafa;
+    border-left: 3px solid #14b8a6;
+    border-radius: 4px;
+    padding: .55rem .8rem;
+    font-size: .82rem;
+    color: #334155;
+    margin-bottom: .4rem;
+  }
+  .texto-item .animo-mini {
+    font-size: .68rem;
+    color: #6b7280;
+    font-weight: 600;
+    margin-bottom: .15rem;
+  }
+
+  .filter-bar {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: .5rem;
+    padding: .6rem .9rem;
+    display: flex;
+    gap: .8rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h4 fw-bold mb-0">
+      <i class="fas fa-heart-pulse text-primary me-2"></i>Pulse Semanal
+      <small class="text-muted fw-normal">· S{{ semana }}/{{ anio }}</small>
+    </h1>
+    <div>
+      <a href="{% url 'pulse_historico' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-history me-1"></i>Histórico
+      </a>
+    </div>
+  </div>
+
+  <form method="get" class="filter-bar">
+    <label class="small text-muted mb-0">Local:</label>
+    <select name="empresa" class="form-select form-select-sm" style="width:auto;min-width:180px;">
+      <option value="">— Todos —</option>
+      {% for e in empresas %}
+        <option value="{{ e.pk }}" {% if empresa_id == e.pk %}selected{% endif %}>{{ e.nombre_comercial|default:e.razon_social }}</option>
+      {% endfor %}
+    </select>
+    <label class="small text-muted mb-0">Semana:</label>
+    <input type="number" name="semana" value="{{ semana }}" min="1" max="53" class="form-control form-control-sm" style="width:90px;">
+    <label class="small text-muted mb-0">Año:</label>
+    <input type="number" name="anio" value="{{ anio }}" class="form-control form-control-sm" style="width:100px;">
+    <button class="btn btn-sm btn-primary"><i class="fas fa-filter me-1"></i>Filtrar</button>
+  </form>
+
+  <!-- Stat cards -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="pulse-stat">
+        <div class="pulse-stat-lbl">Respuestas esta semana</div>
+        <div class="pulse-stat-val">{{ stats.respuestas }}</div>
+        <div class="pulse-stat-sub">de {{ stats.universo }} trabajadores</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="pulse-stat">
+        <div class="pulse-stat-lbl">% Participación</div>
+        <div class="pulse-stat-val">{{ stats.participacion_pct }}%</div>
+        <div class="pulse-stat-sub">
+          {% if stats.participacion_pct >= 60 %}<span class="text-success"><i class="fas fa-arrow-up"></i> Buena</span>
+          {% elif stats.participacion_pct >= 30 %}<span class="text-warning"><i class="fas fa-minus"></i> Media</span>
+          {% else %}<span class="text-danger"><i class="fas fa-arrow-down"></i> Baja</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="pulse-stat">
+        <div class="pulse-stat-lbl">Ánimo promedio</div>
+        <div class="pulse-stat-val">{% if stats.animo_promedio %}{{ stats.animo_promedio }}{% else %}—{% endif %}<small class="text-muted" style="font-size:.9rem;font-weight:600;"> / 5</small></div>
+        <div class="pulse-stat-sub">
+          {% if stats.animo_promedio %}
+            {% if stats.animo_promedio >= 4 %}<span class="text-success">😄 Excelente</span>
+            {% elif stats.animo_promedio >= 3 %}<span class="text-warning">🙂 Bien</span>
+            {% elif stats.animo_promedio >= 2 %}<span class="text-warning">😐 Regular</span>
+            {% else %}<span class="text-danger">😟 Mal</span>{% endif %}
+          {% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="pulse-stat">
+        <div class="pulse-stat-lbl">NPS · eNPS</div>
+        <div class="pulse-stat-val">
+          {% if stats.nps_promedio %}{{ stats.nps_promedio }}{% else %}—{% endif %}
+        </div>
+        <div class="pulse-stat-sub">
+          eNPS: {% if stats.enps_score is not None %}<strong>{{ stats.enps_score }}</strong>{% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <!-- Heatmap por local -->
+    <div class="col-12 col-lg-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-th text-primary me-1"></i>Heatmap por local · últimas {{ heatmap.semanas|length }} semanas
+          </h6>
+          {% if heatmap.filas %}
+            <div class="pulse-heatmap" style="grid-template-columns: 180px repeat({{ heatmap.semanas|length }}, 1fr);">
+              <div></div>
+              {% for w in heatmap.semanas %}
+                <div class="col-label">S{{ w }}</div>
+              {% endfor %}
+              {% for fila in heatmap.filas %}
+                <div class="row-label" title="{{ fila.nombre }}">{{ fila.nombre|truncatechars:24 }}</div>
+                {% for w in heatmap.semanas %}
+                  {% with cell=fila.celdas|get_item:w %}
+                    {% if cell == None %}
+                      <div class="cell c-empty">·</div>
+                    {% elif cell <= 2 %}
+                      <div class="cell c-red" title="S{{ w }}: {{ cell }}">{{ cell }}</div>
+                    {% elif cell <= 3 %}
+                      <div class="cell c-orange" title="S{{ w }}: {{ cell }}">{{ cell }}</div>
+                    {% elif cell <= 4 %}
+                      <div class="cell c-yellow" title="S{{ w }}: {{ cell }}">{{ cell }}</div>
+                    {% else %}
+                      <div class="cell c-green" title="S{{ w }}: {{ cell }}">{{ cell }}</div>
+                    {% endif %}
+                  {% endwith %}
+                {% endfor %}
+              {% endfor %}
+            </div>
+            <div class="small text-muted mt-2">
+              <span class="badge bg-danger">≤ 2 Muy bajo</span>
+              <span class="badge bg-warning text-dark">2-3 Bajo</span>
+              <span class="badge" style="background:#eab308;color:#fff">3-4 Medio</span>
+              <span class="badge bg-success">4-5 Alto</span>
+            </div>
+          {% else %}
+            <p class="text-muted small">No hay datos para mostrar.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Tendencia 12 semanas -->
+    <div class="col-12 col-lg-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-chart-line text-primary me-1"></i>Tendencia 12 semanas
+          </h6>
+          <canvas id="chartTendencia" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <!-- Propuestas top -->
+    <div class="col-12 col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-lightbulb text-warning me-1"></i>Propuestas top · palabras frecuentes
+          </h6>
+          {% if propuestas_top %}
+            <div>
+              {% for p in propuestas_top %}
+                <span class="propuesta-chip">{{ p.palabra }} <span class="chip-count">{{ p.count }}</span></span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted small">Aún no hay propuestas en este filtro.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Falta esta semana (textos anónimos) -->
+    <div class="col-12 col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-comment-dots text-primary me-1"></i>Falta esta semana <small class="text-muted fw-normal">(anónimo)</small>
+          </h6>
+          <div style="max-height:340px;overflow-y:auto;">
+            {% for t in textos %}
+              <div class="texto-item">
+                <div class="animo-mini">Ánimo: {{ t.animo }} / 5</div>
+                {% if t.que_falta %}<div><strong>Falta:</strong> {{ t.que_falta }}</div>{% endif %}
+                {% if t.propuestas %}<div><strong>Propuesta:</strong> {{ t.propuestas }}</div>{% endif %}
+              </div>
+            {% empty %}
+              <p class="text-muted small">Sin respuestas con texto libre todavía.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var data = {{ tendencia_json|safe }};
+  var ctx = document.getElementById('chartTendencia');
+  if (!ctx || !window.Chart) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [
+        {
+          label: 'Ánimo (1-5)',
+          data: data.animo,
+          borderColor: '#0f766e',
+          backgroundColor: 'rgba(15,118,110,.12)',
+          tension: .3,
+          yAxisID: 'y',
+          spanGaps: true,
+        },
+        {
+          label: 'Respuestas',
+          data: data.respuestas,
+          borderColor: '#94a3b8',
+          backgroundColor: 'rgba(148,163,184,.10)',
+          tension: .3,
+          yAxisID: 'y1',
+          borderDash: [4, 4],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y:  { min: 1, max: 5, title: { display: true, text: 'Ánimo' } },
+        y1: { position: 'right', beginAtZero: true, title: { display: true, text: 'Respuestas' }, grid: { drawOnChartArea: false } },
+      },
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+    },
+  });
+})();
+</script>
+{% endblock %}

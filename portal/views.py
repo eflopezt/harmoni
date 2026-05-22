@@ -210,6 +210,14 @@ def portal_home(request):
         except Exception:
             pass
 
+        # ── Pulse Semanal: ¿pendiente esta semana? ────────────
+        pulse_pendiente = False
+        try:
+            from encuestas.views import pulse_pendiente_para
+            pulse_pendiente = pulse_pendiente_para(empleado)
+        except Exception:
+            pass
+
         # ── Briefing del Día (si hay publicado para el local del trabajador) ──
         briefing_hoy = None
         ya_lei_briefing = False
@@ -254,6 +262,7 @@ def portal_home(request):
             'es_mi_cumple': es_mi_cumple,
             'mi_cumple_edad': mi_cumple_edad,
             'companeros_cumple': companeros_cumple,
+            'pulse_pendiente': pulse_pendiente,
         })
 
     return render(request, 'portal/portal_home.html', context)

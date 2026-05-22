@@ -3,6 +3,7 @@ Módulo de Encuestas y Clima Laboral.
 Incluye encuestas configurables, eNPS, pulsos rápidos, análisis anónimo.
 """
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from personal.models import Personal, Area
@@ -222,3 +223,91 @@ class ResultadoEncuesta(models.Model):
         if total > 0:
             self.enps_score = round(((promotores - detractores) / total) * 100)
         self.save()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pulse Semanal — encuesta corta semanal de clima laboral por trabajador.
+# Diseñada para gastronomía: una respuesta por semana ISO, 3 preguntas + NPS opc.
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class PulseSemanal(models.Model):
+    """Encuesta pulse semanal por trabajador.
+
+    A diferencia de RespuestaEncuesta (atado a una Encuesta configurable),
+    este modelo es un formato fijo y ligero: 3 preguntas + NPS opcional.
+    Una respuesta por trabajador por semana (unique_together).
+
+    En el dashboard se trata de forma agregada — los textos individuales
+    se muestran sin identificación del autor.
+    """
+    ESTADO_ANIMO = [
+        (1, '😡 Muy mal'),
+        (2, '😟 Mal'),
+        (3, '😐 Regular'),
+        (4, '🙂 Bien'),
+        (5, '😄 Excelente'),
+    ]
+
+    semana = models.PositiveIntegerField(
+        help_text='Número ISO de semana (1-53)',
+    )
+    anio = models.PositiveIntegerField()
+    empresa = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='pulses_semanales',
+    )
+    personal = models.ForeignKey(
+        Personal,
+        on_delete=models.CASCADE,
+        related_name='pulses_semanales',
+    )
+
+    # 3 preguntas core
+    animo = models.PositiveSmallIntegerField(
+        choices=ESTADO_ANIMO,
+        help_text='¿Cómo te sentiste esta semana?',
+    )
+    que_falta = models.TextField(
+        blank=True,
+        help_text='¿Qué falta para mejorar?',
+    )
+    propuestas = models.TextField(
+        blank=True,
+        help_text='Una propuesta concreta',
+    )
+
+    # NPS opcional (0-10)
+    nps = models.IntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text='¿Recomendarías trabajar aquí? (0-10)',
+    )
+
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Pulse Semanal'
+        verbose_name_plural = 'Pulses Semanales'
+        unique_together = [('personal', 'semana', 'anio')]
+        ordering = ['-anio', '-semana']
+        indexes = [
+            models.Index(fields=['empresa', 'anio', 'semana']),
+            models.Index(fields=['anio', 'semana']),
+        ]
+
+    def __str__(self):
+        return f'Pulse S{self.semana}/{self.anio} · animo={self.animo}'
+
+    @property
+    def categoria_nps(self):
+        """Clasifica el NPS en promotor/neutro/detractor."""
+        if self.nps is None:
+            return None
+        if self.nps >= 9:
+            return 'promotor'
+        if self.nps >= 7:
+            return 'neutro'
+        return 'detractor'

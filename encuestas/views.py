@@ -15,8 +15,10 @@ from django.views.decorators.http import require_POST
 
 from personal.models import Personal
 from .models import (
-    Encuesta, PreguntaEncuesta, RespuestaEncuesta, ResultadoEncuesta,
+    Encuesta, PreguntaEncuesta, PulseSemanal, RespuestaEncuesta,
+    ResultadoEncuesta,
 )
+from . import pulse_analytics
 
 solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
 
@@ -727,3 +729,234 @@ def encuesta_recordatorio(request, pk):
         'errores': errores,
         'msg': f'{enviados} recordatorio(s) enviado(s){aviso}.',
     })
+
+
+# ══════════════════════════════════════════════════════════════
+# PULSE SEMANAL — dashboard + histórico + responder
+# ══════════════════════════════════════════════════════════════
+
+def _semana_iso_now():
+    """(anio_iso, semana_iso) según hoy."""
+    iso = timezone.now().date().isocalendar()
+    return iso.year, iso.week
+
+
+@login_required
+@solo_admin
+def pulse_dashboard(request):
+    """Dashboard del Pulse Semanal — admin.
+
+    Stat cards + heatmap por local + tendencia 12 sem + top propuestas + textos.
+    """
+    anio_actual, sem_actual = _semana_iso_now()
+
+    # Permite ?empresa=ID & ?semana=N & ?anio=Y
+    empresa_id = request.GET.get('empresa') or None
+    semana = request.GET.get('semana') or sem_actual
+    anio = request.GET.get('anio') or anio_actual
+    try:
+        empresa_id = int(empresa_id) if empresa_id else None
+        semana = int(semana)
+        anio = int(anio)
+    except (TypeError, ValueError):
+        empresa_id = None
+        semana = sem_actual
+        anio = anio_actual
+
+    # ── 1. Stat cards: animo + participación de esta semana ──
+    stats = pulse_analytics.calcular_animo_semanal(
+        empresa_id=empresa_id, semana=semana, anio=anio,
+    )
+
+    # ── 2. Heatmap por local (últimas 8 semanas) ──
+    sem_inicio = max(1, sem_actual - 7)
+    heatmap = pulse_analytics.heatmap_por_local(
+        anio=anio_actual,
+        semana_inicio=sem_inicio,
+        semana_fin=sem_actual,
+    )
+
+    # ── 3. Tendencia 12 semanas ──
+    tendencia = pulse_analytics.tendencia_12_semanas(empresa_id=empresa_id, n_semanas=12)
+    tendencia_chart = {
+        'labels': [f"S{s}/{a % 100:02d}" for s, a, *_ in tendencia],
+        'animo': [row[2] for row in tendencia],
+        'respuestas': [row[3] for row in tendencia],
+        'nps': [row[4] for row in tendencia],
+    }
+
+    # ── 4. Top propuestas ──
+    propuestas_top = pulse_analytics.top_propuestas(
+        empresa_id=empresa_id, semana=semana, anio=anio, top_n=10,
+    )
+
+    # ── 5. Textos crudos (anónimos) ──
+    textos = pulse_analytics.respuestas_texto(
+        empresa_id=empresa_id, semana=semana, anio=anio, limite=20,
+    )
+
+    # ── Empresas para filtro ──
+    empresas = []
+    try:
+        from empresas.models import Empresa
+        empresas = list(Empresa.objects.filter(activa=True).order_by('nombre_comercial'))
+    except Exception:
+        pass
+
+    context = {
+        'titulo': 'Pulse Semanal',
+        'stats': stats,
+        'heatmap': heatmap,
+        'tendencia_json': json.dumps(tendencia_chart),
+        'propuestas_top': propuestas_top,
+        'textos': textos,
+        'empresas': empresas,
+        'empresa_id': empresa_id,
+        'semana': semana,
+        'anio': anio,
+        'sem_actual': sem_actual,
+        'anio_actual': anio_actual,
+    }
+    return render(request, 'encuestas/pulse_dashboard.html', context)
+
+
+@login_required
+@solo_admin
+def pulse_historico(request):
+    """Tabla histórico de pulses con filtros por empresa/área."""
+    qs = PulseSemanal.objects.select_related('empresa', 'personal', 'personal__subarea__area')
+
+    empresa_id = request.GET.get('empresa')
+    area_id = request.GET.get('area')
+    anio_filtro = request.GET.get('anio')
+
+    if empresa_id:
+        try:
+            qs = qs.filter(empresa_id=int(empresa_id))
+        except ValueError:
+            pass
+    if area_id:
+        try:
+            qs = qs.filter(personal__subarea__area_id=int(area_id))
+        except ValueError:
+            pass
+    if anio_filtro:
+        try:
+            qs = qs.filter(anio=int(anio_filtro))
+        except ValueError:
+            pass
+
+    # Agregar por (anio, semana, empresa)
+    agregado = (
+        qs.values('anio', 'semana', 'empresa_id', 'empresa__nombre_comercial', 'empresa__razon_social')
+          .annotate(
+              respuestas=Count('id'),
+              animo_avg=Avg('animo'),
+              nps_avg=Avg('nps'),
+          )
+          .order_by('-anio', '-semana')
+    )
+
+    empresas = []
+    areas = []
+    try:
+        from empresas.models import Empresa
+        empresas = list(Empresa.objects.filter(activa=True).order_by('nombre_comercial'))
+    except Exception:
+        pass
+    try:
+        from personal.models import Area
+        areas = list(Area.objects.all().order_by('nombre'))
+    except Exception:
+        pass
+
+    context = {
+        'titulo': 'Histórico Pulse Semanal',
+        'agregado': list(agregado[:200]),
+        'empresas': empresas,
+        'areas': areas,
+        'empresa_id': empresa_id,
+        'area_id': area_id,
+        'anio_filtro': anio_filtro,
+        'total': qs.count(),
+    }
+    return render(request, 'encuestas/pulse_historico.html', context)
+
+
+# ── Portal del trabajador: responder Pulse Semanal ────────────────────────────
+
+@login_required
+def pulse_responder(request):
+    """Formulario rápido del Pulse Semanal para el trabajador.
+
+    Si ya respondió esta semana, redirige al portal con mensaje.
+    """
+    from portal.views import _get_empleado
+    empleado = _get_empleado(request.user)
+
+    if not empleado:
+        messages.warning(request, 'Tu usuario no está vinculado a un trabajador.')
+        return redirect('portal_home')
+
+    anio_actual, sem_actual = _semana_iso_now()
+
+    ya_respondio = PulseSemanal.objects.filter(
+        personal=empleado, anio=anio_actual, semana=sem_actual,
+    ).exists()
+
+    if ya_respondio and request.method != 'POST':
+        messages.info(request, 'Ya respondiste el Pulse de esta semana. ¡Gracias!')
+        return redirect('portal_home')
+
+    if request.method == 'POST':
+        if ya_respondio:
+            messages.info(request, 'Ya respondiste el Pulse de esta semana.')
+            return redirect('portal_home')
+        try:
+            animo = int(request.POST.get('animo', '0'))
+            if animo not in (1, 2, 3, 4, 5):
+                raise ValueError('Ánimo inválido')
+
+            nps_raw = request.POST.get('nps', '').strip()
+            nps_val = None
+            if nps_raw != '':
+                nps_val = int(nps_raw)
+                if not (0 <= nps_val <= 10):
+                    nps_val = None
+
+            PulseSemanal.objects.create(
+                semana=sem_actual,
+                anio=anio_actual,
+                empresa=empleado.empresa,
+                personal=empleado,
+                animo=animo,
+                que_falta=request.POST.get('que_falta', '').strip()[:2000],
+                propuestas=request.POST.get('propuestas', '').strip()[:2000],
+                nps=nps_val,
+            )
+            messages.success(request, '¡Gracias por compartir cómo te sentiste esta semana!')
+            return redirect('portal_home')
+        except Exception as e:
+            messages.error(request, f'Error al guardar: {e}')
+
+    context = {
+        'titulo': 'Pulse Semanal',
+        'empleado': empleado,
+        'semana': sem_actual,
+        'anio': anio_actual,
+        'animo_choices': PulseSemanal.ESTADO_ANIMO,
+    }
+    return render(request, 'encuestas/pulse_responder.html', context)
+
+
+def pulse_pendiente_para(personal):
+    """Helper: True si el trabajador no ha respondido el pulse de la semana actual."""
+    if not personal:
+        return False
+    try:
+        anio_actual, sem_actual = _semana_iso_now()
+        return not PulseSemanal.objects.filter(
+            personal=personal, anio=anio_actual, semana=sem_actual,
+        ).exists()
+    except Exception:
+        return False

@@ -177,6 +177,17 @@
 </div>
 {% endif %}
 
+<!-- Pulse Semanal pendiente -->
+{% if pulse_pendiente %}
+<div class="alert-pending" style="background:#fef3c7;border-color:#fcd34d;margin-bottom:12px;">
+    <i class="fas fa-heart-pulse" style="color:#b45309"></i>
+    <div style="flex:1;font-size:.85rem">
+        <strong>Pulse Semanal:</strong> cuéntanos cómo te sentiste esta semana (toma 30 segundos).
+    </div>
+    <a href="{% url 'portal_pulse_responder' %}" class="btn btn-sm" style="background:#b45309;color:#fff;font-size:.75rem;padding:4px 12px;">Responder Pulse semanal</a>
+</div>
+{% endif %}
+
 <!-- Alerta de solicitudes pendientes -->
 {% if total_pendientes > 0 %}
 <div class="alert-pending">
