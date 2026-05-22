@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}QR Demo Mobile{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;">
+
+  <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;padding:30px;border-radius:16px;margin-bottom:24px;text-align:center;">
+    <h2 style="margin:0;font-weight:800;">
+      <i class="fas fa-qrcode me-2"></i>
+      QR para demos en vivo
+    </h2>
+    <p style="margin:10px 0 0;color:rgba(255,255,255,.85);">
+      Pídele al cliente que escanee el QR con su celular durante la presentación.
+      El demo se abre en su móvil sin teclear nada.
+    </p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
+    {% for q in qr_urls %}
+    <div style="background:#fff;border-radius:14px;padding:24px;border:2px solid {{ q.color }};text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.06);">
+
+      <div style="background:{{ q.color }}1a;color:{{ q.color }};width:54px;height:54px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:12px;">
+        <i class="fas {{ q.icon }}"></i>
+      </div>
+
+      <h4 style="font-weight:800;color:#0d2b27;margin:0 0 6px;font-size:1.1rem;">{{ q.titulo }}</h4>
+      <p style="color:#64748b;font-size:.82rem;margin:0 0 16px;min-height:38px;">{{ q.descripcion }}</p>
+
+      <!-- QR generado con servicio público (api.qrserver.com) -->
+      <div style="background:#fff;padding:8px;border-radius:10px;display:inline-block;border:1px solid #e2e8f0;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&color={{ q.color|slice:'1:' }}&data={{ q.url|urlencode }}"
+             alt="QR {{ q.titulo }}"
+             style="display:block;width:180px;height:180px;"
+             loading="lazy">
+      </div>
+
+      <div style="font-size:.72rem;color:#94a3b8;margin-top:10px;word-break:break-all;font-family:monospace;">
+        {{ q.url }}
+      </div>
+
+      <a href="{{ q.url }}" target="_blank"
+         style="display:inline-block;margin-top:14px;background:{{ q.color }};color:#fff;padding:8px 18px;border-radius:8px;font-weight:600;font-size:.82rem;text-decoration:none;">
+        Abrir en este navegador
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:18px;margin-top:24px;color:#78350f;font-size:.88rem;">
+    <strong>💡 Cómo usarlo durante una demo:</strong>
+    <ol style="margin:8px 0 0;padding-left:22px;">
+      <li>Comparte tu pantalla con el cliente (Zoom / Meet / Teams)</li>
+      <li>Abre esta página y pídele que <strong>saque su celular</strong></li>
+      <li>El cliente escanea el QR de "Portal del trabajador" con su cámara</li>
+      <li>Su celular se abre logueado como el demo — puede tocar, navegar, ver boletas</li>
+      <li>Resultado: ya no es "te muestro una demo", es "úsala en tu mano ahora"</li>
+    </ol>
+  </div>
+
+</div>
+{% endblock %}

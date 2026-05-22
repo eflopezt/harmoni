@@ -161,6 +161,14 @@ urlpatterns = [
     path('cuenta/plan/', __import__('core.views_mi_cuenta', fromlist=['mi_cuenta_plan']).mi_cuenta_plan, name='mi_cuenta_plan'),
     # Tour interactivo demo EDO Enterprise
     path('tour/edo/', __import__('core.views_tour_edo', fromlist=['tour_edo']).tour_edo, name='tour_edo'),
+    # Centro de Comando — dashboard ejecutivo "1 vista"
+    path('comando/', __import__('core.views_centro_comando', fromlist=['centro_comando']).centro_comando, name='centro_comando'),
+    # Calculadora ROI (público, sin login)
+    path('roi/', __import__('core.views_roi', fromlist=['calculadora_roi']).calculadora_roi, name='calculadora_roi'),
+    # QR para demos en vivo (escaneo durante presentación)
+    path('qr-demo/', __import__('core.views_qr_demo', fromlist=['qr_demo']).qr_demo, name='qr_demo'),
+    # Reporte ejecutivo PDF — "El Grupo en 1 página"
+    path('reportes/grupo-ejecutivo/', __import__('core.views_reporte_ejecutivo_grupo', fromlist=['reporte_grupo_ejecutivo']).reporte_grupo_ejecutivo, name='reporte_grupo_ejecutivo'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

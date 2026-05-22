@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Centro de Comando — Harmoni{% endblock %}
+{% block extra_css %}
+<style>
+.cmd-hero {
+    background: linear-gradient(135deg, #0d2b27 0%, #134e4a 50%, #0f766e 100%);
+    color: #fff;
+    padding: 28px 32px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(15, 118, 110, 0.18);
+}
+.cmd-fecha {
+    font-size: .82rem;
+    color: rgba(255,255,255,.7);
+    text-transform: uppercase;
+    letter-spacing: .15em;
+    font-weight: 600;
+}
+.cmd-titulo {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 6px 0 0;
+    letter-spacing: -.02em;
+}
+.cmd-saludo {
+    font-size: 1.02rem;
+    color: rgba(255,255,255,.85);
+    margin-top: 8px;
+}
+.cmd-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 22px;
+}
+.cmd-stat {
+    background: rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 14px 18px;
+    backdrop-filter: blur(10px);
+}
+.cmd-stat-label {
+    font-size: .72rem;
+    color: rgba(255,255,255,.65);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.cmd-stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-top: 4px;
+    line-height: 1;
+}
+
+.cmd-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 18px;
+}
+@media (max-width: 900px) { .cmd-grid { grid-template-columns: 1fr; } }
+
+.cmd-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 22px 24px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.cmd-card-title {
+    font-size: .8rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* La cosa de hoy — top alerta */
+.cmd-top-alert {
+    background: linear-gradient(135deg, #fee2e2, #fef3c7);
+    border-left: 5px solid #dc2626;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+.cmd-top-alert-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: #dc2626;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(220,38,38,.15);
+}
+.cmd-top-alert-text {
+    flex: 1;
+}
+.cmd-top-alert-label {
+    font-size: .72rem;
+    color: #78350f;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.cmd-top-alert-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0d2b27;
+    margin: 4px 0;
+}
+.cmd-top-alert-desc {
+    font-size: .88rem;
+    color: #64748b;
+}
+
+/* Alertas list */
+.cmd-alerta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-left: 3px solid;
+    background: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: transform .2s;
+}
+.cmd-alerta:hover { transform: translateX(3px); }
+.cmd-alerta-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.cmd-alerta-text { flex: 1; }
+.cmd-alerta-title { font-weight: 700; color: #0d2b27; font-size: .92rem; }
+.cmd-alerta-desc { font-size: .78rem; color: #64748b; }
+.cmd-alerta-cta {
+    color: #0f766e;
+    font-size: .82rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* Mapa de calor locales */
+.cmd-locales-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+.cmd-local {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+    border: 2px solid;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .2s, box-shadow .2s;
+}
+.cmd-local:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,.08);
+}
+.cmd-local-emoji { font-size: 1.4rem; }
+.cmd-local-nombre {
+    font-weight: 700;
+    color: #0d2b27;
+    font-size: .82rem;
+    margin: 6px 0 2px;
+    line-height: 1.2;
+}
+.cmd-local-workers { font-size: .7rem; color: #64748b; }
+.cmd-local-score {
+    font-size: 1.6rem;
+    font-weight: 900;
+    margin: 4px 0;
+    line-height: 1;
+}
+.cmd-local-estado {
+    font-size: .68rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: .05em;
+}
+
+/* Briefings */
+.cmd-briefing {
+    background: #f0fdf4;
+    border-left: 3px solid #16a34a;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+.cmd-briefing-titulo { font-weight: 700; font-size: .9rem; color: #0d2b27; }
+.cmd-briefing-empresa { font-size: .72rem; color: #64748b; }
+.cmd-briefing-snippet { font-size: .82rem; color: #475569; margin-top: 4px; }
+</style>
+{% endblock %}
+{% block content %}
+
+<!-- HERO ─────────────────────────────────────── -->
+<div class="cmd-hero">
+    <div class="cmd-fecha">
+        <i class="fas fa-broadcast-tower me-1"></i>
+        Centro de Comando · {{ fecha_hoy|date:"l, d \d\e F" }}
+    </div>
+    <h1 class="cmd-titulo">Buen día, {{ usuario.first_name|default:usuario.username }} 👋</h1>
+    <p class="cmd-saludo">
+        Resumen de los <strong>{{ total_empresas }} locales</strong> del Grupo —
+        lo más importante de hoy en una sola vista.
+    </p>
+
+    <div class="cmd-stats">
+        <div class="cmd-stat">
+            <div class="cmd-stat-label">Colaboradores activos</div>
+            <div class="cmd-stat-value">{{ total_workers }}</div>
+        </div>
+        <div class="cmd-stat">
+            <div class="cmd-stat-label">Locales operando</div>
+            <div class="cmd-stat-value">{{ total_empresas }}</div>
+        </div>
+        <div class="cmd-stat">
+            <div class="cmd-stat-label">Costo planilla est./mes</div>
+            <div class="cmd-stat-value">S/ {{ costo_planilla_estimado|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="cmd-stat">
+            <div class="cmd-stat-label">Alertas activas</div>
+            <div class="cmd-stat-value">{{ alertas|length }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- TOP ALERT ──────────────────────────────────── -->
+{% if alerta_top %}
+<div class="cmd-top-alert" style="border-left-color:{{ alerta_top.color }};">
+    <div class="cmd-top-alert-icon" style="color:{{ alerta_top.color }};">
+        <i class="fas {{ alerta_top.icon }}"></i>
+    </div>
+    <div class="cmd-top-alert-text">
+        <div class="cmd-top-alert-label">⚡ Una cosa para hacer hoy</div>
+        <div class="cmd-top-alert-title">{{ alerta_top.titulo }}</div>
+        <div class="cmd-top-alert-desc">{{ alerta_top.descripcion }}</div>
+    </div>
+    <a href="{{ alerta_top.url }}" style="background:{{ alerta_top.color }};color:#fff;padding:10px 22px;border-radius:10px;font-weight:600;text-decoration:none;white-space:nowrap;">
+        {{ alerta_top.cta }} →
+    </a>
+</div>
+{% endif %}
+
+<div class="cmd-grid">
+
+    <!-- COL IZQUIERDA: alertas + locales ─────────── -->
+    <div>
+        <!-- Locales heat map -->
+        <div class="cmd-card" style="margin-bottom:18px;">
+            <h3 class="cmd-card-title">
+                <i class="fas fa-map" style="color:#0f766e;"></i> Salud por local
+            </h3>
+            <div class="cmd-locales-grid">
+                {% for l in locales %}
+                <a href="{{ l.url }}" class="cmd-local" style="border-color:{{ l.color }};">
+                    <div class="cmd-local-emoji">{{ l.emoji }}</div>
+                    <div class="cmd-local-nombre">{{ l.empresa.razon_social|truncatechars:18 }}</div>
+                    <div class="cmd-local-workers">{{ l.workers }} colab.</div>
+                    <div class="cmd-local-score" style="color:{{ l.color }};">{{ l.score }}</div>
+                    <div class="cmd-local-estado" style="color:{{ l.color }};">{{ l.estado }}</div>
+                </a>
+                {% empty %}
+                <p style="color:#94a3b8;">Sin locales activos.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Otras alertas -->
+        {% if alertas|length > 1 %}
+        <div class="cmd-card">
+            <h3 class="cmd-card-title">
+                <i class="fas fa-bell" style="color:#f59e0b;"></i> Bandeja de alertas
+            </h3>
+            {% for a in alertas %}
+            {% if a != alerta_top %}
+            <a href="{{ a.url }}" style="text-decoration:none;color:inherit;">
+            <div class="cmd-alerta" style="border-left-color:{{ a.color }};">
+                <div class="cmd-alerta-icon" style="background:{{ a.color }}1a;color:{{ a.color }};">
+                    <i class="fas {{ a.icon }}"></i>
+                </div>
+                <div class="cmd-alerta-text">
+                    <div class="cmd-alerta-title">{{ a.titulo }}</div>
+                    <div class="cmd-alerta-desc">{{ a.descripcion }}</div>
+                </div>
+                <div class="cmd-alerta-cta" style="color:{{ a.color }};">
+                    {{ a.cta }} →
+                </div>
+            </div>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- COL DERECHA: briefings de hoy + quick actions ── -->
+    <div>
+        <!-- Briefings -->
+        <div class="cmd-card" style="margin-bottom:18px;">
+            <h3 class="cmd-card-title">
+                <i class="fas fa-clipboard-list" style="color:#16a34a;"></i> Briefings de hoy
+            </h3>
+            {% for b in briefings_hoy %}
+            <div class="cmd-briefing">
+                <div class="cmd-briefing-titulo">{{ b.titulo|default:"Briefing del día" }}</div>
+                <div class="cmd-briefing-empresa">{{ b.empresa.razon_social|truncatechars:30 }} · {{ b.turno }}</div>
+                <div class="cmd-briefing-snippet">{{ b.contenido|truncatechars:90 }}</div>
+            </div>
+            {% empty %}
+            <p style="color:#94a3b8;font-size:.85rem;text-align:center;padding:14px 0;">
+                Sin briefings publicados hoy.
+                <a href="/asistencia/briefing/" style="display:block;margin-top:6px;color:#0f766e;">Crear briefing →</a>
+            </p>
+            {% endfor %}
+            {% if briefings_hoy %}
+            <a href="/asistencia/briefing/" style="display:block;text-align:center;margin-top:10px;font-size:.85rem;color:#0f766e;">
+                Ver todos los briefings →
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Quick actions -->
+        <div class="cmd-card">
+            <h3 class="cmd-card-title">
+                <i class="fas fa-bolt" style="color:#0891b2;"></i> Acceso rápido
+            </h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <a href="/empresas/pulse/" style="background:#f0fdf4;color:#0d2b27;padding:12px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:600;text-align:center;">
+                    <i class="fas fa-pulse d-block mb-1" style="color:#16a34a;"></i>
+                    Pulse del Grupo
+                </a>
+                <a href="/sistema/dashboard/ejecutivo/" style="background:#f0f9ff;color:#0d2b27;padding:12px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:600;text-align:center;">
+                    <i class="fas fa-chart-line d-block mb-1" style="color:#0891b2;"></i>
+                    Dashboard Ejec.
+                </a>
+                <a href="/nominas/" style="background:#fef3c7;color:#0d2b27;padding:12px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:600;text-align:center;">
+                    <i class="fas fa-file-invoice-dollar d-block mb-1" style="color:#d97706;"></i>
+                    Nóminas
+                </a>
+                <a href="/reclutamiento/pipeline/" style="background:#f5f3ff;color:#0d2b27;padding:12px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:600;text-align:center;">
+                    <i class="fas fa-rocket d-block mb-1" style="color:#a855f7;"></i>
+                    Reclutamiento
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
