@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Caso de uso — Grupo EDO con Harmoni{% endblock %}
+{% block content %}
+<div style="max-width:960px;margin:0 auto;">
+
+  <!-- HERO ─── -->
+  <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;padding:50px 36px;border-radius:18px;margin-bottom:30px;text-align:center;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-40px;right:-40px;font-size:14rem;opacity:.08;">🍱</div>
+    <div style="position:absolute;bottom:-40px;left:-40px;font-size:10rem;opacity:.08;">📊</div>
+    <div style="position:relative;">
+      <div style="display:inline-block;background:rgba(94,234,212,.2);color:#5eead4;padding:6px 16px;border-radius:20px;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px;">
+        Caso de uso · Gastronomía Premium
+      </div>
+      <h1 style="margin:0;font-weight:900;font-size:2.4rem;letter-spacing:-.02em;">
+        Cómo Harmoni transformó la gestión de planilla<br>en un grupo gastronómico de 9 locales
+      </h1>
+      <p style="margin:18px 0 0;font-size:1.05rem;color:rgba(255,255,255,.85);max-width:700px;margin-left:auto;margin-right:auto;">
+        Multi-empresa con 24 RUCs, 800 trabajadores, turnos rotativos 24/7,
+        propinas en planilla. Lo que tomaba 2 semanas, ahora 2 horas.
+      </p>
+    </div>
+  </div>
+
+  <!-- PROBLEMA ─── -->
+  <div style="background:#fff;padding:32px;border-radius:14px;border:1px solid #e2e8f0;margin-bottom:18px;">
+    <div style="font-size:.72rem;color:#dc2626;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">
+      El problema
+    </div>
+    <h2 style="margin:0 0 16px;color:#0d2b27;font-weight:800;">2 semanas al mes solo en planilla</h2>
+    <ul style="color:#475569;line-height:1.8;margin:0;padding-left:22px;">
+      <li><strong>24 RUCs</strong> en distintas razones sociales → 24 archivos Excel separados</li>
+      <li><strong>Sistema actual (Spring)</strong> no maneja propinas ni recargo consumo correctamente</li>
+      <li><strong>Turnos rotativos con jornada nocturna</strong> calculados a mano por contador</li>
+      <li><strong>Marcaciones Synkro</strong> exportadas en CSV, importadas con doble entrada manual</li>
+      <li><strong>Errores frecuentes</strong>: boletas con cifras mal, papeletas perdidas, vacaciones desincronizadas</li>
+      <li><strong>Cero visibilidad</strong> ejecutiva: el dueño no sabe la salud del grupo hasta fin de mes</li>
+    </ul>
+  </div>
+
+  <!-- SOLUCIÓN ─── -->
+  <div style="background:#f0fdf4;padding:32px;border-radius:14px;border:1px solid #bbf7d0;margin-bottom:18px;">
+    <div style="font-size:.72rem;color:#16a34a;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">
+      La solución
+    </div>
+    <h2 style="margin:0 0 18px;color:#0d2b27;font-weight:800;">Harmoni ERP — multi-empresa nativo</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+      <div style="background:#fff;padding:18px;border-radius:10px;">
+        <div style="font-size:1.6rem;">🏢</div>
+        <div style="font-weight:700;color:#0d2b27;margin:4px 0 2px;">Multi-empresa</div>
+        <p style="font-size:.82rem;color:#64748b;margin:0;">9 (o 24) RUCs en una consola. Dueño consolida, contador separa.</p>
+      </div>
+      <div style="background:#fff;padding:18px;border-radius:10px;">
+        <div style="font-size:1.6rem;">🍽️</div>
+        <div style="font-weight:700;color:#0d2b27;margin:4px 0 2px;">Specs gastronomía</div>
+        <p style="font-size:.82rem;color:#64748b;margin:0;">Propinas, recargo consumo, turno nocturno 35%, cruce medianoche — todo automático.</p>
+      </div>
+      <div style="background:#fff;padding:18px;border-radius:10px;">
+        <div style="font-size:1.6rem;">🤖</div>
+        <div style="font-weight:700;color:#0d2b27;margin:4px 0 2px;">IA integrada</div>
+        <p style="font-size:.82rem;color:#64748b;margin:0;">Predictor de rotación + score reclutamiento + explicación de boleta al trabajador.</p>
+      </div>
+      <div style="background:#fff;padding:18px;border-radius:10px;">
+        <div style="font-size:1.6rem;">📊</div>
+        <div style="font-weight:700;color:#0d2b27;margin:4px 0 2px;">Pulse del Grupo</div>
+        <p style="font-size:.82rem;color:#64748b;margin:0;">Termómetro semanal — quién está bien, quién pide atención.</p>
+      </div>
+      <div style="background:#fff;padding:18px;border-radius:10px;">
+        <div style="font-size:1.6rem;">📲</div>
+        <div style="font-weight:700;color:#0d2b27;margin:4px 0 2px;">Portal del trabajador</div>
+        <p style="font-size:.82rem;color:#64748b;margin:0;">Boletas, vacaciones, asistencia desde el celular. Cero llamadas a RRHH.</p>
+      </div>
+      <div style="background:#fff;padding:18px;border-radius:10px;">
+        <div style="font-size:1.6rem;">📋</div>
+        <div style="font-weight:700;color:#0d2b27;margin:4px 0 2px;">Briefing del Día</div>
+        <p style="font-size:.82rem;color:#64748b;margin:0;">Chef escribe handover, mozo lo lee al entrar. Cero info perdida.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROI ─── -->
+  <div style="background:linear-gradient(135deg,#16a34a,#0f766e);color:#fff;padding:32px;border-radius:14px;margin-bottom:18px;text-align:center;">
+    <div style="font-size:.72rem;color:rgba(255,255,255,.85);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">
+      El ROI
+    </div>
+    <h2 style="margin:0 0 18px;font-weight:800;">Ahorro neto anual: ≈ S/ 140,000</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;">
+      <div style="background:rgba(255,255,255,.15);padding:18px;border-radius:10px;">
+        <div style="font-size:2rem;font-weight:900;line-height:1;">3 meses</div>
+        <div style="font-size:.85rem;opacity:.85;margin-top:4px;">Payback</div>
+      </div>
+      <div style="background:rgba(255,255,255,.15);padding:18px;border-radius:10px;">
+        <div style="font-size:2rem;font-weight:900;line-height:1;">520%</div>
+        <div style="font-size:.85rem;opacity:.85;margin-top:4px;">ROI anual</div>
+      </div>
+      <div style="background:rgba(255,255,255,.15);padding:18px;border-radius:10px;">
+        <div style="font-size:2rem;font-weight:900;line-height:1;">64 h/mes</div>
+        <div style="font-size:.85rem;opacity:.85;margin-top:4px;">Horas RRHH recuperadas</div>
+      </div>
+    </div>
+
+    <a href="/roi/" style="background:#fff;color:#0d2b27;padding:12px 26px;border-radius:10px;font-weight:700;text-decoration:none;display:inline-block;">
+      Calcular MI ROI →
+    </a>
+  </div>
+
+  <!-- CTA principal ─── -->
+  <div style="background:#fef3c7;border:2px dashed #fcd34d;padding:32px;border-radius:14px;text-align:center;">
+    <h2 style="margin:0 0 12px;color:#78350f;font-weight:800;">¿Listo para verlo en vivo?</h2>
+    <p style="color:#78350f;margin:0 0 20px;">
+      Entra al demo con un clic. Es una réplica del Grupo EDO con datos ficticios — total libertad para tocar.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="/d/enterprise/" style="background:#0f766e;color:#fff;padding:13px 28px;border-radius:10px;font-weight:700;text-decoration:none;">
+        🎯 Abrir demo Enterprise
+      </a>
+      <a href="/tour/edo/" style="background:#fff;border:1px solid #0f766e;color:#0f766e;padding:13px 28px;border-radius:10px;font-weight:700;text-decoration:none;">
+        📋 Ver tour de features
+      </a>
+      <a href="https://wa.me/51906602313?text=Hola,%20vi%20el%20caso%20de%20uso%20del%20Grupo%20EDO%20y%20quiero%20saber%20más." target="_blank"
+         style="background:#16a34a;color:#fff;padding:13px 28px;border-radius:10px;font-weight:700;text-decoration:none;">
+        <i class="fab fa-whatsapp"></i> Hablemos por WhatsApp
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

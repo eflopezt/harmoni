@@ -1,0 +1,55 @@
+{# Easter egg confetti — se dispara cuando hay un alert success o messages.success
+   Solo en DEMO_MODE. Sutil pero memorable. #}
+{% if DEMO_MODE %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script>
+(function(){
+  if (typeof confetti === 'undefined') return;
+
+  // Configuración: ráfaga teal corta
+  function fireConfetti(){
+    const colors = ['#0f766e', '#5eead4', '#16a34a', '#fbbf24'];
+    // Disparo principal del centro
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.5 },
+      colors: colors,
+      ticks: 200,
+    });
+    // Disparos laterales (delay 200ms)
+    setTimeout(() => {
+      confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, colors });
+      confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 }, colors });
+    }, 200);
+  }
+
+  // Dispara confetti cuando se detecta un message.success de Django
+  // O cuando aparece un alert con clase "alert-success" o data-success="1"
+  function checkForSuccess(){
+    // Django messages
+    const successMsgs = document.querySelectorAll('.alert-success, [data-success="1"], .messages .success, .toast-success');
+    if (successMsgs.length > 0) {
+      fireConfetti();
+      return;
+    }
+  }
+
+  // Check on load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkForSuccess);
+  } else {
+    checkForSuccess();
+  }
+
+  // Expose for manual trigger
+  window.harmoniConfetti = fireConfetti;
+
+  // Hook a clicks en botones marcados con data-confetti="1"
+  document.addEventListener('click', function(e){
+    const t = e.target.closest('[data-confetti="1"]');
+    if (t) setTimeout(fireConfetti, 200);
+  });
+})();
+</script>
+{% endif %}

@@ -171,6 +171,8 @@ urlpatterns = [
     path('reportes/grupo-ejecutivo/', __import__('core.views_reporte_ejecutivo_grupo', fromlist=['reporte_grupo_ejecutivo']).reporte_grupo_ejecutivo, name='reporte_grupo_ejecutivo'),
     # FAQ pública gastronomía
     path('faq/', __import__('core.views_faq', fromlist=['faq_publica']).faq_publica, name='faq_publica'),
+    # Caso de uso comercial — Grupo EDO (público, sin login)
+    path('casos/edo/', __import__('core.views_caso_edo', fromlist=['caso_edo']).caso_edo, name='caso_edo'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
