@@ -7,6 +7,7 @@ from . import views_wizard_planilla
 from . import views_onboarding_validator
 from . import views_mi_dia
 from . import views_calculadora
+from . import views_workflow_mes
 
 urlpatterns = [
     # Panel y portal
@@ -51,8 +52,14 @@ urlpatterns = [
                                       name='onboarding_validador_pdf'),
     path('mi-dia/',                   views_mi_dia.mi_dia_nominas,
                                       name='mi_dia_nominas'),
+    path('workflow-mes/',             views_workflow_mes.workflow_mes,
+                                      name='workflow_mes'),
     path('calculadora/',              views_calculadora.calculadora_planilla,
                                       name='calculadora_planilla'),
+    path('calculadora/comparar/',     views_calculadora.calculadora_comparar,
+                                      name='calculadora_comparar'),
+    path('calculadora/pdf/',          views_calculadora.calculadora_pdf,
+                                      name='calculadora_pdf'),
 
     # Conceptos remunerativos (panel legacy/existing — read-only resumen)
     path('conceptos/', views.conceptos_panel, name='nominas_conceptos'),

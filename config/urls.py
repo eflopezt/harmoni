@@ -213,6 +213,10 @@ urlpatterns = [
     path('analytics/', include('analytics.urls')),
     path('integraciones/', include('integraciones.urls')),
     path('nominas/', include('nominas.urls')),
+    # Calculadora pública sin login (SEO + lead gen)
+    path('calculadora/', __import__('nominas.views_calculadora', fromlist=['calculadora_publica']).calculadora_publica, name='calculadora_publica'),
+    path('api/calculadora/', __import__('nominas.views_calculadora', fromlist=['calculadora_api']).calculadora_api, name='api_calculadora'),
+    path('api/health/nominas/', __import__('nominas.views_health', fromlist=['nominas_health']).nominas_health, name='api_health_nominas'),
     path('empresas/', include('empresas.urls')),
     path('workflows/', include('workflows.urls')),
     path('', include('wa_marketing.urls')),

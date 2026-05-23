@@ -439,6 +439,81 @@ def conceptos_lista(request):
 # Crear / Editar concepto
 # ════════════════════════════════════════════════════════════════════════
 
+def detectar_similares(codigo: str, nombre: str, top_n: int = 5):
+    """
+    Busca conceptos similares al que se va a crear.
+
+    Heurística:
+    1. Match exacto de codigo o nombre normalizado → ALTA confianza
+    2. Tokens compartidos en codigo o nombre → MEDIA
+    3. Solo el primer token coincide → BAJA
+
+    Returns: lista de dicts {'concepto': obj, 'razon': str, 'confianza': str}
+    """
+    import re
+    codigo_n = (codigo or '').strip().lower().replace(' ', '_')
+    nombre_n = (nombre or '').strip().lower()
+
+    if not codigo_n and not nombre_n:
+        return []
+
+    def tokens(s):
+        return set(t for t in re.split(r'[\s_\-/.,]+', (s or '').lower()) if len(t) >= 3)
+
+    tokens_input = tokens(codigo_n) | tokens(nombre_n)
+    if not tokens_input:
+        return []
+
+    candidatos = []
+    qs = ConceptoRemunerativo.objects.all().values('id', 'codigo', 'nombre', 'tipo', 'activo')
+    for c in qs:
+        # Match exacto codigo → ya existe
+        if c['codigo'] == codigo_n:
+            candidatos.append({
+                'concepto':  c,
+                'razon':     'Ya existe un concepto con este código exacto',
+                'confianza': 'EXACTO',
+                'score':     100,
+            })
+            continue
+
+        # Match nombre exacto
+        if nombre_n and c['nombre'].lower() == nombre_n:
+            candidatos.append({
+                'concepto':  c,
+                'razon':     'Nombre idéntico al existente',
+                'confianza': 'ALTA',
+                'score':     90,
+            })
+            continue
+
+        # Tokens compartidos
+        tokens_c = tokens(c['codigo']) | tokens(c['nombre'])
+        if not tokens_c:
+            continue
+        compartidos = tokens_input & tokens_c
+        if not compartidos:
+            continue
+        score = int(100 * len(compartidos) / max(len(tokens_input | tokens_c), 1))
+        if score >= 50:
+            confianza = 'ALTA'
+        elif score >= 30:
+            confianza = 'MEDIA'
+        elif score >= 15:
+            confianza = 'BAJA'
+        else:
+            continue
+        candidatos.append({
+            'concepto':  c,
+            'razon':     f'Comparte palabras: {", ".join(sorted(compartidos))}',
+            'confianza': confianza,
+            'score':     score,
+        })
+
+    candidatos.sort(key=lambda x: -x['score'])
+    return candidatos[:top_n]
+
+
 def _save_concepto_from_post(post, concepto=None):
     """Helper para crear/editar desde POST. Devuelve (concepto, errors)."""
     errors = []
@@ -502,6 +577,25 @@ def _save_concepto_from_post(post, concepto=None):
 @require_http_methods(['GET', 'POST'])
 def concepto_nuevo(request):
     if request.method == 'POST':
+        # ── Detector de duplicados: si el usuario no confirmó ignorar, advertir ──
+        if request.POST.get('ignorar_similares') != '1':
+            codigo = (request.POST.get('codigo') or '').strip().lower().replace(' ', '_')
+            nombre = (request.POST.get('nombre') or '').strip()
+            similares = detectar_similares(codigo, nombre)
+            # Solo bloqueamos si hay confianza ALTA/EXACTA — los demás son sugerencias
+            blocking = [s for s in similares if s['confianza'] in ('EXACTO', 'ALTA')]
+            if blocking:
+                return render(request, 'nominas/conceptos/form.html', {
+                    'concepto':       None,
+                    'form_data':      request.POST,
+                    'similares':      similares,
+                    'similares_blocking': blocking,
+                    'categorias':     ConceptoRemunerativo.CATEGORIA_CHOICES,
+                    'tipos':          ConceptoRemunerativo.TIPO_CHOICES,
+                    'subtipos':       ConceptoRemunerativo.SUBTIPO_CHOICES,
+                    'formulas':       ConceptoRemunerativo.FORMULA_CHOICES,
+                })
+
         _set_audit_from_request(request)
         try:
             concepto, errors = _save_concepto_from_post(request.POST)

@@ -16,7 +16,10 @@ URL: /nominas/calculadora/  (login required, no superuser — accesible a trabaj
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .engine import (
@@ -218,4 +221,194 @@ def calculadora_planilla(request):
         'uit_2026':     UIT_2026,
         'asig_fam':     ASIG_FAM,
         'tope_rma':     AFP_TOPE_REM_ASEGURABLE,
+    })
+
+
+# ────────────────────────────────────────────────────────────────
+# Versión pública sin login — SEO + lead generation
+# ────────────────────────────────────────────────────────────────
+
+@require_http_methods(['GET', 'POST'])
+def calculadora_publica(request):
+    """
+    Calculadora pública sin login — para SEO, lead gen y dueños
+    de empresas que quieren probar antes de registrarse.
+
+    URL: /calculadora/  (no /nominas/ prefix, accesible público)
+    """
+    result = None
+    params = {}
+    if request.method == 'POST':
+        try:
+            sueldo = Decimal(request.POST.get('sueldo', '0'))
+            if sueldo <= 0:
+                raise ValueError('Sueldo debe ser positivo')
+            params = {
+                'asig_familiar':  request.POST.get('asig_familiar') == 'on',
+                'horas_extra':    request.POST.get('horas_extra') or '0',
+                'comisiones':     request.POST.get('comisiones') or '0',
+                'regimen':        request.POST.get('regimen', 'ONP'),
+                'afp':            request.POST.get('afp', 'Habitat'),
+                'tiene_eps':      request.POST.get('tiene_eps') == 'on',
+                'sctr_tasa':      request.POST.get('sctr_tasa') or '0',
+            }
+            result = _simular(sueldo, params)
+        except Exception as e:
+            result = {'error': str(e)}
+
+    return render(request, 'nominas/calculadora_publica.html', {
+        'result':       result,
+        'params':       params,
+        'afp_options':  list(AFP_TASAS.keys()),
+        'rmv_2026':     RMV_2026,
+        'uit_2026':     UIT_2026,
+        'asig_fam':     ASIG_FAM,
+        'tope_rma':     AFP_TOPE_REM_ASEGURABLE,
+    })
+
+
+# ────────────────────────────────────────────────────────────────
+# API JSON — programable / mobile / vendedores
+# ────────────────────────────────────────────────────────────────
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def calculadora_api(request):
+    """POST JSON con sueldo + params → devuelve simulación.
+
+    Body JSON: {"sueldo": "2500", "regimen": "AFP", "afp": "Integra", ...}
+    """
+    import json
+    try:
+        data = json.loads(request.body or '{}')
+        sueldo = Decimal(str(data.get('sueldo', '0')))
+        if sueldo <= 0:
+            return JsonResponse({'error': 'sueldo debe ser positivo'}, status=400)
+        result = _simular(sueldo, {
+            'asig_familiar':  bool(data.get('asig_familiar', False)),
+            'horas_extra':    str(data.get('horas_extra', '0')),
+            'comisiones':     str(data.get('comisiones', '0')),
+            'regimen':        data.get('regimen', 'ONP'),
+            'afp':            data.get('afp', 'Habitat'),
+            'tiene_eps':      bool(data.get('tiene_eps', False)),
+            'sctr_tasa':      str(data.get('sctr_tasa', '0')),
+        })
+        # JSON-friendly: convertir Decimal → str
+        return JsonResponse(_serialize_result(result), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def _serialize_result(result: dict) -> dict:
+    """Convierte Decimals a strings para JSON."""
+    out = {}
+    for k, v in result.items():
+        if isinstance(v, Decimal):
+            out[k] = str(v)
+        elif isinstance(v, dict):
+            out[k] = {kk: _serialize_decimal_dict(vv) for kk, vv in v.items()}
+        else:
+            out[k] = v
+    return out
+
+
+def _serialize_decimal_dict(d):
+    if not isinstance(d, dict):
+        return str(d) if isinstance(d, Decimal) else d
+    return {k: (str(v) if isinstance(v, Decimal) else v) for k, v in d.items()}
+
+
+# ────────────────────────────────────────────────────────────────
+# PDF de simulación — sales asset
+# ────────────────────────────────────────────────────────────────
+
+@login_required
+def calculadora_pdf(request):
+    """Descarga PDF de la última simulación. Espera POST con los mismos params."""
+    if request.method != 'POST':
+        return HttpResponse('Solo POST con los datos de simulación', status=405)
+    try:
+        sueldo = Decimal(request.POST.get('sueldo', '0'))
+        if sueldo <= 0:
+            return HttpResponse('Sueldo inválido', status=400)
+        params = {
+            'asig_familiar':  request.POST.get('asig_familiar') == 'on' or request.POST.get('asig_familiar') == 'true',
+            'horas_extra':    request.POST.get('horas_extra') or '0',
+            'comisiones':     request.POST.get('comisiones') or '0',
+            'regimen':        request.POST.get('regimen', 'ONP'),
+            'afp':            request.POST.get('afp', 'Habitat'),
+            'tiene_eps':      request.POST.get('tiene_eps') == 'on' or request.POST.get('tiene_eps') == 'true',
+            'sctr_tasa':      request.POST.get('sctr_tasa') or '0',
+        }
+        result = _simular(sueldo, params)
+    except Exception as e:
+        return HttpResponse(f'Error: {e}', status=400)
+
+    from django.utils import timezone as dj_tz
+    html = render_to_string('nominas/calculadora_pdf.html', {
+        'result':       result,
+        'fecha':        dj_tz.now(),
+        'cargo':        request.POST.get('cargo', ''),
+        'nombre_emp':   request.POST.get('nombre_emp', 'Empresa'),
+    })
+
+    try:
+        from weasyprint import HTML
+        pdf = HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
+        resp = HttpResponse(pdf, content_type='application/pdf')
+        resp['Content-Disposition'] = f'attachment; filename="simulacion_planilla_{dj_tz.now():%Y%m%d_%H%M}.pdf"'
+        return resp
+    except ImportError:
+        return HttpResponse(html, content_type='text/html; charset=utf-8')
+
+
+# ────────────────────────────────────────────────────────────────
+# Comparativa 2 escenarios
+# ────────────────────────────────────────────────────────────────
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def calculadora_comparar(request):
+    """¿Qué pasa si subo el sueldo de X a Y? Compara dos simulaciones."""
+    result_a = None
+    result_b = None
+    delta = None
+
+    if request.method == 'POST':
+        try:
+            sueldo_a = Decimal(request.POST.get('sueldo_a', '0'))
+            sueldo_b = Decimal(request.POST.get('sueldo_b', '0'))
+            if sueldo_a <= 0 or sueldo_b <= 0:
+                raise ValueError('Ambos sueldos deben ser positivos')
+
+            params = {
+                'asig_familiar':  request.POST.get('asig_familiar') == 'on',
+                'horas_extra':    '0',
+                'comisiones':     '0',
+                'regimen':        request.POST.get('regimen', 'ONP'),
+                'afp':            request.POST.get('afp', 'Habitat'),
+                'tiene_eps':      request.POST.get('tiene_eps') == 'on',
+                'sctr_tasa':      '0',
+            }
+            result_a = _simular(sueldo_a, params)
+            result_b = _simular(sueldo_b, params)
+
+            # Calcular delta
+            delta = {
+                'sueldo':            result_b['sueldo'] - result_a['sueldo'],
+                'rem_total':         result_b['rem_total'] - result_a['rem_total'],
+                'descuentos':        result_b['total_descuentos'] - result_a['total_descuentos'],
+                'neto':              result_b['neto'] - result_a['neto'],
+                'aportes_empresa':   result_b['total_aportes'] - result_a['total_aportes'],
+                'costo_empresa':     result_b['costo_total'] - result_a['costo_total'],
+                'costo_full_loaded': result_b['costo_full_loaded'] - result_a['costo_full_loaded'],
+            }
+        except Exception as e:
+            result_a = {'error': str(e)}
+
+    return render(request, 'nominas/calculadora_comparar.html', {
+        'result_a':     result_a,
+        'result_b':     result_b,
+        'delta':        delta,
+        'afp_options':  list(AFP_TASAS.keys()),
     })

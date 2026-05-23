@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Comparar Escenarios — Calculadora{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-arrows-alt-h me-2" style="color:#0f766e;"></i> Comparar dos escenarios
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      ¿Qué pasa si subo el sueldo de A a B? Calcula ambos y muestra el delta.
+    </p>
+  </div>
+  <a href="{% url 'calculadora_planilla' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Calculadora normal
+  </a>
+</div>
+
+<form method="post" style="background:#fff;padding:20px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:18px;">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-md-3">
+      <label style="font-weight:600;font-size:.85rem;">Escenario A: Sueldo (S/)</label>
+      <input type="number" name="sueldo_a" step="0.01" min="0" value="{{ result_a.sueldo|default:'2500' }}" class="form-control" required>
+    </div>
+    <div class="col-md-3">
+      <label style="font-weight:600;font-size:.85rem;">Escenario B: Sueldo (S/)</label>
+      <input type="number" name="sueldo_b" step="0.01" min="0" value="{{ result_b.sueldo|default:'3000' }}" class="form-control" required>
+    </div>
+    <div class="col-md-2">
+      <label style="font-weight:600;font-size:.85rem;">Régimen</label>
+      <select name="regimen" class="form-select">
+        <option value="ONP">ONP</option>
+        <option value="AFP">AFP</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label style="font-weight:600;font-size:.85rem;">AFP</label>
+      <select name="afp" class="form-select">
+        {% for afp in afp_options %}<option value="{{ afp }}">{{ afp }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button class="btn btn-success w-100" style="background:#0f766e;border-color:#0f766e;">
+        <i class="fas fa-arrows-alt-h me-1"></i> Comparar
+      </button>
+    </div>
+  </div>
+  <div class="mt-2 d-flex gap-3 flex-wrap" style="font-size:.85rem;">
+    <label><input type="checkbox" name="asig_familiar"> Asignación familiar</label>
+    <label><input type="checkbox" name="tiene_eps"> Tiene EPS</label>
+  </div>
+</form>
+
+{% if result_a and result_b and not result_a.error %}
+  <!-- Header delta -->
+  <div style="background:linear-gradient(135deg,{% if delta.neto > 0 %}#15803d{% else %}#b91c1c{% endif %},{% if delta.neto > 0 %}#0f766e{% else %}#7f1d1d{% endif %});color:#fff;padding:22px;border-radius:12px;margin-bottom:14px;">
+    <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">Delta neto trabajador</div>
+    <div style="font-size:2.6rem;font-weight:900;line-height:1;margin-top:4px;">
+      {% if delta.neto > 0 %}+{% endif %}S/ {{ delta.neto|floatformat:2 }}
+    </div>
+    <div style="font-size:.9rem;margin-top:6px;opacity:.92;">
+      Costo empresa: {% if delta.costo_empresa > 0 %}+{% endif %}S/ {{ delta.costo_empresa|floatformat:2 }}/mes
+      &nbsp;·&nbsp;
+      Costo full-loaded: {% if delta.costo_full_loaded > 0 %}+{% endif %}S/ {{ delta.costo_full_loaded|floatformat:2 }}/mes
+    </div>
+  </div>
+
+  <!-- Side-by-side -->
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+    <table class="table mb-0" style="font-size:.88rem;">
+      <thead style="background:#f8fafc;">
+        <tr>
+          <th style="padding:10px 14px;width:200px;"></th>
+          <th style="padding:10px 14px;color:#0d2b27;">
+            <i class="fas fa-circle me-1" style="color:#0f766e;font-size:.5rem;vertical-align:middle;"></i>
+            Escenario A
+          </th>
+          <th style="padding:10px 14px;color:#0d2b27;">
+            <i class="fas fa-circle me-1" style="color:#1d4ed8;font-size:.5rem;vertical-align:middle;"></i>
+            Escenario B
+          </th>
+          <th style="padding:10px 14px;color:#64748b;text-align:right;">Δ Delta</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:8px 14px;color:#64748b;">Sueldo básico</td>
+          <td style="padding:8px 14px;font-family:monospace;">S/ {{ result_a.sueldo|floatformat:2 }}</td>
+          <td style="padding:8px 14px;font-family:monospace;">S/ {{ result_b.sueldo|floatformat:2 }}</td>
+          <td style="padding:8px 14px;text-align:right;font-family:monospace;color:{% if delta.sueldo > 0 %}#15803d{% else %}#b91c1c{% endif %};font-weight:700;">{% if delta.sueldo > 0 %}+{% endif %}S/ {{ delta.sueldo|floatformat:2 }}</td>
+        </tr>
+        <tr><td style="padding:8px 14px;color:#64748b;">Total bruto</td>
+          <td style="padding:8px 14px;font-family:monospace;">S/ {{ result_a.rem_total|floatformat:2 }}</td>
+          <td style="padding:8px 14px;font-family:monospace;">S/ {{ result_b.rem_total|floatformat:2 }}</td>
+          <td style="padding:8px 14px;text-align:right;font-family:monospace;color:{% if delta.rem_total > 0 %}#15803d{% else %}#b91c1c{% endif %};font-weight:700;">{% if delta.rem_total > 0 %}+{% endif %}S/ {{ delta.rem_total|floatformat:2 }}</td>
+        </tr>
+        <tr><td style="padding:8px 14px;color:#64748b;">Descuentos</td>
+          <td style="padding:8px 14px;font-family:monospace;color:#b91c1c;">S/ {{ result_a.total_descuentos|floatformat:2 }}</td>
+          <td style="padding:8px 14px;font-family:monospace;color:#b91c1c;">S/ {{ result_b.total_descuentos|floatformat:2 }}</td>
+          <td style="padding:8px 14px;text-align:right;font-family:monospace;font-weight:700;">{% if delta.descuentos > 0 %}+{% endif %}S/ {{ delta.descuentos|floatformat:2 }}</td>
+        </tr>
+        <tr style="background:#f0fdf4;">
+          <td style="padding:10px 14px;font-weight:700;">Neto líquido</td>
+          <td style="padding:10px 14px;font-family:monospace;font-weight:800;color:#15803d;">S/ {{ result_a.neto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;font-family:monospace;font-weight:800;color:#15803d;">S/ {{ result_b.neto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;font-weight:800;color:{% if delta.neto > 0 %}#15803d{% else %}#b91c1c{% endif %};">{% if delta.neto > 0 %}+{% endif %}S/ {{ delta.neto|floatformat:2 }}</td>
+        </tr>
+        <tr><td style="padding:8px 14px;color:#64748b;">Aportes empresa</td>
+          <td style="padding:8px 14px;font-family:monospace;">S/ {{ result_a.total_aportes|floatformat:2 }}</td>
+          <td style="padding:8px 14px;font-family:monospace;">S/ {{ result_b.total_aportes|floatformat:2 }}</td>
+          <td style="padding:8px 14px;text-align:right;font-family:monospace;font-weight:700;">{% if delta.aportes_empresa > 0 %}+{% endif %}S/ {{ delta.aportes_empresa|floatformat:2 }}</td>
+        </tr>
+        <tr style="background:#eff6ff;">
+          <td style="padding:10px 14px;font-weight:700;">Costo empresa</td>
+          <td style="padding:10px 14px;font-family:monospace;font-weight:700;">S/ {{ result_a.costo_total|floatformat:2 }}</td>
+          <td style="padding:10px 14px;font-family:monospace;font-weight:700;">S/ {{ result_b.costo_total|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;font-weight:800;color:{% if delta.costo_empresa > 0 %}#1d4ed8{% else %}#b91c1c{% endif %};">{% if delta.costo_empresa > 0 %}+{% endif %}S/ {{ delta.costo_empresa|floatformat:2 }}</td>
+        </tr>
+        <tr style="background:#0d2b27;color:#fff;">
+          <td style="padding:12px 14px;font-weight:800;">Costo fully-loaded mes</td>
+          <td style="padding:12px 14px;font-family:monospace;font-weight:800;">S/ {{ result_a.costo_full_loaded|floatformat:2 }}</td>
+          <td style="padding:12px 14px;font-family:monospace;font-weight:800;">S/ {{ result_b.costo_full_loaded|floatformat:2 }}</td>
+          <td style="padding:12px 14px;text-align:right;font-family:monospace;font-weight:800;color:#fcd34d;">{% if delta.costo_full_loaded > 0 %}+{% endif %}S/ {{ delta.costo_full_loaded|floatformat:2 }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="background:#f8fafc;padding:14px 18px;border-radius:10px;margin-top:14px;color:#64748b;font-size:.85rem;">
+    <strong style="color:#0d2b27;">💡 Cómo leer esto:</strong>
+    Si subes el sueldo de S/{{ result_a.sueldo|floatformat:0 }} a S/{{ result_b.sueldo|floatformat:0 }} ({% if delta.sueldo > 0 %}+{% endif %}S/{{ delta.sueldo|floatformat:0 }}),
+    el trabajador recibe {% if delta.neto > 0 %}S/{{ delta.neto|floatformat:0 }} más{% else %}S/{{ delta.neto|floatformat:0 }} menos{% endif %} de neto al mes,
+    pero a la empresa le cuesta <strong>S/{{ delta.costo_full_loaded|floatformat:0 }} extra/mes</strong> contando provisiones (gratif, CTS, vacaciones).
+  </div>
+{% endif %}
+
+{% endblock %}

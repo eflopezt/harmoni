@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Simulación de Planilla — {{ nombre_emp }}</title>
+  <style>
+    @page { size: A4; margin: 18mm 15mm 18mm 15mm; @bottom-center { content: "Simulación Planilla · Generada por Harmoni ERP · Página " counter(page); font-size: 9pt; color: #94a3b8; } }
+    body { font-family: 'Helvetica', sans-serif; font-size: 10pt; color: #0d2b27; }
+    .header { border-bottom: 3px solid #0f766e; padding-bottom: 10px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-end; }
+    h1 { color: #0f766e; margin: 0; font-size: 20pt; }
+    .meta { text-align: right; font-size: 9pt; color: #64748b; }
+    .neto-hero { background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%); color: #fff; padding: 16px 20px; border-radius: 8px; margin-bottom: 16px; }
+    .neto-value { font-size: 36pt; font-weight: 900; line-height: 1; margin-top: 4px; }
+    h3 { color: #0d2b27; font-size: 13pt; border-left: 4px solid #0f766e; padding-left: 8px; margin: 16px 0 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+    th, td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
+    td.right { text-align: right; font-family: 'Courier New', monospace; }
+    .total-row { background: #f8fafc; font-weight: 700; border-top: 2px solid #0d2b27; }
+    .footer { margin-top: 18px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 8.5pt; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>Simulación de Planilla</h1>
+      <div style="color:#64748b;font-size:10pt;margin-top:4px;">
+        {{ nombre_emp }}{% if cargo %} · {{ cargo }}{% endif %}
+      </div>
+    </div>
+    <div class="meta">
+      <div><strong>Generado:</strong> {{ fecha|date:"j F Y, H:i" }}</div>
+      <div>Harmoni ERP</div>
+    </div>
+  </div>
+
+  <!-- Neto hero -->
+  <div class="neto-hero">
+    <div style="font-size:9pt;opacity:.9;text-transform:uppercase;letter-spacing:.06em;">Neto líquido a pagar</div>
+    <div class="neto-value">S/ {{ result.neto|floatformat:2 }}</div>
+    <div style="font-size:9pt;margin-top:6px;opacity:.9;">
+      Bruto S/ {{ result.rem_total|floatformat:2 }} · Descuentos S/ {{ result.total_descuentos|floatformat:2 }} · Costo empresa S/ {{ result.costo_total|floatformat:2 }}
+    </div>
+  </div>
+
+  <!-- Ingresos -->
+  <h3>Ingresos</h3>
+  <table>
+    <tr><td>Sueldo básico</td><td class="right">S/ {{ result.sueldo|floatformat:2 }}</td></tr>
+    {% if result.asig_familiar %}<tr><td>Asignación familiar</td><td class="right">S/ {{ result.asig_familiar|floatformat:2 }}</td></tr>{% endif %}
+    {% if result.horas_extra %}<tr><td>Horas extra</td><td class="right">S/ {{ result.horas_extra|floatformat:2 }}</td></tr>{% endif %}
+    {% if result.comisiones %}<tr><td>Comisiones</td><td class="right">S/ {{ result.comisiones|floatformat:2 }}</td></tr>{% endif %}
+    <tr class="total-row"><td>TOTAL BRUTO</td><td class="right">S/ {{ result.rem_total|floatformat:2 }}</td></tr>
+  </table>
+
+  <!-- Descuentos -->
+  <h3>Descuentos (trabajador)</h3>
+  <table>
+    {% for k, d in result.descuentos.items %}
+      <tr><td>{{ d.label }}</td><td class="right">S/ {{ d.monto|floatformat:2 }}</td></tr>
+    {% endfor %}
+    <tr class="total-row"><td>TOTAL DESCUENTOS ({{ result.pct_descuentos|floatformat:1 }}%)</td><td class="right">S/ {{ result.total_descuentos|floatformat:2 }}</td></tr>
+  </table>
+
+  <!-- Aportes empleador -->
+  <h3>Aportes del empleador</h3>
+  <table>
+    {% for k, a in result.aportes_empleador.items %}
+      <tr><td>{{ a.label }}</td><td class="right">S/ {{ a.monto|floatformat:2 }}</td></tr>
+    {% endfor %}
+    <tr class="total-row"><td>TOTAL APORTES ({{ result.pct_carga_empleador|floatformat:1 }}%)</td><td class="right">S/ {{ result.total_aportes|floatformat:2 }}</td></tr>
+  </table>
+
+  <!-- Provisiones -->
+  <h3>Provisiones mensualizadas (costo fully-loaded)</h3>
+  <table>
+    {% for k, p in result.provisiones.items %}
+      <tr><td>{{ p.label }}</td><td class="right">S/ {{ p.monto|floatformat:2 }}</td></tr>
+    {% endfor %}
+    <tr class="total-row"><td>TOTAL PROVISIONES</td><td class="right">S/ {{ result.total_provisiones|floatformat:2 }}</td></tr>
+    <tr class="total-row" style="background:#0d2b27;color:#fff;font-size:11pt;"><td>COSTO FULLY-LOADED MES</td><td class="right" style="color:#fcd34d;">S/ {{ result.costo_full_loaded|floatformat:2 }}</td></tr>
+  </table>
+
+  <div class="footer">
+    <strong>Sobre el costo fully-loaded:</strong> incluye provisiones que se pagan en julio/diciembre/mayo/noviembre,
+    mensualizadas. Es lo que realmente te cuesta este trabajador al mes considerando gratificación, CTS y vacaciones.<br><br>
+    Cálculo basado en normativa peruana 2026: D.Leg. 728, Ley 27735 (gratif), Ley 30334, Ley 26790 (EPS),
+    DS 003-97-TR (RMV), Resolución SBS (tasas AFP).<br>
+    Generado por <strong>Harmoni ERP</strong> · harmoni.pe · Esta es una simulación estimada, no constituye boleta legal.
+  </div>
+
+</body>
+</html>
