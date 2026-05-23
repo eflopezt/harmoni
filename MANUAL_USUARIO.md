@@ -1657,6 +1657,122 @@ Definir los horarios de trabajo y tolerancias:
 
 ---
 
+## 20.4 Conceptos Remunerativos Configurables
+
+Harmoni permite configurar todos los conceptos de planilla (ingresos, descuentos, aportes) con sus flags de afectación legal y mapeo SUNAT.
+
+**URL:** `/nominas/conceptos/configurar/`
+
+### Qué se configura en cada concepto
+
+#### 📋 Identidad
+- **Código (slug):** identificador único (ej. `vale_canasta`)
+- **Nombre:** texto visible
+- **Categoría:** 15 categorías (Sueldo, Bonificación, Comisión, Alimentación, Movilidad, etc.)
+- **Tipo:** Ingreso / Descuento trabajador / Aporte empleador
+- **Subtipo:** Remunerativo / No remunerativo / Provisión
+
+#### 🧮 Fórmula
+- **FIJO:** Monto en S/ fijo (Ej: Vale canasta S/ 200)
+- **PORCENTAJE:** % sobre remuneración computable (Ej: Bonif riesgo 5%)
+- **HE_25 / HE_35 / HE_100:** Horas extras según %
+- **AFP_APORTE / AFP_COMISION / AFP_SEGURO:** Cálculos AFP
+- **ONP:** 13% sistema nacional
+- **ESSALUD:** 9% empleador
+- **IR_5TA:** Retención impuesto a la renta 5ta categoría
+- **GRATIFICACION / CTS:** Provisiones
+- **MANUAL:** Entrada manual por trabajador
+
+#### ⚖️ Afectaciones legales (7 flags críticas)
+| Flag | Significado |
+|---|---|
+| `afecto_essalud` | Afecto a aporte ESSALUD 9% del empleador |
+| `afecto_afp` | Afecto a AFP (10% aporte + comisión + prima) |
+| `afecto_onp` | Afecto a ONP 13% |
+| `afecto_renta` | Afecto a IR 5ta categoría |
+| `afecto_cts` | Computa para CTS (mayo/nov) |
+| `afecto_gratif` | Computa para Gratificación (jul/dic) |
+| `afecto_vacaciones` | Computa para vacaciones truncas al cese |
+
+#### 🏛️ Mapeo SUNAT / PLAME
+- **Código PLAME:** código oficial SUNAT del concepto (4 dígitos)
+- **Casilla PLAME:** columna del archivo plano
+- **Código T-Registro:** código SUNAT para alta/baja
+
+### 28 Templates pre-armados
+
+**URL:** `/nominas/conceptos/configurar/templates/`
+
+Aplicar con 1 click. Vienen con todas las afectaciones y código PLAME oficial SUNAT.
+
+| Categoría | Conceptos disponibles |
+|---|---|
+| **Ingresos remunerativos** | Sueldo básico (0121), Asig familiar (0201), Comisiones (0103), HE 25%/35% (0105/0106), Asig vacacional (0210), Vacaciones truncas (0114), Bonif riesgo (0202), Bono desempeño (0307) |
+| **Ingresos NO remunerativos** | Canasta (0903), Movilidad (0908), Refrigerio (0914), Prestación alimentaria (0112), Propinas/Recargo/Asig escolar (0925) |
+| **Descuentos trabajador** | ONP (0607), AFP aporte/comisión/seguro (0608/0609/0610), IR 5ta (0605), EPS aporte (0611), Mandato judicial (0703), Préstamo (0704), Adelanto (0705) |
+| **Aportes empleador** | ESSALUD 9% (0804), EPS crédito (0807), SCTR Salud/Pensión (0812/0813) |
+| **Gratif/CTS** | Gratif Fiestas Patrias (0301), Gratif Navidad (0302), Bonif extraord gratif (0312), CTS provisión (0904) |
+
+### 🔥 Caso especial: EPS y Bonificación Extraordinaria
+
+Cuando un trabajador está afiliado a una **EPS particular** (Rímac, Pacífico, etc.), las gratificaciones cambian:
+
+| Concepto | Sin EPS | Con EPS |
+|---|---:|---:|
+| **Bonificación extraordinaria** (Ley 30334 / 29351) | 9.00% | **6.75%** |
+| **ESSALUD efectivo** del empleador sobre gratif | 9.00% | **6.75%** |
+
+La diferencia de 2.25% se va al aporte de la EPS particular (Ley 26790 art. 15).
+
+**Harmoni lo aplica automáticamente** cuando `Personal.tiene_eps = True`. La boleta muestra el % efectivo correcto.
+
+### Comando para inicializar conceptos en cliente nuevo
+
+```bash
+# Crea los 28 conceptos base con códigos PLAME
+docker exec harmoni-web python manage.py seed_conceptos_base
+
+# Solo actualizar códigos PLAME (no crear nuevos)
+docker exec harmoni-web python manage.py seed_conceptos_base --update-plame
+
+# Reset (CUIDADO — borra conceptos no-sistema)
+docker exec harmoni-web python manage.py seed_conceptos_base --reset
+```
+
+---
+
+## 20.6 Liquidación al Cese
+
+Al dar de baja a un trabajador, Harmoni calcula automáticamente todos los beneficios pendientes.
+
+**URL:** `/nominas/liquidaciones/`
+
+### Beneficios cubiertos
+
+1. **CTS trunca** — proporcional a meses trabajados en el semestre actual no depositados
+2. **Gratificación trunca** — proporcional a meses trabajados en el semestre del cese
+3. **Bonificación extraordinaria trunca** — 9% (o 6.75% con EPS) sobre gratif trunca
+4. **Vacaciones truncas** — 1/12 sueldo por mes trabajado, no descansadas
+5. **Aguinaldo** (si aplica al régimen)
+6. **Saldos pendientes** — días trabajados del mes de cese
+
+### Flujo
+
+1. Marcar trabajador como `Cesado` con `fecha_cese` y `motivo_cese`
+2. Entrar a `/nominas/liquidaciones/<id_trabajador>/`
+3. Sistema calcula automáticamente
+4. Click "Generar PDF" → documento firmable
+5. Imprimir + firma física, archivar en legajo
+
+### Marco legal cubierto
+- Art. 21 LRJ (D.S. 003-97-TR)
+- Ley 27735 (Gratificaciones — bonif extraordinaria)
+- Ley 26790 (EPS y crédito empleador)
+- D.Leg. 650 (CTS)
+- D.Leg. 713 (Vacaciones)
+
+---
+
 ## 20.5 Planes Comerciales (Starter / Profesional / Business / Enterprise)
 
 Harmoni tiene 4 planes según el tamaño de tu empresa:
