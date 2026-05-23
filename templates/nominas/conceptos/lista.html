@@ -7,7 +7,10 @@
     <h2 style="margin:0;color:#0d2b27;font-weight:800;">Conceptos remunerativos</h2>
     <p style="margin:4px 0 0;color:#64748b;">Configuración de ingresos, descuentos y aportes — afectaciones legales y mapeo SUNAT/PLAME</p>
   </div>
-  <div style="display:flex;gap:8px;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'conceptos_export_csv' %}" class="btn btn-outline-secondary btn-sm" title="Descargar todos los conceptos como CSV">
+      <i class="fas fa-download me-1"></i> Exportar CSV
+    </a>
     <a href="{% url 'conceptos_templates' %}" class="btn btn-outline-secondary">
       <i class="fas fa-bookmark me-1"></i> Templates típicos
     </a>
@@ -35,20 +38,47 @@
     <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Sin código PLAME</div>
     <div style="font-size:1.8rem;font-weight:800;color:{% if sin_plame > 0 %}#d97706{% else %}#16a34a{% endif %};line-height:1;">{{ sin_plame }}</div>
   </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid {% if inconsistencias > 0 %}#fca5a5{% else %}#e2e8f0{% endif %};">
+    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">⚠ Inconsistencias</div>
+    <div style="font-size:1.8rem;font-weight:800;color:{% if inconsistencias > 0 %}#dc2626{% else %}#16a34a{% endif %};line-height:1;">{{ inconsistencias }}</div>
+  </div>
 </div>
 
-<!-- Filtros -->
-<form method="get" style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-  <label style="font-size:.82rem;color:#475569;font-weight:600;">Filtrar:</label>
-  <select name="tipo" onchange="this.form.submit()" class="form-select form-select-sm" style="max-width:200px;">
+<!-- Filtros + búsqueda -->
+<form method="get" style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+  <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, código, PLAME, descripción..." class="form-control form-control-sm" style="max-width:280px;">
+  <select name="tipo" onchange="this.form.submit()" class="form-select form-select-sm" style="max-width:180px;">
     <option value="">Todos los tipos</option>
     {% for v, l in tipos %}<option value="{{ v }}" {% if tipo_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
   </select>
-  <select name="activo" onchange="this.form.submit()" class="form-select form-select-sm" style="max-width:160px;">
-    <option value="">Todos</option>
+  <select name="categoria" onchange="this.form.submit()" class="form-select form-select-sm" style="max-width:160px;">
+    <option value="">Toda categoría</option>
+    {% for v, l in categorias %}<option value="{{ v }}" {% if categoria_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  <select name="activo" onchange="this.form.submit()" class="form-select form-select-sm" style="max-width:140px;">
+    <option value="">Activo: todos</option>
     <option value="1" {% if activo_filter == '1' %}selected{% endif %}>Solo activos</option>
     <option value="0" {% if activo_filter == '0' %}selected{% endif %}>Solo inactivos</option>
   </select>
+  <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="fas fa-search"></i></button>
+  {% if q or tipo_filter or categoria_filter or activo_filter %}
+  <a href="{% url 'conceptos_lista' %}" class="btn btn-sm btn-outline-secondary">Limpiar</a>
+  {% endif %}
+</form>
+
+<!-- Bulk actions form -->
+<form method="post" action="{% url 'conceptos_bulk_action' %}" id="bulk-form" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+  {% csrf_token %}
+  <label style="font-size:.78rem;color:#64748b;font-weight:600;">Con seleccionados:</label>
+  <select name="accion" class="form-select form-select-sm" style="max-width:180px;">
+    <option value="activar">Activar</option>
+    <option value="desactivar">Desactivar</option>
+    <option value="autofix">Auto-fix inconsistencias</option>
+  </select>
+  <button type="submit" class="btn btn-sm btn-outline-primary" onclick="return confirm('¿Aplicar a los conceptos seleccionados?');">
+    Aplicar
+  </button>
+  <span style="font-size:.74rem;color:#94a3b8;margin-left:auto;" id="bulk-count">0 seleccionados</span>
 </form>
 
 <!-- Tabla -->
@@ -57,6 +87,7 @@
     <table class="table mb-0" style="font-size:.85rem;">
       <thead style="background:#f8fafc;">
         <tr>
+          <th style="padding:10px;width:24px;"><input type="checkbox" id="bulk-all" onclick="document.querySelectorAll('.bulk-check').forEach(c=>{c.checked=this.checked;});updateBulkCount();"></th>
           <th style="padding:10px;">Código / Nombre</th>
           <th style="padding:10px;">Tipo</th>
           <th style="padding:10px;text-align:center;" title="Afecta cálculo">Subtipo</th>
@@ -74,7 +105,10 @@
       </thead>
       <tbody>
         {% for c in conceptos %}
-        <tr style="border-top:1px solid #f1f5f9;">
+        <tr style="border-top:1px solid #f1f5f9;{% if c.warns %}background:#fef9e6;{% endif %}">
+          <td style="padding:10px;">
+            <input type="checkbox" name="concepto_ids" value="{{ c.pk }}" form="bulk-form" class="bulk-check" onclick="updateBulkCount()">
+          </td>
           <td style="padding:10px;">
             <div style="font-weight:600;color:#0d2b27;">{{ c.nombre }}</div>
             <div style="font-size:.72rem;color:#94a3b8;font-family:monospace;">{{ c.codigo }}</div>
@@ -119,6 +153,11 @@
             {% endif %}
           </td>
           <td style="padding:10px;text-align:right;">
+            {% if c.warns %}
+            <span title="{{ c.warns|join:' / ' }}" style="color:#dc2626;font-size:.78rem;margin-right:6px;cursor:help;">
+              <i class="fas fa-exclamation-triangle"></i> {{ c.warns_count }}
+            </span>
+            {% endif %}
             <a href="{% url 'concepto_editar' c.pk %}" style="color:#0f766e;font-size:.78rem;">
               <i class="fas fa-edit"></i> Editar
             </a>
@@ -126,7 +165,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="13" style="padding:30px;text-align:center;color:#94a3b8;">
+          <td colspan="14" style="padding:30px;text-align:center;color:#94a3b8;">
             No hay conceptos. <a href="{% url 'concepto_nuevo' %}">Crea uno</a> o <a href="{% url 'conceptos_templates' %}">aplica un template</a>.
           </td>
         </tr>
@@ -146,7 +185,16 @@
   <code>CTS</code> mayo/noviembre ·
   <code>GRA</code> Gratificación jul/dic ·
   <code>VAC</code> vacaciones truncas ·
-  <code>PLAME</code> código SUNAT del archivo plano
+  <code>PLAME</code> código SUNAT del archivo plano ·
+  <span style="color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></span> indica inconsistencia (hover para ver)
 </div>
+
+<script>
+function updateBulkCount(){
+  const n = document.querySelectorAll('.bulk-check:checked').length;
+  const el = document.getElementById('bulk-count');
+  if (el) el.textContent = n + ' seleccionado' + (n === 1 ? '' : 's');
+}
+</script>
 
 {% endblock %}

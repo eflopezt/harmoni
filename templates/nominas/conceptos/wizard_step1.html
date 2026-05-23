@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Wizard configurar planilla — Paso 1{% endblock %}
+{% block content %}
+<div style="max-width:900px;margin:0 auto;">
+
+  <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;padding:30px;border-radius:14px;margin-bottom:24px;text-align:center;">
+    <h2 style="margin:0;font-weight:800;">
+      <i class="fas fa-rocket me-2" style="color:#5eead4"></i>
+      Configura tu planilla en 5 minutos
+    </h2>
+    <p style="margin:10px 0 0;color:rgba(255,255,255,.85);">
+      Paso 1 de 2 — ¿Qué tipo de empresa tienes?
+    </p>
+    <div style="background:rgba(255,255,255,.15);height:8px;border-radius:6px;margin-top:18px;overflow:hidden;">
+      <div style="background:#5eead4;height:100%;width:50%;"></div>
+    </div>
+  </div>
+
+  <p style="color:#64748b;text-align:center;margin-bottom:24px;">
+    Elige el perfil que más se parezca a tu empresa. Te recomendaremos los conceptos típicos del rubro.
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;">
+    {% for key, p in perfiles.items %}
+    <a href="{% url 'wizard_step2' %}?perfil={{ key }}"
+       style="background:#fff;border-radius:12px;padding:24px;border:2px solid #e2e8f0;text-decoration:none;color:inherit;transition:transform .2s, box-shadow .2s;display:block;"
+       onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,.08)';this.style.borderColor='{{ p.color }}';"
+       onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='#e2e8f0';">
+
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="background:{{ p.color }}1a;color:{{ p.color }};width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+          <i class="fas {{ p.icon }}"></i>
+        </div>
+        <h3 style="margin:0;font-weight:800;color:#0d2b27;font-size:1rem;">{{ p.nombre }}</h3>
+      </div>
+
+      <p style="color:#475569;font-size:.82rem;line-height:1.5;margin:0 0 8px;">{{ p.descripcion }}</p>
+
+      <div style="font-size:.72rem;color:{{ p.color }};font-weight:600;">
+        {% if p.conceptos_recomendados %}
+          {{ p.conceptos_recomendados|length }} conceptos recomendados →
+        {% else %}
+          Elegir conceptos manualmente →
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div style="text-align:center;margin-top:24px;">
+    <a href="{% url 'conceptos_lista' %}" style="color:#64748b;font-size:.85rem;text-decoration:none;">
+      ← Saltar wizard y ver mis conceptos
+    </a>
+  </div>
+
+</div>
+{% endblock %}

@@ -3,6 +3,7 @@ from . import views
 from . import views_liquidacion
 from . import views_legacy_import
 from . import views_conceptos
+from . import views_wizard_planilla
 
 urlpatterns = [
     # Panel y portal
@@ -21,9 +22,14 @@ urlpatterns = [
     path('conceptos/configurar/',              views_conceptos.conceptos_lista,           name='conceptos_lista'),
     path('conceptos/configurar/nuevo/',        views_conceptos.concepto_nuevo,            name='concepto_nuevo'),
     path('conceptos/configurar/<int:pk>/editar/', views_conceptos.concepto_editar,        name='concepto_editar'),
+    path('conceptos/configurar/<int:pk>/autofix/', views_conceptos.concepto_autofix,      name='concepto_autofix'),
     path('conceptos/configurar/templates/',    views_conceptos.conceptos_templates,       name='conceptos_templates'),
     path('conceptos/configurar/templates/<str:key>/aplicar/',
                                                views_conceptos.concepto_aplicar_template, name='concepto_aplicar_template'),
+    path('conceptos/configurar/export/csv/',   views_conceptos.conceptos_export_csv,      name='conceptos_export_csv'),
+    path('conceptos/configurar/bulk/',         views_conceptos.conceptos_bulk_action,     name='conceptos_bulk_action'),
+    path('conceptos/configurar/wizard/',       views_wizard_planilla.wizard_step1,         name='wizard_step1'),
+    path('conceptos/configurar/wizard/seleccionar/', views_wizard_planilla.wizard_step2,   name='wizard_step2'),
 
     # Conceptos remunerativos (panel legacy/existing — read-only resumen)
     path('conceptos/', views.conceptos_panel, name='nominas_conceptos'),

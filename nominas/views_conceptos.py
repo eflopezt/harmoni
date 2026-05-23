@@ -320,6 +320,44 @@ TEMPLATES_CONCEPTOS = {
 # Lista de conceptos
 # ════════════════════════════════════════════════════════════════════════
 
+def detectar_inconsistencias(concepto):
+    """
+    Detecta config inconsistente en un concepto. Devuelve lista de warnings.
+    Reglas comunes según normativa peruana:
+    - NO_REMUNERATIVO no debería afectar ESSALUD/AFP/ONP/CTS/GRA/VAC
+    - REMUNERATIVO usualmente afecta ESSALUD + (AFP o ONP)
+    - PROVISION (CTS/Gratif) no afecta sí mismo
+    """
+    warns = []
+    no_rem = concepto.subtipo == 'NO_REMUNERATIVO'
+
+    if no_rem:
+        if concepto.afecto_essalud:
+            warns.append('NO remunerativo afecta ESSALUD — inusual (Art. 19 LRJ)')
+        if concepto.afecto_afp:
+            warns.append('NO remunerativo afecta AFP — inusual')
+        if concepto.afecto_onp:
+            warns.append('NO remunerativo afecta ONP — inusual')
+        if concepto.afecto_cts:
+            warns.append('NO remunerativo afecta CTS — verificar')
+        if concepto.afecto_gratif:
+            warns.append('NO remunerativo afecta Gratif — verificar')
+
+    if concepto.subtipo == 'REMUNERATIVO' and concepto.tipo == 'INGRESO':
+        if not concepto.afecto_essalud and not concepto.es_sistema:
+            warns.append('Remunerativo sin ESSALUD — revisar')
+        if not concepto.afecto_afp and not concepto.afecto_onp and not concepto.es_sistema:
+            warns.append('Remunerativo sin AFP ni ONP — revisar')
+
+    if concepto.codigo_plame == '' and not concepto.es_sistema:
+        warns.append('Sin código PLAME — no exportará a SUNAT')
+
+    if concepto.formula == 'FIJO' and concepto.monto_fijo == Decimal('0'):
+        warns.append('Fórmula FIJO con monto 0 — revisar')
+
+    return warns
+
+
 @login_required
 def conceptos_lista(request):
     """Lista todos los conceptos con sus flags y mapeo PLAME."""
@@ -336,6 +374,31 @@ def conceptos_lista(request):
     elif activo_filter == '0':
         conceptos = conceptos.filter(activo=False)
 
+    categoria_filter = request.GET.get('categoria', '')
+    if categoria_filter:
+        conceptos = conceptos.filter(categoria=categoria_filter)
+
+    q = request.GET.get('q', '').strip()
+    if q:
+        from django.db.models import Q
+        conceptos = conceptos.filter(
+            Q(nombre__icontains=q) |
+            Q(codigo__icontains=q) |
+            Q(codigo_plame__icontains=q) |
+            Q(descripcion__icontains=q)
+        )
+
+    # Anotar inconsistencias (wrappear en dict para que el template las acceda)
+    conceptos_list = []
+    inconsistencias_count = 0
+    for c in conceptos:
+        warns = detectar_inconsistencias(c)
+        c.warns = warns  # sin underscore prefix (Django template valida)
+        c.warns_count = len(warns)
+        conceptos_list.append(c)
+        if warns:
+            inconsistencias_count += 1
+
     # Stats
     total           = ConceptoRemunerativo.objects.count()
     activos         = ConceptoRemunerativo.objects.filter(activo=True).count()
@@ -343,14 +406,18 @@ def conceptos_lista(request):
     custom          = ConceptoRemunerativo.objects.filter(es_sistema=False).count()
 
     return render(request, 'nominas/conceptos/lista.html', {
-        'conceptos':    conceptos,
-        'total':        total,
-        'activos':      activos,
-        'sin_plame':    sin_plame,
-        'custom':       custom,
-        'tipo_filter':  tipo_filter,
-        'activo_filter': activo_filter,
-        'tipos':        ConceptoRemunerativo.TIPO_CHOICES,
+        'conceptos':            conceptos_list,
+        'total':                total,
+        'activos':              activos,
+        'sin_plame':            sin_plame,
+        'custom':               custom,
+        'inconsistencias':      inconsistencias_count,
+        'tipo_filter':          tipo_filter,
+        'activo_filter':        activo_filter,
+        'categoria_filter':     categoria_filter,
+        'q':                    q,
+        'tipos':                ConceptoRemunerativo.TIPO_CHOICES,
+        'categorias':           ConceptoRemunerativo.CATEGORIA_CHOICES,
     })
 
 
@@ -504,4 +571,142 @@ def concepto_aplicar_template(request, key):
 
     ConceptoRemunerativo.objects.create(**t)
     messages.success(request, f'Concepto "{t["nombre"]}" creado.')
+    return redirect('conceptos_lista')
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Export / Import CSV
+# ════════════════════════════════════════════════════════════════════════
+
+@login_required
+def conceptos_export_csv(request):
+    """Descarga todos los conceptos como CSV. Migración entre clientes."""
+    import csv
+    from django.http import HttpResponse
+
+    resp = HttpResponse(content_type='text/csv; charset=utf-8')
+    resp['Content-Disposition'] = 'attachment; filename="conceptos_harmoni.csv"'
+    writer = csv.writer(resp)
+
+    writer.writerow([
+        'codigo', 'nombre', 'descripcion', 'categoria', 'tipo', 'subtipo',
+        'formula', 'monto_fijo', 'porcentaje',
+        'afecto_essalud', 'afecto_afp', 'afecto_onp',
+        'afecto_renta', 'afecto_cts', 'afecto_gratif', 'afecto_vacaciones',
+        'codigo_plame', 'casilla_plame', 'codigo_tregistro',
+        'activo', 'orden',
+    ])
+    for c in ConceptoRemunerativo.objects.all().order_by('tipo', 'orden', 'codigo'):
+        writer.writerow([
+            c.codigo, c.nombre, c.descripcion, c.categoria, c.tipo, c.subtipo,
+            c.formula, c.monto_fijo, c.porcentaje,
+            'SI' if c.afecto_essalud else 'NO',
+            'SI' if c.afecto_afp else 'NO',
+            'SI' if c.afecto_onp else 'NO',
+            'SI' if c.afecto_renta else 'NO',
+            'SI' if c.afecto_cts else 'NO',
+            'SI' if c.afecto_gratif else 'NO',
+            'SI' if c.afecto_vacaciones else 'NO',
+            c.codigo_plame, c.casilla_plame, c.codigo_tregistro,
+            'SI' if c.activo else 'NO', c.orden,
+        ])
+    return resp
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Auto-fix inconsistencias
+# ════════════════════════════════════════════════════════════════════════
+
+@login_required
+@require_http_methods(['POST'])
+def concepto_autofix(request, pk):
+    """
+    Corrige automáticamente afectaciones obvias según subtipo.
+    - NO_REMUNERATIVO → desmarca todas las flags de carga
+    - REMUNERATIVO + INGRESO → marca ESSALUD + AFP/ONP + IR (sensato)
+    """
+    c = get_object_or_404(ConceptoRemunerativo, pk=pk)
+    cambios = []
+
+    if c.subtipo == 'NO_REMUNERATIVO':
+        for f in ('afecto_essalud', 'afecto_afp', 'afecto_onp',
+                  'afecto_cts', 'afecto_gratif', 'afecto_vacaciones'):
+            if getattr(c, f):
+                setattr(c, f, False)
+                cambios.append(f)
+        # IR depende, lo dejamos como está
+
+    elif c.subtipo == 'REMUNERATIVO' and c.tipo == 'INGRESO':
+        # Si no tiene NADA marcado, le ponemos lo mínimo común
+        if not any([c.afecto_essalud, c.afecto_afp, c.afecto_onp, c.afecto_cts, c.afecto_gratif]):
+            c.afecto_essalud = True
+            c.afecto_afp = True
+            c.afecto_onp = True
+            c.afecto_renta = True
+            c.afecto_cts = True
+            c.afecto_gratif = True
+            c.afecto_vacaciones = True
+            cambios = ['todos los flags REM aplicados']
+
+    if cambios:
+        c.save()
+        messages.success(request, f'{c.nombre}: {len(cambios)} ajustes aplicados.')
+    else:
+        messages.info(request, f'{c.nombre}: ya está configurado correctamente.')
+    return redirect('conceptos_lista')
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Bulk actions
+# ════════════════════════════════════════════════════════════════════════
+
+@login_required
+@require_http_methods(['POST'])
+def conceptos_bulk_action(request):
+    """
+    Acciones masivas sobre múltiples conceptos:
+    - activar / desactivar
+    - aplicar PLAME masivo (todos REM sin PLAME)
+    - auto-fix masivo
+    """
+    ids = request.POST.getlist('concepto_ids')
+    accion = request.POST.get('accion', '')
+
+    if not ids:
+        messages.warning(request, 'Selecciona al menos un concepto.')
+        return redirect('conceptos_lista')
+
+    conceptos = ConceptoRemunerativo.objects.filter(pk__in=ids)
+    n = conceptos.count()
+
+    if accion == 'activar':
+        conceptos.update(activo=True)
+        messages.success(request, f'{n} conceptos activados.')
+    elif accion == 'desactivar':
+        conceptos.update(activo=False)
+        messages.success(request, f'{n} conceptos desactivados.')
+    elif accion == 'autofix':
+        fixed = 0
+        for c in conceptos:
+            warns_antes = len(detectar_inconsistencias(c))
+            if warns_antes > 0:
+                # Aplica auto-fix
+                if c.subtipo == 'NO_REMUNERATIVO':
+                    for f in ('afecto_essalud', 'afecto_afp', 'afecto_onp',
+                              'afecto_cts', 'afecto_gratif', 'afecto_vacaciones'):
+                        setattr(c, f, False)
+                elif c.subtipo == 'REMUNERATIVO' and c.tipo == 'INGRESO':
+                    if not any([c.afecto_essalud, c.afecto_afp, c.afecto_onp]):
+                        c.afecto_essalud = True
+                        c.afecto_afp = True
+                        c.afecto_onp = True
+                        c.afecto_renta = True
+                        c.afecto_cts = True
+                        c.afecto_gratif = True
+                c.save()
+                fixed += 1
+        messages.success(request, f'Auto-fix aplicado a {fixed}/{n} conceptos.')
+    else:
+        messages.error(request, f'Acción no reconocida: {accion}')
+
     return redirect('conceptos_lista')
