@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Conceptos Remunerativos — Configuración{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">Conceptos remunerativos</h2>
+    <p style="margin:4px 0 0;color:#64748b;">Configuración de ingresos, descuentos y aportes — afectaciones legales y mapeo SUNAT/PLAME</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'conceptos_templates' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-bookmark me-1"></i> Templates típicos
+    </a>
+    <a href="{% url 'concepto_nuevo' %}" class="btn btn-success" style="background:#0f766e;border-color:#0f766e;">
+      <i class="fas fa-plus me-1"></i> Crear concepto
+    </a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Total</div>
+    <div style="font-size:1.8rem;font-weight:800;color:#0d2b27;line-height:1;">{{ total }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Activos</div>
+    <div style="font-size:1.8rem;font-weight:800;color:#16a34a;line-height:1;">{{ activos }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Custom (no sistema)</div>
+    <div style="font-size:1.8rem;font-weight:800;color:#0d2b27;line-height:1;">{{ custom }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid {% if sin_plame > 0 %}#fcd34d{% else %}#e2e8f0{% endif %};">
+    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Sin código PLAME</div>
+    <div style="font-size:1.8rem;font-weight:800;color:{% if sin_plame > 0 %}#d97706{% else %}#16a34a{% endif %};line-height:1;">{{ sin_plame }}</div>
+  </div>
+</div>
+
+<!-- Filtros -->
+<form method="get" style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+  <label style="font-size:.82rem;color:#475569;font-weight:600;">Filtrar:</label>
+  <select name="tipo" onchange="this.form.submit()" class="form-select form-select-sm" style="max-width:200px;">
+    <option value="">Todos los tipos</option>
+    {% for v, l in tipos %}<option value="{{ v }}" {% if tipo_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  <select name="activo" onchange="this.form.submit()" class="form-select form-select-sm" style="max-width:160px;">
+    <option value="">Todos</option>
+    <option value="1" {% if activo_filter == '1' %}selected{% endif %}>Solo activos</option>
+    <option value="0" {% if activo_filter == '0' %}selected{% endif %}>Solo inactivos</option>
+  </select>
+</form>
+
+<!-- Tabla -->
+<div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;">
+  <div style="overflow-x:auto;">
+    <table class="table mb-0" style="font-size:.85rem;">
+      <thead style="background:#f8fafc;">
+        <tr>
+          <th style="padding:10px;">Código / Nombre</th>
+          <th style="padding:10px;">Tipo</th>
+          <th style="padding:10px;text-align:center;" title="Afecta cálculo">Subtipo</th>
+          <th style="padding:10px;text-align:center;" title="ESSALUD 9%">ESS</th>
+          <th style="padding:10px;text-align:center;" title="AFP 10% + comisión + prima">AFP</th>
+          <th style="padding:10px;text-align:center;" title="ONP 13%">ONP</th>
+          <th style="padding:10px;text-align:center;" title="IR 5ta">IR</th>
+          <th style="padding:10px;text-align:center;" title="CTS mayo/nov">CTS</th>
+          <th style="padding:10px;text-align:center;" title="Gratificación jul/dic">GRA</th>
+          <th style="padding:10px;text-align:center;" title="Vacaciones truncas">VAC</th>
+          <th style="padding:10px;" title="Código SUNAT/PLAME">PLAME</th>
+          <th style="padding:10px;text-align:center;">Activo</th>
+          <th style="padding:10px;text-align:right;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in conceptos %}
+        <tr style="border-top:1px solid #f1f5f9;">
+          <td style="padding:10px;">
+            <div style="font-weight:600;color:#0d2b27;">{{ c.nombre }}</div>
+            <div style="font-size:.72rem;color:#94a3b8;font-family:monospace;">{{ c.codigo }}</div>
+          </td>
+          <td style="padding:10px;">
+            {% if c.tipo == 'INGRESO' %}
+              <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600;">Ingreso</span>
+            {% elif c.tipo == 'DESCUENTO' %}
+              <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600;">Descuento</span>
+            {% else %}
+              <span style="background:#fef3c7;color:#d97706;padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600;">Aporte</span>
+            {% endif %}
+          </td>
+          <td style="padding:10px;text-align:center;">
+            {% if c.subtipo == 'REMUNERATIVO' %}
+              <span style="font-size:.72rem;color:#0f766e;">REM</span>
+            {% elif c.subtipo == 'NO_REMUNERATIVO' %}
+              <span style="font-size:.72rem;color:#94a3b8;">NO-REM</span>
+            {% else %}
+              <span style="font-size:.72rem;color:#a855f7;">PROV</span>
+            {% endif %}
+          </td>
+          <td style="padding:10px;text-align:center;">{% if c.afecto_essalud %}<span style="color:#16a34a;">✓</span>{% else %}<span style="color:#cbd5e1;">·</span>{% endif %}</td>
+          <td style="padding:10px;text-align:center;">{% if c.afecto_afp %}<span style="color:#16a34a;">✓</span>{% else %}<span style="color:#cbd5e1;">·</span>{% endif %}</td>
+          <td style="padding:10px;text-align:center;">{% if c.afecto_onp %}<span style="color:#16a34a;">✓</span>{% else %}<span style="color:#cbd5e1;">·</span>{% endif %}</td>
+          <td style="padding:10px;text-align:center;">{% if c.afecto_renta %}<span style="color:#16a34a;">✓</span>{% else %}<span style="color:#cbd5e1;">·</span>{% endif %}</td>
+          <td style="padding:10px;text-align:center;">{% if c.afecto_cts %}<span style="color:#16a34a;">✓</span>{% else %}<span style="color:#cbd5e1;">·</span>{% endif %}</td>
+          <td style="padding:10px;text-align:center;">{% if c.afecto_gratif %}<span style="color:#16a34a;">✓</span>{% else %}<span style="color:#cbd5e1;">·</span>{% endif %}</td>
+          <td style="padding:10px;text-align:center;">{% if c.afecto_vacaciones %}<span style="color:#16a34a;">✓</span>{% else %}<span style="color:#cbd5e1;">·</span>{% endif %}</td>
+          <td style="padding:10px;">
+            {% if c.codigo_plame %}
+              <code style="font-size:.72rem;background:#f0f9ff;color:#0891b2;padding:2px 6px;border-radius:4px;">{{ c.codigo_plame }}</code>
+            {% else %}
+              <span style="color:#cbd5e1;font-size:.72rem;">sin código</span>
+            {% endif %}
+          </td>
+          <td style="padding:10px;text-align:center;">
+            {% if c.activo %}
+              <span style="color:#16a34a;">●</span>
+            {% else %}
+              <span style="color:#94a3b8;">○</span>
+            {% endif %}
+          </td>
+          <td style="padding:10px;text-align:right;">
+            <a href="{% url 'concepto_editar' c.pk %}" style="color:#0f766e;font-size:.78rem;">
+              <i class="fas fa-edit"></i> Editar
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="13" style="padding:30px;text-align:center;color:#94a3b8;">
+            No hay conceptos. <a href="{% url 'concepto_nuevo' %}">Crea uno</a> o <a href="{% url 'conceptos_templates' %}">aplica un template</a>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Leyenda -->
+<div style="margin-top:14px;padding:14px;background:#f8fafc;border-radius:8px;font-size:.78rem;color:#64748b;">
+  <strong>Leyenda:</strong>
+  <code>ESS</code> ESSALUD 9% empleador ·
+  <code>AFP</code> 10% + comisión + prima ·
+  <code>ONP</code> 13% ·
+  <code>IR</code> Renta 5ta categoría ·
+  <code>CTS</code> mayo/noviembre ·
+  <code>GRA</code> Gratificación jul/dic ·
+  <code>VAC</code> vacaciones truncas ·
+  <code>PLAME</code> código SUNAT del archivo plano
+</div>
+
+{% endblock %}

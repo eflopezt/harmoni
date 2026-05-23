@@ -62,8 +62,28 @@ class ConceptoRemunerativo(models.Model):
         ('MANUAL',          'Entrada manual'),
     ]
 
+    CATEGORIA_CHOICES = [
+        ('SUELDO',         'Sueldo y haberes'),
+        ('BONIFICACION',   'Bonificación'),
+        ('COMISION',       'Comisión'),
+        ('GRATIFICACION',  'Gratificación'),
+        ('ALIMENTACION',   'Alimentación / Vale canasta'),
+        ('MOVILIDAD',      'Movilidad'),
+        ('REPRESENTACION', 'Representación'),
+        ('FAMILIAR',       'Asignación familiar / escolar'),
+        ('PROPINAS',       'Propinas y recargo consumo'),
+        ('OTROS_ING',      'Otros ingresos'),
+        ('IMPUESTO',       'Impuestos / Retenciones'),
+        ('APORTE',         'Aportes (AFP/ONP/ESSALUD)'),
+        ('DESCUENTO',      'Descuentos varios'),
+        ('PROVISION',      'Provisiones (CTS, gratif)'),
+        ('OTRO',           'Otro'),
+    ]
+
     codigo     = models.SlugField(max_length=30, unique=True)
     nombre     = models.CharField(max_length=150)
+    descripcion = models.TextField(blank=True, help_text='Explicación del concepto (visible en tooltip)')
+    categoria  = models.CharField(max_length=20, choices=CATEGORIA_CHOICES, default='OTRO')
     tipo       = models.CharField(max_length=20, choices=TIPO_CHOICES)
     subtipo    = models.CharField(max_length=20, choices=SUBTIPO_CHOICES, default='REMUNERATIVO')
     formula    = models.CharField(max_length=20, choices=FORMULA_CHOICES, default='FIJO')
@@ -71,16 +91,39 @@ class ConceptoRemunerativo(models.Model):
         max_digits=7, decimal_places=4, default=Decimal('0.00'),
         help_text='Para fórmula PORCENTAJE: valor en %. Ej: 10 = 10%',
     )
+    monto_fijo = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        help_text='Para fórmula FIJO: monto en S/ que aplica por defecto. Ej: 200 (Vale canasta)',
+    )
 
-    # Afectaciones legales
-    afecto_essalud = models.BooleanField(default=False)
-    afecto_renta   = models.BooleanField(default=False)
-    afecto_cts     = models.BooleanField(default=False)
-    afecto_gratif  = models.BooleanField(default=False)
+    # ── Afectaciones legales (qué cargas paga este concepto) ──
+    afecto_essalud     = models.BooleanField(default=False, verbose_name='Afecto ESSALUD 9%')
+    afecto_afp         = models.BooleanField(default=False, verbose_name='Afecto AFP (10% + comisión + prima)')
+    afecto_onp         = models.BooleanField(default=False, verbose_name='Afecto ONP 13%')
+    afecto_renta       = models.BooleanField(default=False, verbose_name='Afecto IR 5ta categoría')
+    afecto_cts         = models.BooleanField(default=False, verbose_name='Afecto CTS (mayo/nov)')
+    afecto_gratif      = models.BooleanField(default=False, verbose_name='Afecto Gratificación (jul/dic)')
+    afecto_vacaciones  = models.BooleanField(default=False, verbose_name='Afecto Vacaciones truncas')
+
+    # ── Mapeo SUNAT / PLAME ──
+    codigo_plame   = models.CharField(
+        max_length=10, blank=True,
+        help_text='Código SUNAT del concepto para PLAME. Ej: 0121 = Sueldos básicos. Ver tabla SUNAT.',
+    )
+    casilla_plame  = models.CharField(
+        max_length=10, blank=True,
+        help_text='Casilla/columna del archivo plano PLAME donde sumar este concepto',
+    )
+    codigo_tregistro = models.CharField(
+        max_length=10, blank=True,
+        help_text='Código T-Registro SUNAT (si aplica)',
+    )
 
     es_sistema = models.BooleanField(default=False, help_text='Protegido — no eliminar.')
     activo     = models.BooleanField(default=True)
     orden      = models.PositiveSmallIntegerField(default=0)
+    creado_en  = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    actualizado_en = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     class Meta:
         verbose_name = 'Concepto Remunerativo'

@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import views_liquidacion
 from . import views_legacy_import
+from . import views_conceptos
 
 urlpatterns = [
     # Panel y portal
@@ -16,7 +17,15 @@ urlpatterns = [
          views.constancia_recepcion_pdf,
          name='nominas_constancia_recepcion'),
 
-    # Conceptos remunerativos
+    # ── NUEVO: Configuración de Conceptos (CRUD + flags + PLAME) ──
+    path('conceptos/configurar/',              views_conceptos.conceptos_lista,           name='conceptos_lista'),
+    path('conceptos/configurar/nuevo/',        views_conceptos.concepto_nuevo,            name='concepto_nuevo'),
+    path('conceptos/configurar/<int:pk>/editar/', views_conceptos.concepto_editar,        name='concepto_editar'),
+    path('conceptos/configurar/templates/',    views_conceptos.conceptos_templates,       name='conceptos_templates'),
+    path('conceptos/configurar/templates/<str:key>/aplicar/',
+                                               views_conceptos.concepto_aplicar_template, name='concepto_aplicar_template'),
+
+    # Conceptos remunerativos (panel legacy/existing — read-only resumen)
     path('conceptos/', views.conceptos_panel, name='nominas_conceptos'),
     path('conceptos/crear/', views.concepto_crear, name='nominas_concepto_crear'),
     path('conceptos/<int:pk>/eliminar/', views.concepto_eliminar, name='nominas_concepto_eliminar'),
