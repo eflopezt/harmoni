@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Seguridad y compliance — Harmoni{% endblock %}
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;">
+
+  <!-- Hero -->
+  <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;padding:42px 32px;border-radius:16px;margin-bottom:30px;text-align:center;">
+    <div style="display:inline-block;background:rgba(94,234,212,.2);color:#5eead4;padding:6px 16px;border-radius:20px;font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px;">
+      <i class="fas fa-shield-alt me-1"></i> Seguridad de nivel enterprise
+    </div>
+    <h1 style="margin:0;font-weight:900;font-size:2.2rem;">
+      Tus datos están a salvo. Aquí te decimos cómo.
+    </h1>
+    <p style="margin:14px 0 0;color:rgba(255,255,255,.85);max-width:720px;margin-left:auto;margin-right:auto;">
+      Encriptación, compliance peruano, IA responsable. Diseñado por un equipo que entiende
+      que los datos de nómina son privados y sensibles.
+    </p>
+  </div>
+
+  <!-- 6 categorías de seguridad -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px;margin-bottom:36px;">
+    {% for cat in categorias %}
+    <div style="background:#fff;border-radius:14px;padding:24px;border:1px solid #e2e8f0;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="background:{{ cat.color }}1a;color:{{ cat.color }};width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">
+          <i class="fas {{ cat.icon }}"></i>
+        </div>
+        <h3 style="margin:0;font-weight:800;color:#0d2b27;font-size:1.05rem;">{{ cat.titulo }}</h3>
+      </div>
+      <ul style="list-style:none;padding:0;margin:0;">
+        {% for it in cat.items %}
+        <li style="padding:5px 0 5px 20px;position:relative;font-size:.82rem;color:#475569;line-height:1.5;">
+          <span style="position:absolute;left:0;color:{{ cat.color }};font-weight:700;font-size:.75rem;top:6px;">▸</span>
+          {{ it }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Certificaciones / regulaciones -->
+  <div style="background:#f8fafc;border-radius:14px;padding:32px;margin-bottom:30px;text-align:center;">
+    <h2 style="margin:0 0 6px;color:#0d2b27;font-weight:800;">Regulaciones que cumplimos</h2>
+    <p style="margin:0 0 22px;color:#64748b;font-size:.9rem;">Auditados internamente y monitorizados ante cambios normativos</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+      {% for cert in certificaciones %}
+      <div style="background:#fff;padding:24px 18px;border-radius:10px;border:1px solid #e2e8f0;">
+        <div style="background:{{ cert.color }}1a;color:{{ cert.color }};width:50px;height:50px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:10px;">
+          <i class="fas {{ cert.icon }}"></i>
+        </div>
+        <div style="font-weight:800;color:#0d2b27;font-size:1rem;">{{ cert.nombre }}</div>
+        <div style="font-size:.78rem;color:#64748b;margin-top:6px;line-height:1.4;">{{ cert.desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Disponibilidad ─── -->
+  <div style="background:#0d2b27;color:#fff;padding:32px;border-radius:14px;margin-bottom:24px;display:grid;grid-template-columns:1fr 2fr;gap:24px;align-items:center;">
+    <div style="text-align:center;">
+      <div style="font-size:.74rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.1em;">Uptime</div>
+      <div style="font-size:3.5rem;font-weight:900;color:#5eead4;line-height:1;margin:8px 0;">99.5%</div>
+      <div style="font-size:.78rem;color:rgba(255,255,255,.7);">últimos 12 meses</div>
+    </div>
+    <div>
+      <h3 style="margin:0 0 10px;font-weight:800;font-size:1.2rem;">Estado del sistema en tiempo real</h3>
+      <p style="margin:0 0 16px;color:rgba(255,255,255,.85);font-size:.92rem;">
+        Monitorizamos health checks cada 30 segundos.
+        Si algo cae, lo verás en el status page público — y se notifica al equipo automáticamente.
+      </p>
+      <a href="/status/" style="background:#5eead4;color:#0d2b27;padding:10px 22px;border-radius:8px;font-weight:700;text-decoration:none;display:inline-block;">
+        Ver status en vivo →
+      </a>
+    </div>
+  </div>
+
+  <!-- ¿Preguntas? -->
+  <div style="background:#fef3c7;border:1px solid #fcd34d;padding:28px;border-radius:14px;text-align:center;">
+    <h3 style="margin:0 0 8px;color:#78350f;font-weight:800;">¿Tu equipo de TI necesita más detalles técnicos?</h3>
+    <p style="margin:0 0 16px;color:#78350f;font-size:.9rem;">
+      Tenemos un documento extendido con arquitectura, modelo de amenazas, runbooks y plan DRP. Lo enviamos sin compromiso.
+    </p>
+    <a href="https://wa.me/51906602313?text=Hola,%20necesito%20el%20documento%20técnico%20de%20seguridad%20de%20Harmoni." target="_blank"
+       style="background:#16a34a;color:#fff;padding:11px 24px;border-radius:10px;font-weight:700;text-decoration:none;">
+      <i class="fab fa-whatsapp"></i> Solicitar PDF técnico
+    </a>
+  </div>
+
+</div>
+
+{% include "partials/footer_publico.html" %}
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Clientes y testimonios — Harmoni{% endblock %}
+{% block content %}
+<div style="max-width:1180px;margin:0 auto;">
+
+  <!-- Hero -->
+  <div style="text-align:center;margin-bottom:36px;padding:36px 28px;">
+    <div style="display:inline-block;background:#fef3c7;color:#78350f;padding:6px 18px;border-radius:20px;font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px;">
+      💛 Confianza · Social proof
+    </div>
+    <h1 style="margin:0 0 12px;font-weight:900;color:#0d2b27;letter-spacing:-.02em;font-size:2.4rem;">
+      Lo que dicen nuestros clientes
+    </h1>
+    <p style="color:#475569;font-size:1.05rem;max-width:720px;margin:0 auto;">
+      Testimonios reales y métricas verificables. Sin photoshop ni inventos.
+    </p>
+  </div>
+
+  <!-- Métricas agregadas -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:40px;">
+    {% for m in metricas %}
+    <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;padding:24px;border-radius:14px;text-align:center;">
+      <i class="fas {{ m.icon }}" style="font-size:1.4rem;opacity:.7;margin-bottom:6px;"></i>
+      <div style="font-size:2.4rem;font-weight:900;line-height:1;">{{ m.valor }}</div>
+      <div style="font-size:.78rem;opacity:.85;margin-top:4px;">{{ m.label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Clientes destacados -->
+  <h2 style="text-align:center;color:#0d2b27;font-weight:800;margin:0 0 24px;">Quiénes nos eligen</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:40px;">
+    {% for c in clientes %}
+    <div style="background:#fff;border:{% if c.destacado %}2px solid #0f766e{% else %}1px solid #e2e8f0{% endif %};border-radius:14px;padding:24px;text-align:center;{% if c.destacado %}box-shadow:0 8px 24px rgba(15,118,110,.12);{% endif %}">
+      <div style="font-size:3rem;line-height:1;margin-bottom:10px;">{{ c.logo }}</div>
+      <h4 style="margin:0;font-weight:800;color:#0d2b27;font-size:1rem;">{{ c.nombre }}</h4>
+      <div style="font-size:.78rem;color:#64748b;margin:6px 0;">{{ c.industria }}</div>
+      <div style="display:flex;justify-content:space-around;margin-top:12px;padding-top:12px;border-top:1px dashed #e2e8f0;font-size:.78rem;">
+        <div>
+          <div style="font-weight:700;color:#0d2b27;">{{ c.workers }}</div>
+          <div style="color:#94a3b8;font-size:.7rem;">workers</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:#0f766e;font-size:.78rem;">{{ c.desde }}</div>
+          <div style="color:#94a3b8;font-size:.7rem;">{% if c.destacado %}cliente activo{% else %}estado{% endif %}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Testimonios grid -->
+  <h2 style="text-align:center;color:#0d2b27;font-weight:800;margin:30px 0 24px;">Lo que nos dicen</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px;margin-bottom:36px;">
+    {% for t in testimonios %}
+    <div style="background:#fff;border-radius:14px;padding:24px;border:1px solid #e2e8f0;position:relative;">
+      <!-- Quote icon -->
+      <div style="position:absolute;top:14px;right:18px;font-size:2.2rem;color:#e2e8f0;line-height:1;">"</div>
+
+      <!-- Header con foto -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="background:{{ t.foto_color }};color:#fff;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0;">
+          {{ t.iniciales }}
+        </div>
+        <div>
+          <div style="font-weight:800;color:#0d2b27;font-size:.92rem;">{{ t.nombre }}</div>
+          <div style="font-size:.74rem;color:#64748b;">{{ t.cargo }} · {{ t.empresa }}</div>
+        </div>
+      </div>
+
+      <!-- Rating -->
+      <div style="color:#f59e0b;font-size:.95rem;margin-bottom:10px;">
+        {% for i in "12345" %}{% if forloop.counter <= t.rating %}★{% else %}☆{% endif %}{% endfor %}
+      </div>
+
+      <!-- Texto -->
+      <p style="color:#334155;font-size:.88rem;line-height:1.6;margin:0 0 14px;">{{ t.texto }}</p>
+
+      <!-- Métrica destacada -->
+      <div style="background:#f0fdf4;border-left:3px solid #16a34a;padding:8px 12px;border-radius:6px;font-size:.78rem;color:#0d2b27;">
+        <strong>📊 {{ t.metric }}</strong>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- CTA -->
+  <div style="background:linear-gradient(135deg,#0f766e,#0d2b27);color:#fff;padding:36px;border-radius:14px;text-align:center;">
+    <h2 style="margin:0 0 8px;font-weight:800;">¿Te imaginas tu equipo aquí?</h2>
+    <p style="margin:0 0 20px;color:rgba(255,255,255,.85);">
+      Empieza con 30 días gratis. Sin tarjeta. Sin contrato.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="/d/enterprise/" style="background:#5eead4;color:#0d2b27;padding:12px 28px;border-radius:10px;font-weight:700;text-decoration:none;">
+        🎯 Probar demo
+      </a>
+      <a href="https://wa.me/51906602313?text=Hola,%20vi%20los%20testimonios%20y%20quiero%20probar%20Harmoni." target="_blank" style="background:#fff;color:#0d2b27;padding:12px 28px;border-radius:10px;font-weight:700;text-decoration:none;">
+        <i class="fab fa-whatsapp"></i> Hablemos
+      </a>
+    </div>
+  </div>
+
+</div>
+
+{% include "partials/footer_publico.html" %}
+{% endblock %}

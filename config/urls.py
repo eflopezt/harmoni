@@ -175,6 +175,14 @@ urlpatterns = [
     path('casos/edo/', __import__('core.views_caso_edo', fromlist=['caso_edo']).caso_edo, name='caso_edo'),
     # Página pública de precios (los 4 planes)
     path('precios/', __import__('core.views_precios', fromlist=['precios']).precios, name='precios_publico'),
+    # Página pública de seguridad y compliance
+    path('seguridad/', __import__('core.views_seguridad', fromlist=['seguridad']).seguridad, name='seguridad_publica'),
+    # Página pública de clientes y testimonios
+    path('clientes/', __import__('core.views_clientes', fromlist=['clientes']).clientes, name='clientes_publico'),
+    # Sales Hub — hub central de material comercial
+    path('h/', __import__('core.views_sales_hub', fromlist=['sales_hub']).sales_hub, name='sales_hub'),
+    # Demo guiado contratación 5 minutos
+    path('demos/contratar/', __import__('core.views_demo_contratar', fromlist=['demo_contratar']).demo_contratar, name='demo_contratar'),
     path('admin/', admin.site.urls),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
