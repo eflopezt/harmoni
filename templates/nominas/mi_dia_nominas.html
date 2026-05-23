@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Mi Día Nóminas{% endblock %}
+{% block content %}
+
+<!-- Hero saludo -->
+<div style="background:linear-gradient(135deg, #0f766e 0%, #0d6b62 50%, #134e4a 100%);
+            color:#fff;padding:28px 30px;border-radius:14px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;">
+    <div>
+      <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">Mi Día Nóminas</div>
+      <h2 style="margin:6px 0 0;font-weight:800;font-size:1.7rem;">{{ saludo }}, {{ nombre_user }}!</h2>
+      <p style="margin:6px 0 0;opacity:.92;font-size:.95rem;">
+        Hoy es <strong>{{ hoy|date:"l, j F Y" }}</strong>.
+        Aquí está tu resumen del día.
+      </p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="{% url 'onboarding_validador' %}" style="background:rgba(255,255,255,.18);color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.85rem;">
+        <i class="fas fa-clipboard-check me-1"></i> Validador onboarding
+      </a>
+      <a href="{% url 'nominas_panel' %}" style="background:rgba(255,255,255,.18);color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.85rem;">
+        <i class="fas fa-list me-1"></i> Períodos
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Columna principal -->
+  <div class="col-lg-8">
+
+    <!-- Tareas sugeridas (smart actions) -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:18px;">
+      <h5 style="margin:0 0 14px;color:#0d2b27;font-weight:800;">
+        <i class="fas fa-tasks me-2" style="color:#0f766e;"></i> Pendientes recomendados
+      </h5>
+      {% for t in tareas %}
+        <a href="{{ t.link }}" style="display:flex;gap:14px;align-items:center;padding:12px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:8px;text-decoration:none;transition:background .15s;background:#fff;"
+           onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+          <div style="width:42px;height:42px;border-radius:50%;background:{{ t.color }}22;color:{{ t.color }};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
+            <i class="{{ t.icon }}"></i>
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:700;color:#0d2b27;">{{ t.titulo }}</div>
+            <div style="color:#64748b;font-size:.85rem;">{{ t.descripcion }}</div>
+          </div>
+          <i class="fas fa-chevron-right" style="color:#cbd5e1;"></i>
+        </a>
+      {% endfor %}
+    </div>
+
+    <!-- Período actual -->
+    {% if periodo %}
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <h5 style="margin:0;color:#0d2b27;font-weight:800;">
+          <i class="fas fa-file-invoice-dollar me-2" style="color:#0f766e;"></i>
+          Período {% if periodo_estado == 'actual' %}actual{% else %}más reciente{% endif %}
+        </h5>
+        <span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:6px;font-size:.78rem;font-weight:700;">
+          {{ periodo.get_tipo_display }} · {{ periodo.mes }}/{{ periodo.anio }} · {{ periodo.get_estado_display }}
+        </span>
+      </div>
+      {% if kpi.trabajadores %}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+        <div style="background:#f8fafc;padding:12px 14px;border-radius:8px;">
+          <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Trabajadores</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#0d2b27;line-height:1;">{{ kpi.trabajadores }}</div>
+        </div>
+        <div style="background:#f8fafc;padding:12px 14px;border-radius:8px;">
+          <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Bruto</div>
+          <div style="font-size:1.2rem;font-weight:800;color:#0d2b27;line-height:1;">S/ {{ kpi.bruto|floatformat:0 }}</div>
+        </div>
+        <div style="background:#f8fafc;padding:12px 14px;border-radius:8px;">
+          <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Descuentos</div>
+          <div style="font-size:1.2rem;font-weight:800;color:#b91c1c;line-height:1;">S/ {{ kpi.descuentos|floatformat:0 }}</div>
+        </div>
+        <div style="background:#f0fdf4;padding:12px 14px;border-radius:8px;border:1px solid #bbf7d0;">
+          <div style="font-size:.7rem;color:#15803d;text-transform:uppercase;letter-spacing:.05em;">Neto</div>
+          <div style="font-size:1.2rem;font-weight:800;color:#15803d;line-height:1;">S/ {{ kpi.neto|floatformat:0 }}</div>
+        </div>
+      </div>
+      {% endif %}
+      <div style="margin-top:12px;">
+        <a href="{% url 'nominas_periodo_detalle' periodo.pk %}" class="btn btn-sm btn-outline-secondary">
+          <i class="fas fa-eye me-1"></i> Ver detalle
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Cambios recientes audit -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+        <h5 style="margin:0;color:#0d2b27;font-weight:800;">
+          <i class="fas fa-history me-2" style="color:#0f766e;"></i> Cambios recientes (7 días)
+        </h5>
+        {% if cambios_count %}
+        <a href="{% url 'conceptos_audit_log' %}" style="font-size:.85rem;color:#0f766e;text-decoration:none;font-weight:600;">
+          Ver todo ({{ cambios_count }}) →
+        </a>
+        {% endif %}
+      </div>
+      {% if cambios_recientes %}
+        {% for log in cambios_recientes %}
+        <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:.85rem;">
+          <span style="color:#94a3b8;font-family:monospace;font-size:.78rem;white-space:nowrap;">{{ log.fecha|date:"d M H:i" }}</span>
+          <span style="font-weight:700;color:#0d2b27;font-family:monospace;font-size:.78rem;">{{ log.concepto_codigo }}</span>
+          <span style="color:#475569;">{{ log.get_accion_display }}</span>
+          <span style="color:#94a3b8;margin-left:auto;">
+            {% if log.usuario_username %}{{ log.usuario_username }}{% else %}sistema{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:20px;text-align:center;color:#94a3b8;font-size:.9rem;">
+          <i class="fas fa-history" style="opacity:.4;font-size:1.5rem;display:block;margin-bottom:6px;"></i>
+          Sin cambios en los últimos 7 días.
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Columna sidebar -->
+  <div class="col-lg-4">
+
+    <!-- Calendario hoy -->
+    {% if eventos_hoy %}
+    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;padding:16px 18px;margin-bottom:16px;">
+      <h6 style="margin:0 0 10px;color:#b91c1c;font-weight:800;">
+        <i class="fas fa-exclamation-circle me-1"></i> HOY {{ hoy|date:"j M" }}
+      </h6>
+      {% for e in eventos_hoy %}
+        <div style="background:#fff;padding:10px 12px;border-radius:8px;margin-top:6px;">
+          <div style="font-weight:700;color:#0d2b27;font-size:.9rem;">{{ e.label }}</div>
+          <div style="color:#64748b;font-size:.78rem;margin-top:2px;">{{ e.descripcion }}</div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Esta semana -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin-bottom:16px;">
+      <h6 style="margin:0 0 10px;color:#0d2b27;font-weight:800;">
+        <i class="fas fa-calendar-week me-1" style="color:#0f766e;"></i> Esta semana
+      </h6>
+      {% if eventos_semana %}
+        {% for e in eventos_semana %}
+          <div style="padding:8px 10px;border-left:3px solid {% if e.severidad == 'critico' %}#dc2626{% elif e.severidad == 'urgente' %}#d97706{% else %}#0f766e{% endif %};background:#f8fafc;border-radius:0 6px 6px 0;margin-top:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <strong style="color:#0d2b27;font-size:.85rem;">{{ e.label }}</strong>
+              <span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;font-size:.7rem;color:#64748b;white-space:nowrap;">
+                en {{ e.dias }}d
+              </span>
+            </div>
+            <div style="color:#64748b;font-size:.75rem;margin-top:2px;">{{ e.fecha|date:"j M" }} · {{ e.descripcion }}</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:14px;text-align:center;color:#94a3b8;font-size:.85rem;">
+          Sin eventos críticos esta semana.
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Próximo mes -->
+    {% if eventos_mes %}
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin-bottom:16px;">
+      <h6 style="margin:0 0 10px;color:#0d2b27;font-weight:800;">
+        <i class="far fa-calendar me-1" style="color:#64748b;"></i> Próximas 4 semanas
+      </h6>
+      {% for e in eventos_mes %}
+        <div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:.82rem;">
+          <span style="color:#64748b;font-weight:600;white-space:nowrap;min-width:50px;">{{ e.fecha|date:"j M" }}</span>
+          <span style="color:#0d2b27;flex:1;">{{ e.label }}</span>
+          <span style="color:#94a3b8;font-size:.75rem;white-space:nowrap;">{{ e.dias }}d</span>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Status compacto -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;">
+      <h6 style="margin:0 0 12px;color:#0d2b27;font-weight:800;">
+        <i class="fas fa-heartbeat me-1" style="color:#0f766e;"></i> Status del sistema
+      </h6>
+      <div style="font-size:.85rem;line-height:1.8;">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:#64748b;">Acuses pendientes</span>
+          <strong style="color:{% if acuses_pendientes > 10 %}#dc2626{% elif acuses_pendientes > 0 %}#d97706{% else %}#15803d{% endif %};">
+            {{ acuses_pendientes }}
+          </strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:#64748b;">Inconsistencias conceptos</span>
+          <strong style="color:{% if inconsistencias > 0 %}#dc2626{% else %}#15803d{% endif %};">
+            {{ inconsistencias }}
+          </strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:#64748b;">Cambios 7d</span>
+          <strong style="color:#0d2b27;">{{ cambios_count }}</strong>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

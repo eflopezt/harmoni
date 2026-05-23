@@ -8,6 +8,9 @@
     <p style="margin:4px 0 0;color:#64748b;">Configuración de ingresos, descuentos y aportes — afectaciones legales y mapeo SUNAT/PLAME</p>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'conceptos_audit_log' %}" class="btn btn-outline-secondary btn-sm" title="Ver bitácora de cambios">
+      <i class="fas fa-history me-1"></i> Audit log
+    </a>
     <a href="{% url 'conceptos_export_csv' %}" class="btn btn-outline-secondary btn-sm" title="Descargar todos los conceptos como CSV">
       <i class="fas fa-download me-1"></i> Exportar CSV
     </a>

@@ -723,3 +723,104 @@ class ConfiguracionApertura(models.Model):
     def __str__(self):
         emp = self.empresa.razon_social if self.empresa else 'Global'
         return f'Apertura {emp} @ {self.fecha_corte}'
+
+
+# ══════════════════════════════════════════════════════════════════════
+# AUDIT LOG — Conceptos Remunerativos
+# Trail de cambios para compliance + recuperación + diagnóstico
+# ══════════════════════════════════════════════════════════════════════
+
+class ConceptoAuditLog(models.Model):
+    """
+    Bitácora de cambios sobre ConceptoRemunerativo.
+
+    Captura: quién, cuándo, qué campo, valor anterior y nuevo.
+    Usado para:
+    - Compliance fiscal (¿quién cambió afecto_renta antes del cierre?)
+    - Recuperar configuración perdida ("vuelve esto a como estaba ayer")
+    - Diagnóstico de cálculos raros ("¿cuándo bajó la tasa AFP?")
+    """
+    ACCION_CHOICES = [
+        ('CREATE', 'Creado'),
+        ('UPDATE', 'Modificado'),
+        ('DELETE', 'Eliminado'),
+        ('ACTIVAR', 'Activado'),
+        ('DESACTIVAR', 'Desactivado'),
+        ('AUTOFIX', 'Auto-fix aplicado'),
+        ('TEMPLATE', 'Aplicado desde template'),
+        ('CSV_IMPORT', 'Importado desde CSV'),
+    ]
+
+    # ¿Qué cambió?
+    concepto       = models.ForeignKey(
+        ConceptoRemunerativo,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='audit_log',
+        help_text='Concepto afectado (null si fue eliminado).',
+    )
+    concepto_codigo = models.CharField(
+        max_length=30,
+        help_text='Código del concepto (persiste aunque el concepto se elimine).',
+    )
+    concepto_nombre = models.CharField(max_length=150, blank=True)
+
+    # ¿Qué tipo de acción?
+    accion         = models.CharField(max_length=20, choices=ACCION_CHOICES)
+
+    # Detalle del cambio (JSON-ish: campo → {antes, despues})
+    campos_cambiados = models.JSONField(
+        default=dict, blank=True,
+        help_text='{"campo": {"antes": X, "despues": Y}, ...}',
+    )
+
+    # ¿Quién y cuándo?
+    usuario        = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+    )
+    usuario_username = models.CharField(
+        max_length=150, blank=True,
+        help_text='Username congelado (persiste aunque el usuario se elimine).',
+    )
+    fecha          = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    # Contexto opcional
+    ip             = models.GenericIPAddressField(null=True, blank=True)
+    user_agent     = models.CharField(max_length=300, blank=True)
+    contexto       = models.CharField(
+        max_length=200, blank=True,
+        help_text='URL o vista donde se originó el cambio.',
+    )
+
+    class Meta:
+        verbose_name = 'Audit log de concepto'
+        verbose_name_plural = 'Audit log de conceptos'
+        ordering = ['-fecha']
+        indexes = [
+            models.Index(fields=['-fecha']),
+            models.Index(fields=['concepto_codigo', '-fecha']),
+            models.Index(fields=['accion', '-fecha']),
+        ]
+
+    def __str__(self):
+        u = self.usuario_username or 'sistema'
+        return f'[{self.fecha:%Y-%m-%d %H:%M}] {u} {self.get_accion_display()} {self.concepto_codigo}'
+
+    @property
+    def num_cambios(self):
+        return len(self.campos_cambiados or {})
+
+    @property
+    def resumen_cambios(self):
+        """Lista de strings cortos: 'afecto_essalud: False → True'."""
+        if not self.campos_cambiados:
+            return []
+        items = []
+        for campo, valores in (self.campos_cambiados or {}).items():
+            antes = valores.get('antes', '—') if isinstance(valores, dict) else '—'
+            despues = valores.get('despues', '—') if isinstance(valores, dict) else valores
+            items.append(f'{campo}: {antes} → {despues}')
+        return items

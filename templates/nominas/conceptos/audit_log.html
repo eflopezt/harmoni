@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — Conceptos{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-history me-2" style="color:#0f766e;"></i> Bitácora de cambios — Conceptos
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      Trail completo de creaciones, modificaciones y eliminaciones — compliance &amp; diagnóstico
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'conceptos_lista' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Volver a conceptos
+    </a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
+  <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Total cambios</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#0d2b27;line-height:1;">{{ total_logs }}</div>
+  </div>
+  <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#15803d;text-transform:uppercase;letter-spacing:.05em;">Creados</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#15803d;line-height:1;">{{ stats_accion.CREATE|default:0 }}</div>
+  </div>
+  <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#1d4ed8;text-transform:uppercase;letter-spacing:.05em;">Modificados</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#1d4ed8;line-height:1;">{{ stats_accion.UPDATE|default:0 }}</div>
+  </div>
+  <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#b91c1c;text-transform:uppercase;letter-spacing:.05em;">Eliminados</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#b91c1c;line-height:1;">{{ stats_accion.DELETE|default:0 }}</div>
+  </div>
+  <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#6d28d9;text-transform:uppercase;letter-spacing:.05em;">Auto-fix</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#6d28d9;line-height:1;">{{ stats_accion.AUTOFIX|default:0 }}</div>
+  </div>
+  <div style="background:#fff;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.7rem;color:#0f766e;text-transform:uppercase;letter-spacing:.05em;">Templates</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#0f766e;line-height:1;">{{ stats_accion.TEMPLATE|default:0 }}</div>
+  </div>
+</div>
+
+<!-- Filtros -->
+<form method="get" style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+  <input type="search" name="codigo" value="{{ codigo }}" placeholder="Código concepto (ej: vale_canasta)" class="form-control form-control-sm" style="max-width:240px;">
+  <input type="search" name="usuario" value="{{ usuario_q }}" placeholder="Usuario" class="form-control form-control-sm" style="max-width:160px;">
+  <select name="accion" class="form-select form-select-sm" style="max-width:180px;">
+    <option value="">Toda acción</option>
+    {% for v, l in acciones %}<option value="{{ v }}" {% if accion == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select>
+  <select name="dias" class="form-select form-select-sm" style="max-width:170px;">
+    <option value="">Todo el historial</option>
+    <option value="1"  {% if dias == '1' %}selected{% endif %}>Últimas 24h</option>
+    <option value="7"  {% if dias == '7' %}selected{% endif %}>Últimos 7 días</option>
+    <option value="30" {% if dias == '30' %}selected{% endif %}>Últimos 30 días</option>
+    <option value="90" {% if dias == '90' %}selected{% endif %}>Últimos 90 días</option>
+  </select>
+  <button class="btn btn-sm btn-success" style="background:#0f766e;border-color:#0f766e;">
+    <i class="fas fa-filter me-1"></i> Filtrar
+  </button>
+  {% if codigo or usuario_q or accion or dias %}
+    <a href="{% url 'conceptos_audit_log' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-times me-1"></i> Limpiar
+    </a>
+  {% endif %}
+  <span style="margin-left:auto;color:#64748b;font-size:.85rem;">
+    Mostrando <strong>{{ showing }}</strong> de <strong>{{ total_filtrados }}</strong>{% if total_filtrados > showing %} (limitado a 500){% endif %}
+  </span>
+</form>
+
+<!-- Tabla -->
+<div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;">
+  <table class="table table-sm mb-0" style="margin-bottom:0;">
+    <thead style="background:#f8fafc;">
+      <tr>
+        <th style="padding:10px 14px;font-size:.78rem;color:#475569;text-transform:uppercase;letter-spacing:.04em;">Fecha</th>
+        <th style="padding:10px 14px;font-size:.78rem;color:#475569;text-transform:uppercase;letter-spacing:.04em;">Acción</th>
+        <th style="padding:10px 14px;font-size:.78rem;color:#475569;text-transform:uppercase;letter-spacing:.04em;">Concepto</th>
+        <th style="padding:10px 14px;font-size:.78rem;color:#475569;text-transform:uppercase;letter-spacing:.04em;">Usuario</th>
+        <th style="padding:10px 14px;font-size:.78rem;color:#475569;text-transform:uppercase;letter-spacing:.04em;">Cambios</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        {% with log=row.log %}
+        <tr style="border-top:1px solid #f1f5f9;">
+          <td style="padding:10px 14px;vertical-align:top;white-space:nowrap;">
+            <div style="font-size:.85rem;color:#0d2b27;font-weight:600;">{{ log.fecha|date:"d M Y" }}</div>
+            <div style="font-size:.75rem;color:#94a3b8;">{{ log.fecha|date:"H:i:s" }}</div>
+          </td>
+          <td style="padding:10px 14px;vertical-align:top;white-space:nowrap;">
+            {% if log.accion == 'CREATE' %}
+              <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;"><i class="fas fa-plus-circle me-1"></i>Creado</span>
+            {% elif log.accion == 'UPDATE' %}
+              <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;"><i class="fas fa-pen me-1"></i>Modificado</span>
+            {% elif log.accion == 'DELETE' %}
+              <span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;"><i class="fas fa-trash me-1"></i>Eliminado</span>
+            {% elif log.accion == 'ACTIVAR' %}
+              <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;"><i class="fas fa-toggle-on me-1"></i>Activado</span>
+            {% elif log.accion == 'DESACTIVAR' %}
+              <span style="background:#fef3c7;color:#a16207;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;"><i class="fas fa-toggle-off me-1"></i>Desactivado</span>
+            {% elif log.accion == 'AUTOFIX' %}
+              <span style="background:#ede9fe;color:#6d28d9;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;"><i class="fas fa-magic me-1"></i>Auto-fix</span>
+            {% elif log.accion == 'TEMPLATE' %}
+              <span style="background:#ccfbf1;color:#0f766e;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;"><i class="fas fa-bookmark me-1"></i>Template</span>
+            {% elif log.accion == 'CSV_IMPORT' %}
+              <span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;"><i class="fas fa-file-csv me-1"></i>CSV</span>
+            {% else %}
+              <span style="background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;">{{ log.get_accion_display }}</span>
+            {% endif %}
+          </td>
+          <td style="padding:10px 14px;vertical-align:top;">
+            <div style="font-size:.85rem;color:#0d2b27;font-weight:700;font-family:monospace;">{{ log.concepto_codigo }}</div>
+            {% if log.concepto_nombre %}
+              <div style="font-size:.78rem;color:#64748b;">{{ log.concepto_nombre }}</div>
+            {% endif %}
+            {% if log.concepto %}
+              <a href="{% url 'concepto_historial' log.concepto.pk %}" style="font-size:.72rem;color:#0f766e;text-decoration:none;">
+                <i class="fas fa-stream me-1"></i> Ver historial
+              </a>
+            {% endif %}
+          </td>
+          <td style="padding:10px 14px;vertical-align:top;">
+            <div style="font-size:.85rem;color:#0d2b27;font-weight:600;">
+              {% if log.usuario_username %}
+                <i class="fas fa-user me-1" style="color:#94a3b8;"></i>{{ log.usuario_username }}
+              {% else %}
+                <span style="color:#94a3b8;font-style:italic;">sistema</span>
+              {% endif %}
+            </div>
+            {% if log.ip %}
+              <div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">{{ log.ip }}</div>
+            {% endif %}
+          </td>
+          <td style="padding:10px 14px;vertical-align:top;">
+            {% if row.num_cambios %}
+              <details style="font-size:.8rem;">
+                <summary style="cursor:pointer;color:#0f766e;font-weight:600;outline:none;">
+                  {{ row.num_cambios }} campo{{ row.num_cambios|pluralize:"s" }}
+                </summary>
+                <div style="margin-top:6px;padding:8px;background:#f8fafc;border-radius:6px;font-family:monospace;font-size:.72rem;line-height:1.5;max-width:500px;">
+                  {% for cambio in row.resumen %}
+                    <div>{{ cambio }}</div>
+                  {% endfor %}
+                  {% if row.tiene_mas %}
+                    <div style="color:#94a3b8;font-style:italic;margin-top:4px;">...y {{ row.num_cambios|add:"-8" }} más</div>
+                  {% endif %}
+                </div>
+              </details>
+            {% else %}
+              <span style="color:#94a3b8;font-size:.78rem;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endwith %}
+      {% empty %}
+        <tr>
+          <td colspan="5" style="padding:40px;text-align:center;color:#94a3b8;">
+            <i class="fas fa-history fa-2x" style="opacity:.3;display:block;margin-bottom:10px;"></i>
+            Sin cambios registrados {% if codigo or accion or usuario_q or dias %}para los filtros aplicados{% endif %}.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div style="background:#f8fafc;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-top:16px;color:#64748b;font-size:.85rem;">
+  <strong style="color:#0d2b27;">💡 Sobre el audit log:</strong>
+  Cada cambio sobre un concepto remunerativo queda registrado automáticamente.
+  Se captura quién hizo el cambio, desde qué IP, qué campos cambiaron (valor antes y después) y la URL de origen.
+  Útil para:
+  <ul style="margin:6px 0 0 18px;">
+    <li><strong>Compliance fiscal:</strong> Demostrar quién modificó la afectación a impuestos antes del cierre.</li>
+    <li><strong>Recuperación:</strong> Saber exactamente cómo estaba un concepto antes de un cambio accidental.</li>
+    <li><strong>Diagnóstico:</strong> "¿Por qué este mes salió diferente?" → buscar cambios en los últimos 30 días.</li>
+  </ul>
+</div>
+
+{% endblock %}

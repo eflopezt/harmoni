@@ -23,7 +23,21 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from .models import ConceptoRemunerativo
+from .models import ConceptoAuditLog, ConceptoRemunerativo
+from .signals_audit import clear_audit_context, set_audit_context
+
+
+def _set_audit_from_request(request, accion_override=None):
+    """Inyecta usuario + IP + UA + URL para que los signals tengan contexto."""
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() \
+         or request.META.get('REMOTE_ADDR') or None
+    set_audit_context(
+        usuario=request.user if request.user.is_authenticated else None,
+        ip=ip,
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:300],
+        contexto=request.path[:200],
+        accion_override=accion_override,
+    )
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -488,7 +502,11 @@ def _save_concepto_from_post(post, concepto=None):
 @require_http_methods(['GET', 'POST'])
 def concepto_nuevo(request):
     if request.method == 'POST':
-        concepto, errors = _save_concepto_from_post(request.POST)
+        _set_audit_from_request(request)
+        try:
+            concepto, errors = _save_concepto_from_post(request.POST)
+        finally:
+            clear_audit_context()
         if not errors:
             messages.success(request, f'Concepto "{concepto.nombre}" creado.')
             return redirect('conceptos_lista')
@@ -514,7 +532,11 @@ def concepto_nuevo(request):
 def concepto_editar(request, pk):
     concepto = get_object_or_404(ConceptoRemunerativo, pk=pk)
     if request.method == 'POST':
-        c, errors = _save_concepto_from_post(request.POST, concepto)
+        _set_audit_from_request(request)
+        try:
+            c, errors = _save_concepto_from_post(request.POST, concepto)
+        finally:
+            clear_audit_context()
         if not errors:
             messages.success(request, f'Concepto "{c.nombre}" actualizado.')
             return redirect('conceptos_lista')
@@ -569,7 +591,11 @@ def concepto_aplicar_template(request, key):
         messages.warning(request, f'El concepto "{t["nombre"]}" ya existe.')
         return redirect('conceptos_lista')
 
-    ConceptoRemunerativo.objects.create(**t)
+    _set_audit_from_request(request, accion_override='TEMPLATE')
+    try:
+        ConceptoRemunerativo.objects.create(**t)
+    finally:
+        clear_audit_context()
     messages.success(request, f'Concepto "{t["nombre"]}" creado.')
     return redirect('conceptos_lista')
 
@@ -649,7 +675,11 @@ def concepto_autofix(request, pk):
             cambios = ['todos los flags REM aplicados']
 
     if cambios:
-        c.save()
+        _set_audit_from_request(request, accion_override='AUTOFIX')
+        try:
+            c.save()
+        finally:
+            clear_audit_context()
         messages.success(request, f'{c.nombre}: {len(cambios)} ajustes aplicados.')
     else:
         messages.info(request, f'{c.nombre}: ya está configurado correctamente.')
@@ -680,33 +710,145 @@ def conceptos_bulk_action(request):
     n = conceptos.count()
 
     if accion == 'activar':
-        conceptos.update(activo=True)
+        _set_audit_from_request(request, accion_override='ACTIVAR')
+        try:
+            # Iteramos para que signals registren cada cambio (no update masivo)
+            for c in conceptos:
+                if not c.activo:
+                    c.activo = True
+                    c.save()
+        finally:
+            clear_audit_context()
         messages.success(request, f'{n} conceptos activados.')
     elif accion == 'desactivar':
-        conceptos.update(activo=False)
+        _set_audit_from_request(request, accion_override='DESACTIVAR')
+        try:
+            for c in conceptos:
+                if c.activo:
+                    c.activo = False
+                    c.save()
+        finally:
+            clear_audit_context()
         messages.success(request, f'{n} conceptos desactivados.')
     elif accion == 'autofix':
         fixed = 0
-        for c in conceptos:
-            warns_antes = len(detectar_inconsistencias(c))
-            if warns_antes > 0:
-                # Aplica auto-fix
-                if c.subtipo == 'NO_REMUNERATIVO':
-                    for f in ('afecto_essalud', 'afecto_afp', 'afecto_onp',
-                              'afecto_cts', 'afecto_gratif', 'afecto_vacaciones'):
-                        setattr(c, f, False)
-                elif c.subtipo == 'REMUNERATIVO' and c.tipo == 'INGRESO':
-                    if not any([c.afecto_essalud, c.afecto_afp, c.afecto_onp]):
-                        c.afecto_essalud = True
-                        c.afecto_afp = True
-                        c.afecto_onp = True
-                        c.afecto_renta = True
-                        c.afecto_cts = True
-                        c.afecto_gratif = True
-                c.save()
-                fixed += 1
+        _set_audit_from_request(request, accion_override='AUTOFIX')
+        try:
+            for c in conceptos:
+                warns_antes = len(detectar_inconsistencias(c))
+                if warns_antes > 0:
+                    # Aplica auto-fix
+                    if c.subtipo == 'NO_REMUNERATIVO':
+                        for f in ('afecto_essalud', 'afecto_afp', 'afecto_onp',
+                                  'afecto_cts', 'afecto_gratif', 'afecto_vacaciones'):
+                            setattr(c, f, False)
+                    elif c.subtipo == 'REMUNERATIVO' and c.tipo == 'INGRESO':
+                        if not any([c.afecto_essalud, c.afecto_afp, c.afecto_onp]):
+                            c.afecto_essalud = True
+                            c.afecto_afp = True
+                            c.afecto_onp = True
+                            c.afecto_renta = True
+                            c.afecto_cts = True
+                            c.afecto_gratif = True
+                    c.save()
+                    fixed += 1
+        finally:
+            clear_audit_context()
         messages.success(request, f'Auto-fix aplicado a {fixed}/{n} conceptos.')
     else:
         messages.error(request, f'Acción no reconocida: {accion}')
 
     return redirect('conceptos_lista')
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Audit Log — bitácora de cambios
+# ════════════════════════════════════════════════════════════════════════
+
+@login_required
+def conceptos_audit_log(request):
+    """
+    Bitácora completa de cambios sobre conceptos remunerativos.
+
+    Filtros: ?codigo=X&accion=UPDATE&usuario=admin&dias=7
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+
+    logs = ConceptoAuditLog.objects.select_related('concepto', 'usuario').order_by('-fecha')
+
+    # Filtros
+    codigo = request.GET.get('codigo', '').strip()
+    if codigo:
+        logs = logs.filter(concepto_codigo__icontains=codigo)
+
+    accion = request.GET.get('accion', '').strip()
+    if accion:
+        logs = logs.filter(accion=accion)
+
+    usuario_q = request.GET.get('usuario', '').strip()
+    if usuario_q:
+        logs = logs.filter(usuario_username__icontains=usuario_q)
+
+    dias = request.GET.get('dias', '').strip()
+    desde = None
+    if dias and dias.isdigit() and int(dias) > 0:
+        desde = timezone.now() - timedelta(days=int(dias))
+        logs = logs.filter(fecha__gte=desde)
+
+    # Limit defensivo (UX + perf)
+    total_filtrados = logs.count()
+    logs = logs[:500]
+
+    # Materializar y enriquecer
+    rows = []
+    for log in logs:
+        rows.append({
+            'log': log,
+            'resumen': log.resumen_cambios[:8],  # top 8 cambios visibles, truncado
+            'tiene_mas': log.num_cambios > 8,
+            'num_cambios': log.num_cambios,
+        })
+
+    # Stats compactas
+    from django.db.models import Count
+    stats_accion = dict(
+        ConceptoAuditLog.objects
+        .values_list('accion')
+        .annotate(n=Count('id'))
+        .values_list('accion', 'n')
+    )
+
+    return render(request, 'nominas/conceptos/audit_log.html', {
+        'rows': rows,
+        'total_filtrados': total_filtrados,
+        'showing': len(rows),
+        'codigo': codigo,
+        'accion': accion,
+        'usuario_q': usuario_q,
+        'dias': dias,
+        'acciones': ConceptoAuditLog.ACCION_CHOICES,
+        'stats_accion': stats_accion,
+        'total_logs': ConceptoAuditLog.objects.count(),
+    })
+
+
+@login_required
+def concepto_historial(request, pk):
+    """Historial detallado de UN concepto específico."""
+    concepto = get_object_or_404(ConceptoRemunerativo, pk=pk)
+    logs = ConceptoAuditLog.objects.filter(
+        concepto_codigo=concepto.codigo,
+    ).select_related('usuario').order_by('-fecha')
+
+    rows = [{
+        'log': log,
+        'resumen': log.resumen_cambios,
+        'num_cambios': log.num_cambios,
+    } for log in logs[:200]]
+
+    return render(request, 'nominas/conceptos/historial.html', {
+        'concepto': concepto,
+        'rows': rows,
+        'total': logs.count(),
+    })

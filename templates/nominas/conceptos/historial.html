@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Historial — {{ concepto.nombre }}{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-stream me-2" style="color:#0f766e;"></i> Historial de cambios
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      <strong style="color:#0d2b27;">{{ concepto.nombre }}</strong>
+      <span style="font-family:monospace;background:#f1f5f9;padding:2px 6px;border-radius:4px;margin-left:6px;">{{ concepto.codigo }}</span>
+      &mdash; {{ total }} cambio{{ total|pluralize:"s" }} registrado{{ total|pluralize:"s" }}
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'concepto_editar' concepto.pk %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-pen me-1"></i> Editar concepto
+    </a>
+    <a href="{% url 'conceptos_audit_log' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-history me-1"></i> Audit log completo
+    </a>
+    <a href="{% url 'conceptos_lista' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Volver
+    </a>
+  </div>
+</div>
+
+{% if not rows %}
+  <div style="background:#fff;padding:40px;text-align:center;border-radius:10px;border:1px solid #e2e8f0;">
+    <i class="fas fa-history fa-3x" style="color:#cbd5e1;display:block;margin-bottom:14px;"></i>
+    <h4 style="color:#475569;margin:0 0 6px;">Sin historial todavía</h4>
+    <p style="color:#94a3b8;margin:0;">
+      Cuando alguien modifique este concepto, los cambios aparecerán aquí.
+    </p>
+  </div>
+{% else %}
+  <!-- Timeline -->
+  <div style="position:relative;">
+    <div style="position:absolute;left:18px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom, #0f766e, #e2e8f0);"></div>
+    {% for row in rows %}
+      {% with log=row.log %}
+      <div style="display:flex;gap:18px;margin-bottom:18px;align-items:flex-start;">
+        <!-- Icon -->
+        <div style="flex-shrink:0;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:1;
+          {% if log.accion == 'CREATE' %}background:#dcfce7;color:#15803d;
+          {% elif log.accion == 'UPDATE' %}background:#dbeafe;color:#1d4ed8;
+          {% elif log.accion == 'DELETE' %}background:#fee2e2;color:#b91c1c;
+          {% elif log.accion == 'ACTIVAR' %}background:#dcfce7;color:#15803d;
+          {% elif log.accion == 'DESACTIVAR' %}background:#fef3c7;color:#a16207;
+          {% elif log.accion == 'AUTOFIX' %}background:#ede9fe;color:#6d28d9;
+          {% elif log.accion == 'TEMPLATE' %}background:#ccfbf1;color:#0f766e;
+          {% elif log.accion == 'CSV_IMPORT' %}background:#e0f2fe;color:#0369a1;
+          {% else %}background:#f1f5f9;color:#475569;
+          {% endif %}
+          border:2px solid #fff;box-shadow:0 0 0 2px currentColor;">
+          {% if log.accion == 'CREATE' %}<i class="fas fa-plus"></i>
+          {% elif log.accion == 'UPDATE' %}<i class="fas fa-pen"></i>
+          {% elif log.accion == 'DELETE' %}<i class="fas fa-trash"></i>
+          {% elif log.accion == 'ACTIVAR' %}<i class="fas fa-toggle-on"></i>
+          {% elif log.accion == 'DESACTIVAR' %}<i class="fas fa-toggle-off"></i>
+          {% elif log.accion == 'AUTOFIX' %}<i class="fas fa-magic"></i>
+          {% elif log.accion == 'TEMPLATE' %}<i class="fas fa-bookmark"></i>
+          {% elif log.accion == 'CSV_IMPORT' %}<i class="fas fa-file-csv"></i>
+          {% else %}<i class="fas fa-circle"></i>
+          {% endif %}
+        </div>
+        <!-- Card -->
+        <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+            <div>
+              <strong style="color:#0d2b27;font-size:.95rem;">{{ log.get_accion_display }}</strong>
+              <span style="color:#94a3b8;font-size:.85rem;margin-left:6px;">por
+                {% if log.usuario_username %}
+                  <strong style="color:#0d2b27;">{{ log.usuario_username }}</strong>
+                {% else %}
+                  <em>sistema</em>
+                {% endif %}
+              </span>
+            </div>
+            <div style="color:#64748b;font-size:.8rem;text-align:right;">
+              <div>{{ log.fecha|date:"d M Y" }} · {{ log.fecha|date:"H:i:s" }}</div>
+              {% if log.ip %}<div style="font-family:monospace;font-size:.7rem;color:#94a3b8;">{{ log.ip }}</div>{% endif %}
+            </div>
+          </div>
+          {% if row.num_cambios %}
+            <div style="margin-top:8px;font-size:.78rem;color:#64748b;">{{ row.num_cambios }} campo{{ row.num_cambios|pluralize:"s" }} modificado{{ row.num_cambios|pluralize:"s" }}:</div>
+            <div style="margin-top:6px;padding:10px;background:#f8fafc;border-radius:6px;font-family:monospace;font-size:.74rem;line-height:1.6;border-left:3px solid #0f766e;">
+              {% for cambio in row.resumen %}
+                <div>{{ cambio }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endblock %}

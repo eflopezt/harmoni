@@ -455,6 +455,9 @@
                 <div class="nav-section-body">
 
                     <div class="nav-subheader"><i class="fas fa-calendar"></i><span>Períodos</span></div>
+                    <a href="{% url 'mi_dia_nominas' %}" class="nav-item" data-match="/nominas/mi-dia">
+                        <i class="fas fa-sun"></i><span>Mi Día Nóminas</span>
+                    </a>
                     <a href="{% url 'nominas_panel' %}" class="nav-item" data-match="^/nominas/$">
                         <i class="fas fa-list-alt"></i><span>Períodos</span>
                     </a>
@@ -472,6 +475,9 @@
                     </a>
 
                     <div class="nav-subheader"><i class="fas fa-cogs"></i><span>Configuración</span></div>
+                    <a href="{% url 'onboarding_validador' %}" class="nav-item" data-match="/nominas/onboarding">
+                        <i class="fas fa-clipboard-check"></i><span>Validador Onboarding</span>
+                    </a>
                     <a href="{% url 'nominas_saldos_apertura' %}" class="nav-item" data-match="/nominas/apertura">
                         <i class="fas fa-rocket"></i><span>Saldos de Apertura</span>
                     </a>

@@ -43,6 +43,7 @@ urlpatterns = [
 
     # ── Module APIs ──
     path('personal/', include('personal.api_urls')),
+    path('nominas/', include('nominas.api_urls')),
     path('asistencia/', include('asistencia.api_urls')),
     path('vacaciones/', include('vacaciones.api_urls')),
     path('prestamos/', include('prestamos.api_urls')),

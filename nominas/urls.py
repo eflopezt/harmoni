@@ -4,6 +4,8 @@ from . import views_liquidacion
 from . import views_legacy_import
 from . import views_conceptos
 from . import views_wizard_planilla
+from . import views_onboarding_validator
+from . import views_mi_dia
 
 urlpatterns = [
     # Panel y portal
@@ -30,6 +32,18 @@ urlpatterns = [
     path('conceptos/configurar/bulk/',         views_conceptos.conceptos_bulk_action,     name='conceptos_bulk_action'),
     path('conceptos/configurar/wizard/',       views_wizard_planilla.wizard_step1,         name='wizard_step1'),
     path('conceptos/configurar/wizard/seleccionar/', views_wizard_planilla.wizard_step2,   name='wizard_step2'),
+
+    # Audit log de conceptos (compliance + diagnóstico)
+    path('conceptos/configurar/audit-log/',            views_conceptos.conceptos_audit_log,
+                                                       name='conceptos_audit_log'),
+    path('conceptos/configurar/<int:pk>/historial/',   views_conceptos.concepto_historial,
+                                                       name='concepto_historial'),
+
+    # Validador de Onboarding y Mi Día Nóminas (admin)
+    path('onboarding/validador/',  views_onboarding_validator.onboarding_validador,
+                                   name='onboarding_validador'),
+    path('mi-dia/',                views_mi_dia.mi_dia_nominas,
+                                   name='mi_dia_nominas'),
 
     # Conceptos remunerativos (panel legacy/existing — read-only resumen)
     path('conceptos/', views.conceptos_panel, name='nominas_conceptos'),
