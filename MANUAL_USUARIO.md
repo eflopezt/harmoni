@@ -1773,6 +1773,147 @@ Al dar de baja a un trabajador, Harmoni calcula automáticamente todos los benef
 
 ---
 
+## 20.7 Audit Log de Conceptos (Bitácora de Cambios)
+
+**Compliance fiscal + diagnóstico**: cada cambio en cualquier concepto remunerativo queda registrado automáticamente.
+
+### Acceso
+**Menú → Nóminas → Conceptos → Audit log** (botón en barra superior)
+URL: `/nominas/conceptos/configurar/audit-log/`
+
+### Qué se captura
+- **Acción**: CREATE, UPDATE, DELETE, ACTIVAR, DESACTIVAR, AUTOFIX, TEMPLATE, CSV_IMPORT
+- **Detalle**: campo modificado + valor anterior + valor nuevo
+- **Quién**: usuario (username congelado aunque luego se elimine)
+- **Dónde**: IP de origen, URL/vista que generó el cambio
+- **Cuándo**: timestamp con segundos de precisión
+
+### Filtros disponibles
+- Por **código** de concepto (búsqueda parcial)
+- Por **usuario** que hizo el cambio
+- Por **acción** específica (ej: solo DELETE)
+- Por **rango de tiempo** (24h, 7 días, 30 días, 90 días)
+
+### Historial por concepto
+Desde la pantalla de editar cualquier concepto → botón **"Ver historial"** muestra el timeline visual completo de ese concepto específico.
+
+### Export CSV
+Botón **"Export CSV"** en la bitácora descarga los logs filtrados como CSV para auditorías externas, archivado o análisis offline. Hasta 5,000 filas por export.
+
+### Retención
+Por defecto los logs se conservan indefinidamente. Para implementar retention policy:
+```bash
+python manage.py cleanup_audit_logs --dias 365              # purga > 1 año
+python manage.py cleanup_audit_logs --dias 730 --dry-run    # simulación 2 años
+python manage.py cleanup_audit_logs --conservar-creates     # mantiene CREATE/DELETE
+```
+
+### Casos de uso reales
+1. **Auditoría fiscal**: "¿quién cambió la flag afecto_renta del concepto X antes del cierre de mes?"
+2. **Recuperación**: "¿cómo estaba configurado este concepto hace 2 semanas? Volvámoslo así."
+3. **Diagnóstico**: "Este mes la planilla salió diferente. ¿Algún concepto cambió en los últimos 30 días?"
+
+---
+
+## 20.8 Validador de Onboarding
+
+**¿Está mi empresa lista para procesar planilla en producción?** Una sola página responde con un score 0-100 y los pasos faltantes.
+
+### Acceso
+**Menú → Nóminas → Validador Onboarding**
+URL: `/nominas/onboarding/validador/`
+
+### Categorías que verifica
+1. **Empresa**: RUC, razón social, representante legal, logo, dirección
+2. **Conceptos & PLAME**: cantidad activos, críticos (sueldo, ESSALUD, IR), códigos PLAME asignados
+3. **Personal**: trabajadores cargados, CUSPP en AFP, fecha de alta
+4. **Planilla**: períodos generados, aprobados, saldos de apertura
+5. **Tasas legales**: AFPs configuradas y vigentes
+
+### Score
+- **≥ 90**: ¡Empresa lista para producción!
+- **70-89**: Configuración mejorable (warnings)
+- **< 70**: Requiere atención inmediata (hay errors)
+
+Cálculo: 100 − penalización proporcional al peso de cada check.
+Cada **error** resta su peso completo (0-100); cada **warning** resta el 50%; los OK e info no penalizan.
+
+### Próximas acciones priorizadas
+La página muestra el **Top 5 de acciones recomendadas** ordenadas por severidad y peso, con un botón "Resolver" que lleva directamente a la pantalla del fix.
+
+### Reporte PDF
+Botón **"Descargar PDF"** genera un reporte profesional para enviar al cliente. Útil como evidencia de configuración o sales asset ("Aquí está la prueba de que tu sistema está al 95%").
+
+### API JSON
+Endpoint integrable: `GET /api/v1/nominas/onboarding/` devuelve el score completo en JSON. Útil para:
+- Health-checks de CI/CD
+- Dashboards externos
+- Alertas automáticas (ej: Slack si score < 80)
+
+---
+
+## 20.9 Mi Día Nóminas
+
+**Dashboard personal del admin RR.HH.** Responde a "¿Qué tengo que hacer hoy en planilla?".
+
+### Acceso
+**Menú → Nóminas → Mi Día Nóminas** (al tope del menú)
+URL: `/nominas/mi-dia/`
+
+### Bloques
+1. **Saludo personalizado**: "Buenos días, [tu nombre]" + fecha actual
+2. **Pendientes recomendados (smart actions)**: detecta automáticamente según estado real:
+   - Período en BORRADOR → "Generar planilla"
+   - Período CALCULADO → "Aprobar planilla"
+   - Período APROBADO sin contabilizar → "Exportar asiento contable"
+   - ≥5 acuses sin firmar → "Notificar trabajadores"
+   - Inconsistencias en conceptos → "Revisar configuración"
+   - Período APROBADO → "Exportar PLAME"
+3. **Período actual**: KPIs en vivo (trabajadores, bruto, descuentos, neto)
+4. **Cambios recientes 7 días**: últimos audit logs con link al detalle
+5. **Hoy / Esta semana / Próximas 4 semanas**: calendario laboral peruano
+   - Gratificación julio/diciembre (15)
+   - CTS mayo/noviembre (15)
+   - IR 5ta Categoría enero (31)
+   - Utilidades marzo (31)
+6. **Status compacto**: acuses pendientes, inconsistencias, cambios 7d
+
+### API JSON (mobile-ready)
+Endpoint: `GET /api/v1/nominas/mi-dia/` devuelve el dashboard completo en JSON, listo para consumir desde apps mobile futuras.
+
+---
+
+## 20.10 Snapshot y Restore de Conceptos
+
+Para backup defensivo antes de cambios masivos o migración entre ambientes.
+
+### Crear snapshot
+```bash
+python manage.py snapshot_conceptos                          # snapshots/conceptos_YYYYMMDD_HHMMSS.json
+python manage.py snapshot_conceptos --label "antes-bulk"     # con etiqueta
+python manage.py snapshot_conceptos --out /tmp/backup.json   # destino custom
+```
+
+### Restaurar
+```bash
+# Modo MERGE (default — UPSERT por código)
+python manage.py snapshot_conceptos --restore backup.json --dry-run    # simulación
+python manage.py snapshot_conceptos --restore backup.json
+
+# Modo RESET (borra los no-sistema y recrea)
+python manage.py snapshot_conceptos --restore backup.json --strategy reset
+```
+
+### Casos de uso
+- **Pre-bulk action**: antes de ejecutar auto-fix masivo o CSV import grande
+- **Migración**: snapshot de prod → restore en demo (o entre clientes)
+- **Recuperación**: alguien sobreescribió 30 conceptos por error → restore en 5 segundos
+
+### Compliance
+Todas las operaciones de restore quedan registradas en el **audit log** con el usuario superuser que ejecutó el comando y la acción `UPDATE`/`CREATE` según corresponda.
+
+---
+
 ## 20.5 Planes Comerciales (Starter / Profesional / Business / Enterprise)
 
 Harmoni tiene 4 planes según el tamaño de tu empresa:

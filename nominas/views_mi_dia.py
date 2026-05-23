@@ -4,6 +4,9 @@
 Vista personalizada que responde a:
 "¿Qué tengo que hacer hoy en planilla?"
 
+Expone también API JSON: GET /api/v1/nominas/mi-dia/
+para apps mobile e integraciones.
+
 Bloques:
 1. Hoy / Esta semana — fechas críticas del calendario laboral peruano
 2. Período actual — estado del mes y siguientes pasos
@@ -81,12 +84,15 @@ def _periodo_actual(hoy):
     return p, 'historico'
 
 
-@login_required
-@solo_admin
-def mi_dia_nominas(request):
-    """Dashboard 'Mi Día Nóminas'."""
+def build_mi_dia_report(usuario):
+    """Recolecta todo el contexto de 'Mi Día Nóminas'.
+
+    Separado para que tanto la vista HTML como la API JSON
+    compartan la lógica.
+    """
     hoy = timezone.localdate()
-    nombre_user = request.user.get_full_name() or request.user.username
+    nombre_user = (usuario.get_full_name() if usuario.is_authenticated else None) \
+                  or (usuario.username if usuario.is_authenticated else 'invitado')
 
     # Saludo según hora
     hora = timezone.localtime().hour
@@ -225,7 +231,7 @@ def mi_dia_nominas(request):
             'link': reverse('nominas_panel'),
         })
 
-    return render(request, 'nominas/mi_dia_nominas.html', {
+    return {
         'hoy':                hoy,
         'nombre_user':        nombre_user,
         'saludo':             saludo,
@@ -240,4 +246,72 @@ def mi_dia_nominas(request):
         'cambios_count':      cambios_count,
         'kpi':                kpi,
         'tareas':             tareas,
+    }
+
+
+# ─── Vista HTML ──────────────────────────────────────────────────────
+@login_required
+@solo_admin
+def mi_dia_nominas(request):
+    """Dashboard HTML 'Mi Día Nóminas'."""
+    ctx = build_mi_dia_report(request.user)
+    return render(request, 'nominas/mi_dia_nominas.html', ctx)
+
+
+# ─── API JSON ────────────────────────────────────────────────────────
+@login_required
+def mi_dia_api(request):
+    """GET /api/v1/nominas/mi-dia/  →  JSON mobile-friendly."""
+    from django.http import JsonResponse
+
+    ctx = build_mi_dia_report(request.user)
+
+    # Serializar: períodos, fechas, logs → dicts
+    periodo = ctx['periodo']
+    periodo_dict = None
+    if periodo:
+        periodo_dict = {
+            'id':           periodo.pk,
+            'tipo':         periodo.tipo,
+            'anio':         periodo.anio,
+            'mes':          periodo.mes,
+            'estado':       periodo.estado,
+            'descripcion':  str(periodo),
+        }
+
+    cambios = [{
+        'fecha':           log.fecha.isoformat(),
+        'accion':          log.accion,
+        'accion_label':    log.get_accion_display(),
+        'concepto_codigo': log.concepto_codigo,
+        'concepto_nombre': log.concepto_nombre,
+        'usuario':         log.usuario_username or 'sistema',
+        'num_cambios':     log.num_cambios,
+    } for log in ctx['cambios_recientes']]
+
+    eventos_to_dict = lambda lst: [{
+        'fecha':       e['fecha'].isoformat(),
+        'dias':        e['dias'],
+        'label':       e['label'],
+        'descripcion': e['descripcion'],
+        'severidad':   e['severidad'],
+        'es_hoy':      e['es_hoy'],
+        'es_pronto':   e['es_pronto'],
+    } for e in lst]
+
+    return JsonResponse({
+        'hoy':             ctx['hoy'].isoformat(),
+        'saludo':          ctx['saludo'],
+        'usuario':         ctx['nombre_user'],
+        'periodo':         periodo_dict,
+        'periodo_estado': ctx['periodo_estado'],
+        'kpi':             ctx['kpi'],
+        'eventos_hoy':     eventos_to_dict(ctx['eventos_hoy']),
+        'eventos_semana':  eventos_to_dict(ctx['eventos_semana']),
+        'eventos_mes':     eventos_to_dict(ctx['eventos_mes']),
+        'acuses_pendientes': ctx['acuses_pendientes'],
+        'inconsistencias': ctx['inconsistencias'],
+        'cambios_count':   ctx['cambios_count'],
+        'cambios_recientes': cambios,
+        'tareas':          ctx['tareas'],
     })
