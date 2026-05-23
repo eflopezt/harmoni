@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Reporte de Onboarding — {{ empresa.razon_social|default:"Harmoni ERP" }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 15mm 18mm 15mm;
+      @bottom-center { content: "Reporte de Onboarding · Página " counter(page) " de " counter(pages); font-size: 9pt; color: #94a3b8; }
+    }
+    body { font-family: 'Helvetica', sans-serif; font-size: 10pt; color: #0d2b27; }
+    .header { border-bottom: 3px solid #0f766e; padding-bottom: 10px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-end; }
+    h1 { color: #0f766e; margin: 0; font-size: 20pt; }
+    .subtitle { color: #64748b; font-size: 10pt; margin-top: 4px; }
+    .meta { text-align: right; font-size: 9pt; color: #64748b; }
+    .score-box { background: {{ status_color }}; color: #fff; padding: 18px 22px; border-radius: 10px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
+    .score-value { font-size: 42pt; font-weight: 900; line-height: 1; }
+    .score-label { font-size: 12pt; opacity: 0.95; margin-top: 4px; }
+    .totals { display: flex; gap: 14px; font-size: 9pt; }
+    .totals .pill { background: rgba(255,255,255,0.18); padding: 6px 10px; border-radius: 6px; }
+    h2 { color: #0d2b27; font-size: 13pt; margin: 16px 0 8px; border-left: 4px solid #0f766e; padding-left: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 9.5pt; }
+    th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    .sev { font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 8.5pt; }
+    .sev-ok    { background: #dcfce7; color: #15803d; }
+    .sev-warn  { background: #fef3c7; color: #a16207; }
+    .sev-error { background: #fee2e2; color: #b91c1c; }
+    .sev-info  { background: #e0f2fe; color: #0369a1; }
+    .pendiente { background: #fffbeb; border-left: 3px solid #fcd34d; padding: 8px 12px; margin: 4px 0; }
+    .footer { margin-top: 18px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 8pt; color: #94a3b8; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>Reporte de Onboarding</h1>
+      <div class="subtitle">{{ empresa.razon_social|default:"Sin empresa configurada" }}{% if empresa.ruc %} · RUC {{ empresa.ruc }}{% endif %}</div>
+    </div>
+    <div class="meta">
+      <div><strong>Emitido:</strong> {{ fecha_emision|date:"j F Y, H:i" }}</div>
+      <div>Harmoni ERP</div>
+    </div>
+  </div>
+
+  <!-- Score Hero -->
+  <div class="score-box">
+    <div>
+      <div class="score-label">Score de configuración</div>
+      <div class="score-value">{{ score }}/100</div>
+      <div class="score-label">{{ status_label }}</div>
+    </div>
+    <div class="totals">
+      <div class="pill"><strong>{{ n_ok }}</strong> OK</div>
+      <div class="pill"><strong>{{ n_warn }}</strong> Warn</div>
+      <div class="pill"><strong>{{ n_error }}</strong> Error</div>
+      {% if n_info %}<div class="pill"><strong>{{ n_info }}</strong> Info</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Acciones priorizadas -->
+  {% if pendientes %}
+  <h2>Próximas acciones recomendadas</h2>
+  {% for p in pendientes %}
+    <div class="pendiente">
+      <strong>{{ p.titulo }}</strong> &mdash; {{ p.descripcion }}
+      <div style="font-size:8.5pt;color:#94a3b8;margin-top:2px;">Categoría: {{ p.cat_label }} · Peso: {{ p.peso }}</div>
+    </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Detalle por categoría -->
+  {% for cat_key, cat in por_categoria.items %}
+  <h2>{{ cat.label }}</h2>
+  <table>
+    <thead>
+      <tr style="background:#f8fafc;">
+        <th style="width:60px;">Estado</th>
+        <th>Verificación</th>
+        <th style="width:50px;text-align:center;">Peso</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cat.items %}
+      <tr>
+        <td>
+          {% if c.severidad == 'ok' %}<span class="sev sev-ok">✓ OK</span>
+          {% elif c.severidad == 'warn' %}<span class="sev sev-warn">⚠ Warn</span>
+          {% elif c.severidad == 'error' %}<span class="sev sev-error">✗ Error</span>
+          {% else %}<span class="sev sev-info">i Info</span>{% endif %}
+        </td>
+        <td>
+          <strong>{{ c.titulo }}</strong><br>
+          <span style="color:#64748b;font-size:9pt;">{{ c.descripcion }}</span>
+        </td>
+        <td style="text-align:center;color:#64748b;">{{ c.peso }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+
+  <div class="footer">
+    Este reporte se genera automáticamente desde Harmoni ERP &mdash; sistema de planilla peruano.<br>
+    El score se calcula penalizando warns (50% peso) y errors (100% peso). Score ≥ 90 indica empresa lista para producción.<br>
+    <strong>Harmoni</strong> · https://harmoni.pe · soporte@harmoni.pe
+  </div>
+
+</body>
+</html>

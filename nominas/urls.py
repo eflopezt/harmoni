@@ -36,14 +36,18 @@ urlpatterns = [
     # Audit log de conceptos (compliance + diagnóstico)
     path('conceptos/configurar/audit-log/',            views_conceptos.conceptos_audit_log,
                                                        name='conceptos_audit_log'),
+    path('conceptos/configurar/audit-log/csv/',        views_conceptos.conceptos_audit_log_csv,
+                                                       name='conceptos_audit_log_csv'),
     path('conceptos/configurar/<int:pk>/historial/',   views_conceptos.concepto_historial,
                                                        name='concepto_historial'),
 
     # Validador de Onboarding y Mi Día Nóminas (admin)
-    path('onboarding/validador/',  views_onboarding_validator.onboarding_validador,
-                                   name='onboarding_validador'),
-    path('mi-dia/',                views_mi_dia.mi_dia_nominas,
-                                   name='mi_dia_nominas'),
+    path('onboarding/validador/',     views_onboarding_validator.onboarding_validador,
+                                      name='onboarding_validador'),
+    path('onboarding/validador.pdf',  views_onboarding_validator.onboarding_validador_pdf,
+                                      name='onboarding_validador_pdf'),
+    path('mi-dia/',                   views_mi_dia.mi_dia_nominas,
+                                      name='mi_dia_nominas'),
 
     # Conceptos remunerativos (panel legacy/existing — read-only resumen)
     path('conceptos/', views.conceptos_panel, name='nominas_conceptos'),

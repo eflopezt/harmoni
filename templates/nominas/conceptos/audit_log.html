@@ -11,7 +11,10 @@
       Trail completo de creaciones, modificaciones y eliminaciones — compliance &amp; diagnóstico
     </p>
   </div>
-  <div style="display:flex;gap:8px;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'conceptos_audit_log_csv' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary btn-sm" title="Descargar bitácora filtrada como CSV">
+      <i class="fas fa-file-csv me-1"></i> Export CSV
+    </a>
     <a href="{% url 'conceptos_lista' %}" class="btn btn-outline-secondary btn-sm">
       <i class="fas fa-arrow-left me-1"></i> Volver a conceptos
     </a>

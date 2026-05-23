@@ -1,9 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Mi Día Nóminas{% endblock %}
+{% block extra_css %}
+<style>
+  /* Mobile polish — Mi Día Nóminas */
+  @media (max-width: 768px) {
+    .mi-dia-hero {
+      padding: 18px 16px !important;
+    }
+    .mi-dia-hero h2 {
+      font-size: 1.3rem !important;
+    }
+    .mi-dia-hero p {
+      font-size: .85rem !important;
+    }
+    .mi-dia-hero .actions {
+      width: 100%;
+    }
+    .mi-dia-hero .actions a {
+      flex: 1;
+      min-width: 130px;
+      text-align: center;
+      font-size: .75rem !important;
+      padding: 6px 10px !important;
+    }
+    .mi-dia-kpi-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .mi-dia-card {
+      padding: 14px !important;
+    }
+    .mi-dia-card h5,
+    .mi-dia-card h6 {
+      font-size: .95rem !important;
+    }
+  }
+</style>
+{% endblock %}
 {% block content %}
 
 <!-- Hero saludo -->
-<div style="background:linear-gradient(135deg, #0f766e 0%, #0d6b62 50%, #134e4a 100%);
+<div class="mi-dia-hero" style="background:linear-gradient(135deg, #0f766e 0%, #0d6b62 50%, #134e4a 100%);
             color:#fff;padding:28px 30px;border-radius:14px;margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;">
     <div>
@@ -14,7 +50,7 @@
         Aquí está tu resumen del día.
       </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;">
       <a href="{% url 'onboarding_validador' %}" style="background:rgba(255,255,255,.18);color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.85rem;">
         <i class="fas fa-clipboard-check me-1"></i> Validador onboarding
       </a>
@@ -30,7 +66,7 @@
   <div class="col-lg-8">
 
     <!-- Tareas sugeridas (smart actions) -->
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:18px;">
+    <div class="mi-dia-card" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:18px;">
       <h5 style="margin:0 0 14px;color:#0d2b27;font-weight:800;">
         <i class="fas fa-tasks me-2" style="color:#0f766e;"></i> Pendientes recomendados
       </h5>
@@ -51,7 +87,7 @@
 
     <!-- Período actual -->
     {% if periodo %}
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:18px;">
+    <div class="mi-dia-card" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:18px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
         <h5 style="margin:0;color:#0d2b27;font-weight:800;">
           <i class="fas fa-file-invoice-dollar me-2" style="color:#0f766e;"></i>
@@ -62,7 +98,7 @@
         </span>
       </div>
       {% if kpi.trabajadores %}
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+      <div class="mi-dia-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
         <div style="background:#f8fafc;padding:12px 14px;border-radius:8px;">
           <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Trabajadores</div>
           <div style="font-size:1.4rem;font-weight:800;color:#0d2b27;line-height:1;">{{ kpi.trabajadores }}</div>

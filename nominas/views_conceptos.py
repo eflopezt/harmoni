@@ -852,3 +852,57 @@ def concepto_historial(request, pk):
         'rows': rows,
         'total': logs.count(),
     })
+
+
+@login_required
+def conceptos_audit_log_csv(request):
+    """
+    Export del audit log a CSV — para auditorías externas o backups.
+    Respeta los mismos filtros del view HTML.
+    """
+    import csv
+    from datetime import timedelta
+    from django.http import HttpResponse
+    from django.utils import timezone as dj_tz
+
+    logs = ConceptoAuditLog.objects.select_related('usuario').order_by('-fecha')
+
+    codigo = request.GET.get('codigo', '').strip()
+    if codigo:
+        logs = logs.filter(concepto_codigo__icontains=codigo)
+    accion = request.GET.get('accion', '').strip()
+    if accion:
+        logs = logs.filter(accion=accion)
+    usuario_q = request.GET.get('usuario', '').strip()
+    if usuario_q:
+        logs = logs.filter(usuario_username__icontains=usuario_q)
+    dias = request.GET.get('dias', '').strip()
+    if dias and dias.isdigit() and int(dias) > 0:
+        desde = dj_tz.now() - timedelta(days=int(dias))
+        logs = logs.filter(fecha__gte=desde)
+
+    resp = HttpResponse(content_type='text/csv; charset=utf-8')
+    resp['Content-Disposition'] = (
+        f'attachment; filename="audit_conceptos_{dj_tz.now():%Y%m%d_%H%M%S}.csv"'
+    )
+    writer = csv.writer(resp)
+    writer.writerow([
+        'fecha', 'accion', 'concepto_codigo', 'concepto_nombre',
+        'usuario', 'ip', 'contexto', 'num_cambios', 'cambios_detalle',
+    ])
+
+    for log in logs[:5000]:  # cap defensivo: 5k filas máx
+        cambios_str = '; '.join(log.resumen_cambios) if log.resumen_cambios else ''
+        writer.writerow([
+            log.fecha.strftime('%Y-%m-%d %H:%M:%S'),
+            log.get_accion_display(),
+            log.concepto_codigo,
+            log.concepto_nombre,
+            log.usuario_username or 'sistema',
+            log.ip or '',
+            log.contexto or '',
+            log.num_cambios,
+            cambios_str,
+        ])
+
+    return resp

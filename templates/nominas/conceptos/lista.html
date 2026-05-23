@@ -1,5 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Conceptos Remunerativos — Configuración{% endblock %}
+{% block extra_css %}
+<style>
+  @media (max-width: 992px) {
+    /* Tabla de conceptos se vuelve scrollable horizontal en tablet */
+    .conceptos-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .conceptos-table-wrap table {
+      min-width: 880px;
+    }
+  }
+  @media (max-width: 768px) {
+    /* KPIs grid se vuelve 2 columnas en mobile */
+    .conceptos-kpis {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    /* Filtros stack verticalmente */
+    .conceptos-filtros input,
+    .conceptos-filtros select {
+      max-width: 100% !important;
+      width: 100%;
+    }
+    /* Botones acción header full width */
+    .conceptos-header-actions {
+      width: 100%;
+    }
+    .conceptos-header-actions a {
+      flex: 1 1 calc(50% - 4px);
+      text-align: center;
+      font-size: .8rem !important;
+    }
+  }
+</style>
+{% endblock %}
 {% block content %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
@@ -7,7 +42,7 @@
     <h2 style="margin:0;color:#0d2b27;font-weight:800;">Conceptos remunerativos</h2>
     <p style="margin:4px 0 0;color:#64748b;">Configuración de ingresos, descuentos y aportes — afectaciones legales y mapeo SUNAT/PLAME</p>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+  <div class="conceptos-header-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
     <a href="{% url 'conceptos_audit_log' %}" class="btn btn-outline-secondary btn-sm" title="Ver bitácora de cambios">
       <i class="fas fa-history me-1"></i> Audit log
     </a>
@@ -24,7 +59,7 @@
 </div>
 
 <!-- KPIs -->
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
+<div class="conceptos-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
   <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
     <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Total</div>
     <div style="font-size:1.8rem;font-weight:800;color:#0d2b27;line-height:1;">{{ total }}</div>
@@ -48,7 +83,7 @@
 </div>
 
 <!-- Filtros + búsqueda -->
-<form method="get" style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+<form method="get" class="conceptos-filtros" style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
   <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, código, PLAME, descripción..." class="form-control form-control-sm" style="max-width:280px;">
   <select name="tipo" onchange="this.form.submit()" class="form-select form-select-sm" style="max-width:180px;">
     <option value="">Todos los tipos</option>
@@ -85,7 +120,7 @@
 </form>
 
 <!-- Tabla -->
-<div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;">
+<div class="conceptos-table-wrap" style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;">
   <div style="overflow-x:auto;">
     <table class="table mb-0" style="font-size:.85rem;">
       <thead style="background:#f8fafc;">

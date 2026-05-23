@@ -1,3 +1,6 @@
+# Snapshots de conceptos (generados por manage.py snapshot_conceptos)
+snapshots/
+
 # Python
 __pycache__/
 *.py[cod]

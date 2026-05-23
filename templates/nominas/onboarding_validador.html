@@ -1,5 +1,29 @@
 {% extends "base.html" %}
 {% block title %}Validador de Onboarding — ¿Estás listo para producción?{% endblock %}
+{% block extra_css %}
+<style>
+  @media (max-width: 768px) {
+    .onboarding-hero {
+      padding: 18px 16px !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+    }
+    .onboarding-hero .score-value {
+      font-size: 2.6rem !important;
+    }
+    .onboarding-cat-table th,
+    .onboarding-cat-table td {
+      padding: 8px 10px !important;
+    }
+    .onboarding-cat-table .col-action {
+      display: none;  /* Esconde columna 'Resolver' en mobile — botón aparece dentro de la celda titulo */
+    }
+    .onboarding-cat-table .col-icon {
+      width: 28px !important;
+    }
+  }
+</style>
+{% endblock %}
 {% block content %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
@@ -11,7 +35,10 @@
       Checklist consolidado: <strong>¿está la empresa lista para procesar planilla?</strong>
     </p>
   </div>
-  <div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'onboarding_validador_pdf' %}" class="btn btn-sm btn-success" style="background:#0f766e;border-color:#0f766e;" title="Descargar reporte como PDF para enviar al cliente">
+      <i class="fas fa-file-pdf me-1"></i> Descargar PDF
+    </a>
     <a href="{% url 'nominas_panel' %}" class="btn btn-sm btn-outline-secondary">
       <i class="fas fa-arrow-left me-1"></i> Volver
     </a>
@@ -19,14 +46,14 @@
 </div>
 
 <!-- Score Hero -->
-<div style="background:linear-gradient(135deg, {{ status_color }} 0%, {{ status_color }}cc 100%);
+<div class="onboarding-hero" style="background:linear-gradient(135deg, {{ status_color }} 0%, {{ status_color }}cc 100%);
             color:#fff;padding:24px 28px;border-radius:14px;margin-bottom:20px;
             display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;">
   <div>
     <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">
       Score de configuración
     </div>
-    <div style="font-size:3.5rem;font-weight:900;line-height:1;margin-top:6px;">
+    <div class="score-value" style="font-size:3.5rem;font-weight:900;line-height:1;margin-top:6px;">
       {{ score }}<span style="font-size:1.8rem;opacity:.7;">/100</span>
     </div>
     <div style="font-size:1.05rem;font-weight:600;margin-top:6px;">{{ status_label }}</div>
@@ -89,11 +116,11 @@
       {% if cat.ok_count %}<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:6px;font-weight:700;">{{ cat.ok_count }} OK</span>{% endif %}
     </div>
   </div>
-  <table class="table table-sm mb-0">
+  <table class="table table-sm mb-0 onboarding-cat-table">
     <tbody>
       {% for c in cat.items %}
       <tr style="border-top:1px solid #f1f5f9;">
-        <td style="padding:12px 20px;width:36px;vertical-align:top;">
+        <td class="col-icon" style="padding:12px 20px;width:36px;vertical-align:top;">
           {% if c.severidad == 'ok' %}
             <i class="fas fa-check-circle" style="color:#15803d;font-size:1.2rem;"></i>
           {% elif c.severidad == 'warn' %}
@@ -108,7 +135,7 @@
           <div style="font-weight:600;color:#0d2b27;font-size:.95rem;">{{ c.titulo }}</div>
           <div style="color:#64748b;font-size:.85rem;margin-top:2px;">{{ c.descripcion }}</div>
         </td>
-        <td style="padding:12px 20px;vertical-align:top;text-align:right;white-space:nowrap;">
+        <td class="col-action" style="padding:12px 20px;vertical-align:top;text-align:right;white-space:nowrap;">
           {% if c.link %}
             <a href="{{ c.link }}" class="btn btn-sm btn-outline-secondary">
               {% if c.severidad == 'ok' %}<i class="fas fa-eye"></i>{% else %}<i class="fas fa-wrench"></i>{% endif %}

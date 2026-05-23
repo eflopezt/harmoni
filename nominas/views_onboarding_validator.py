@@ -1,6 +1,9 @@
 """
 Validador de Onboarding — Checklist "¿está la empresa lista para procesar planilla?"
 
+Expone también un endpoint API JSON: GET /api/v1/nominas/onboarding/
+para integraciones, monitoreo y CI checks.
+
 Comprueba en una sola página todos los pre-requisitos para que un cliente
 empiece a usar Harmoni con confianza:
 
@@ -308,14 +311,14 @@ def _url_exists(name):
         return False
 
 
-# ─── Vista principal ─────────────────────────────────────────────
-@login_required
-@solo_admin
-def onboarding_validador(request):
+# ─── Builder principal — usable por vista + API ──────────────────
+def build_onboarding_report():
     """
-    Checklist consolidado: muestra estado de configuración de la empresa.
+    Construye reporte completo de onboarding.
 
-    Compute score: 100 - penalización proporcional al peso de cada warn/error.
+    Retorna dict con:
+    - empresa, checks, por_categoria, score, status, status_label,
+    - n_ok, n_warn, n_error, n_info, total, pendientes
     """
     # Empresa activa
     empresa = None
@@ -388,7 +391,7 @@ def onboarding_validador(request):
         key=lambda c: (-1 if c['severidad'] == 'error' else 0, -c['peso']),
     )[:5]
 
-    return render(request, 'nominas/onboarding_validador.html', {
+    return {
         'empresa':        empresa,
         'checks':         checks,
         'por_categoria':  por_categoria,
@@ -402,4 +405,89 @@ def onboarding_validador(request):
         'status_label':   status_label,
         'status_color':   status_color,
         'pendientes':     pendientes,
+    }
+
+
+# ─── Vista HTML ──────────────────────────────────────────────────
+@login_required
+@solo_admin
+def onboarding_validador(request):
+    """Checklist consolidado: muestra estado de configuración de la empresa."""
+    report = build_onboarding_report()
+    return render(request, 'nominas/onboarding_validador.html', report)
+
+
+# ─── API JSON ────────────────────────────────────────────────────
+@login_required
+def onboarding_validador_api(request):
+    """
+    GET /api/v1/nominas/onboarding/  →  JSON con score + checks.
+
+    Útil para CI checks, monitoreo externo, integraciones, dashboards.
+    """
+    from django.http import JsonResponse
+
+    report = build_onboarding_report()
+    # Serializar a JSON-friendly: empresa→dict, checks ya son dicts puros
+    empresa = report['empresa']
+    empresa_dict = None
+    if empresa:
+        empresa_dict = {
+            'id':            empresa.pk,
+            'ruc':           empresa.ruc,
+            'razon_social':  empresa.razon_social,
+            'plan':          getattr(empresa, 'plan', None),
+            'representante': empresa.representante_legal or None,
+        }
+
+    return JsonResponse({
+        'score':         report['score'],
+        'status':        report['status'],
+        'status_label':  report['status_label'],
+        'empresa':       empresa_dict,
+        'totals': {
+            'ok':    report['n_ok'],
+            'warn':  report['n_warn'],
+            'error': report['n_error'],
+            'info':  report['n_info'],
+            'total': report['total'],
+        },
+        'checks':        report['checks'],
+        'pendientes':    report['pendientes'],
+        'generated_at':  timezone_now_iso(),
     })
+
+
+def timezone_now_iso():
+    from django.utils import timezone as dj_tz
+    return dj_tz.now().isoformat()
+
+
+# ─── PDF Onboarding (sales asset!) ───────────────────────────────
+@login_required
+@solo_admin
+def onboarding_validador_pdf(request):
+    """
+    Genera PDF del reporte de onboarding — para enviar al cliente.
+    Útil como sales asset: "Aquí está la evidencia de que tu sistema está al 95%".
+    """
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+    from django.utils import timezone as dj_tz
+
+    report = build_onboarding_report()
+    report['fecha_emision'] = dj_tz.now()
+
+    html = render_to_string('nominas/onboarding_validador_pdf.html', report)
+
+    try:
+        from weasyprint import HTML
+        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
+        resp = HttpResponse(pdf_bytes, content_type='application/pdf')
+        resp['Content-Disposition'] = (
+            f'attachment; filename="onboarding_{dj_tz.now():%Y%m%d}.pdf"'
+        )
+        return resp
+    except ImportError:
+        # Fallback HTML si WeasyPrint no está disponible
+        return HttpResponse(html, content_type='text/html; charset=utf-8')
