@@ -521,7 +521,8 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     }
 
 
-BONIF_EXTRAORDINARIA_TASA = Decimal('9')   # % Ley 29351 — vigente
+BONIF_EXTRAORDINARIA_TASA     = Decimal('9.00')    # % Ley 29351 — trabajadores en ESSALUD regular
+BONIF_EXTRAORDINARIA_TASA_EPS = Decimal('6.75')    # % cuando trabajador tiene EPS (Ley 26790)
 
 
 def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
@@ -563,9 +564,15 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     # ── 2. Gratificación proporcional ────────────────────────────────────
     gratif     = _redondear(rem_base * Decimal(meses) / Decimal('6'))
 
-    # ── 3. Bonificación extraordinaria 9% (Ley 29351) ───────────────────
+    # ── 3. Bonificación extraordinaria (Ley 29351 + Ley 26790) ──────────
     #    Este monto LO PAGA EL EMPLEADOR, no descuenta al trabajador.
-    bonif_extra = _redondear(gratif * BONIF_EXTRAORDINARIA_TASA / Decimal('100'))
+    #    Tasa:
+    #      - 9.00% si trabajador está en ESSALUD regular (sin EPS)
+    #      - 6.75% si trabajador está afiliado a EPS — porque la diferencia (2.25%)
+    #        ya está cubierta por el aporte a la EPS particular (Ley 26790 art. 15)
+    tiene_eps = bool(getattr(p.personal, 'tiene_eps', False))
+    bonif_tasa = BONIF_EXTRAORDINARIA_TASA_EPS if tiene_eps else BONIF_EXTRAORDINARIA_TASA
+    bonif_extra = _redondear(gratif * bonif_tasa / Decimal('100'))
 
     total_ingreso = gratif  # Lo que recibe el trabajador (gratif neta)
 
@@ -580,7 +587,9 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     neto         = gratif
 
     # ── 5. Aportes empleador ─────────────────────────────────────────────
-    essalud     = _redondear(gratif * ESSALUD_TASA / Decimal('100'))
+    #    Si tiene EPS, ESSALUD efectivo se reduce a 6.75% (los 2.25% se van a EPS).
+    essalud_tasa = (Decimal('9.00') - Decimal('2.25')) if tiene_eps else ESSALUD_TASA
+    essalud     = _redondear(gratif * essalud_tasa / Decimal('100'))
     costo_total = _redondear(gratif + bonif_extra + essalud)
 
     # ── Construir líneas ──────────────────────────────────────────────────
@@ -599,8 +608,8 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     # Ingreso
     _ag('gratificacion',         rem_base,   Decimal('0'), gratif,
         f'{meses}/6 meses — base S/{rem_base}')
-    _ag('bonif-extraordinaria',  gratif,     BONIF_EXTRAORDINARIA_TASA, bonif_extra,
-        'Ley 29351 — aporte empleador')
+    _ag('bonif-extraordinaria',  gratif,     bonif_tasa, bonif_extra,
+        f'Ley 29351 — {"6.75% (EPS)" if tiene_eps else "9% (ESSALUD reg.)"}')
 
     # Descuentos
     if afp_aporte > 0:

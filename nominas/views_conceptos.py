@@ -31,68 +31,81 @@ from .models import ConceptoRemunerativo
 # ════════════════════════════════════════════════════════════════════════
 
 TEMPLATES_CONCEPTOS = {
-    'vale_canasta': {
-        'codigo': 'vale_canasta', 'nombre': 'Vale de canasta',
-        'descripcion': 'Vale de canasta navideña o mensual. NO remunerativo. No afecta ESSALUD ni AFP ni IR. (Art. 19 LRJ).',
-        'categoria': 'ALIMENTACION', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
-        'formula': 'FIJO', 'monto_fijo': Decimal('200.00'),
-        'afecto_essalud': False, 'afecto_afp': False, 'afecto_onp': False,
-        'afecto_renta': False, 'afecto_cts': False, 'afecto_gratif': False,
-        'codigo_plame': '0922',  # Otros ingresos no remunerativos
+    # ─── INGRESOS REMUNERATIVOS ─────────────────────────────────────────
+    'sueldo_basico': {
+        'codigo': 'sueldo_basico', 'nombre': 'Remuneración o jornal básico',
+        'descripcion': 'Sueldo base mensual del trabajador. REMUNERATIVO — afecta todo.',
+        'categoria': 'SUELDO', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'FIJO',
+        'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': True, 'afecto_gratif': True,
+        'afecto_vacaciones': True,
+        'codigo_plame': '0121',  # OFICIAL SUNAT
     },
-    'movilidad': {
-        'codigo': 'movilidad', 'nombre': 'Movilidad',
-        'descripcion': 'Asignación por movilidad. NO remunerativo (Art. 19 LRJ).',
-        'categoria': 'MOVILIDAD', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
-        'formula': 'FIJO', 'monto_fijo': Decimal('150.00'),
-        'afecto_essalud': False, 'afecto_afp': False, 'afecto_renta': False,
-        'codigo_plame': '0916',
+    'asignacion_familiar': {
+        'codigo': 'asignacion_familiar', 'nombre': 'Asignación familiar',
+        'descripcion': '10% RMV mensual (Ley 25129). REMUNERATIVO si trabajador tiene hijos menores.',
+        'categoria': 'FAMILIAR', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'FIJO', 'monto_fijo': Decimal('113.00'),  # 10% RMV 2026 (S/1130)
+        'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': True, 'afecto_gratif': True,
+        'afecto_vacaciones': True,
+        'codigo_plame': '0201',
     },
-    'refrigerio': {
-        'codigo': 'refrigerio', 'nombre': 'Refrigerio',
-        'descripcion': 'Refrigerio servido en el centro de trabajo. NO remunerativo.',
-        'categoria': 'ALIMENTACION', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
-        'formula': 'FIJO', 'monto_fijo': Decimal('100.00'),
-        'codigo_plame': '0917',
-    },
-    'propinas': {
-        'codigo': 'propinas', 'nombre': 'Propinas',
-        'descripcion': 'Propinas recibidas por el personal de servicio. NO remunerativo (DS 003-2018-TR).',
-        'categoria': 'PROPINAS', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+    'comision_ventas': {
+        'codigo': 'comision_ventas', 'nombre': 'Comisiones o destajo',
+        'descripcion': 'Comisión variable por ventas/destajo. REMUNERATIVA — afecta todo.',
+        'categoria': 'COMISION', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
         'formula': 'MANUAL',
-        'codigo_plame': '0920',
+        'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': True, 'afecto_gratif': True,
+        'afecto_vacaciones': True,
+        'codigo_plame': '0103',
     },
-    'recargo_consumo': {
-        'codigo': 'recargo_consumo', 'nombre': 'Recargo por consumo (10%)',
-        'descripcion': 'Recargo del 10% al consumo distribuido entre el personal de servicio. NO remunerativo.',
-        'categoria': 'PROPINAS', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+    'horas_extras_25': {
+        'codigo': 'horas_extras_25', 'nombre': 'Horas extras 25%',
+        'descripcion': 'Sobretiempo primera y segunda hora (Ley 27671 art. 10). REMUNERATIVO.',
+        'categoria': 'OTROS_ING', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'HE_25',
+        'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': True, 'afecto_gratif': True,
+        'codigo_plame': '0105',
+    },
+    'horas_extras_35': {
+        'codigo': 'horas_extras_35', 'nombre': 'Horas extras 35%',
+        'descripcion': 'Sobretiempo tercera hora en adelante. REMUNERATIVO.',
+        'categoria': 'OTROS_ING', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'HE_35',
+        'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': True, 'afecto_gratif': True,
+        'codigo_plame': '0106',
+    },
+    'asignacion_vacacional': {
+        'codigo': 'asignacion_vacacional', 'nombre': 'Asignación vacacional',
+        'descripcion': 'Pago por descanso vacacional (30 días al año). REMUNERATIVO.',
+        'categoria': 'OTROS_ING', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
         'formula': 'MANUAL',
-        'codigo_plame': '0921',
+        'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': False, 'afecto_gratif': True,
+        'codigo_plame': '0210',
+    },
+    'vacaciones_truncas': {
+        'codigo': 'vacaciones_truncas', 'nombre': 'Vacaciones truncas',
+        'descripcion': 'Vacaciones proporcionales al cese (1/12 por mes trabajado).',
+        'categoria': 'OTROS_ING', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'MANUAL',
+        'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': False, 'afecto_gratif': False,
+        'codigo_plame': '0114',
     },
     'bonif_riesgo': {
         'codigo': 'bonif_riesgo', 'nombre': 'Bonificación por riesgo',
-        'descripcion': 'Bonificación por trabajo de riesgo (cocina, manejo de fuego). REMUNERATIVA — afecta todo.',
+        'descripcion': 'Bonificación por trabajo de riesgo (cocina, manejo de fuego). REMUNERATIVA.',
         'categoria': 'BONIFICACION', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
         'formula': 'PORCENTAJE', 'porcentaje': Decimal('5.00'),
         'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
         'afecto_renta': True, 'afecto_cts': True, 'afecto_gratif': True,
         'codigo_plame': '0202',
-    },
-    'comision_ventas': {
-        'codigo': 'comision_ventas', 'nombre': 'Comisión por ventas',
-        'descripcion': 'Comisión variable. REMUNERATIVA — afecta todo.',
-        'categoria': 'COMISION', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
-        'formula': 'MANUAL',
-        'afecto_essalud': True, 'afecto_afp': True, 'afecto_onp': True,
-        'afecto_renta': True, 'afecto_cts': True, 'afecto_gratif': True,
-        'codigo_plame': '0107',
-    },
-    'asignacion_escolar': {
-        'codigo': 'asignacion_escolar', 'nombre': 'Asignación escolar',
-        'descripcion': 'Asignación anual por escolaridad (marzo). NO remunerativa.',
-        'categoria': 'FAMILIAR', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
-        'formula': 'FIJO', 'monto_fijo': Decimal('250.00'),
-        'codigo_plame': '0918',
     },
     'bono_desempeno': {
         'codigo': 'bono_desempeno', 'nombre': 'Bono por desempeño',
@@ -103,25 +116,202 @@ TEMPLATES_CONCEPTOS = {
         'afecto_renta': True, 'afecto_cts': True, 'afecto_gratif': True,
         'codigo_plame': '0307',
     },
-    'descuento_eps': {
-        'codigo': 'descuento_eps', 'nombre': 'Descuento EPS (aporte trabajador)',
-        'descripcion': 'Descuento por afiliación a EPS (Pacífico Salud, Rímac EPS, etc.). 2.25% RMV.',
-        'categoria': 'DESCUENTO', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
-        'formula': 'FIJO', 'monto_fijo': Decimal('45.00'),
+
+    # ─── INGRESOS NO REMUNERATIVOS (DS 003-2018-TR / Art. 19 LRJ) ──────
+    'vale_canasta': {
+        'codigo': 'vale_canasta', 'nombre': 'Canasta de Navidad o similares',
+        'descripcion': 'Vale de canasta navideña. NO remunerativo (Art. 19 LRJ).',
+        'categoria': 'ALIMENTACION', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+        'formula': 'FIJO', 'monto_fijo': Decimal('200.00'),
+        'codigo_plame': '0903',  # OFICIAL
+    },
+    'movilidad': {
+        'codigo': 'movilidad', 'nombre': 'Movilidad de libre disposición',
+        'descripcion': 'Asignación por movilidad. NO remunerativo (Art. 19 LRJ).',
+        'categoria': 'MOVILIDAD', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+        'formula': 'FIJO', 'monto_fijo': Decimal('150.00'),
+        'codigo_plame': '0908',
+    },
+    'refrigerio': {
+        'codigo': 'refrigerio', 'nombre': 'Refrigerio (no es alimentación principal)',
+        'descripcion': 'Refrigerio servido en el centro de trabajo. NO remunerativo.',
+        'categoria': 'ALIMENTACION', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+        'formula': 'FIJO', 'monto_fijo': Decimal('100.00'),
+        'codigo_plame': '0914',
+    },
+    'prestacion_alimentaria': {
+        'codigo': 'prestacion_alimentaria', 'nombre': 'Prestaciones alimentarias — suministros directos',
+        'descripcion': 'Almuerzo provisto por la empresa (vales/tickets restaurante). NO remunerativo.',
+        'categoria': 'ALIMENTACION', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+        'formula': 'FIJO', 'monto_fijo': Decimal('300.00'),
+        'codigo_plame': '0112',
+    },
+    'propinas': {
+        'codigo': 'propinas', 'nombre': 'Propinas',
+        'descripcion': 'Propinas recibidas por personal de servicio. NO remunerativo (DS 003-2018-TR).',
+        'categoria': 'PROPINAS', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+        'formula': 'MANUAL',
+        'codigo_plame': '0925',  # Otros ingresos no remunerativos
+    },
+    'recargo_consumo': {
+        'codigo': 'recargo_consumo', 'nombre': 'Recargo por consumo 10%',
+        'descripcion': '10% al consumo distribuido al personal de servicio (DS 012-2003-TR). NO remunerativo.',
+        'categoria': 'PROPINAS', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+        'formula': 'MANUAL',
+        'codigo_plame': '0925',
+    },
+    'asignacion_escolar': {
+        'codigo': 'asignacion_escolar', 'nombre': 'Asignación escolar',
+        'descripcion': 'Asignación anual por escolaridad (marzo). NO remunerativa.',
+        'categoria': 'FAMILIAR', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+        'formula': 'FIJO', 'monto_fijo': Decimal('250.00'),
+        'codigo_plame': '0925',
+    },
+
+    # ─── DESCUENTOS AL TRABAJADOR ────────────────────────────────────────
+    'descuento_onp': {
+        'codigo': 'descuento_onp', 'nombre': 'ONP — Sistema Nacional Pensiones',
+        'descripcion': '13% sobre remuneración computable. Descuento al trabajador.',
+        'categoria': 'APORTE', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'ONP',
+        'codigo_plame': '0607',
+    },
+    'descuento_afp_aporte': {
+        'codigo': 'descuento_afp_aporte', 'nombre': 'AFP — Aporte obligatorio 10%',
+        'descripcion': 'Aporte AFP 10% obligatorio (Sistema Privado de Pensiones).',
+        'categoria': 'APORTE', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'AFP_APORTE',
         'codigo_plame': '0608',
     },
-    'descuento_judicial': {
-        'codigo': 'descuento_judicial', 'nombre': 'Descuento por mandato judicial',
-        'descripcion': 'Descuento por alimentos u otra orden judicial. Máximo 60% del neto.',
+    'descuento_afp_comision': {
+        'codigo': 'descuento_afp_comision', 'nombre': 'AFP — Comisión flujo',
+        'descripcion': 'Comisión variable por AFP (Integra 1.55%, Prima 1.60%, Habitat 1.47%, Profuturo 1.69%).',
+        'categoria': 'APORTE', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'AFP_COMISION',
+        'codigo_plame': '0609',
+    },
+    'descuento_afp_seguro': {
+        'codigo': 'descuento_afp_seguro', 'nombre': 'AFP — Prima de seguro',
+        'descripcion': 'Prima de seguro AFP (~1.74% sobre tope), variable por AFP.',
+        'categoria': 'APORTE', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'AFP_SEGURO',
+        'codigo_plame': '0610',
+    },
+    'descuento_ir_5ta': {
+        'codigo': 'descuento_ir_5ta', 'nombre': 'IR 5ta categoría — Retención',
+        'descripcion': 'Retención de IR para trabajadores con ingresos > 7 UIT anuales. Calculado por proyección.',
+        'categoria': 'IMPUESTO', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'IR_5TA',
+        'codigo_plame': '0605',
+    },
+    'descuento_eps_aporte': {
+        'codigo': 'descuento_eps_aporte', 'nombre': 'EPS — Aporte trabajador',
+        'descripcion': (
+            'Trabajador afiliado a EPS (Rímac, Pacífico, etc.) puede aportar adicional. '
+            'NO confundir con crédito EPS al empleador.'
+        ),
         'categoria': 'DESCUENTO', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
         'formula': 'MANUAL',
-        'codigo_plame': '0612',
+        'codigo_plame': '0611',
+    },
+    'descuento_judicial': {
+        'codigo': 'descuento_judicial', 'nombre': 'Mandato judicial (alimentos, etc.)',
+        'descripcion': 'Descuento autorizado u ordenado por mandato judicial. Máximo 60% del neto.',
+        'categoria': 'DESCUENTO', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'MANUAL',
+        'codigo_plame': '0703',
     },
     'descuento_prestamo': {
         'codigo': 'descuento_prestamo', 'nombre': 'Descuento por préstamo',
         'descripcion': 'Cuota de préstamo otorgado por la empresa.',
         'categoria': 'DESCUENTO', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
         'formula': 'MANUAL',
+        'codigo_plame': '0704',
+    },
+    'descuento_adelanto': {
+        'codigo': 'descuento_adelanto', 'nombre': 'Adelanto de sueldo',
+        'descripcion': 'Adelanto entregado durante el mes que se descuenta al pagar.',
+        'categoria': 'DESCUENTO', 'tipo': 'DESCUENTO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'MANUAL',
+        'codigo_plame': '0705',
+    },
+
+    # ─── APORTES DEL EMPLEADOR ───────────────────────────────────────────
+    'essalud_9pct': {
+        'codigo': 'essalud_9pct', 'nombre': 'ESSALUD 9% (seguro regular)',
+        'descripcion': (
+            'Aporte del empleador 9% sobre remuneración. Si trabajador tiene EPS, '
+            'el empleador recibe crédito de hasta 2.25% (queda 6.75% efectivo).'
+        ),
+        'categoria': 'APORTE', 'tipo': 'APORTE_EMPLEADOR', 'subtipo': 'REMUNERATIVO',
+        'formula': 'ESSALUD',
+        'codigo_plame': '0804',
+    },
+    'essalud_eps_credito': {
+        'codigo': 'essalud_eps_credito', 'nombre': 'EPS — Crédito empleador (reduce ESSALUD)',
+        'descripcion': (
+            'Cuando trabajador está en EPS, el empleador descuenta 2.25% de RMV del aporte '
+            'ESSALUD (Ley 26790 art. 15). Reduce el ESSALUD efectivo de 9% a 6.75%.'
+        ),
+        'categoria': 'APORTE', 'tipo': 'APORTE_EMPLEADOR', 'subtipo': 'REMUNERATIVO',
+        'formula': 'PORCENTAJE', 'porcentaje': Decimal('-2.25'),  # negativo = reduce ESSALUD
+        'codigo_plame': '0807',
+    },
+    'sctr_salud': {
+        'codigo': 'sctr_salud', 'nombre': 'SCTR Salud (riesgo)',
+        'descripcion': 'Seguro Complementario Trabajo de Riesgo (salud). Solo si la actividad es de riesgo (DS 003-98-SA).',
+        'categoria': 'APORTE', 'tipo': 'APORTE_EMPLEADOR', 'subtipo': 'REMUNERATIVO',
+        'formula': 'PORCENTAJE', 'porcentaje': Decimal('1.55'),
+        'codigo_plame': '0812',
+    },
+    'sctr_pension': {
+        'codigo': 'sctr_pension', 'nombre': 'SCTR Pensión (riesgo)',
+        'descripcion': 'Seguro Complementario Trabajo de Riesgo (pensión).',
+        'categoria': 'APORTE', 'tipo': 'APORTE_EMPLEADOR', 'subtipo': 'REMUNERATIVO',
+        'formula': 'PORCENTAJE', 'porcentaje': Decimal('1.30'),
+        'codigo_plame': '0813',
+    },
+
+    # ─── GRATIFICACIONES Y PROVISIONES ───────────────────────────────────
+    'gratificacion_jul': {
+        'codigo': 'gratificacion_jul', 'nombre': 'Gratificación Fiestas Patrias',
+        'descripcion': 'Gratificación de julio (Ley 27735). 1 sueldo si tiene 6 meses, truncos si menos.',
+        'categoria': 'GRATIFICACION', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'GRATIFICACION',
+        'afecto_essalud': False,  # Gratif NO afecta ESSALUD (Ley 30334)
+        'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': False, 'afecto_gratif': False,
+        'codigo_plame': '0301',
+    },
+    'gratificacion_dic': {
+        'codigo': 'gratificacion_dic', 'nombre': 'Gratificación Navidad',
+        'descripcion': 'Gratificación de diciembre (Ley 27735). 1 sueldo si tiene 6 meses, truncos si menos.',
+        'categoria': 'GRATIFICACION', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+        'formula': 'GRATIFICACION',
+        'afecto_essalud': False,
+        'afecto_afp': True, 'afecto_onp': True,
+        'afecto_renta': True, 'afecto_cts': False, 'afecto_gratif': False,
+        'codigo_plame': '0302',
+    },
+    'bonif_extraord_grat': {
+        'codigo': 'bonif_extraord_grat', 'nombre': 'Bonificación extraordinaria gratificación',
+        'descripcion': (
+            'Bonificación extraordinaria del 9% (sin EPS) o 6.75% (con EPS) sobre el '
+            'monto de la gratificación. Ley 30334 / 29351. El % depende del régimen de '
+            'salud del trabajador. NO remunerativo, NO afecta CTS ni Gratif.'
+        ),
+        'categoria': 'BONIFICACION', 'tipo': 'INGRESO', 'subtipo': 'NO_REMUNERATIVO',
+        'formula': 'PORCENTAJE', 'porcentaje': Decimal('9.00'),
+        # NO afecta nada de nada — es bonificación extraordinaria
+        'afecto_renta': True,  # Sí está afecto a IR 5ta
+        'codigo_plame': '0312',
+    },
+    'cts_provision': {
+        'codigo': 'cts_provision', 'nombre': 'CTS — Compensación Tiempo Servicios',
+        'descripcion': 'Provisión semestral (mayo/noviembre). 1/12 sueldo × meses + 1/6 gratif. Va al banco.',
+        'categoria': 'PROVISION', 'tipo': 'INGRESO', 'subtipo': 'PROVISION',
+        'formula': 'CTS',
+        'codigo_plame': '0904',
     },
 }
 
