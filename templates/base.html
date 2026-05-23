@@ -490,6 +490,9 @@
                     <a href="{% url 'config_tasas_afp' %}" class="nav-item" data-match="/nominas/config/tasas-afp">
                         <i class="fas fa-percentage"></i><span>Tasas AFP (SBS)</span>
                     </a>
+                    <a href="{% url 'calculadora_planilla' %}" class="nav-item" data-match="/nominas/calculadora">
+                        <i class="fas fa-calculator"></i><span>Calculadora Simulador</span>
+                    </a>
 
                     <div class="nav-subheader"><i class="fas fa-chart-line"></i><span>Análisis</span></div>
                     <a href="{% url 'nominas_comparativo_mensual' %}" class="nav-item" data-match="/nominas/comparativo">
@@ -1183,6 +1186,32 @@
 
     <!-- Content -->
     <main class="harmoni-content">
+        {# Banner de alertas nóminas — solo admin, solo si hay algo que reportar #}
+        {% if user.is_superuser and nominas_alerts and nominas_alerts.count %}
+          <div style="background:{% if nominas_alerts.severidad == 'critico' %}#fee2e2;border:1px solid #fca5a5;color:#7f1d1d{% else %}#fef3c7;border:1px solid #fcd34d;color:#92400e{% endif %};padding:10px 16px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.88rem;">
+              <i class="fas {% if nominas_alerts.severidad == 'critico' %}fa-exclamation-circle{% else %}fa-exclamation-triangle{% endif %}" style="font-size:1.1rem;"></i>
+              <strong>Atención de nóminas:</strong>
+              {% if nominas_alerts.onboarding_score is not None and nominas_alerts.onboarding_score < 80 %}
+                Onboarding score <strong>{{ nominas_alerts.onboarding_score }}/100</strong>
+                <a href="{% url 'onboarding_validador' %}" style="color:inherit;text-decoration:underline;font-weight:600;">resolver →</a>
+                {% if nominas_alerts.inconsistencias or nominas_alerts.acuses_pendientes %}·{% endif %}
+              {% endif %}
+              {% if nominas_alerts.inconsistencias %}
+                <span><strong>{{ nominas_alerts.inconsistencias }}</strong> concepto{{ nominas_alerts.inconsistencias|pluralize:"s" }} con inconsistencias</span>
+                <a href="{% url 'conceptos_lista' %}" style="color:inherit;text-decoration:underline;font-weight:600;">revisar →</a>
+                {% if nominas_alerts.acuses_pendientes %}·{% endif %}
+              {% endif %}
+              {% if nominas_alerts.acuses_pendientes %}
+                <span><strong>{{ nominas_alerts.acuses_pendientes }}</strong> acuse{{ nominas_alerts.acuses_pendientes|pluralize:"s" }} de boleta pendiente{{ nominas_alerts.acuses_pendientes|pluralize:"s" }}</span>
+                <a href="{% url 'nominas_emision_boletas' %}" style="color:inherit;text-decoration:underline;font-weight:600;">notificar →</a>
+              {% endif %}
+            </div>
+            <a href="{% url 'mi_dia_nominas' %}" style="font-size:.78rem;font-weight:600;color:inherit;text-decoration:none;background:rgba(255,255,255,.5);padding:4px 10px;border-radius:6px;">
+              Mi Día Nóminas →
+            </a>
+          </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 </div>

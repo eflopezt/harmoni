@@ -6,6 +6,7 @@ from . import views_conceptos
 from . import views_wizard_planilla
 from . import views_onboarding_validator
 from . import views_mi_dia
+from . import views_calculadora
 
 urlpatterns = [
     # Panel y portal
@@ -38,6 +39,8 @@ urlpatterns = [
                                                        name='conceptos_audit_log'),
     path('conceptos/configurar/audit-log/csv/',        views_conceptos.conceptos_audit_log_csv,
                                                        name='conceptos_audit_log_csv'),
+    path('conceptos/configurar/comparar/',             views_conceptos.conceptos_comparador,
+                                                       name='conceptos_comparador'),
     path('conceptos/configurar/<int:pk>/historial/',   views_conceptos.concepto_historial,
                                                        name='concepto_historial'),
 
@@ -48,6 +51,8 @@ urlpatterns = [
                                       name='onboarding_validador_pdf'),
     path('mi-dia/',                   views_mi_dia.mi_dia_nominas,
                                       name='mi_dia_nominas'),
+    path('calculadora/',              views_calculadora.calculadora_planilla,
+                                      name='calculadora_planilla'),
 
     # Conceptos remunerativos (panel legacy/existing — read-only resumen)
     path('conceptos/', views.conceptos_panel, name='nominas_conceptos'),

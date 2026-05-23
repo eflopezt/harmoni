@@ -855,6 +855,73 @@ def concepto_historial(request, pk):
 
 
 @login_required
+def conceptos_comparador(request):
+    """Compara dos conceptos lado a lado con diff visual.
+
+    URL: /nominas/conceptos/configurar/comparar/?a=<pk>&b=<pk>
+    """
+    a_pk = request.GET.get('a')
+    b_pk = request.GET.get('b')
+    a = ConceptoRemunerativo.objects.filter(pk=a_pk).first() if a_pk else None
+    b = ConceptoRemunerativo.objects.filter(pk=b_pk).first() if b_pk else None
+
+    # Campos a comparar (orden de presentación)
+    CAMPOS_COMPARAR = [
+        ('codigo',            'Código'),
+        ('nombre',            'Nombre'),
+        ('descripcion',       'Descripción'),
+        ('categoria',         'Categoría'),
+        ('tipo',              'Tipo'),
+        ('subtipo',           'Subtipo'),
+        ('formula',           'Fórmula'),
+        ('porcentaje',        'Porcentaje'),
+        ('monto_fijo',        'Monto fijo'),
+        ('afecto_essalud',    'Afecto ESSALUD'),
+        ('afecto_afp',        'Afecto AFP'),
+        ('afecto_onp',        'Afecto ONP'),
+        ('afecto_renta',      'Afecto IR 5ta'),
+        ('afecto_cts',        'Afecto CTS'),
+        ('afecto_gratif',     'Afecto Gratif'),
+        ('afecto_vacaciones', 'Afecto Vacaciones'),
+        ('codigo_plame',      'Código PLAME'),
+        ('casilla_plame',     'Casilla PLAME'),
+        ('codigo_tregistro',  'T-Registro'),
+        ('activo',            'Activo'),
+        ('orden',             'Orden'),
+        ('es_sistema',        'Es del sistema'),
+    ]
+
+    rows = []
+    diff_count = 0
+    if a and b:
+        for campo, label in CAMPOS_COMPARAR:
+            va = getattr(a, campo)
+            vb = getattr(b, campo)
+            es_diferente = va != vb
+            if es_diferente:
+                diff_count += 1
+            rows.append({
+                'campo':       campo,
+                'label':       label,
+                'a':           va,
+                'b':           vb,
+                'diferente':   es_diferente,
+            })
+
+    # Para selector: lista todos los conceptos
+    todos = ConceptoRemunerativo.objects.all().order_by('codigo').values('id', 'codigo', 'nombre')
+
+    return render(request, 'nominas/conceptos/comparador.html', {
+        'a':           a,
+        'b':           b,
+        'rows':        rows,
+        'diff_count':  diff_count,
+        'total_campos': len(CAMPOS_COMPARAR),
+        'todos':       list(todos),
+    })
+
+
+@login_required
 def conceptos_audit_log_csv(request):
     """
     Export del audit log a CSV — para auditorías externas o backups.

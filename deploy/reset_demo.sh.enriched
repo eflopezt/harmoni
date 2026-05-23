@@ -114,6 +114,21 @@ docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_evaluacion_360_demo
 docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_competencias >> $LOG 2>&1 || echo "  ! seed_competencias fallo" >> $LOG
 docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_plantillas_notificacion >> $LOG 2>&1 || echo "  ! seed_plantillas fallo" >> $LOG
 
+# ── Snapshot pre-reset (compliance: backup de configuracion de conceptos antes del reset) ──
+# Si el reset corrompe algo, snapshot del dia anterior queda como respaldo.
+SNAPSHOT_DIR=/opt/harmoni-demo/snapshots
+mkdir -p "$SNAPSHOT_DIR"
+docker exec $EXEC_ENV -v "$SNAPSHOT_DIR:/snapshots" harmoni-demo-web \
+  python manage.py snapshot_conceptos --out "/snapshots/nightly_$(date +%Y%m%d).json" --label "nightly" \
+  >> $LOG 2>&1 || echo "  ! snapshot_conceptos nightly fallo (no critico)" >> $LOG
+
+# Rotar snapshots viejos (> 14 dias)
+find "$SNAPSHOT_DIR" -name "nightly_*.json" -mtime +14 -delete 2>> $LOG
+
+# ── Cleanup de audit logs antiguos (retention 365 dias) ──
+docker exec $EXEC_ENV harmoni-demo-web python manage.py cleanup_audit_logs --dias 365 \
+  >> $LOG 2>&1 || echo "  ! cleanup_audit_logs fallo (no critico)" >> $LOG
+
 
 # Re-marcar plan >> $LOG 2>&1 || echo "  ! seed_demo_audiovisual fallo (no critico)" >> $LOG
 # Re-marcar empresas según plan (idempotente — sobrevive al reset)

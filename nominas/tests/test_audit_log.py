@@ -76,12 +76,13 @@ class ConceptoAuditLogTests(TestCase):
         set_audit_context(usuario=self.user)
         c.activo = False
         c.save()
-        log = ConceptoAuditLog.objects.filter(concepto=c).first()
+        # Desambiguar: usar -id ya que dos saves consecutivos pueden tener mismo timestamp
+        log = ConceptoAuditLog.objects.filter(concepto=c).order_by('-id').first()
         self.assertEqual(log.accion, 'DESACTIVAR')
 
         c.activo = True
         c.save()
-        log = ConceptoAuditLog.objects.filter(concepto=c).order_by('-fecha').first()
+        log = ConceptoAuditLog.objects.filter(concepto=c).order_by('-id').first()
         self.assertEqual(log.accion, 'ACTIVAR')
 
     def test_delete_persiste_log(self):
