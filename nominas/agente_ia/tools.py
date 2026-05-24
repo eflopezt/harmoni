@@ -464,6 +464,138 @@ def tool_consultar_normativa(query: str):
     }
 
 
+def tool_reintegro_masivo(monto_aumento: float, anio: int, mes: int,
+                           filtro: str = 'todos', limite_preview: int = 50):
+    """Simula un reintegro masivo de aumento retroactivo de sueldo.
+
+    NO crea registros — solo calcula el impacto agregado y devuelve el detalle
+    por trabajador. El LLM debe pedir confirmación al usuario y, si confirma,
+    en un turno siguiente invocar `proponer_reintegro` por cada uno
+    (o usar el campo `applicar_token` que devolvemos como handle).
+
+    Args:
+        monto_aumento: S/ que se va a sumar al sueldo base de cada afectado.
+        anio, mes: período de origen del olvido (ej. anio=2026 mes=4).
+        filtro: 'todos' | 'grupo:STAFF' | 'grupo:RCO'
+                | 'condicion:LOCAL' | 'condicion:FORANEO'
+                | 'sucursal:<id>'.
+        limite_preview: cuántas líneas detalladas devolver (resumen + truncated).
+
+    Returns:
+        dict con 'resumen' (totales) + 'detalle' (lista por trabajador) +
+        'fuera_de_preview' (count truncado) + 'filtro_aplicado'.
+    """
+    from datetime import date
+    from personal.models import Personal
+    from ..engine_reintegros import (
+        calcular_diferencia_sueldo, calcular_impacto_total_reintegro,
+    )
+
+    if monto_aumento is None or float(monto_aumento) <= 0:
+        return {'error': 'monto_aumento debe ser > 0.'}
+
+    monto_aumento_d = Decimal(str(monto_aumento))
+
+    # ── Resolver filtro a un queryset ──
+    qs = Personal.objects.all()
+
+    # Activos al período de origen: fecha_alta <= fin_mes Y (fecha_cese is null o > inicio_mes)
+    try:
+        ultimo_dia = (date(anio + (1 if mes == 12 else 0),
+                           1 if mes == 12 else mes + 1, 1)
+                      - __import__('datetime').timedelta(days=1))
+    except ValueError:
+        return {'error': f'Período inválido: {mes:02d}/{anio}'}
+    primer_dia = date(anio, mes, 1)
+
+    qs = qs.filter(fecha_alta__lte=ultimo_dia)
+    # Cesados antes del período → fuera
+    from django.db.models import Q
+    qs = qs.filter(Q(fecha_cese__isnull=True) | Q(fecha_cese__gte=primer_dia))
+
+    filtro_aplicado = (filtro or 'todos').strip().lower()
+    if filtro_aplicado == 'todos':
+        pass
+    elif filtro_aplicado.startswith('grupo:'):
+        grupo = filtro_aplicado.split(':', 1)[1].upper()
+        qs = qs.filter(grupo_tareo=grupo)
+    elif filtro_aplicado.startswith('condicion:'):
+        cond = filtro_aplicado.split(':', 1)[1].upper().replace('Á', 'A')
+        qs = qs.filter(condicion__iexact=cond)
+    elif filtro_aplicado.startswith('sucursal:'):
+        try:
+            suc_id = int(filtro_aplicado.split(':', 1)[1])
+            qs = qs.filter(sucursal_id=suc_id)
+        except (ValueError, TypeError):
+            return {'error': f'sucursal_id inválido en filtro: {filtro}'}
+    else:
+        return {'error': f'filtro no reconocido: {filtro}. '
+                         f"Use: todos | grupo:STAFF|RCO | condicion:LOCAL|FORANEO | sucursal:<id>"}
+
+    # ── Iterar y calcular por trabajador ──
+    detalle = []
+    total_bruto = Decimal('0')
+    total_neto = Decimal('0')
+    total_costo_empresa = Decimal('0')
+    total_trabajadores = 0
+    sin_sueldo = 0
+
+    for p in qs.iterator(chunk_size=500):
+        sueldo_pagado = p.sueldo_base or Decimal('0')
+        if sueldo_pagado <= 0:
+            sin_sueldo += 1
+            continue
+        sueldo_correcto = sueldo_pagado + monto_aumento_d
+
+        diff = calcular_diferencia_sueldo(sueldo_pagado, sueldo_correcto)
+        if not diff['es_relevante']:
+            continue
+        impacto = calcular_impacto_total_reintegro(
+            monto_reintegro=diff['diferencia'], personal=p,
+        )
+
+        total_trabajadores += 1
+        total_bruto += Decimal(str(impacto['monto_reintegro']))
+        total_neto += Decimal(str(impacto['monto_neto_reintegro']))
+        total_costo_empresa += Decimal(str(impacto['costo_empresa_total']))
+
+        if len(detalle) < limite_preview:
+            detalle.append({
+                'personal_id':  p.pk,
+                'dni':          p.nro_doc,
+                'nombre':       str(p),
+                'sueldo_actual': float(sueldo_pagado),
+                'sueldo_nuevo':  float(sueldo_correcto),
+                'monto_bruto':   float(impacto['monto_reintegro']),
+                'monto_neto':    float(impacto['monto_neto_reintegro']),
+                'costo_empresa': float(impacto['costo_empresa_total']),
+                'regimen':       impacto.get('regimen'),
+            })
+
+    fuera_de_preview = max(0, total_trabajadores - len(detalle))
+
+    return {
+        'simulacion': True,  # marca que NO se creó nada
+        'filtro_aplicado': filtro_aplicado,
+        'periodo_origen': f'{mes:02d}/{anio}',
+        'monto_aumento_por_trabajador': float(monto_aumento_d),
+        'resumen': {
+            'trabajadores_afectados': total_trabajadores,
+            'trabajadores_sin_sueldo_base': sin_sueldo,
+            'total_bruto': float(total_bruto),
+            'total_neto_a_depositar': float(total_neto),
+            'total_costo_empresa': float(total_costo_empresa),
+        },
+        'detalle': detalle,
+        'fuera_de_preview': fuera_de_preview,
+        'siguiente_paso': (
+            'Si confirmas, invoca proponer_reintegro por cada trabajador del '
+            'detalle (motivo="AJUSTE_RETROACTIVO"). Los registros quedarán '
+            'en estado PROPUESTO para revisión humana antes de aplicar.'
+        ),
+    }
+
+
 # ════════════════════════════════════════════════════════════════════════
 # DISPATCHER — el orquestador llama esta función con el name + args del LLM
 # ════════════════════════════════════════════════════════════════════════
@@ -477,6 +609,7 @@ TOOL_IMPLEMENTATIONS = {
     'calcular_reintegro_asignacion_familiar': tool_calcular_reintegro_asignacion_familiar,
     'proponer_reintegro':                    tool_proponer_reintegro,
     'listar_reintegros_pendientes':          tool_listar_reintegros_pendientes,
+    'reintegro_masivo':                      tool_reintegro_masivo,
 }
 
 

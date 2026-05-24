@@ -278,6 +278,81 @@ NORMATIVA = [
 """,
     },
 
+    # ─── Reintegro de remuneración ───────────────────────────────
+    {
+        'titulo':      'Reintegro de remuneración — pago tardío o monto menor',
+        'base_legal':  'D.S. 003-97-TR art. 6 (TUO LPCL) + Ley 27735 + SUNAT PLAME R. 183-2011',
+        'tags':        ['reintegro', 'sueldo', 'pago tardio', 'corrección', 'planilla'],
+        'keywords':    ['reintegro', 'reintegros', 'pague menos', 'pagué menos', 'pagué de menos',
+                        'pago de menos', 'olvide pagar', 'olvidé pagar', 'olvidé', 'olvide',
+                        'no pague', 'no pagué', 'falta pago', 'diferencia sueldo',
+                        'corregir sueldo', 'corregir planilla', 'ajuste sueldo',
+                        'pagar diferencia', 'devolver sueldo', 'pago tardío',
+                        'tardío', 'retroactivo', 'me equivoqué'],
+        'descripcion': """\
+**Reintegro de remuneración** (D.S. 003-97-TR art. 6 + jurisprudencia MTPE):
+
+Procede cuando se detecta que en un período pasado se pagó **menos de lo que correspondía** (sueldo mal calculado, asignación olvidada, HE no abonadas, aumento retroactivo, etc.).
+
+**Cómo se calcula** (regla general):
+1. **Bruto a reintegrar** = monto correcto – monto pagado, por cada período afectado.
+2. **Recalcular aportes del trabajador** sobre el bruto a reintegrar:
+   - AFP / ONP (~13% según régimen)
+   - EPS (si aplica, ~2.25%)
+   - IR 5ta Categoría (proyección anual con el bruto adicional)
+3. **Recalcular aportes empleador**: ESSALUD 9% (o 6.75% con EPS), SCTR si aplica.
+4. **Neto a depositar** = bruto reintegro – aportes trabajador.
+5. **Costo total empresa** = bruto reintegro + ESSALUD + SCTR.
+
+**Conceptos derivados que se ven afectados retroactivamente**:
+- **Gratificación** del semestre del período (Ley 27735): el sueldo computable cambia.
+- **CTS** del semestre (D.Leg. 650 art. 9): depósito mayo/noviembre sube.
+- **Vacaciones** ya gozadas o por gozar (D.Leg. 713): la remuneración vacacional debe igualar el sueldo a la fecha de goce.
+
+**Cómo se registra en PLAME** (SUNAT R. 183-2011):
+- En la planilla del mes en que se PAGA el reintegro, no en el mes de origen.
+- Usar código de concepto "reintegro" con el período de origen identificado (campo "Período tributario al que corresponde").
+- Genera EsSalud y AFP/ONP en el mes de pago.
+
+**Plazo**:
+- No hay sanción específica si se regulariza espontáneamente.
+- Si lo reclama el trabajador y no se paga en 30 días: cabe denuncia ante SUNAFIL (multa 1-50 UIT según gravedad).
+""",
+    },
+
+    # ─── Aumento retroactivo de sueldo ───────────────────────────
+    {
+        'titulo':      'Aumento de sueldo retroactivo — ajuste masivo o individual',
+        'base_legal':  'D.S. 003-97-TR art. 6 + Ley 27735 + D.Leg. 650 art. 9 + D.Leg. 713 art. 16',
+        'tags':        ['aumento', 'incremento', 'masivo', 'retroactivo', 'reintegro'],
+        'keywords':    ['aumentar', 'aumento', 'aumente', 'subir sueldo', 'subir el sueldo',
+                        'incremento', 'subió el sueldo', 'me subieron',
+                        'olvide aumentar', 'olvidé aumentar', 'olvide subir', 'olvidé subir',
+                        'todos los trabajadores', 'a todos', 'masivo', 'mes pasado',
+                        'periodo anterior', 'mes anterior', 'ajuste general',
+                        'aumento salarial', 'incremento salarial'],
+        'descripcion': """\
+**Aumento de sueldo retroactivo** (individual o masivo):
+
+Procede cuando se decidió un aumento de remuneración (acuerdo, política, convenio) con vigencia anterior al mes de pago efectivo, o cuando se olvidó aplicarlo en su momento.
+
+**Tratamiento como reintegro** (D.S. 003-97-TR art. 6):
+El monto del aumento por los períodos atrasados se trata como **reintegro de remuneración** y sigue el flujo de cálculo descrito en esa entrada (bruto + aportes recalculados + neto + costo empresa).
+
+**Impacto en conceptos derivados** — debe recalcularse:
+1. **Gratificación próxima** (Ley 27735): si los meses afectados están en el semestre computable (enero-junio para julio, julio-diciembre para diciembre), la grati subirá automáticamente porque el sueldo base sube.
+2. **CTS próxima** (D.Leg. 650): igual lógica, los meses afectados elevan el promedio computable del semestre.
+3. **Vacaciones** (D.Leg. 713 art. 16): si el trabajador toma vacaciones después del aumento retroactivo, la remuneración vacacional debe usar el sueldo nuevo. Si ya las tomó con el sueldo anterior, corresponde reintegro vacacional.
+
+**Recomendación de proceso para aumento masivo**:
+1. Identificar lista de trabajadores afectados (todos / sucursal / grupo / cargo).
+2. Por cada uno: calcular reintegro de sueldo del período olvidado.
+3. Generar **propuestas** (estado PROPUESTO en ReintegroNomina), revisar el agregado (total bruto, neto, costo empresa).
+4. Aprobar en lote y aplicar — los reintegros se pagan típicamente con la planilla del mes en curso.
+5. Documentar el motivo del ajuste (acta directorio, memo RR.HH.) — útil ante fiscalización.
+""",
+    },
+
     # ─── Boleta electrónica ──────────────────────────────────────
     {
         'titulo':      'Boleta de Pago Electrónica',

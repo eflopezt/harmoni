@@ -1,26 +1,32 @@
 """
 Orquestador del Agente IA — conecta LLM con tools.
 
-Implementación inicial: SIMULA un LLM con heurística básica + tool routing.
-Cuando el cliente confirme, se conecta a DeepSeek/Gemini real.
+Dos modos:
 
-Flujo:
-1. Usuario envía mensaje → guardado como MensajeAgenteIA(rol='user')
-2. Orquestador decide qué hacer:
-   - Si el mensaje contiene palabras de búsqueda → llama consultar_normativa
-   - Si contiene "reintegro" + datos → llama cadena de tools
-   - Si pregunta general → respuesta canned con context
-3. Cada tool call se guarda como MensajeAgenteIA(rol='tool')
-4. Respuesta final guardada como MensajeAgenteIA(rol='assistant')
-5. AuditAgenteIA se actualiza con cada paso
+* **LLM real** (`procesar_mensaje_llm` en `llm_orchestrator.py`): cuando
+  `ConfiguracionSistema.ia_provider != 'NINGUNO'` y `ia_disponible()` es True.
+  El LLM razona, llama tools, cita normativa y propone acciones concretas.
 
-NOTA: Esta es una implementación inicial robusta SIN LLM externo (para
-no incurrir en costos durante dev). El reemplazo por API real es plug-in.
+* **Heurística** (este archivo, función `_procesar_heuristico`): fallback
+  cuando no hay LLM configurado o disponible. Router por regex de intents.
+  Conserva backward-compat de la primera versión del agente.
+
+La función pública `procesar_mensaje` decide el modo automáticamente y, si
+el LLM falla en runtime, hace fallback al heurístico para no romper la
+experiencia del usuario.
+
+Flujo común (en ambos modos):
+1. Mensaje del usuario → `MensajeAgenteIA(rol='user')` + `AuditAgenteIA`
+2. Tools ejecutadas → `MensajeAgenteIA(rol='tool')`
+3. Respuesta final → `MensajeAgenteIA(rol='assistant')`
 """
+import logging
 import re
 from decimal import Decimal
 
 from .tools import ejecutar_tool
+
+logger = logging.getLogger('harmoni.ai.nominas')
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -118,22 +124,41 @@ Período de origen del error: **{resultado.get('periodo_origen', '?')}**
 
 
 def procesar_mensaje(conversacion, texto_usuario: str, usuario=None, ip=None) -> dict:
+    """Procesa un mensaje del usuario.
+
+    Decide entre modo LLM y heurístico:
+    1. Si `asistencia.services.ai_service.ia_disponible()` y la importación del
+       orquestador LLM funciona → modo LLM.
+    2. Si el LLM falla en runtime (excepción) → fallback heurístico + log.
+    3. Si no hay LLM configurado → heurístico directo.
+
+    Returns: dict con `respuesta`, `msg_user_id`, `msg_assistant_id`,
+    `tools_llamadas`, `intent_detectado`, `modo` ('llm' | 'heuristico').
     """
-    Procesa un mensaje del usuario y devuelve la respuesta del agente.
+    # ── Modo LLM ──
+    try:
+        from asistencia.services.ai_service import ia_disponible
+        if ia_disponible():
+            from .llm_orchestrator import procesar_mensaje_llm
+            return procesar_mensaje_llm(
+                conversacion=conversacion,
+                texto_usuario=texto_usuario,
+                usuario=usuario, ip=ip,
+            )
+    except Exception:
+        logger.exception(
+            'LLM orchestrator falló — usando fallback heurístico'
+        )
 
-    Esta función:
-    1. Guarda el mensaje del usuario
-    2. Detecta intent y llama tool apropiado (si aplica)
-    3. Genera respuesta canned + tool result
-    4. Guarda respuesta del asistente
-    5. Devuelve dict con respuesta + metadatos
+    # ── Modo heurístico (fallback / sin IA configurada) ──
+    return _procesar_heuristico(conversacion, texto_usuario, usuario, ip)
 
-    Returns:
-        {
-            'respuesta': str,
-            'mensajes_creados': [MensajeAgenteIA, ...],
-            'tools_llamadas': [{'name': ..., 'args': ..., 'result': ...}],
-        }
+
+def _procesar_heuristico(conversacion, texto_usuario: str, usuario=None, ip=None) -> dict:
+    """Implementación legacy basada en regex de intents.
+
+    Se usa como fallback cuando el LLM no está disponible. Garantiza que el
+    chat NUNCA se queda sin responder por una falla de infraestructura IA.
     """
     from ..models import MensajeAgenteIA, AuditAgenteIA
 
@@ -227,4 +252,5 @@ def procesar_mensaje(conversacion, texto_usuario: str, usuario=None, ip=None) ->
         'msg_assistant_id':  msg_assistant.pk,
         'tools_llamadas':    tools_llamadas,
         'intent_detectado':  intent,
+        'modo':              'heuristico',
     }
