@@ -92,9 +92,11 @@ def generar_constancia_recepcion_pdf(registro):
     p = registro.personal
     periodo = registro.periodo
 
-    # ── Header con logo ───────────────────────────────────────────
+    # ── Header con logo (brand pack oficial — fallback al legacy) ─
     import os as _os
-    logo_path = _os.path.join(settings.BASE_DIR, 'static', 'images', 'logo-mark-120.png')
+    logo_path = _os.path.join(settings.BASE_DIR, 'static', 'images', 'brand', 'png', 'harmoni-mark-256.png')
+    if not _os.path.exists(logo_path):
+        logo_path = _os.path.join(settings.BASE_DIR, 'static', 'images', 'logo-mark-120.png')
     if _os.path.exists(logo_path):
         logo = RLImage(logo_path, width=20*mm, height=20*mm)
         hdr = Table(

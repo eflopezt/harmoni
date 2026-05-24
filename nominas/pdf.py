@@ -408,15 +408,19 @@ def generar_boleta_pdf(registro):
         t.setStyle(TableStyle(cmds))
         return t
 
-    # Logo Harmoni (path en static/images/) — solo elemento a color
+    # Logo Harmoni (brand pack oficial) — solo elemento a color
+    # Preferimos harmoni-mark-256 (transparent, 256x256) que se renderiza nítido
+    # a cualquier tamaño en ReportLab. Fallback al legacy logo-mark-120 por compat.
     logo_path = None
     try:
         import os
-        candidate = os.path.join(
-            settings.BASE_DIR, 'static', 'images', 'logo-mark-120.png'
-        )
-        if os.path.exists(candidate):
-            logo_path = candidate
+        for candidate in [
+            os.path.join(settings.BASE_DIR, 'static', 'images', 'brand', 'png', 'harmoni-mark-256.png'),
+            os.path.join(settings.BASE_DIR, 'static', 'images', 'logo-mark-120.png'),
+        ]:
+            if os.path.exists(candidate):
+                logo_path = candidate
+                break
     except Exception:
         logo_path = None
 

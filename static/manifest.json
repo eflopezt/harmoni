@@ -8,46 +8,52 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0d2b27",
-  "theme_color": "#0f766e",
+  "theme_color": "#0d9488",
   "orientation": "portrait-primary",
   "lang": "es-PE",
   "dir": "ltr",
   "categories": ["business", "productivity", "finance"],
   "screenshots": [
     {
-      "src": "/static/images/og-image.svg",
-      "sizes": "1200x630",
-      "type": "image/svg+xml",
-      "label": "Harmoni ERP — Dashboard"
+      "src": "/static/images/brand/png/harmoni-logo-1200.png",
+      "sizes": "1188x258",
+      "type": "image/png",
+      "label": "Harmoni ERP — Logo oficial"
     }
   ],
   "icons": [
     {
-      "src": "/static/images/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/images/icon-192.png",
-      "sizes": "192x192",
+      "src": "/static/images/brand/png/harmoni-favicon-64.png",
+      "sizes": "64x64",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/images/icon-192.png",
-      "sizes": "192x192",
+      "src": "/static/images/brand/png/harmoni-favicon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/brand/png/harmoni-favicon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/brand/png/harmoni-favicon-256.png",
+      "sizes": "256x256",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/static/images/icon-512.png",
+      "src": "/static/images/brand/png/harmoni-favicon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/images/icon-512.png",
+      "src": "/static/images/brand/png/harmoni-favicon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -59,28 +65,28 @@
       "short_name": "Inicio",
       "url": "/",
       "description": "Panel principal con KPIs",
-      "icons": [{"src": "/static/images/favicon.svg", "sizes": "any"}]
+      "icons": [{"src": "/static/images/brand/png/harmoni-favicon-180.png", "sizes": "180x180", "type": "image/png"}]
     },
     {
       "name": "Registrar Tareo",
       "short_name": "Tareo",
       "url": "/tareo/",
       "description": "Control de asistencia diario",
-      "icons": [{"src": "/static/images/favicon.svg", "sizes": "any"}]
+      "icons": [{"src": "/static/images/brand/png/harmoni-favicon-180.png", "sizes": "180x180", "type": "image/png"}]
     },
     {
       "name": "Personal",
       "short_name": "Personal",
       "url": "/personal/",
       "description": "Directorio de colaboradores",
-      "icons": [{"src": "/static/images/favicon.svg", "sizes": "any"}]
+      "icons": [{"src": "/static/images/brand/png/harmoni-favicon-180.png", "sizes": "180x180", "type": "image/png"}]
     },
     {
       "name": "Nóminas",
       "short_name": "Nóminas",
       "url": "/nominas/",
       "description": "Procesamiento de planillas",
-      "icons": [{"src": "/static/images/favicon.svg", "sizes": "any"}]
+      "icons": [{"src": "/static/images/brand/png/harmoni-favicon-180.png", "sizes": "180x180", "type": "image/png"}]
     }
   ],
   "related_applications": [],

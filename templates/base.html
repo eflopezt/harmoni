@@ -89,11 +89,14 @@
     <div class="sidebar-header">
         <a href="{% url 'home' %}" class="sidebar-brand-link d-flex align-items-center text-decoration-none">
             <div class="sidebar-logo">
-                {# Brand pack oficial — isotipo CON fondo teal redondeado, 36×36 (handoff design) #}
-                <img src="{% static 'images/brand/png/harmoni-favicon-180.png' %}"
+                {# Brand pack: isotipo H+wave transparent. El container .sidebar-logo
+                   ya provee el fondo teal redondeado (bg: var(--primary)). Usar la
+                   versión TRANSPARENT evita el efecto "doble teal" sobre fondo oscuro
+                   del sidebar (--sidebar-bg = #0d2b27). #}
+                <img src="{% static 'images/brand/png/harmoni-mark-128.png' %}"
                      alt="Harmoni"
-                     width="36" height="36"
-                     style="border-radius:9px;display:block;">
+                     width="26" height="26"
+                     style="display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.18));">
             </div>
             <div class="ms-2">
                 <div class="sidebar-brand-text">Harmoni</div>
