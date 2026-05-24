@@ -8,7 +8,10 @@
 {% block tab_inicio %}active{% endblock %}
 
 {% block page_title %}
-<h1 class="topbar-h1"><i class="fas fa-user-circle me-2 text-primary"></i>Mi Portal</h1>
+<h1 class="topbar-h1" style="letter-spacing:-.01em;font-weight:800;color:#0F172A;">
+  <i class="fas fa-user-circle me-2" style="color:#0F766E"></i>Mi Portal
+  <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.55em;color:#94a3b8;font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-left:10px;">{% now "l d/m" %}</span>
+</h1>
 {% endblock %}
 
 {% block portal_extra_css %}
