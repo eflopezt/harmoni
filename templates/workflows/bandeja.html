@@ -9,10 +9,11 @@
   <!-- ── Header ────────────────────────────────────────────── -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h1 class="h3 fw-bold mb-0">
-        <i class="fas fa-inbox me-2 text-teal"></i>Bandeja de Aprobaciones
+      <h1 class="h3 fw-bold mb-0" style="letter-spacing:-.01em;font-weight:800;color:#0F172A;">
+        <i class="fas fa-inbox me-2" style="color:#0F766E"></i>Bandeja de Aprobaciones
         {% if pendientes_total > 0 %}
-        <span class="badge bg-warning text-dark ms-2">{{ pendientes_total }}</span>
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:.7em;color:#0F766E;font-weight:700;margin-left:10px;">{{ pendientes_total }}</span>
+        <small style="font-size:.55em;color:#94a3b8;font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-left:6px;">pendiente{{ pendientes_total|pluralize:"s" }}</small>
         {% endif %}
       </h1>
       <p class="text-muted small mb-0">Solicitudes pendientes de tu aprobacion</p>
