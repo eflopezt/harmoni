@@ -136,6 +136,309 @@
 
 tr.row-cesado td { opacity: 0.65; }
 .contract-warn { font-size: 0.62rem; }
+
+/* ────────────────────────────────────────────────────────────
+   DRAWER LATERAL 540px (handoff Cockpit)
+   ──────────────────────────────────────────────────────────── */
+.pl-drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(13, 43, 39, 0.30);
+  backdrop-filter: blur(2px);
+  z-index: 99980;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.pl-drawer-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+.pl-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 540px; max-width: 100vw;
+  background: #fff; z-index: 99990;
+  box-shadow: 0 24px 60px -12px rgba(13, 43, 39, 0.25);
+  transform: translateX(100%);
+  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
+  display: flex; flex-direction: column;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.pl-drawer.is-open { transform: translateX(0); }
+
+.pl-drawer-loading {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; color: #94a3b8;
+}
+.pl-drawer-loading p { margin: 0; font-size: 0.84rem; }
+
+.pl-drawer-content {
+  flex: 1; display: flex; flex-direction: column; min-height: 0;
+}
+
+/* Header */
+.pl-drawer-header {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #E2E8F0;
+  position: relative;
+  flex-shrink: 0;
+}
+.pl-drawer-close {
+  position: absolute; top: 14px; right: 14px;
+  background: transparent; border: none; color: #94a3b8;
+  width: 32px; height: 32px; border-radius: 8px;
+  cursor: pointer; font-size: 0.95rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.pl-drawer-close:hover { background: #F4FAF7; color: #0F172A; }
+
+.pl-drawer-h-row { display: flex; gap: 14px; align-items: flex-start; }
+.pl-drawer-avatar {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: linear-gradient(135deg, #0d9488 0%, #134e4a 100%);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1.1rem; flex-shrink: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: -0.02em;
+}
+.pl-drawer-h-body { flex: 1; min-width: 0; padding-right: 28px; }
+.pl-drawer-name {
+  margin: 0; font-size: 1.06rem; font-weight: 800; color: #0F172A;
+  line-height: 1.2; letter-spacing: -0.01em;
+}
+.pl-drawer-cargo {
+  margin: 3px 0 0; font-size: 0.82rem; color: #475569;
+}
+.pl-drawer-pills {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+}
+.pl-drawer-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: 0.68rem; font-weight: 600;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.pl-drawer-pill--ok       { background: #d1fae5; color: #064E3B; }
+.pl-drawer-pill--warn     { background: #fef3c7; color: #92400e; }
+.pl-drawer-pill--danger   { background: #fee2e2; color: #991b1b; }
+.pl-drawer-pill--info     { background: #dbeafe; color: #1e40af; }
+.pl-drawer-pill--neutral  { background: #f1f5f9; color: #475569; }
+.pl-drawer-pill--brand    { background: #CCFBF1; color: #064E3B; }
+
+/* Action bar */
+.pl-drawer-actions {
+  display: flex; gap: 8px; padding: 12px 24px;
+  border-bottom: 1px solid #E2E8F0; flex-shrink: 0;
+  overflow-x: auto; flex-wrap: nowrap;
+}
+.pl-da {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 7px;
+  font-size: 0.78rem; font-weight: 600; text-decoration: none;
+  background: #fff; color: #475569; border: 1px solid #E2E8F0;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pl-da:hover { background: #F4FAF7; color: #0F172A; border-color: #99f6e4; }
+.pl-da-primary {
+  background: #0F766E; color: #fff; border-color: #0F766E;
+}
+.pl-da-primary:hover { background: #0d5e59; color: #fff; border-color: #0d5e59; }
+
+/* Tabs */
+.pl-drawer-tabs {
+  display: flex; gap: 2px; padding: 0 14px;
+  border-bottom: 1px solid #E2E8F0; flex-shrink: 0;
+}
+.pl-drawer-tab {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  padding: 10px 12px; font-size: 0.82rem; font-weight: 500;
+  color: #475569; cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.pl-drawer-tab:hover { color: #0F172A; }
+.pl-drawer-tab.is-active {
+  color: #0F766E; border-bottom-color: #0F766E; font-weight: 600;
+}
+.pl-drawer-tab-count {
+  background: #f1f5f9; color: #475569;
+  padding: 0 7px; border-radius: 999px;
+  font-size: 0.62rem; font-weight: 700;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.pl-drawer-tab.is-active .pl-drawer-tab-count { background: #CCFBF1; color: #064E3B; }
+.pl-drawer-tab-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;
+  padding: 1px 7px; border-radius: 999px;
+  font-size: 0.58rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Panels */
+.pl-drawer-panels { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.pl-tab-panel { display: none; }
+.pl-tab-panel.is-active { display: block; }
+
+/* General — secciones con dl */
+.pl-panel-section { margin-bottom: 22px; }
+.pl-panel-section:last-child { margin-bottom: 0; }
+.pl-panel-h {
+  font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.09em; color: #94a3b8; margin: 0 0 10px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.pl-panel-dl {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px 18px; margin: 0;
+}
+.pl-panel-dl > div { display: flex; flex-direction: column; gap: 2px; }
+.pl-panel-dl dt {
+  font-size: 0.68rem; color: #94a3b8; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.pl-panel-dl dd {
+  margin: 0; font-size: 0.86rem; color: #0F172A; font-weight: 500;
+}
+.pl-panel-dl dd.mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Documentos list */
+.pl-doc-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border: 1px solid #E2E8F0; border-radius: 9px;
+  margin-bottom: 8px; text-decoration: none; color: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pl-doc-row:hover { background: #F4FAF7; border-color: #99f6e4; color: inherit; }
+.pl-doc-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: #F4FAF7; color: #0F766E;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 1rem;
+}
+.pl-doc-info { flex: 1; min-width: 0; }
+.pl-doc-name { font-size: 0.86rem; font-weight: 600; color: #0F172A;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-doc-meta {
+  font-size: 0.7rem; color: #94a3b8; margin-top: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Timeline */
+.pl-timeline {
+  list-style: none; padding: 0; margin: 0;
+  position: relative;
+}
+.pl-timeline::before {
+  content: ''; position: absolute;
+  left: 7px; top: 8px; bottom: 8px;
+  width: 1px; background: #E2E8F0;
+}
+.pl-tl-item {
+  position: relative; padding: 0 0 14px 26px;
+}
+.pl-tl-item::before {
+  content: ''; position: absolute; left: 3px; top: 5px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #94a3b8; border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #E2E8F0;
+}
+.pl-tl-item.color-brand::before   { background: #0F766E; }
+.pl-tl-item.color-success::before { background: #10b981; }
+.pl-tl-item.color-warning::before { background: #f59e0b; }
+.pl-tl-item.color-default::before { background: #94a3b8; }
+.pl-tl-title { font-size: 0.86rem; font-weight: 600; color: #0F172A; line-height: 1.3; }
+.pl-tl-sub   { font-size: 0.76rem; color: #64748b; margin-top: 2px; }
+.pl-tl-fecha {
+  font-size: 0.7rem; color: #94a3b8; margin-top: 3px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* IA card oscura — handoff */
+.pl-ia-card {
+  background: linear-gradient(160deg, #0d2b27 0%, #042f2a 100%);
+  border-radius: 14px; padding: 18px 18px 16px;
+  color: #fff;
+  border: 1px solid rgba(94, 234, 212, 0.15);
+  position: relative; overflow: hidden;
+}
+.pl-ia-card::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, rgba(94,234,212,0.20) 0%, transparent 70%);
+  pointer-events: none;
+}
+.pl-ia-header {
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 1; margin-bottom: 16px;
+}
+.pl-ia-label {
+  font-size: 0.7rem; font-weight: 700; color: #5eead4;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.pl-ia-confidence {
+  font-size: 0.62rem; font-weight: 600; color: #fbbf24;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.pl-ia-metrics {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; position: relative; z-index: 1;
+}
+.pl-ia-metric { display: flex; flex-direction: column; gap: 4px; }
+.pl-ia-m-lbl {
+  font-size: 0.68rem; color: rgba(94, 234, 212, 0.7);
+  text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;
+}
+.pl-ia-m-val {
+  font-size: 1.3rem; font-weight: 800; color: #fff;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.pl-ia-m-bar {
+  display: block; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.1); overflow: hidden;
+}
+.pl-ia-m-bar-fill {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #5eead4, #2dd4bf);
+  width: 0%; transition: width 0.6s ease;
+}
+.pl-ia-m-bar-fill.warn   { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.pl-ia-m-bar-fill.danger { background: linear-gradient(90deg, #fca5a5, #ef4444); }
+.pl-ia-recs {
+  margin-top: 18px; position: relative; z-index: 1;
+  border-top: 1px solid rgba(94, 234, 212, 0.18); padding-top: 14px;
+}
+.pl-ia-recs-h {
+  font-size: 0.68rem; font-weight: 700; color: #5eead4;
+  text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 10px;
+}
+.pl-ia-recs ul {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.pl-ia-recs li {
+  font-size: 0.82rem; color: rgba(255, 255, 255, 0.92);
+  line-height: 1.4;
+}
+
+/* Empty states */
+.pl-empty {
+  text-align: center; padding: 40px 20px;
+  color: #94a3b8; font-size: 0.84rem;
+}
+.pl-empty i { display: block; font-size: 2rem; margin-bottom: 10px; opacity: 0.4; }
+
+/* Mobile */
+@media (max-width: 600px) {
+  .pl-drawer { width: 100vw; }
+  .pl-panel-dl { grid-template-columns: 1fr; }
+  .pl-ia-metrics { grid-template-columns: 1fr 1fr; }
+}
 </style>
 {% endblock %}
 
@@ -181,6 +484,210 @@ document.addEventListener('DOMContentLoaded', function() {
       densityBtns.forEach(b => b.classList.toggle('is-active', b.dataset.density === d));
     }
   }
+
+  // ════════════════════════════════════════════════════════
+  // EMPLEADO DRAWER 540px (handoff Cockpit)
+  // Click en row → fetch JSON → renderiza panels
+  // ════════════════════════════════════════════════════════
+  const drawer    = document.getElementById('plDrawer');
+  const backdrop  = document.getElementById('plDrawerBackdrop');
+  const dContent  = document.getElementById('plDrawerContent');
+  const dLoading  = document.getElementById('plDrawerLoading');
+  const closeBtn  = document.getElementById('plDrawerClose');
+
+  function escH(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function fmtSoles(n) {
+    if (!n) return '—';
+    return 'S/ ' + Number(n).toLocaleString('es-PE', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+  }
+  function fmtFecha(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso); if (isNaN(d)) return iso;
+    return d.toLocaleDateString('es-PE', {day:'2-digit', month:'2-digit', year:'numeric'});
+  }
+
+  function openDrawer(pid) {
+    if (!drawer) return;
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    backdrop.classList.add('is-open');
+    backdrop.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    dContent.style.display = 'none';
+    dLoading.style.display = 'flex';
+
+    fetch(`/personal/${pid}/drawer/`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => {
+        renderDrawer(data);
+        dLoading.style.display = 'none';
+        dContent.style.display = 'flex';
+      })
+      .catch(e => {
+        console.error('drawer load fail', e);
+        dLoading.style.display = 'none';
+        if (window.Harmoni && window.Harmoni.toast) {
+          window.Harmoni.toast({ title: 'Error al cargar empleado', kind: 'error' });
+        }
+        closeDrawer();
+      });
+  }
+
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    backdrop.classList.remove('is-open');
+    backdrop.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function renderDrawer(d) {
+    const b = d.basic;
+
+    // Header
+    document.getElementById('plDrawerAvatar').textContent = b.iniciales || '?';
+    document.getElementById('plDrawerTitle').textContent  = b.nombre;
+    document.getElementById('plDrawerCargo').textContent  = (b.cargo || '—') + ' · ' + (b.area || '—');
+
+    // Pills
+    const pills = [];
+    if (b.estado === 'Activo')   pills.push('<span class="pl-drawer-pill pl-drawer-pill--ok">' + escH(b.estado) + '</span>');
+    else if (b.estado === 'Cesado') pills.push('<span class="pl-drawer-pill pl-drawer-pill--danger">' + escH(b.estado) + '</span>');
+    else pills.push('<span class="pl-drawer-pill pl-drawer-pill--warn">' + escH(b.estado) + '</span>');
+    if (b.grupo) pills.push('<span class="pl-drawer-pill pl-drawer-pill--brand">' + escH(b.grupo) + '</span>');
+    if (b.tipo_trab) pills.push('<span class="pl-drawer-pill pl-drawer-pill--neutral">' + escH(b.tipo_trab) + '</span>');
+    if (b.codigo) pills.push('<span class="pl-drawer-pill pl-drawer-pill--neutral">#' + escH(b.codigo) + '</span>');
+    if (b.contrato_dias_restantes !== null && b.contrato_dias_restantes !== undefined) {
+      const days = b.contrato_dias_restantes;
+      const cls = days <= 0 ? 'pl-drawer-pill--danger' : (days <= 30 ? 'pl-drawer-pill--warn' : 'pl-drawer-pill--info');
+      const txt = days <= 0 ? 'Contrato vencido' : `Vence en ${days}d`;
+      pills.push(`<span class="pl-drawer-pill ${cls}">${txt}</span>`);
+    }
+    document.getElementById('plDrawerPills').innerHTML = pills.join('');
+
+    // Action bar URLs
+    document.getElementById('plDaEditar').href     = b.url_editar;
+    document.getElementById('plDaDetalle').href    = b.url_detail;
+    document.getElementById('plDaVacaciones').href = '/vacaciones/saldos/?dni=' + encodeURIComponent(b.dni);
+    const wpUrl = b.celular ? ('https://wa.me/51' + b.celular.replace(/\D/g, '')) : ('mailto:' + b.correo);
+    document.getElementById('plDaMensaje').href = wpUrl;
+
+    // General — DL
+    document.getElementById('plDlLaboral').innerHTML = [
+      ['Cargo',      b.cargo || '—'],
+      ['Área',       b.area || '—'],
+      ['Sub-área',   b.subarea || '—'],
+      ['Ingreso',    fmtFecha(b.fecha_alta)],
+      ['Régimen',    (b.regimen || '—') + (b.tiene_eps ? ' + EPS' : '')],
+      ['Sueldo',     fmtSoles(b.sueldo_base), true],
+    ].map(([dt, dd, mono]) => `<div><dt>${escH(dt)}</dt><dd${mono?' class="mono"':''}>${escH(dd)}</dd></div>`).join('');
+
+    document.getElementById('plDlContacto').innerHTML = [
+      ['DNI',     b.dni, true],
+      ['Celular', b.celular || '—', true],
+      ['Correo',  b.correo || '—'],
+      ['Asig. familiar', b.asig_fam ? 'Sí' : 'No'],
+    ].map(([dt, dd, mono]) => `<div><dt>${escH(dt)}</dt><dd${mono?' class="mono"':''}>${escH(dd)}</dd></div>`).join('');
+
+    document.getElementById('plDlEstado').innerHTML = [
+      ['Estado',       b.estado || '—'],
+      ['Grupo tareo',  b.grupo || '—'],
+      ['Condición',    b.condicion || '—'],
+      ['Cese',         fmtFecha(b.fecha_cese)],
+    ].map(([dt, dd]) => `<div><dt>${escH(dt)}</dt><dd>${escH(dd)}</dd></div>`).join('');
+
+    // Documentos
+    const docs = d.documentos || [];
+    document.getElementById('plTabCountDocs').textContent = docs.length;
+    const docsList = document.getElementById('plDocsList');
+    const docsEmpty = document.getElementById('plDocsEmpty');
+    if (!docs.length) {
+      docsList.innerHTML = '';
+      docsEmpty.style.display = 'block';
+    } else {
+      docsEmpty.style.display = 'none';
+      docsList.innerHTML = docs.map(doc => `
+        <a href="${escH(doc.url)}" class="pl-doc-row" target="_blank" rel="noopener">
+          <div class="pl-doc-icon"><i class="fas ${escH(doc.icon)}"></i></div>
+          <div class="pl-doc-info">
+            <div class="pl-doc-name">${escH(doc.nombre)}</div>
+            <div class="pl-doc-meta">${escH(doc.tipo)} · ${escH(doc.size)} · ${escH(doc.fecha)}</div>
+          </div>
+          <i class="fas fa-download" style="color:#94a3b8;"></i>
+        </a>
+      `).join('');
+    }
+
+    // Histórico
+    const tl = d.historico || [];
+    const tlList = document.getElementById('plTimeline');
+    const tlEmpty = document.getElementById('plTimelineEmpty');
+    if (!tl.length) {
+      tlList.innerHTML = '';
+      tlEmpty.style.display = 'block';
+    } else {
+      tlEmpty.style.display = 'none';
+      tlList.innerHTML = tl.map(ev => `
+        <li class="pl-tl-item color-${escH(ev.color || 'default')}">
+          <div class="pl-tl-title">${escH(ev.titulo)}</div>
+          ${ev.sub ? `<div class="pl-tl-sub">${escH(ev.sub)}</div>` : ''}
+          <div class="pl-tl-fecha">${escH(ev.fecha_disp)}</div>
+        </li>
+      `).join('');
+    }
+
+    // IA
+    const ia = d.ia || {};
+    document.getElementById('plIaRotacion').textContent  = (ia.score_rotacion != null ? ia.score_rotacion + '%' : '—');
+    document.getElementById('plIaAsistencia').textContent = (ia.asistencia_90d_pct != null && ia.asistencia_90d_pct !== '—' ? ia.asistencia_90d_pct + '%' : '—');
+    document.getElementById('plIaSalario').textContent   = ia.salario_vs_banda || '—';
+    document.getElementById('plIaDesempeno').textContent = ia.score_desempeno != null ? ia.score_desempeno : '—';
+    const conf = ia.rotacion_nivel === 'alto' ? 'Riesgo alto' : ia.rotacion_nivel === 'medio' ? 'Riesgo medio' : 'Riesgo bajo';
+    document.getElementById('plIaConfidence').textContent = conf;
+    const bar = document.getElementById('plIaRotacionBar');
+    bar.style.width = (ia.score_rotacion || 0) + '%';
+    bar.classList.remove('warn', 'danger');
+    if (ia.score_rotacion >= 60) bar.classList.add('danger');
+    else if (ia.score_rotacion >= 30) bar.classList.add('warn');
+    const recs = ia.recomendaciones || [];
+    document.getElementById('plIaRecs').innerHTML = recs.map(r => `<li>${escH(r)}</li>`).join('');
+  }
+
+  // ── Click en row → abrir drawer (acciones internas con stopPropagation) ──
+  document.querySelectorAll('.pl-row[data-pid]').forEach(row => {
+    row.addEventListener('click', function(e) {
+      // Si se clickeó un link/botón interno, no abrir drawer
+      if (e.target.closest('a, button, .btn-group')) return;
+      const pid = this.dataset.pid;
+      if (pid) openDrawer(pid);
+    });
+  });
+
+  // ── Cerrar drawer: backdrop, X, Esc ──
+  if (backdrop)  backdrop.addEventListener('click', closeDrawer);
+  if (closeBtn)  closeBtn.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && drawer && drawer.classList.contains('is-open')) {
+      closeDrawer();
+    }
+  });
+
+  // ── Tabs switch ──
+  document.querySelectorAll('.pl-drawer-tab').forEach(t => {
+    t.addEventListener('click', function() {
+      if (this.classList.contains('is-active')) return;
+      document.querySelectorAll('.pl-drawer-tab').forEach(x => x.classList.remove('is-active'));
+      document.querySelectorAll('.pl-tab-panel').forEach(p => p.classList.remove('is-active'));
+      this.classList.add('is-active');
+      const tabName = this.dataset.tab;
+      const panel = document.getElementById('plPanel' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+      if (panel) panel.classList.add('is-active');
+    });
+  });
 });
 </script>
 {% endblock %}
@@ -344,8 +851,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 </thead>
                 <tbody>
                     {% for p in page_obj %}
-                    <tr{% if p.estado == 'Cesado' %} class="table-secondary"{% endif %}>
-                        <td class="fw-bold{% if p.estado == 'Cesado' %} text-muted{% endif %}">{{ p.nro_doc }}</td>
+                    <tr class="pl-row{% if p.estado == 'Cesado' %} row-cesado{% endif %}"
+                        data-pid="{{ p.pk }}" style="cursor:pointer;">
+                        <td class="fw-bold mono{% if p.estado == 'Cesado' %} text-muted{% endif %}">{{ p.nro_doc }}</td>
                         <td>
                             <small class="d-md-none text-muted">{{ p.cargo }}</small>
                             <div class="d-flex align-items-center gap-1 flex-wrap">
@@ -412,12 +920,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             </small>
                         </td>
                         {% endif %}
-                        <td>
+                        <td onclick="event.stopPropagation();">
                             <div class="btn-group btn-group-sm" role="group">
-                                <a href="{% url 'personal_detail' p.pk %}" class="btn btn-outline-info" title="Ver">
-                                    <i class="fas fa-eye"></i>
+                                <a href="{% url 'personal_detail' p.pk %}" class="btn btn-outline-secondary" title="Ver detalle completo">
+                                    <i class="fas fa-external-link-alt"></i>
                                 </a>
-                                <a href="{% url 'personal_update' p.pk %}" class="btn btn-outline-warning" title="Editar">
+                                <a href="{% url 'personal_update' p.pk %}" class="btn btn-outline-secondary" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
                             </div>
@@ -465,4 +973,124 @@ document.addEventListener('DOMContentLoaded', function() {
         {% endif %}
     </div>
 </div>
+
+{# ════════════════════════════════════════════════════════════════
+   EMPLEADO DRAWER 540px (handoff Cockpit) — al click en row
+   ════════════════════════════════════════════════════════════════ #}
+<div class="pl-drawer-backdrop" id="plDrawerBackdrop" aria-hidden="true"></div>
+<aside class="pl-drawer" id="plDrawer" role="dialog" aria-labelledby="plDrawerTitle" aria-hidden="true">
+
+  {# Loading state #}
+  <div class="pl-drawer-loading" id="plDrawerLoading" style="display:none;">
+    <div class="spinner-border text-primary" role="status" style="width:2rem;height:2rem;color:#0F766E!important;"></div>
+    <p>Cargando empleado…</p>
+  </div>
+
+  {# Content (oculto hasta cargar) #}
+  <div class="pl-drawer-content" id="plDrawerContent" style="display:none;">
+
+    {# Header con avatar + nombre + pills #}
+    <header class="pl-drawer-header">
+      <button class="pl-drawer-close" id="plDrawerClose" title="Cerrar (Esc)" aria-label="Cerrar">
+        <i class="fas fa-xmark"></i>
+      </button>
+      <div class="pl-drawer-h-row">
+        <div class="pl-drawer-avatar" id="plDrawerAvatar">?</div>
+        <div class="pl-drawer-h-body">
+          <h2 class="pl-drawer-name" id="plDrawerTitle">—</h2>
+          <p class="pl-drawer-cargo" id="plDrawerCargo">—</p>
+          <div class="pl-drawer-pills" id="plDrawerPills"></div>
+        </div>
+      </div>
+    </header>
+
+    {# Action bar #}
+    <div class="pl-drawer-actions">
+      <a href="#" class="pl-da pl-da-primary" id="plDaMensaje" target="_blank">
+        <i class="fas fa-comment-dots"></i> Mensaje
+      </a>
+      <a href="#" class="pl-da" id="plDaEditar"><i class="fas fa-pen"></i> Editar</a>
+      <a href="#" class="pl-da" id="plDaVacaciones"><i class="fas fa-umbrella-beach"></i> Vacaciones</a>
+      <a href="#" class="pl-da" id="plDaDetalle"><i class="fas fa-external-link-alt"></i> Perfil completo</a>
+    </div>
+
+    {# Tabs #}
+    <nav class="pl-drawer-tabs" role="tablist">
+      <button class="pl-drawer-tab is-active" data-tab="general" role="tab">General</button>
+      <button class="pl-drawer-tab" data-tab="documentos" role="tab">
+        Documentos <span class="pl-drawer-tab-count" id="plTabCountDocs">0</span>
+      </button>
+      <button class="pl-drawer-tab" data-tab="historico" role="tab">Histórico</button>
+      <button class="pl-drawer-tab" data-tab="ia" role="tab">
+        IA <span class="pl-drawer-tab-badge">nuevo</span>
+      </button>
+    </nav>
+
+    {# Tab panels #}
+    <div class="pl-drawer-panels">
+
+      <div class="pl-tab-panel is-active" id="plPanelGeneral">
+        <section class="pl-panel-section">
+          <h3 class="pl-panel-h">Datos laborales</h3>
+          <dl class="pl-panel-dl" id="plDlLaboral"></dl>
+        </section>
+        <section class="pl-panel-section">
+          <h3 class="pl-panel-h">Contacto</h3>
+          <dl class="pl-panel-dl" id="plDlContacto"></dl>
+        </section>
+        <section class="pl-panel-section">
+          <h3 class="pl-panel-h">Estado actual</h3>
+          <dl class="pl-panel-dl" id="plDlEstado"></dl>
+        </section>
+      </div>
+
+      <div class="pl-tab-panel" id="plPanelDocumentos">
+        <div id="plDocsList"></div>
+        <p class="pl-empty" id="plDocsEmpty" style="display:none;">
+          <i class="fas fa-folder-open"></i> Sin documentos archivados
+        </p>
+      </div>
+
+      <div class="pl-tab-panel" id="plPanelHistorico">
+        <ul class="pl-timeline" id="plTimeline"></ul>
+        <p class="pl-empty" id="plTimelineEmpty" style="display:none;">
+          <i class="fas fa-stream"></i> Sin eventos registrados
+        </p>
+      </div>
+
+      <div class="pl-tab-panel" id="plPanelIA">
+        <div class="pl-ia-card" id="plIaCard">
+          <div class="pl-ia-header">
+            <span class="pl-ia-label"><i class="fas fa-robot"></i> Harmoni IA · Prediction</span>
+            <span class="pl-ia-confidence" id="plIaConfidence">media</span>
+          </div>
+          <div class="pl-ia-metrics">
+            <div class="pl-ia-metric">
+              <span class="pl-ia-m-lbl">Probabilidad rotación</span>
+              <span class="pl-ia-m-val" id="plIaRotacion">—</span>
+              <span class="pl-ia-m-bar"><span class="pl-ia-m-bar-fill" id="plIaRotacionBar"></span></span>
+            </div>
+            <div class="pl-ia-metric">
+              <span class="pl-ia-m-lbl">Asistencia 90d</span>
+              <span class="pl-ia-m-val" id="plIaAsistencia">—</span>
+            </div>
+            <div class="pl-ia-metric">
+              <span class="pl-ia-m-lbl">Salario vs banda</span>
+              <span class="pl-ia-m-val" id="plIaSalario">—</span>
+            </div>
+            <div class="pl-ia-metric">
+              <span class="pl-ia-m-lbl">Score desempeño</span>
+              <span class="pl-ia-m-val" id="plIaDesempeno">—</span>
+            </div>
+          </div>
+          <div class="pl-ia-recs">
+            <h4 class="pl-ia-recs-h">Recomendaciones contextuales</h4>
+            <ul id="plIaRecs"></ul>
+          </div>
+        </div>
+      </div>
+
+    </div>{# /panels #}
+  </div>{# /content #}
+</aside>
 {% endblock %}

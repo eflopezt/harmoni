@@ -759,3 +759,206 @@ def personal_express_exito(request, pk):
     return render(request, 'personal/personal_express_exito.html', {
         'persona': persona,
     })
+
+
+# ────────────────────────────────────────────────────────────────────────
+# DRAWER LATERAL (handoff Cockpit) — JSON endpoint del listado /personal/
+# Renderiza el drawer 540px al click en una fila SIN navegar.
+# ────────────────────────────────────────────────────────────────────────
+
+@login_required
+def personal_drawer_data(request, pk):
+    """JSON con los datos del empleado para el drawer 540px del listado.
+
+    Devuelve 4 secciones del handoff: basic + general · documentos · histórico · ia.
+    Liviano (no es la página detail completa) para que el click en row sea instantáneo.
+    """
+    from django.http import JsonResponse
+    persona = get_object_or_404(
+        filtrar_personal(request.user).select_related('subarea', 'subarea__area', 'cargo_obj'),
+        pk=pk,
+    )
+
+    # ── BASIC + GENERAL ──
+    area = getattr(persona.subarea, 'area', None)
+    contrato_dias = None
+    if persona.fecha_fin_contrato:
+        contrato_dias = (persona.fecha_fin_contrato - date.today()).days
+
+    basic = {
+        'id':         persona.pk,
+        'nombre':     persona.apellidos_nombres or '',
+        'dni':        persona.nro_doc or '',
+        'cargo':      persona.cargo or '',
+        'area':       area.nombre if area else (persona.subarea.nombre if persona.subarea else ''),
+        'subarea':    persona.subarea.nombre if persona.subarea else '',
+        'foto_url':   getattr(persona.foto, 'url', '') if getattr(persona, 'foto', None) else '',
+        'iniciales':  ''.join([p[0] for p in (persona.apellidos_nombres or '').split()[:2]]).upper() or '?',
+        'estado':     persona.estado or 'Activo',
+        'tipo_trab':  persona.tipo_trab or '',
+        'grupo':      persona.grupo_tareo or '',
+        'condicion':  persona.condicion or '',
+        'codigo':     getattr(persona, 'codigo_interno', '') or '',
+        'fecha_alta': persona.fecha_alta.isoformat() if persona.fecha_alta else None,
+        'fecha_cese': persona.fecha_cese.isoformat() if persona.fecha_cese else None,
+        'fecha_fin_contrato': persona.fecha_fin_contrato.isoformat() if persona.fecha_fin_contrato else None,
+        'contrato_dias_restantes': contrato_dias,
+        'sueldo_base': float(persona.sueldo_base or 0),
+        'celular':    persona.celular or '',
+        'correo':     persona.correo_corporativo or persona.correo_personal or '',
+        'regimen':    persona.regimen_pension or 'ONP',
+        'tiene_eps':  bool(persona.tiene_eps),
+        'asig_fam':   bool(getattr(persona, 'asignacion_familiar', False)),
+        'url_detail': f'/personal/{persona.pk}/',
+        'url_editar': f'/personal/{persona.pk}/editar/',
+    }
+
+    # ── DOCUMENTOS (handoff: lista con icon + nombre + size + descarga) ──
+    documentos = []
+    try:
+        from documentos.models import ArchivoTrabajador
+        for d in ArchivoTrabajador.objects.filter(personal=persona).order_by('-creado_en')[:8]:
+            ext = (d.archivo.name.rsplit('.', 1)[-1] if d.archivo and d.archivo.name and '.' in d.archivo.name else '').lower()
+            icon_map = {
+                'pdf':  'fa-file-pdf',
+                'doc':  'fa-file-word', 'docx': 'fa-file-word',
+                'xls':  'fa-file-excel', 'xlsx': 'fa-file-excel',
+                'jpg':  'fa-file-image', 'jpeg': 'fa-file-image', 'png': 'fa-file-image',
+            }
+            try:
+                size = d.archivo.size if d.archivo else 0
+                size_kb = f'{size / 1024:.0f} KB' if size < 1024 * 1024 else f'{size / 1024 / 1024:.1f} MB'
+            except Exception:
+                size_kb = '—'
+            documentos.append({
+                'nombre': d.nombre_descriptivo or (d.archivo.name.rsplit('/', 1)[-1] if d.archivo else 'Sin nombre'),
+                'tipo':   getattr(d.tipo, 'nombre', '') if getattr(d, 'tipo', None) else (ext.upper() or 'DOC'),
+                'icon':   icon_map.get(ext, 'fa-file'),
+                'size':   size_kb,
+                'fecha':  d.creado_en.strftime('%d/%m/%Y') if d.creado_en else '',
+                'url':    d.archivo.url if d.archivo else '#',
+            })
+    except Exception:
+        pass
+
+    # ── HISTÓRICO (handoff: timeline vertical con dots colored) ──
+    historico = []
+    # Alta
+    if persona.fecha_alta:
+        historico.append({
+            'fecha':      persona.fecha_alta.isoformat(),
+            'fecha_disp': persona.fecha_alta.strftime('%d/%m/%Y'),
+            'titulo':     'Ingreso a la empresa',
+            'sub':        persona.cargo or '',
+            'color':      'brand',
+        })
+    # Cese
+    if persona.fecha_cese:
+        historico.append({
+            'fecha':      persona.fecha_cese.isoformat(),
+            'fecha_disp': persona.fecha_cese.strftime('%d/%m/%Y'),
+            'titulo':     'Cese laboral',
+            'sub':        getattr(persona, 'motivo_cese', '') or '',
+            'color':      'warning',
+        })
+    # Vacaciones gozadas (últimas 3)
+    try:
+        from vacaciones.models import SolicitudVacacion
+        for v in SolicitudVacacion.objects.filter(
+            personal=persona, estado='APROBADA',
+        ).order_by('-fecha_inicio')[:3]:
+            historico.append({
+                'fecha':      v.fecha_inicio.isoformat(),
+                'fecha_disp': v.fecha_inicio.strftime('%d/%m/%Y'),
+                'titulo':     f'Vacaciones {v.dias_calendario}d',
+                'sub':        f'hasta {v.fecha_fin.strftime("%d/%m/%Y")}',
+                'color':      'success',
+            })
+    except Exception:
+        pass
+    # Préstamos
+    try:
+        from prestamos.models import Prestamo
+        for p in Prestamo.objects.filter(personal=persona).order_by('-creado_en')[:2]:
+            historico.append({
+                'fecha':      p.creado_en.date().isoformat(),
+                'fecha_disp': p.creado_en.strftime('%d/%m/%Y'),
+                'titulo':     f'Préstamo S/ {p.monto_efectivo:,.0f}',
+                'sub':        getattr(p.tipo, 'nombre', '') if getattr(p, 'tipo', None) else '',
+                'color':      'default',
+            })
+    except Exception:
+        pass
+    historico.sort(key=lambda x: x['fecha'], reverse=True)
+    historico = historico[:10]
+
+    # ── IA (handoff: 4 métricas mono + recomendaciones) ──
+    # Si no hay un servicio real, derivamos métricas razonables desde datos existentes.
+    asistencia_90d_pct = None
+    try:
+        from datetime import timedelta
+        from asistencia.models import RegistroTareo
+        from django.db.models import Q, Count
+        hace_90 = date.today() - timedelta(days=90)
+        agg = RegistroTareo.objects.filter(personal=persona, fecha__gte=hace_90).aggregate(
+            total=Count('id'),
+            asistio=Count('id', filter=Q(codigo_dia__in=['T', 'NOR', 'TR', 'SS'])),
+        )
+        if agg['total']:
+            asistencia_90d_pct = round(100.0 * agg['asistio'] / agg['total'], 1)
+    except Exception:
+        pass
+
+    # Score rotación heurístico: alto si contrato vence pronto + sin vacaciones recientes
+    score_rotacion = 18  # baseline
+    if contrato_dias is not None and contrato_dias <= 60:
+        score_rotacion += 25
+    if asistencia_90d_pct is not None and asistencia_90d_pct < 85:
+        score_rotacion += 20
+    if persona.estado == 'Cesado':
+        score_rotacion = 100
+    score_rotacion = min(100, score_rotacion)
+    rotacion_nivel = 'bajo' if score_rotacion < 30 else 'medio' if score_rotacion < 60 else 'alto'
+
+    # Salario vs banda — comparar contra promedio del cargo (mock simple)
+    salario_vs_banda = '—'
+    try:
+        from django.db.models import Avg
+        if persona.cargo:
+            avg = Personal.objects.filter(
+                cargo=persona.cargo, estado='Activo'
+            ).exclude(pk=persona.pk).aggregate(avg=Avg('sueldo_base'))['avg']
+            if avg and persona.sueldo_base:
+                ratio = float(persona.sueldo_base) / float(avg)
+                if ratio < 0.92: salario_vs_banda = 'Bajo (-' + str(round((1 - ratio) * 100)) + '%)'
+                elif ratio > 1.08: salario_vs_banda = 'Alto (+' + str(round((ratio - 1) * 100)) + '%)'
+                else: salario_vs_banda = 'En banda'
+    except Exception:
+        pass
+
+    # Recomendaciones contextuales
+    recomendaciones = []
+    if contrato_dias is not None and 0 < contrato_dias <= 30:
+        recomendaciones.append(f'⚠️ Contrato vence en {contrato_dias} días — agendar renovación')
+    if asistencia_90d_pct is not None and asistencia_90d_pct < 85:
+        recomendaciones.append(f'📉 Asistencia 90d en {asistencia_90d_pct}% — agendar 1:1')
+    if score_rotacion >= 60 and persona.estado == 'Activo':
+        recomendaciones.append('🎯 Riesgo de rotación alto — considerar retention plan')
+    if not recomendaciones:
+        recomendaciones.append('✓ Sin alertas — perfil estable')
+
+    ia = {
+        'score_rotacion': score_rotacion,
+        'rotacion_nivel': rotacion_nivel,
+        'asistencia_90d_pct': asistencia_90d_pct if asistencia_90d_pct is not None else '—',
+        'salario_vs_banda': salario_vs_banda,
+        'score_desempeno':   None,  # placeholder hasta integrar Evaluaciones360
+        'recomendaciones':   recomendaciones,
+    }
+
+    return JsonResponse({
+        'basic':      basic,
+        'documentos': documentos,
+        'historico':  historico,
+        'ia':         ia,
+    })

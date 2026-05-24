@@ -77,6 +77,7 @@ urlpatterns = [
     path('personal/express/', views.personal_create_express, name='personal_create_express'),
     path('personal/express/exito/<int:pk>/', views.personal_express_exito, name='personal_express_exito'),
     path('personal/<int:pk>/', views.personal_detail, name='personal_detail'),
+    path('personal/<int:pk>/drawer/', views.personal_drawer_data, name='personal_drawer_data'),
     path('personal/empleado/<int:pk>/', views.personal_detail, name='personal_detail_alias'),
     path('personal/<int:pk>/timeline/', views.timeline_empleado, name='timeline_empleado'),
     path('personal/<int:pk>/editar/', views.personal_update, name='personal_update'),
