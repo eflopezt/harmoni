@@ -1,0 +1,118 @@
+{% extends "wa_marketing/base_wa.html" %}
+
+{% block title %}{{ conv.nombre_wa|default:conv.telefono }} — WhatsApp{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-white">
+    <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'wa_inbox' %}" class="btn btn-sm btn-light"><i class="fas fa-arrow-left"></i></a>
+      <div>
+        <div class="fw-semibold">{{ conv.nombre_wa|default:"Sin nombre" }}</div>
+        <div class="small text-muted">+{{ conv.telefono }}</div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="wa-badge {{ conv.estado|lower }}">{{ conv.get_estado_display }}</span>
+      {% if conv.asignado_a %}
+        <span class="small text-muted">Asignado: {{ conv.asignado_a.username }}</span>
+      {% endif %}
+      <form method="post" action="{% url 'wa_cambiar_estado' conv.id %}" class="d-flex gap-1">
+        {% csrf_token %}
+        {% if conv.estado == 'BOT' %}
+          <button name="accion" value="tomar" class="btn btn-sm btn-warning">
+            <i class="fas fa-hand-paper me-1"></i>Tomar
+          </button>
+        {% else %}
+          <button name="accion" value="devolver_bot" class="btn btn-sm btn-outline-info"
+                  title="Devolver al bot">
+            <i class="fas fa-robot"></i>
+          </button>
+        {% endif %}
+        <button name="accion" value="cerrar" class="btn btn-sm btn-outline-secondary"
+                title="Cerrar conversación">
+          <i class="fas fa-archive"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="wa-shell">
+    <aside class="wa-side">
+      <div class="wa-side-header small text-muted">
+        Volver al inbox para cambiar de conversación.
+      </div>
+      <div class="px-3 py-3">
+        <h6 class="small text-muted text-uppercase mb-2">Datos</h6>
+        <p class="mb-1 small"><strong>Teléfono:</strong> +{{ conv.telefono }}</p>
+        <p class="mb-1 small"><strong>Estado bot:</strong> {{ conv.get_menu_state_display }}</p>
+        <p class="mb-1 small"><strong>Creada:</strong> {{ conv.creado_en|date:"d/m/Y H:i" }}</p>
+        <p class="mb-3 small"><strong>Último msg:</strong> {{ conv.ultimo_mensaje_at|date:"d/m/Y H:i"|default:"—" }}</p>
+
+        {% with leads=conv.leads.all %}
+        {% if leads %}
+          <h6 class="small text-muted text-uppercase mb-2 mt-3">Leads capturados</h6>
+          {% for lead in leads %}
+            <div class="border rounded p-2 mb-2 small">
+              <div><strong>{{ lead.nombre }}</strong></div>
+              {% if lead.empresa %}<div>{{ lead.empresa }}</div>{% endif %}
+              {% if lead.num_empleados %}<div class="text-muted">{{ lead.num_empleados }} colaboradores</div>{% endif %}
+              <div class="text-muted">{{ lead.creado_en|date:"d/m H:i" }}</div>
+            </div>
+          {% endfor %}
+        {% endif %}
+        {% endwith %}
+      </div>
+    </aside>
+
+    <main class="wa-main">
+      <div class="wa-msgs">
+        <div class="wa-msgs-flex">
+          {% for m in mensajes %}
+            <div class="wa-msg {{ m.direccion|lower }} {% if m.tipo == 'SISTEMA' %}sistema{% endif %}">
+              {{ m.cuerpo }}
+              <div class="wa-msg-meta">
+                {{ m.creado_en|date:"d/m H:i" }}
+                {% if m.enviado_por %} · {{ m.enviado_por.username }}{% endif %}
+              </div>
+            </div>
+          {% empty %}
+            <div class="text-center text-muted py-5">Sin mensajes aún.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="wa-composer">
+        {% if conv.estado == 'BOT' %}
+          <div class="alert alert-info py-2 small mb-2">
+            <i class="fas fa-info-circle me-1"></i>
+            Esta conversación está siendo atendida por el bot. Pulsa <strong>Tomar</strong>
+            arriba si quieres responder tú.
+          </div>
+        {% endif %}
+        <form method="post" action="{% url 'wa_responder' conv.id %}">
+          {% csrf_token %}
+          <textarea name="texto" class="form-control mb-2"
+                    placeholder="Escribe tu respuesta…"
+                    {% if conv.estado != 'HANDOFF' %}disabled{% endif %}></textarea>
+          <div class="d-flex justify-content-end gap-2">
+            <button class="btn btn-success" {% if conv.estado != 'HANDOFF' %}disabled{% endif %}>
+              <i class="fas fa-paper-plane me-1"></i>Enviar
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+</div>
+
+<script>
+  // Auto-scroll al final de la conversación
+  document.addEventListener('DOMContentLoaded', () => {
+    const msgs = document.querySelector('.wa-msgs');
+    if (msgs) msgs.scrollTop = msgs.scrollHeight;
+  });
+</script>
+{% endblock %}

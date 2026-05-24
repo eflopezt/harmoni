@@ -1,0 +1,78 @@
+{% extends "wa_marketing/base_wa.html" %}
+
+{% block title %}Leads WhatsApp — Harmoni{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'wa_inbox' %}" class="btn btn-sm btn-light"><i class="fas fa-arrow-left"></i></a>
+      <h4 class="mb-0">
+        <i class="fas fa-user-tie text-success me-2"></i>Leads capturados
+      </h4>
+    </div>
+    <span class="badge bg-success">{{ leads|length }} totales</span>
+  </div>
+
+  <p class="text-muted small">
+    Estos son los prospectos que completaron el flujo del bot (botón "Solicitar demo")
+    o que se capturaron manualmente.
+  </p>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Fecha</th>
+            <th>Nombre</th>
+            <th>Empresa</th>
+            <th>Colaboradores</th>
+            <th>Teléfono</th>
+            <th>Origen</th>
+            <th>Contactado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in leads %}
+            <tr>
+              <td><small>{{ l.creado_en|date:"d/m H:i" }}</small></td>
+              <td><strong>{{ l.nombre }}</strong></td>
+              <td>{{ l.empresa|default:"—" }}</td>
+              <td>{{ l.num_empleados|default:"—" }}</td>
+              <td><code>+{{ l.telefono }}</code></td>
+              <td>
+                <span class="badge bg-light text-dark">{{ l.get_origen_display }}</span>
+              </td>
+              <td>
+                {% if l.contactado %}
+                  <i class="fas fa-check-circle text-success"></i>
+                {% else %}
+                  <i class="fas fa-circle text-muted" style="font-size:.6rem"></i>
+                {% endif %}
+              </td>
+              <td>
+                {% if l.conversacion %}
+                  <a href="{% url 'wa_conversacion' l.conversacion.id %}"
+                     class="btn btn-sm btn-outline-success">
+                    <i class="fab fa-whatsapp"></i>
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">
+                Sin leads aún. Cuando alguien complete el flujo del bot aparecerá acá.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

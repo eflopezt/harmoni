@@ -1,0 +1,60 @@
+{% extends "base_v2.html" %}
+{% load static %}
+
+{% block title %}WhatsApp Marketing — Harmoni{% endblock %}
+
+{% block extra_css %}
+<style>
+  .wa-shell { display: grid; grid-template-columns: 360px 1fr; gap: 0; min-height: calc(100vh - 100px); }
+  .wa-side { background: var(--bg-panel, #f8fafc); border-right: 1px solid #e2e8f0; overflow-y: auto; }
+  .wa-side-header { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; background: #fff; }
+  .wa-tabs { display: flex; gap: 4px; margin-top: 8px; }
+  .wa-tabs a { padding: 4px 10px; font-size: .78rem; border-radius: 14px; text-decoration: none;
+               background: #f1f5f9; color: #475569; }
+  .wa-tabs a.active { background: #0d9488; color: #fff; }
+  .wa-conv { display: flex; gap: 10px; padding: 12px 14px; border-bottom: 1px solid #eef2f6;
+             text-decoration: none; color: inherit; cursor: pointer; }
+  .wa-conv:hover { background: #f1f5f9; }
+  .wa-conv.unread { background: #ecfdf5; }
+  .wa-conv-avatar { width: 40px; height: 40px; border-radius: 50%; background: #0d9488; color: #fff;
+                   display: flex; align-items: center; justify-content: center; font-weight: 700;
+                   font-size: .9rem; flex-shrink: 0; }
+  .wa-conv-body { flex: 1; min-width: 0; }
+  .wa-conv-name { font-weight: 600; font-size: .9rem; display: flex; justify-content: space-between; }
+  .wa-conv-name small { color: #64748b; font-weight: 400; font-size: .72rem; }
+  .wa-conv-phone { font-size: .76rem; color: #64748b; }
+  .wa-conv-badges { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+  .wa-badge { display: inline-block; padding: 1px 7px; font-size: .68rem; border-radius: 10px;
+              font-weight: 600; }
+  .wa-badge.bot { background: #cffafe; color: #0e7490; }
+  .wa-badge.handoff { background: #fef3c7; color: #92400e; }
+  .wa-badge.cerrado { background: #e2e8f0; color: #475569; }
+  .wa-badge.unread { background: #ef4444; color: #fff; }
+
+  .wa-main { display: flex; flex-direction: column; background: #f0f2f5; }
+  .wa-main-header { padding: 12px 18px; background: #fff; border-bottom: 1px solid #e2e8f0; }
+  .wa-msgs { flex: 1; overflow-y: auto; padding: 16px 18px; }
+  .wa-msg { max-width: 70%; padding: 8px 12px; border-radius: 10px; margin-bottom: 6px;
+            white-space: pre-wrap; word-break: break-word; line-height: 1.35; font-size: .9rem; }
+  .wa-msg.in { background: #fff; align-self: flex-start; }
+  .wa-msg.out { background: #d1fae5; align-self: flex-end; }
+  .wa-msg.sistema { background: #fef3c7; font-style: italic; align-self: center; max-width: 80%;
+                    text-align: center; font-size: .8rem; color: #78350f; }
+  .wa-msg-meta { font-size: .68rem; color: #64748b; margin-top: 2px; }
+  .wa-msgs-flex { display: flex; flex-direction: column; }
+  .wa-composer { background: #fff; border-top: 1px solid #e2e8f0; padding: 12px 18px; }
+  .wa-composer textarea { resize: vertical; min-height: 60px; }
+
+  .wa-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+                    border-radius: 20px; font-size: .76rem; font-weight: 600; }
+  .wa-status-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .wa-status-pill.open { background: #d1fae5; color: #065f46; }
+  .wa-status-pill.open .dot { background: #10b981; }
+  .wa-status-pill.qr { background: #fef3c7; color: #92400e; }
+  .wa-status-pill.qr .dot { background: #f59e0b; }
+  .wa-status-pill.close, .wa-status-pill.unreachable { background: #fee2e2; color: #991b1b; }
+  .wa-status-pill.close .dot, .wa-status-pill.unreachable .dot { background: #ef4444; }
+  .wa-status-pill.connecting, .wa-status-pill.init { background: #e0e7ff; color: #3730a3; }
+  .wa-status-pill.connecting .dot, .wa-status-pill.init .dot { background: #6366f1; }
+</style>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "wa_marketing/base_wa.html" %}
+
+{% block title %}Broadcast WhatsApp — Harmoni{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 900px;">
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{% url 'wa_inbox' %}" class="btn btn-sm btn-light"><i class="fas fa-arrow-left"></i></a>
+    <h4 class="mb-0">
+      <i class="fas fa-bullhorn text-primary me-2"></i>Broadcast WhatsApp
+    </h4>
+  </div>
+
+  <div class="alert alert-warning small">
+    <i class="fas fa-exclamation-triangle me-1"></i>
+    <strong>Cuidado con el baneo de Baileys.</strong> No envíes a más de 30-50 contactos por día
+    los primeros 15 días, y deja al menos 5-10 segundos entre mensaje y mensaje. Los broadcasts
+    masivos disparan flags de spam en WhatsApp.
+  </div>
+
+  {% with s=sidecar_status %}
+  <div class="mb-3">
+    <span class="wa-status-pill {{ s.state|default:'unreachable' }}">
+      <span class="dot"></span>
+      {% if s.state == 'open' %}Conectado{% if s.me %} · +{{ s.me }}{% endif %}
+      {% elif s.state == 'qr' %}Esperando QR
+      {% elif s.state == 'connecting' %}Conectando…
+      {% elif s.state == 'close' %}Desconectado
+      {% else %}Sidecar offline{% endif %}
+    </span>
+  </div>
+  {% endwith %}
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" class="card">
+    {% csrf_token %}
+    <div class="card-body">
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Destinatarios</label>
+        <textarea name="destinos" class="form-control" rows="6" required
+                  placeholder="Un teléfono por línea o separados por coma. Ejemplo:&#10;51999111222&#10;51988333444&#10;51977555666"></textarea>
+        <div class="form-text">
+          Formato internacional sin +. Acepta separados por línea o coma.
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Mensaje</label>
+        <textarea name="texto" class="form-control" rows="6" required
+                  placeholder="Escribe el texto del mensaje. WhatsApp acepta *negrita*, _cursiva_ y ~tachado~."></textarea>
+        <div class="form-text">
+          Cada destinatario recibirá exactamente este texto. Para personalización
+          (nombre del cliente, etc.) por ahora hazlo individualmente desde el inbox.
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end">
+        <button class="btn btn-primary">
+          <i class="fas fa-paper-plane me-1"></i>Enviar broadcast
+        </button>
+      </div>
+
+    </div>
+  </form>
+
+  <p class="text-muted small mt-3 mb-0">
+    <i class="fas fa-info-circle me-1"></i>
+    Cada envío queda registrado como mensaje saliente en la conversación correspondiente.
+    Si la conversación no existe, se crea automáticamente.
+  </p>
+
+</div>
+{% endblock %}

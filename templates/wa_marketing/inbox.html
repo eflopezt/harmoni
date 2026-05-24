@@ -1,0 +1,101 @@
+{% extends "wa_marketing/base_wa.html" %}
+
+{% block title %}Inbox WhatsApp — Harmoni{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-white">
+    <h5 class="mb-0 fw-semibold">
+      <i class="fab fa-whatsapp text-success me-2"></i>WhatsApp Marketing
+    </h5>
+    <div class="d-flex align-items-center gap-2">
+      {% with s=sidecar_status %}
+      <span class="wa-status-pill {{ s.state|default:'unreachable' }}">
+        <span class="dot"></span>
+        {% if s.state == 'open' %}Conectado{% if s.me %} · +{{ s.me }}{% endif %}
+        {% elif s.state == 'qr' %}Esperando QR
+        {% elif s.state == 'connecting' %}Conectando…
+        {% elif s.state == 'close' %}Desconectado
+        {% elif s.state == 'init' %}Iniciando…
+        {% else %}Sidecar offline{% endif %}
+      </span>
+      {% if s.state == 'qr' %}
+        <a href="{% url 'wa_sidecar_qr' %}" target="_blank" class="btn btn-sm btn-warning">
+          <i class="fas fa-qrcode me-1"></i>Ver QR
+        </a>
+      {% endif %}
+      {% endwith %}
+      <a href="{% url 'wa_broadcast' %}" class="btn btn-sm btn-outline-primary">
+        <i class="fas fa-bullhorn me-1"></i>Broadcast
+      </a>
+      <a href="{% url 'wa_leads' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-user-tie me-1"></i>Leads
+      </a>
+    </div>
+  </div>
+
+  <div class="wa-shell">
+    <aside class="wa-side">
+      <div class="wa-side-header">
+        <form method="get" action="" class="d-flex gap-2">
+          <input type="text" name="q" value="{{ q }}" placeholder="Buscar teléfono o nombre"
+                 class="form-control form-control-sm">
+          {% if filtro != 'todos' %}<input type="hidden" name="filtro" value="{{ filtro }}">{% endif %}
+        </form>
+        <div class="wa-tabs">
+          <a href="?filtro=todos" class="{% if filtro == 'todos' %}active{% endif %}">
+            Todos · {{ contadores.total }}
+          </a>
+          <a href="?filtro=no_leidos" class="{% if filtro == 'no_leidos' %}active{% endif %}">
+            No leídos · {{ contadores.no_leidos }}
+          </a>
+          <a href="?filtro=handoff" class="{% if filtro == 'handoff' %}active{% endif %}">
+            Handoff · {{ contadores.en_handoff }}
+          </a>
+          <a href="?filtro=bot" class="{% if filtro == 'bot' %}active{% endif %}">Bot</a>
+        </div>
+      </div>
+
+      {% for conv in conversaciones %}
+        <a href="{% url 'wa_conversacion' conv.id %}" class="wa-conv {% if conv.no_leidos %}unread{% endif %}">
+          <div class="wa-conv-avatar">
+            {% if conv.nombre_wa %}{{ conv.nombre_wa|first|upper }}{% else %}?{% endif %}
+          </div>
+          <div class="wa-conv-body">
+            <div class="wa-conv-name">
+              <span class="text-truncate">{{ conv.nombre_wa|default:"Sin nombre" }}</span>
+              <small>{{ conv.ultimo_mensaje_at|date:"d/m H:i"|default:"—" }}</small>
+            </div>
+            <div class="wa-conv-phone">+{{ conv.telefono }}</div>
+            <div class="wa-conv-badges">
+              <span class="wa-badge {{ conv.estado|lower }}">{{ conv.get_estado_display }}</span>
+              {% if conv.no_leidos %}
+                <span class="wa-badge unread">{{ conv.no_leidos }} nuevos</span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      {% empty %}
+        <div class="p-4 text-center text-muted small">
+          <i class="far fa-comment-dots fa-2x mb-2 d-block"></i>
+          Sin conversaciones aún.<br>
+          Cuando alguien escriba al WhatsApp +51 906 602 313, aparecerá acá.
+        </div>
+      {% endfor %}
+    </aside>
+
+    <main class="wa-main">
+      <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+        <div class="text-center">
+          <i class="far fa-comment-dots fa-3x mb-3 d-block opacity-50"></i>
+          <p class="mb-1">Selecciona una conversación de la izquierda</p>
+          <p class="small mb-0">o envía un <a href="{% url 'wa_broadcast' %}">broadcast</a>
+             a varios contactos</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+</div>
+{% endblock %}
