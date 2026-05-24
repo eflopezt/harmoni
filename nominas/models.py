@@ -833,3 +833,296 @@ class ConceptoAuditLog(models.Model):
             despues = valores.get('despues', '—') if isinstance(valores, dict) else valores
             items.append(f'{campo}: {antes} → {despues}')
         return items
+
+
+# ══════════════════════════════════════════════════════════════════════
+# AGENTE IA NÓMINAS — Conversaciones, reintegros, audit
+# ══════════════════════════════════════════════════════════════════════
+
+class ConversacionAgenteIA(models.Model):
+    """
+    Sesión de chat con el agente IA de Nóminas.
+
+    Cada conversación tiene un hilo de mensajes (MensajeAgenteIA).
+    El agente puede ejecutar tools que modifican propuestas de reintegros.
+    """
+    usuario      = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='conversaciones_nominas_ia',
+    )
+    empresa      = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+    )
+    titulo       = models.CharField(
+        max_length=200, blank=True,
+        help_text='Título auto-generado a partir del primer mensaje',
+    )
+    contexto     = models.JSONField(
+        default=dict, blank=True,
+        help_text='Contexto persistente: trabajador en foco, período, etc.',
+    )
+    creada_en    = models.DateTimeField(auto_now_add=True, db_index=True)
+    actualizada_en = models.DateTimeField(auto_now=True)
+    archivada    = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = 'Conversación Agente IA'
+        verbose_name_plural = 'Conversaciones Agente IA'
+        ordering = ['-actualizada_en']
+
+    def __str__(self):
+        return f'{self.titulo or "Sin título"} ({self.usuario_id})'
+
+
+class MensajeAgenteIA(models.Model):
+    """Mensaje individual dentro de una conversación con el agente."""
+    ROL_CHOICES = [
+        ('user',      'Usuario'),
+        ('assistant', 'Asistente IA'),
+        ('tool',      'Tool (resultado de función)'),
+        ('system',    'Sistema (instrucciones)'),
+    ]
+
+    conversacion = models.ForeignKey(
+        ConversacionAgenteIA,
+        on_delete=models.CASCADE,
+        related_name='mensajes',
+    )
+    rol          = models.CharField(max_length=15, choices=ROL_CHOICES)
+    contenido    = models.TextField()
+    # Si rol='tool': nombre de la función y args + resultado
+    tool_name    = models.CharField(max_length=80, blank=True)
+    tool_args    = models.JSONField(default=dict, blank=True)
+    tool_result  = models.JSONField(default=dict, blank=True)
+    # Tokens consumidos por el modelo (para cost tracking)
+    tokens_input  = models.PositiveIntegerField(default=0)
+    tokens_output = models.PositiveIntegerField(default=0)
+    modelo       = models.CharField(
+        max_length=80, blank=True,
+        help_text='ej: deepseek-chat, gemini-1.5-pro, gpt-4o-mini',
+    )
+    fecha        = models.DateTimeField(auto_now_add=True, db_index=True)
+    # Si el mensaje propone una acción que requiere aprobación
+    requiere_aprobacion = models.BooleanField(default=False)
+    accion_propuesta    = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = 'Mensaje Agente IA'
+        verbose_name_plural = 'Mensajes Agente IA'
+        ordering = ['fecha']
+
+    def __str__(self):
+        return f'[{self.rol}] {self.contenido[:60]}'
+
+
+class ReintegroNomina(models.Model):
+    """
+    Reintegro a un trabajador por error o corrección de planilla anterior.
+
+    Estados:
+    - PROPUESTO: calculado por el agente o admin, aún no aplicado
+    - APROBADO:  admin aprobó, pendiente de aplicar al próximo período
+    - APLICADO:  se generó la línea en el período actual de planilla
+    - REVERSADO: se canceló el reintegro (con motivo)
+    """
+    ESTADO_CHOICES = [
+        ('PROPUESTO', 'Propuesto'),
+        ('APROBADO',  'Aprobado'),
+        ('APLICADO',  'Aplicado'),
+        ('REVERSADO', 'Reversado'),
+    ]
+
+    MOTIVO_CHOICES = [
+        ('ERROR_SUELDO',          'Error en sueldo base'),
+        ('AUMENTO_RETROACTIVO',   'Aumento de sueldo retroactivo'),
+        ('HE_NO_PAGADAS',         'Horas extra no pagadas'),
+        ('ASIG_FAMILIAR_OMITIDA', 'Asignación familiar omitida'),
+        ('BONIF_OMITIDA',         'Bonificación omitida'),
+        ('GRATIF_MAL_CALCULADA',  'Gratificación mal calculada'),
+        ('SENTENCIA_JUDICIAL',    'Sentencia judicial'),
+        ('OTRO',                  'Otro (especificar)'),
+    ]
+
+    # ── Quién y por qué ──
+    personal       = models.ForeignKey(
+        'personal.Personal',
+        on_delete=models.PROTECT,
+        related_name='reintegros',
+    )
+    empresa        = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+    )
+    motivo         = models.CharField(max_length=30, choices=MOTIVO_CHOICES)
+    descripcion    = models.TextField(
+        help_text='Justificación clara — irá en la boleta como detalle',
+    )
+
+    # ── Período de origen del error ──
+    periodo_origen_anio = models.SmallIntegerField(
+        help_text='Año del período donde ocurrió el error',
+    )
+    periodo_origen_mes  = models.SmallIntegerField(
+        help_text='Mes del período donde ocurrió el error',
+    )
+
+    # ── Montos ──
+    monto_que_se_pago = models.DecimalField(
+        max_digits=14, decimal_places=2,
+        help_text='Lo que el trabajador efectivamente recibió',
+    )
+    monto_correcto    = models.DecimalField(
+        max_digits=14, decimal_places=2,
+        help_text='Lo que debió haber recibido según corrección',
+    )
+    monto_reintegro   = models.DecimalField(
+        max_digits=14, decimal_places=2,
+        help_text='Diferencia a pagar (positiva) o a descontar (negativa)',
+    )
+
+    # ── Impacto fiscal (calculado por simular_impacto_aportes) ──
+    impacto_ir_5ta    = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    impacto_aportes   = models.JSONField(
+        default=dict, blank=True,
+        help_text='ej: {"AFP_aporte": 50.00, "ESSALUD_emp": 27.00, ...}',
+    )
+    monto_neto_reintegro = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal('0'),
+        help_text='Líquido después de descontar aportes adicionales',
+    )
+
+    # ── Período donde se va a aplicar (próxima planilla) ──
+    periodo_aplicar = models.ForeignKey(
+        'nominas.PeriodoNomina',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='reintegros_aplicados',
+        help_text='Período donde se generará la línea de reintegro',
+    )
+    linea_generada  = models.ForeignKey(
+        'nominas.LineaNomina',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text='Línea creada al aplicar el reintegro',
+    )
+
+    # ── Estado + audit ──
+    estado          = models.CharField(max_length=12, choices=ESTADO_CHOICES, default='PROPUESTO')
+    propuesto_por   = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='reintegros_propuestos',
+    )
+    propuesto_por_ia = models.BooleanField(
+        default=False,
+        help_text='True si fue propuesto por el agente IA (vs admin manual)',
+    )
+    conversacion_ia = models.ForeignKey(
+        ConversacionAgenteIA,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='reintegros_propuestos',
+    )
+    aprobado_por    = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='reintegros_aprobados',
+    )
+    aprobado_en     = models.DateTimeField(null=True, blank=True)
+    aplicado_en     = models.DateTimeField(null=True, blank=True)
+    revertido_por   = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='reintegros_revertidos',
+    )
+    revertido_en    = models.DateTimeField(null=True, blank=True)
+    motivo_reversion = models.TextField(blank=True)
+
+    creado_en       = models.DateTimeField(auto_now_add=True, db_index=True)
+    actualizado_en  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Reintegro de Nómina'
+        verbose_name_plural = 'Reintegros de Nómina'
+        ordering = ['-creado_en']
+        indexes = [
+            models.Index(fields=['personal', '-creado_en']),
+            models.Index(fields=['estado', '-creado_en']),
+        ]
+
+    def __str__(self):
+        signo = '+' if self.monto_reintegro >= 0 else ''
+        return f'Reintegro {self.personal} {signo}S/{self.monto_reintegro} ({self.get_estado_display()})'
+
+    @property
+    def es_a_favor_trabajador(self):
+        """True si el reintegro AUMENTA lo que recibe el trabajador."""
+        return self.monto_reintegro > 0
+
+    @property
+    def es_descuento(self):
+        """True si en realidad es un descuento (cobramos al trabajador algo que se pagó de más)."""
+        return self.monto_reintegro < 0
+
+    @property
+    def periodo_origen_str(self):
+        return f'{self.periodo_origen_mes:02d}/{self.periodo_origen_anio}'
+
+
+class AuditAgenteIA(models.Model):
+    """
+    Bitácora de TODA acción del agente IA.
+
+    Mucho más detallado que ConceptoAuditLog: registra cada tool call,
+    cada input/output del modelo, cada decisión. Crítico para compliance.
+    """
+    ACCION_CHOICES = [
+        ('CONSULTA_NORMATIVA',  'Consulta a normativa (RAG)'),
+        ('OBTENER_BOLETA',      'Lectura de boleta histórica'),
+        ('CALCULO_REINTEGRO',   'Cálculo de reintegro'),
+        ('SIMULAR_IMPACTO',     'Simulación de impacto'),
+        ('PROPONER_REINTEGRO',  'Propuesta de reintegro (estado PROPUESTO)'),
+        ('APLICAR_REINTEGRO',   'Aplicación de reintegro (genera LineaNomina)'),
+        ('REVERTIR_REINTEGRO',  'Reversión de reintegro'),
+        ('CONVERSACION',        'Mensaje conversacional (sin tool)'),
+        ('ERROR',               'Error / rechazo'),
+    ]
+
+    conversacion  = models.ForeignKey(
+        ConversacionAgenteIA,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='audits',
+    )
+    usuario       = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    accion        = models.CharField(max_length=30, choices=ACCION_CHOICES)
+    detalle       = models.JSONField(default=dict, blank=True)
+    fecha         = models.DateTimeField(auto_now_add=True, db_index=True)
+    ip            = models.GenericIPAddressField(null=True, blank=True)
+    exito         = models.BooleanField(default=True)
+    error_mensaje = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = 'Audit Agente IA'
+        verbose_name_plural = 'Audit Agente IA'
+        ordering = ['-fecha']
+        indexes = [
+            models.Index(fields=['-fecha']),
+            models.Index(fields=['accion', '-fecha']),
+        ]
+
+    def __str__(self):
+        return f'[{self.fecha:%Y-%m-%d %H:%M}] {self.get_accion_display()}'

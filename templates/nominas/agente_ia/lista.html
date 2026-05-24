@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Harmoni IA Nóminas — Agente{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-robot me-2" style="color:#0f766e;"></i> Harmoni IA Nóminas
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      Asistente experto en normativa peruana + reintegros + correcciones de planilla
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'reintegros_lista' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-undo me-1"></i> Reintegros pendientes
+      {% if reintegros_pendientes %}<span class="badge bg-warning text-dark ms-1">{{ reintegros_pendientes }}</span>{% endif %}
+    </a>
+    <a href="{% url 'agente_nueva' %}" class="btn btn-success" style="background:#0f766e;border-color:#0f766e;">
+      <i class="fas fa-plus me-1"></i> Nueva conversación
+    </a>
+  </div>
+</div>
+
+<!-- Hero introductorio -->
+<div style="background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;padding:24px 28px;border-radius:14px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;">
+    <div style="flex:1;min-width:280px;">
+      <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">¿Qué puedo hacer por ti?</div>
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:.95rem;line-height:1.7;opacity:.95;">
+        <li><strong>Reintegros</strong> — "Le pagué S/2500 a Juan cuando era S/3000 en abril"</li>
+        <li><strong>Normativa</strong> — "¿Cuál es el tope de embargo?" "¿Cómo funciona la EPS?"</li>
+        <li><strong>Cálculos</strong> — gratificación, CTS, vacaciones truncas, liquidación</li>
+        <li><strong>Casos legales</strong> — pensión alimenticia, subsidios ESSALUD, descuentos</li>
+      </ul>
+    </div>
+    <div>
+      <a href="{% url 'agente_nueva' %}" style="background:#fcd34d;color:#0d2b27;padding:12px 22px;border-radius:8px;font-weight:700;text-decoration:none;font-size:1rem;">
+        Iniciar consulta <i class="fas fa-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Lista de conversaciones -->
+{% if conversaciones %}
+<h5 style="font-weight:800;color:#0d2b27;margin:24px 0 12px;">Mis conversaciones recientes</h5>
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+  {% for c in conversaciones %}
+    <a href="{% url 'agente_chat' c.pk %}" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;text-decoration:none;color:inherit;border-top:1px solid #f1f5f9;{% if forloop.first %}border-top:none;{% endif %}transition:background .15s;"
+       onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+      <div style="flex:1;">
+        <div style="font-weight:700;color:#0d2b27;">{{ c.titulo|default:"Conversación sin título" }}</div>
+        <div style="font-size:.78rem;color:#94a3b8;margin-top:2px;">
+          <i class="far fa-clock me-1"></i>{{ c.actualizada_en|timesince }} atrás · {{ c.mensajes.count }} mensajes
+        </div>
+      </div>
+      <i class="fas fa-chevron-right" style="color:#cbd5e1;"></i>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+<div style="background:#fff;padding:40px;text-align:center;border-radius:12px;border:2px dashed #cbd5e1;">
+  <i class="fas fa-comments fa-3x" style="color:#cbd5e1;display:block;margin-bottom:14px;"></i>
+  <h5 style="color:#475569;">Aún no has consultado al agente</h5>
+  <p style="color:#94a3b8;margin:0;font-size:.9rem;">Inicia una conversación y obtén ayuda al instante.</p>
+</div>
+{% endif %}
+
+{% endblock %}

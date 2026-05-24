@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Chat IA — {{ conversacion.titulo|default:"Sin título" }}{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;font-size:1.4rem;">
+      <i class="fas fa-robot me-2" style="color:#0f766e;"></i>
+      {{ conversacion.titulo|default:"Consulta al agente" }}
+    </h2>
+    <p style="margin:4px 0 0;color:#94a3b8;font-size:.8rem;">
+      Conversación #{{ conversacion.pk }} · iniciada {{ conversacion.creada_en|timesince }} atrás
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'agente_lista' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Mis conversaciones
+    </a>
+    <a href="{% url 'agente_nueva' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-plus me-1"></i> Nueva
+    </a>
+  </div>
+</div>
+
+<!-- Chat container -->
+<div id="chat-container" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;height:calc(100vh - 220px);min-height:500px;">
+
+  <!-- Messages area -->
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:20px;background:#f8fafc;">
+    {% if not mensajes %}
+      <div style="text-align:center;color:#94a3b8;padding:40px;">
+        <i class="fas fa-comments fa-3x" style="opacity:.4;display:block;margin-bottom:14px;"></i>
+        <p style="margin:0;">Inicia escribiendo tu pregunta abajo.</p>
+        <p style="font-size:.85rem;margin-top:6px;">Ejemplo: <em>"¿Cuándo se paga la gratificación?"</em></p>
+      </div>
+    {% endif %}
+
+    {% for m in mensajes %}
+      {% if m.rol == 'user' %}
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+          <div style="background:#0f766e;color:#fff;padding:10px 14px;border-radius:14px 14px 4px 14px;max-width:75%;font-size:.92rem;line-height:1.5;">
+            {{ m.contenido|linebreaksbr }}
+          </div>
+        </div>
+      {% elif m.rol == 'assistant' %}
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;">
+          <div style="width:34px;height:34px;background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div style="background:#fff;padding:12px 16px;border-radius:14px 14px 14px 4px;max-width:80%;border:1px solid #e2e8f0;font-size:.92rem;line-height:1.6;">
+            <div class="md-content">{{ m.contenido|linebreaksbr }}</div>
+            <div style="font-size:.7rem;color:#94a3b8;margin-top:6px;">{{ m.fecha|date:"H:i" }}</div>
+          </div>
+        </div>
+      {% elif m.rol == 'tool' %}
+        <div style="margin-bottom:14px;padding:10px 14px;background:#eff6ff;border-left:3px solid #1d4ed8;border-radius:0 8px 8px 0;font-size:.78rem;color:#1d4ed8;">
+          <i class="fas fa-wrench me-1"></i>
+          <strong>{{ m.tool_name }}</strong> ejecutado
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Suggestions -->
+  {% if not mensajes %}
+  <div style="padding:12px 20px;background:#fff;border-top:1px solid #f1f5f9;display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="sugerencia" data-text="¿Cuándo se paga la gratificación?" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:6px 12px;border-radius:14px;font-size:.78rem;cursor:pointer;">¿Cuándo se paga la gratificación?</button>
+    <button class="sugerencia" data-text="¿Cuál es el tope de embargo civil?" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:6px 12px;border-radius:14px;font-size:.78rem;cursor:pointer;">Tope embargo civil</button>
+    <button class="sugerencia" data-text="¿Cómo funciona la EPS y crédito empleador?" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:6px 12px;border-radius:14px;font-size:.78rem;cursor:pointer;">EPS crédito empleador</button>
+    <button class="sugerencia" data-text="¿Cuáles son las tasas AFP actuales?" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:6px 12px;border-radius:14px;font-size:.78rem;cursor:pointer;">Tasas AFP</button>
+    <button class="sugerencia" data-text="¿Cómo calculo subsidio por maternidad?" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:6px 12px;border-radius:14px;font-size:.78rem;cursor:pointer;">Subsidio maternidad</button>
+  </div>
+  {% endif %}
+
+  <!-- Input area -->
+  <form id="chat-form" style="padding:14px 20px;background:#fff;border-top:1px solid #e2e8f0;display:flex;gap:10px;align-items:flex-end;">
+    {% csrf_token %}
+    <textarea id="chat-input" placeholder="Escribe tu pregunta... (Shift+Enter para nueva línea, Enter para enviar)"
+              style="flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:.92rem;resize:none;min-height:48px;max-height:120px;font-family:inherit;"
+              rows="1"></textarea>
+    <button id="chat-send" type="submit" class="btn btn-success" style="background:#0f766e;border-color:#0f766e;min-width:90px;">
+      <i class="fas fa-paper-plane"></i>
+      <span class="d-none d-md-inline ms-1">Enviar</span>
+    </button>
+  </form>
+</div>
+
+<div style="background:#f8fafc;padding:12px 18px;border-radius:8px;margin-top:12px;color:#64748b;font-size:.78rem;">
+  <i class="fas fa-shield-alt me-1" style="color:#0f766e;"></i>
+  <strong>Privacidad:</strong> tus conversaciones quedan registradas en tu cuenta y son privadas.
+  Todo cambio sobre planilla requiere aprobación tuya antes de aplicarse.
+</div>
+
+<script>
+(function() {
+  const msgArea = document.getElementById('chat-messages');
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  // Auto-scroll to bottom
+  msgArea.scrollTop = msgArea.scrollHeight;
+
+  // Suggestions
+  document.querySelectorAll('.sugerencia').forEach(btn => {
+    btn.addEventListener('click', () => {
+      input.value = btn.dataset.text;
+      input.focus();
+      autoResize();
+    });
+  });
+
+  // Auto-resize textarea
+  function autoResize() {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  }
+  input.addEventListener('input', autoResize);
+
+  // Enter envía, Shift+Enter línea nueva
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  // Crear bubble HTML
+  function bubbleUser(text) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:14px;';
+    wrap.innerHTML = `<div style="background:#0f766e;color:#fff;padding:10px 14px;border-radius:14px 14px 4px 14px;max-width:75%;font-size:.92rem;line-height:1.5;">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+    return wrap;
+  }
+  function bubbleAssistant(text) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;';
+    wrap.innerHTML = `
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;">
+        <i class="fas fa-robot"></i>
+      </div>
+      <div style="background:#fff;padding:12px 16px;border-radius:14px 14px 14px 4px;max-width:80%;border:1px solid #e2e8f0;font-size:.92rem;line-height:1.6;">
+        <div class="md-content">${markdownToHtml(text)}</div>
+      </div>`;
+    return wrap;
+  }
+  function bubbleTyping() {
+    const wrap = document.createElement('div');
+    wrap.id = 'typing-indicator';
+    wrap.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px;';
+    wrap.innerHTML = `
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;">
+        <i class="fas fa-robot"></i>
+      </div>
+      <div style="background:#fff;padding:12px 16px;border-radius:14px 14px 14px 4px;border:1px solid #e2e8f0;color:#94a3b8;font-size:.85rem;">
+        <span style="animation:pulse 1.4s infinite;">Pensando...</span>
+      </div>`;
+    return wrap;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Markdown muy básico: **bold**, _italic_, headers, lists, code, links
+  function markdownToHtml(md) {
+    let html = escapeHtml(md);
+    html = html.replace(/^### (.+)$/gm, '<h5 style="margin:8px 0 4px;color:#0d2b27;">$1</h5>');
+    html = html.replace(/^## (.+)$/gm, '<h4 style="margin:10px 0 4px;color:#0d2b27;">$1</h4>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+    html = html.replace(/`(.+?)`/g, '<code style="background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:.85em;">$1</code>');
+    html = html.replace(/^---$/gm, '<hr>');
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.+<\/li>\n?)+/g, m => `<ul style="margin:4px 0;padding-left:20px;">${m}</ul>`);
+    html = html.replace(/\|(.+?)\|/g, '<span style="font-family:monospace;background:#f8fafc;padding:0 4px;">$1</span>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Append user bubble
+    msgArea.appendChild(bubbleUser(text));
+    input.value = '';
+    autoResize();
+    sendBtn.disabled = true;
+
+    // Typing indicator
+    const typing = bubbleTyping();
+    msgArea.appendChild(typing);
+    msgArea.scrollTop = msgArea.scrollHeight;
+
+    try {
+      const resp = await fetch('{% url "agente_mensaje" conversacion.pk %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({mensaje: text}),
+      });
+      const data = await resp.json();
+      typing.remove();
+      if (data.error) {
+        msgArea.appendChild(bubbleAssistant('⚠ Error: ' + data.error));
+      } else {
+        msgArea.appendChild(bubbleAssistant(data.respuesta));
+      }
+    } catch (err) {
+      typing.remove();
+      msgArea.appendChild(bubbleAssistant('⚠ Error de red. Intenta de nuevo.'));
+    } finally {
+      sendBtn.disabled = false;
+      msgArea.scrollTop = msgArea.scrollHeight;
+      input.focus();
+    }
+  });
+
+  // Auto-focus
+  input.focus();
+})();
+</script>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.md-content ul { margin: 4px 0; }
+.md-content code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: .85em; }
+</style>
+
+{% endblock %}

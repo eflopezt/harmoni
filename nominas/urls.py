@@ -12,6 +12,7 @@ from . import views_anomalias
 from . import views_reporte_mes
 from . import views_calc_especializadas
 from . import views_interanual
+from . import views_agente_ia
 
 urlpatterns = [
     # Panel y portal
@@ -127,6 +128,17 @@ urlpatterns = [
          name='nominas_comparativo_mensual'),
     path('interanual/', views_interanual.comparativo_interanual,
          name='nominas_comparativo_interanual'),
+
+    # ── Agente IA Nóminas (chat + reintegros) ──
+    path('agente/',                       views_agente_ia.agente_lista,        name='agente_lista'),
+    path('agente/nueva/',                 views_agente_ia.agente_nueva,        name='agente_nueva'),
+    path('agente/<int:pk>/',              views_agente_ia.agente_chat,         name='agente_chat'),
+    path('agente/<int:pk>/mensaje/',      views_agente_ia.agente_mensaje,      name='agente_mensaje'),
+    path('reintegros/',                   views_agente_ia.reintegros_lista,    name='reintegros_lista'),
+    path('reintegros/<int:pk>/',          views_agente_ia.reintegro_detalle,   name='reintegro_detalle'),
+    path('reintegros/<int:pk>/aprobar/',  views_agente_ia.reintegro_aprobar,   name='reintegro_aprobar'),
+    path('reintegros/<int:pk>/aplicar/',  views_agente_ia.reintegro_aplicar,   name='reintegro_aplicar'),
+    path('reintegros/<int:pk>/revertir/', views_agente_ia.reintegro_revertir,  name='reintegro_revertir'),
 
     # Saldos de Apertura — Onboarding Express (Wizard)
     path('apertura/', views.saldos_apertura,
