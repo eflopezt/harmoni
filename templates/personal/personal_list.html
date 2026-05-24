@@ -4,26 +4,149 @@
 
 {% block extra_css %}
 <style>
-.pl-filter-chip {
-  display:inline-flex;align-items:center;gap:5px;
-  background:#f0fdfa;border:1px solid #99f6e4;border-radius:20px;
-  padding:3px 10px;font-size:.72rem;font-weight:600;color:#0f766e;
+/* ════════════════════════════════════════════════════════════
+   Empleados V2 — handoff Linear/Notion-style
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Page header ───────────────────────────────────────────── */
+.pl-header { padding: 4px 0 0; }
+.pl-h-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+.pl-h-title {
+  margin: 0; font-size: 1.55rem; font-weight: 800; color: #0F172A;
+  display: inline-flex; align-items: baseline; gap: 12px; letter-spacing: -0.01em;
 }
-.pl-filter-chip a { color:#0f766e; text-decoration:none; margin-left:2px; }
-.pl-filter-chip a:hover { color:#dc2626; }
-.contract-warn { font-size:.62rem; }
-tr.row-cesado td { opacity:.7; }
+.pl-h-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.92rem; color: #94a3b8; font-weight: 600; letter-spacing: -0.02em;
+}
+.pl-h-count strong { color: #0F766E; font-weight: 700; }
+.pl-h-sub { font-size: 0.82rem; color: #64748b; margin: 2px 0 0; }
+.pl-h-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ── Saved views tabs (sticky) ────────────────────────────── */
+.pl-views {
+  display: flex; gap: 2px; margin: 14px 0 0;
+  border-bottom: 1px solid #E2E8F0;
+  position: sticky; top: 0; z-index: 10;
+  background: var(--hm-canvas, #F4FAF7);
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.pl-view-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  border: none; background: transparent;
+  border-bottom: 2px solid transparent;
+  font-size: 0.82rem; color: #475569; font-weight: 500;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.pl-view-tab:hover { color: #0F172A; background: rgba(204, 251, 241, 0.4); }
+.pl-view-tab.is-active {
+  color: #0F766E; border-bottom-color: #0F766E; font-weight: 600;
+}
+.pl-view-tab .pl-view-hex {
+  width: 8px; height: 9px; flex-shrink: 0;
+  background: #0F766E;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.pl-view-tab.is-active .pl-view-hex { opacity: 1; }
+.pl-view-tab .pl-view-pill {
+  background: rgba(204, 251, 241, 0.65); color: #064E3B;
+  border-radius: 999px; padding: 1px 8px;
+  font-size: 0.65rem; font-weight: 700;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.pl-view-tab.is-active .pl-view-pill { background: #0F766E; color: #fff; }
+
+/* ── Toolbar (filter chips + search + density) ────────────── */
+.pl-toolbar {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 12px 0; border-bottom: 1px solid #E2E8F0; margin-bottom: 14px;
+}
+.pl-filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 20px;
+  padding: 4px 12px; font-size: 0.74rem; font-weight: 600; color: #0F766E;
+}
+.pl-filter-chip a { color: #0F766E; text-decoration: none; margin-left: 4px; line-height: 1; }
+.pl-filter-chip a:hover { color: #dc2626; }
+.pl-toolbar-spacer { flex: 1; }
+
+/* ── Density segmented control (handoff: compacto/regular/cómodo) ─ */
+.pl-density {
+  display: inline-flex; background: #f1f5f9; border-radius: 8px; padding: 2px;
+  border: 1px solid #E2E8F0;
+}
+.pl-density button {
+  border: none; background: transparent;
+  padding: 4px 12px; font-size: 0.72rem; color: #64748b; font-weight: 600;
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+.pl-density button:hover { color: #0F172A; }
+.pl-density button.is-active {
+  background: #fff; color: #0F766E;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+}
+
+/* ── Table card (border-radius 12 + density variants) ────── */
+.pl-table-card {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+.pl-table-wrap { overflow-x: auto; }
+.pl-table-card table { margin: 0; }
+.pl-table-card thead th {
+  background: #F8FAFC; color: #64748b;
+  font-size: 0.66rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 10px 12px; border-bottom: 1px solid #E2E8F0;
+}
+.pl-table-card tbody td {
+  padding: 10px 12px; font-size: 0.85rem; color: #1e293b;
+  vertical-align: middle; border-top: 1px solid #F1F5F9;
+}
+.pl-table-card tbody tr {
+  cursor: default; transition: background 0.15s;
+}
+.pl-table-card tbody tr:hover { background: #F4FAF7; }
+.pl-table-card tbody tr:first-child td { border-top: none; }
+
+/* Density variants */
+.pl-table-card.density-compact tbody td { padding: 5px 10px; font-size: 0.78rem; }
+.pl-table-card.density-compact tbody td img,
+.pl-table-card.density-compact tbody td .avatar { width: 24px !important; height: 24px !important; }
+.pl-table-card.density-comfort tbody td { padding: 14px 14px; font-size: 0.87rem; }
+.pl-table-card.density-comfort tbody td img,
+.pl-table-card.density-comfort tbody td .avatar { width: 36px !important; height: 36px !important; }
+
+/* Mono columns (DNI, fechas) */
+.pl-table-card .mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem; color: #475569;
+}
+
+tr.row-cesado td { opacity: 0.65; }
+.contract-warn { font-size: 0.62rem; }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Tooltip init
+  // ── Tooltip init ──
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
     new bootstrap.Tooltip(el, { placement: 'left' });
   });
-  // Keyboard shortcut: "/" focuses search
+  // ── Keyboard shortcut "/" → focus search ──
   document.addEventListener('keydown', function(e) {
     if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
       e.preventDefault();
@@ -35,70 +158,134 @@ document.addEventListener('DOMContentLoaded', function() {
       if (s && document.activeElement === s) s.blur();
     }
   });
+
+  // ── Density segmented control (handoff) ─────────────────
+  const card = document.getElementById('plTableCard');
+  const densityBtns = document.querySelectorAll('.pl-density button[data-density]');
+  if (card && densityBtns.length) {
+    // Restaurar densidad persistida
+    const saved = localStorage.getItem('harmoni_pl_density') || 'regular';
+    setDensity(saved);
+
+    densityBtns.forEach(b => {
+      b.addEventListener('click', function() {
+        const d = this.dataset.density;
+        setDensity(d);
+        localStorage.setItem('harmoni_pl_density', d);
+      });
+    });
+
+    function setDensity(d) {
+      card.classList.remove('density-compact', 'density-regular', 'density-comfort');
+      card.classList.add('density-' + d);
+      densityBtns.forEach(b => b.classList.toggle('is-active', b.dataset.density === d));
+    }
+  }
 });
 </script>
 {% endblock %}
 
 {% block body %}
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
+
+{# ── Page header — h1 + count mono + sub + actions (handoff) ───── #}
+<div class="pl-header">
+  <div class="pl-h-top">
     <div>
-        <h2><i class="fas fa-users"></i>Personal</h2>
-        <p class="page-subtitle">Listado de empleados, filtros por grupo de tareo y operaciones masivas.</p>
-        <div class="d-flex gap-2 flex-wrap align-items-center">
-            <a href="?estado=Activo" class="badge text-decoration-none {% if estado == 'Activo' and not grupo_tareo %}bg-success{% else %}bg-light text-dark border{% endif %}" style="font-size:.75rem;">
-                Activos <span class="fw-bold">{{ total_activos }}</span>
-            </a>
-            <a href="?estado=Activo&grupo_tareo=STAFF" class="badge text-decoration-none {% if grupo_tareo == 'STAFF' %}bg-primary{% else %}bg-light text-dark border{% endif %}" style="font-size:.75rem;">
-                STAFF <span class="fw-bold">{{ total_staff }}</span>
-            </a>
-            <a href="?estado=Activo&grupo_tareo=RCO" class="badge text-decoration-none {% if grupo_tareo == 'RCO' %}bg-info text-dark{% else %}bg-light text-dark border{% endif %}" style="font-size:.75rem;">
-                RCO <span class="fw-bold">{{ total_rco }}</span>
-            </a>
-            <span class="text-muted" style="font-size:.72rem;"><kbd>/</kbd> para buscar</span>
-        </div>
+      <h1 class="pl-h-title">
+        <i class="fas fa-users" style="color:#0F766E;font-size:1.15rem;"></i>Empleados
+        <span class="pl-h-count">
+          <strong>{{ personal.paginator.count|default:0 }}</strong> / {{ total_activos }}
+        </span>
+      </h1>
+      <p class="pl-h-sub">Gestiona, filtra y actúa sobre tu equipo completo · <kbd style="font-size:.66rem;background:#f1f5f9;border:1px solid #e2e8f0;padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;">/</kbd> para buscar</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-        {% if user.is_superuser %}
-        <div class="dropdown">
-          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="fas fa-file-alt me-1"></i>Reportes
-          </button>
-          <ul class="dropdown-menu shadow-sm">
-            <li><a class="dropdown-item small" href="{% url 'reporte_plantilla' %}?format=excel&estado=Activo"><i class="fas fa-file-excel text-success me-2"></i>Plantilla activos</a></li>
-            <li><a class="dropdown-item small" href="{% url 'reporte_contratos' %}?format=excel&dias=60"><i class="fas fa-file-contract text-danger me-2"></i>Contratos por vencer</a></li>
-            <li><a class="dropdown-item small" href="{% url 'bandas_grafico' %}"><i class="fas fa-chart-bar text-primary me-2"></i>Gráfico bandas</a></li>
-            <li><a class="dropdown-item small" href="{% url 'equidad_salarial' %}"><i class="fas fa-venus-mars text-info me-2"></i>Equidad salarial</a></li>
-          </ul>
-        </div>
-        {% endif %}
-        <a href="{% url 'personal_export' %}" class="btn btn-success btn-sm">
-            <i class="fas fa-file-excel"></i><span class="d-none d-sm-inline ms-1">Exportar</span>
-        </a>
-        <a href="{% url 'personal_import_upload' %}" class="btn btn-outline-info btn-sm">
-            <i class="fas fa-file-import"></i><span class="d-none d-sm-inline ms-1">Importar</span>
-        </a>
-        <a href="{% url 'personal_create' %}" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus"></i><span class="d-none d-sm-inline ms-1">Nuevo</span>
-        </a>
+    <div class="pl-h-actions">
+      {% if user.is_superuser %}
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fas fa-file-alt me-1"></i>Reportes
+        </button>
+        <ul class="dropdown-menu shadow-sm">
+          <li><a class="dropdown-item small" href="{% url 'reporte_plantilla' %}?format=excel&estado=Activo"><i class="fas fa-file-excel text-success me-2"></i>Plantilla activos</a></li>
+          <li><a class="dropdown-item small" href="{% url 'reporte_contratos' %}?format=excel&dias=60"><i class="fas fa-file-contract text-danger me-2"></i>Contratos por vencer</a></li>
+          <li><a class="dropdown-item small" href="{% url 'bandas_grafico' %}"><i class="fas fa-chart-bar text-primary me-2"></i>Gráfico bandas</a></li>
+          <li><a class="dropdown-item small" href="{% url 'equidad_salarial' %}"><i class="fas fa-venus-mars text-info me-2"></i>Equidad salarial</a></li>
+        </ul>
+      </div>
+      {% endif %}
+      <a href="{% url 'personal_import_upload' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-file-import"></i><span class="d-none d-sm-inline ms-1">Importar CSV</span>
+      </a>
+      <a href="{% url 'personal_export' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-file-excel"></i><span class="d-none d-sm-inline ms-1">Exportar</span>
+      </a>
+      <a href="{% url 'personal_create' %}" class="btn btn-sm" style="background:#0F766E;color:#fff;border:none;font-weight:600;">
+        <i class="fas fa-plus me-1"></i>Nuevo colaborador
+      </a>
     </div>
+  </div>
+
+  {# ── Saved views como tabs sticky (handoff) ────────────────── #}
+  <nav class="pl-views" role="tablist">
+    <a href="{% url 'personal_list' %}?estado=Activo"
+       class="pl-view-tab {% if estado == 'Activo' and not grupo_tareo %}is-active{% endif %}">
+      <span class="pl-view-hex"></span>Activos
+      <span class="pl-view-pill">{{ total_activos }}</span>
+    </a>
+    <a href="{% url 'personal_list' %}?estado=Activo&grupo_tareo=STAFF"
+       class="pl-view-tab {% if grupo_tareo == 'STAFF' %}is-active{% endif %}">
+      <span class="pl-view-hex"></span>STAFF
+      <span class="pl-view-pill">{{ total_staff }}</span>
+    </a>
+    <a href="{% url 'personal_list' %}?estado=Activo&grupo_tareo=RCO"
+       class="pl-view-tab {% if grupo_tareo == 'RCO' %}is-active{% endif %}">
+      <span class="pl-view-hex"></span>RCO
+      <span class="pl-view-pill">{{ total_rco }}</span>
+    </a>
+    <a href="{% url 'personal_list' %}?estado=Cesado"
+       class="pl-view-tab {% if estado == 'Cesado' %}is-active{% endif %}">
+      <span class="pl-view-hex"></span>Cesados
+    </a>
+    <a href="{% url 'personal_list' %}"
+       class="pl-view-tab {% if not estado and not grupo_tareo %}is-active{% endif %}">
+      <span class="pl-view-hex"></span>Todos
+    </a>
+  </nav>
 </div>
 
-{# ── Chips de filtros activos ──────────────────────────────────── #}
-{% if estado or grupo_tareo or area_id or buscar %}
-<div class="d-flex gap-2 flex-wrap mb-2 align-items-center">
-  <span style="font-size:.72rem;color:#64748b;font-weight:600;">Filtros:</span>
-  {% if estado %}<span class="pl-filter-chip">Estado: {{ estado }}<a href="?{% if grupo_tareo %}grupo_tareo={{ grupo_tareo }}&{% endif %}{% if area_id %}area={{ area_id }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
-  {% if grupo_tareo %}<span class="pl-filter-chip">Grupo: {{ grupo_tareo }}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if area_id %}area={{ area_id }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
-  {% if buscar %}<span class="pl-filter-chip"><i class="fas fa-search" style="font-size:.65rem;"></i>&nbsp;{{ buscar }}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if grupo_tareo %}grupo_tareo={{ grupo_tareo }}&{% endif %}{% if area_id %}area={{ area_id }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
-  <a href="{% url 'personal_list' %}" class="btn btn-xs btn-outline-secondary" style="font-size:.72rem;padding:2px 8px;">
-    <i class="fas fa-times me-1"></i>Limpiar todo
-  </a>
-</div>
-{% endif %}
+{# ── Toolbar: filter chips + spacer + density (handoff) ──────── #}
+<div class="pl-toolbar">
+  {% if estado or grupo_tareo or area_id or buscar %}
+    {% if estado %}<span class="pl-filter-chip">Estado: {{ estado }}<a href="?{% if grupo_tareo %}grupo_tareo={{ grupo_tareo }}&{% endif %}{% if area_id %}area={{ area_id }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
+    {% if grupo_tareo %}<span class="pl-filter-chip">Grupo: {{ grupo_tareo }}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if area_id %}area={{ area_id }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
+    {% if area_id %}<span class="pl-filter-chip">Área #{{ area_id }}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if grupo_tareo %}grupo_tareo={{ grupo_tareo }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
+    {% if buscar %}<span class="pl-filter-chip"><i class="fas fa-search" style="font-size:.65rem;"></i> {{ buscar }}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if grupo_tareo %}grupo_tareo={{ grupo_tareo }}&{% endif %}{% if area_id %}area={{ area_id }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
+    <a href="{% url 'personal_list' %}" style="font-size:.72rem;color:#64748b;text-decoration:none;font-weight:500;">
+      <i class="fas fa-times me-1"></i>Limpiar
+    </a>
+  {% else %}
+    <span style="font-size:.74rem;color:#94a3b8;">Sin filtros activos</span>
+  {% endif %}
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form method="get" class="mb-3">
+  <div class="pl-toolbar-spacer"></div>
+
+  {# Density segmented control — JS controla la clase del .pl-table-card #}
+  <div class="pl-density" role="group" aria-label="Densidad de tabla">
+    <button type="button" data-density="compact" title="Compacto">
+      <i class="fas fa-grip-lines"></i>
+    </button>
+    <button type="button" data-density="regular" class="is-active" title="Regular">
+      <i class="fas fa-bars"></i>
+    </button>
+    <button type="button" data-density="comfort" title="Cómodo">
+      <i class="fas fa-equals"></i>
+    </button>
+  </div>
+</div>
+
+<div class="pl-table-card" id="plTableCard">
+    <div class="card-body" style="padding:0;">
+        <form method="get" class="m-3">
             <div class="row g-2">
                 <div class="col-12 col-sm-6 col-md-2">
                     <select name="estado" class="form-select form-select-sm">
@@ -126,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </select>
                 </div>
                 <div class="col-12 col-md-3">
-                    <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar por DNI, nombre..." value="{{ buscar }}">
+                    <input type="text" name="buscar" id="pl-search" class="form-control form-control-sm" placeholder="Buscar por DNI, nombre..." value="{{ buscar }}">
                 </div>
                 <div class="col-12 col-md-2 d-flex gap-1">
                     <button type="submit" class="btn btn-secondary btn-sm flex-grow-1">
