@@ -330,7 +330,92 @@
 @media (max-width: 1100px) { .nom-layout { grid-template-columns: 1fr; } }
 
 /* ── Responsive Amounts ─────────────────────────────────────── */
-.amount-cell { font-variant-numeric: tabular-nums; }
+.amount-cell { font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+/* ════════════════════════════════════════════════════════════════
+   COCKPIT V2 POLISH — handoff Linear/Notion alineado al brand pack
+   ════════════════════════════════════════════════════════════════ */
+
+/* KPI numbers a JetBrains Mono (handoff: números mono tabular) */
+.kpi-value {
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-weight: 800 !important;
+}
+.kpi-label {
+  font-size: 0.65rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+}
+
+/* Page title con count mono inline */
+.page-title {
+  letter-spacing: -0.01em;
+  font-weight: 800 !important;
+  color: #0F172A !important;
+}
+.page-title .nom-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7em;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-left: 10px;
+}
+.page-title .nom-count strong { color: #0F766E; font-weight: 700; }
+.page-subtitle {
+  font-size: 0.82rem !important;
+  color: #64748b !important;
+}
+
+/* Botón principal "Nuevo período" más Cockpit */
+.page-header-actions .btn-primary {
+  background: #0F766E !important;
+  border-color: #0F766E !important;
+  font-weight: 600 !important;
+}
+.page-header-actions .btn-primary:hover {
+  background: #0d5e59 !important;
+  border-color: #0d5e59 !important;
+}
+
+/* Tabla nom-table con card-radius 12 y hover canvas */
+.nom-table {
+  font-family: inherit;
+}
+.nom-table thead th {
+  background: #F8FAFC !important;
+  color: #64748b !important;
+  font-size: 0.66rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  border-bottom: 1px solid #E2E8F0;
+}
+.nom-table tbody tr {
+  transition: background 0.15s;
+}
+.nom-table tbody tr:hover { background: #F4FAF7; }
+.nom-table tbody td {
+  font-size: 0.85rem;
+  border-top: 1px solid #F1F5F9;
+}
+.nom-table .text-end,
+.nom-table .amount-cell {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.nom-card {
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+  overflow: hidden;
+}
+
 </style>
 {% endblock %}
 
@@ -341,6 +426,7 @@
   <div class="page-header-content">
     <h1 class="page-title">
       <i class="fas fa-file-invoice-dollar me-2 text-accent"></i>Nóminas
+      {% if periodos %}<span class="nom-count"><strong>{{ periodos|length }}</strong> período{{ periodos|length|pluralize:",s" }}</span>{% endif %}
     </h1>
     <p class="page-subtitle">Gestión de períodos de planilla — ciclo 21 al 20</p>
   </div>

@@ -205,13 +205,27 @@
     font-weight: 700;
     font-size: .85rem;
 }
+
+/* Cockpit V2 polish */
+h2 { letter-spacing: -0.01em; font-weight: 800; color: #0F172A; }
+.rec-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7em; color: #94a3b8; font-weight: 600; margin-left: 10px;
+}
+.rec-count strong { color: #0F766E; font-weight: 700; }
+.kanban-col-counter {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h2 class="mb-0"><i class="fas fa-columns text-secondary me-2"></i>{{ titulo }}</h2>
+        <h2 class="mb-0"><i class="fas fa-columns me-2" style="color:#0F766E"></i>{{ titulo }}{% if total_candidatos %}<span class="rec-count"><strong>{{ total_candidatos }}</strong> activo{{ total_candidatos|pluralize:"s" }}</span>{% endif %}</h2>
         <small class="text-muted">
             Vista global de todas las postulaciones activas
             &middot; <i class="fas fa-hand-paper me-1" style="color:#5eead4"></i>Arrastra las tarjetas entre columnas para mover etapas
