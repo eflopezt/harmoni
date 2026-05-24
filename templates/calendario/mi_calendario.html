@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% load static %}
 
 {% block title %}Mi Calendario{% endblock %}
@@ -250,7 +250,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block body %}
 {% if not empleado %}
 <div class="alert alert-warning">
     <i class="fas fa-exclamation-triangle me-2"></i>

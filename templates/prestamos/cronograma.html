@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% load humanize %}
 
 {% block title %}Cronograma — Préstamo #{{ p.pk }}{% endblock %}
 
-{% block content %}
+{% block body %}
 <div class="mb-3">
     <a href="{% url 'prestamo_detalle' p.pk %}" class="text-muted text-decoration-none small">
         <i class="fas fa-arrow-left me-1"></i>Volver al préstamo

@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% load humanize %}
 
 {% block title %}Mi Historial Salarial{% endblock %}
 
-{% block content %}
+{% block body %}
 <div class="mb-3">
     <h2 class="mb-0"><i class="fas fa-chart-line text-secondary me-2"></i>{{ titulo }}</h2>
     {% if empleado %}<small class="text-muted">{{ empleado.apellidos_nombres }}</small>{% endif %}

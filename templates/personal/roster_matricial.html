@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base_v2.html' %}
 
 {% block title %}Roster Matricial - {{ mes_nombre }} {{ anio }}{% endblock %}
 
@@ -303,7 +303,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
+{% block body %}
 <!-- Alerta de borradores flotante -->
 {% if borradores_count > 0 %}
 <div id="borradores-alert" class="alert alert-warning alert-dismissible fade show" role="alert">

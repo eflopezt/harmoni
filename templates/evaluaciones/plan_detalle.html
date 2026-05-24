@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 
 {% block title %}PDI: {{ plan.personal.apellidos_nombres }}{% endblock %}
 
-{% block content %}
+{% block body %}
 <div class="mb-3">
     <h2 class="mb-0"><i class="fas fa-route text-secondary me-2"></i>{{ titulo }}</h2>
     <small class="text-muted">{{ plan.fecha_inicio|date:"d/m/Y" }} — {{ plan.fecha_fin|date:"d/m/Y" }}</small>

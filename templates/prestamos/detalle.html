@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% load humanize %}
 
 {% block title %}Préstamo #{{ p.pk }}{% endblock %}
 
-{% block content %}
+{% block body %}
 <!-- Breadcrumb -->
 <div class="mb-3">
     <a href="{% url 'prestamos_panel' %}" class="text-muted text-decoration-none small">

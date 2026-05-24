@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 
 {% block title %}{{ encuesta.titulo }}{% endblock %}
 
-{% block content %}
+{% block body %}
 <div class="mb-3">
     <h2 class="mb-0"><i class="fas fa-poll text-secondary me-2"></i>{{ titulo }}</h2>
     {% if encuesta.anonima %}<span class="badge bg-dark">Anónima</span>{% endif %}
