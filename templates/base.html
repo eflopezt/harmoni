@@ -1668,7 +1668,17 @@
       // Acciones inline según tab
       let actionsHtml = '';
       if (activeTab !== 'archivadas') {
-        actionsHtml += '<button class="hm-notif-action" data-act="snooze" title="Snooze 24h"><i class="fas fa-clock"></i></button>';
+        // Snooze: container con popover de opciones (1h/3h/24h/7d)
+        actionsHtml += ''
+          + '<div class="hm-notif-snooze-wrap">'
+          +   '<button class="hm-notif-action hm-notif-snooze-trigger" title="Snooze…"><i class="fas fa-clock"></i></button>'
+          +   '<div class="hm-notif-snooze-menu">'
+          +     '<button data-snooze-h="1">1 hora</button>'
+          +     '<button data-snooze-h="3">3 horas</button>'
+          +     '<button data-snooze-h="24">24 horas</button>'
+          +     '<button data-snooze-h="168">7 días</button>'
+          +   '</div>'
+          + '</div>';
         actionsHtml += '<button class="hm-notif-action" data-act="archive" title="Archivar"><i class="fas fa-box-archive"></i></button>';
       } else {
         actionsHtml += '<button class="hm-notif-action" data-act="unarchive" title="Restaurar"><i class="fas fa-arrow-rotate-left"></i></button>';
@@ -1696,7 +1706,28 @@
       });
 
       // Handlers de acciones inline
-      a.querySelectorAll('.hm-notif-action').forEach(btn => {
+      // Snooze trigger: toggle popover (no acción inmediata)
+      a.querySelectorAll('.hm-notif-snooze-trigger').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault(); e.stopPropagation();
+          // Cerrar otros popovers abiertos
+          document.querySelectorAll('.hm-notif-snooze-wrap.is-open').forEach(w => {
+            if (w !== this.parentNode) w.classList.remove('is-open');
+          });
+          this.parentNode.classList.toggle('is-open');
+        });
+      });
+      // Snooze opciones del popover
+      a.querySelectorAll('.hm-notif-snooze-menu button[data-snooze-h]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault(); e.stopPropagation();
+          const h = parseInt(this.dataset.snoozeH, 10) || 24;
+          this.closest('.hm-notif-snooze-wrap').classList.remove('is-open');
+          handleAction('snooze', n.id, h);
+        });
+      });
+      // Otras acciones (archive, unarchive)
+      a.querySelectorAll('.hm-notif-action:not(.hm-notif-snooze-trigger)').forEach(btn => {
         btn.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
@@ -1709,27 +1740,38 @@
     });
   }
 
-  function handleAction(act, id) {
+  function handleAction(act, id, hours) {
     const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
     const headers = {'X-CSRFToken': csrf ? csrf.value : ''};
-    const url = '/comunicaciones/notificaciones/' + id + '/' + act + '/';
+    let url = '/comunicaciones/notificaciones/' + id + '/' + act + '/';
+    if (act === 'snooze' && hours) url += '?hours=' + encodeURIComponent(hours);
     fetch(url, { method: 'POST', headers: headers })
       .then(r => r.json())
       .then(d => {
         if (d.ok) {
           loadNotif();
           if (window.Harmoni && window.Harmoni.toast) {
-            const msgs = {
-              snooze:    'Notificación postergada 24h',
-              archive:   'Notificación archivada',
-              unarchive: 'Notificación restaurada',
-            };
-            window.Harmoni.toast({ title: msgs[act] || 'OK', kind: 'success' });
+            let title;
+            if (act === 'snooze') {
+              const h = hours || 24;
+              const label = h < 24 ? h + 'h' : (h === 24 ? '24h' : Math.round(h / 24) + 'd');
+              title = 'Notificación postergada ' + label;
+            } else if (act === 'archive') title = 'Notificación archivada';
+            else if (act === 'unarchive') title = 'Notificación restaurada';
+            else title = 'OK';
+            window.Harmoni.toast({ title: title, kind: 'success' });
           }
         }
       })
       .catch(() => {});
   }
+
+  // Cerrar popover snooze al click fuera
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.hm-notif-snooze-wrap')) {
+      document.querySelectorAll('.hm-notif-snooze-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+    }
+  });
 
   function renderNotif(items, count) {
     lastItems = items || [];

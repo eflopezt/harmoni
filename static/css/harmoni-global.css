@@ -334,8 +334,55 @@
 .hm-notif-action[data-act="archive"]:hover {
   background: #fef3c7; color: #92400e; border-color: #fde68a;
 }
-.hm-notif-action[data-act="snooze"]:hover {
+.hm-notif-action[data-act="snooze"]:hover,
+.hm-notif-snooze-trigger:hover {
   background: #ede9fe; color: #5b21b6; border-color: #c4b5fd;
+}
+
+/* Snooze popover menu — handoff: dropdown 1h/3h/24h/7d */
+.hm-notif-snooze-wrap {
+  position: relative;
+  display: inline-block;
+}
+.hm-notif-snooze-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-radius: 9px;
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.18),
+              0 2px 4px rgba(15, 23, 42, 0.06);
+  padding: 4px;
+  min-width: 130px;
+  display: none;
+  z-index: 100120;
+  animation: hmSnoozePop 0.15s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.hm-notif-snooze-wrap.is-open .hm-notif-snooze-menu { display: block; }
+@keyframes hmSnoozePop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hm-notif-snooze-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 7px 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.hm-notif-snooze-menu button:hover {
+  background: #ede9fe;
+  color: #5b21b6;
+  font-weight: 600;
 }
 
 .hm-notif-empty {
