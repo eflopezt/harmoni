@@ -18,7 +18,7 @@ from .empleados import (
     personal_list, personal_create, personal_update, personal_detail,
     personal_export, personal_import,
     personal_create_express, personal_express_exito,
-    personal_drawer_data,
+    personal_drawer_data, personal_inline_edit, personal_cesar_batch,
 )
 
 from .roster import (

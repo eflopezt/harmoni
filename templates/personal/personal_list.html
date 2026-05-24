@@ -529,6 +529,107 @@ tr.pl-row.is-selected td { color: #064E3B; }
   background-color: #0F766E;
   border-color: #0F766E;
 }
+
+/* ────────────────────────────────────────────────────────────
+   INLINE EDIT (handoff: doble-click en Área o Cargo)
+   ──────────────────────────────────────────────────────────── */
+.pl-editable {
+  position: relative;
+  transition: background 0.15s;
+}
+.pl-editable:hover {
+  background: #F4FAF7;
+}
+.pl-editable:hover::after {
+  content: '\f044';  /* fa-edit */
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  right: 6px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.62rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.pl-editable.is-editing { background: #fffbeb; }
+.pl-editable.is-editing::after { display: none; }
+.pl-edit-input, .pl-edit-select {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #0F766E;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  font-family: inherit;
+  background: #fff;
+  color: #0F172A;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+}
+.pl-edit-input:focus, .pl-edit-select:focus {
+  border-color: #0d5e59;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.25);
+}
+
+/* ────────────────────────────────────────────────────────────
+   CESAR MODAL (bulk action)
+   ──────────────────────────────────────────────────────────── */
+.pl-cesar-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(13, 43, 39, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 99995;
+  animation: plFadeIn 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+@keyframes plFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.pl-cesar-modal {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff; border-radius: 14px;
+  width: 92%; max-width: 440px;
+  padding: 24px 26px 18px;
+  z-index: 99996;
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.4);
+  animation: plPopIn 0.2s cubic-bezier(0.2, 0.7, 0.3, 1);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+@keyframes plPopIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.pl-cesar-modal h3 {
+  margin: 0 0 6px;
+  font-size: 1.1rem; font-weight: 800; color: #0F172A; letter-spacing: -0.01em;
+}
+.pl-cesar-modal p {
+  margin: 0 0 18px;
+  font-size: 0.85rem; color: #64748b; line-height: 1.5;
+}
+.pl-cesar-modal label {
+  display: block;
+  font-size: 0.72rem; font-weight: 600;
+  color: #475569; text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 14px;
+}
+.pl-cesar-modal input,
+.pl-cesar-modal select {
+  display: block; width: 100%;
+  padding: 8px 12px; margin-top: 6px;
+  border: 1px solid #E2E8F0; border-radius: 8px;
+  font-size: 0.88rem; color: #0F172A;
+  background: #fff;
+  font-family: inherit;
+  text-transform: none; letter-spacing: normal; font-weight: 400;
+}
+.pl-cesar-modal input:focus,
+.pl-cesar-modal select:focus {
+  border-color: #0F766E;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+  outline: none;
+}
+.pl-cesar-actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+  margin-top: 8px;
+}
 </style>
 {% endblock %}
 
@@ -899,6 +1000,275 @@ document.addEventListener('DOMContentLoaded', function() {
       document.querySelector('[data-bulk-act="clear"]').click();
     }
   });
+
+  // ════════════════════════════════════════════════════════
+  // INLINE EDIT — doble-click en celda Cargo / SubÁrea (handoff)
+  // ════════════════════════════════════════════════════════
+  // Source de subareas: clonamos el <select name="area"> del form de filtros
+  const sourceSubareaSelect = document.querySelector('select[name="area"]');
+
+  function getCsrf() {
+    const m = document.querySelector('[name=csrfmiddlewaretoken]');
+    return m ? m.value : '';
+  }
+
+  function buildEditor(cell, field, currentValue) {
+    if (field === 'cargo') {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'pl-edit-input';
+      input.maxLength = 150;
+      input.value = currentValue || '';
+      return input;
+    }
+    if (field === 'subarea') {
+      // Clonar el select de filtros para tener las mismas opciones
+      const sel = document.createElement('select');
+      sel.className = 'pl-edit-select';
+      if (sourceSubareaSelect) {
+        // Skip primer option ("Todas las SubÁreas")
+        const opts = sourceSubareaSelect.querySelectorAll('option');
+        opts.forEach((o, i) => {
+          if (i === 0) {
+            const blank = document.createElement('option');
+            blank.value = '';
+            blank.textContent = '— Sin sub-área —';
+            sel.appendChild(blank);
+          } else {
+            const clone = o.cloneNode(true);
+            sel.appendChild(clone);
+          }
+        });
+      }
+      if (currentValue) sel.value = String(currentValue);
+      return sel;
+    }
+    return null;
+  }
+
+  function startEdit(cell) {
+    if (cell.classList.contains('is-editing')) return;
+    const field = cell.dataset.field;
+    const currentValue = cell.dataset.value || '';
+    const currentDisplay = cell.querySelector('.pl-cell-value')?.textContent || '';
+    const pid = cell.closest('tr.pl-row')?.dataset.pid;
+    if (!pid) return;
+
+    cell.classList.add('is-editing');
+    cell.dataset.originalHtml = cell.innerHTML;
+    cell.innerHTML = '';
+    const editor = buildEditor(cell, field, currentValue);
+    if (!editor) {
+      cell.innerHTML = cell.dataset.originalHtml;
+      cell.classList.remove('is-editing');
+      return;
+    }
+    cell.appendChild(editor);
+    editor.focus();
+    if (editor.select) editor.select();
+
+    let cancelled = false;
+
+    function cancel() {
+      cancelled = true;
+      cell.innerHTML = cell.dataset.originalHtml;
+      cell.classList.remove('is-editing');
+    }
+
+    function commit() {
+      if (cancelled) return;
+      const newVal = editor.value;
+      const newDisplay = field === 'subarea'
+        ? (editor.options[editor.selectedIndex]?.text || '—')
+        : (newVal || '—');
+
+      // Si no cambió, restaurar sin POST
+      if (String(newVal) === String(currentValue)) {
+        cell.innerHTML = cell.dataset.originalHtml;
+        cell.classList.remove('is-editing');
+        return;
+      }
+
+      // Optimistic UI: pinta el nuevo display ya
+      cell.innerHTML = '<small class="pl-cell-value">' + escapeHtml(newDisplay) + '</small>';
+      cell.dataset.value = newVal;
+      cell.classList.remove('is-editing');
+
+      fetch(`/personal/${pid}/inline-edit/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrf(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ field: field, value: newVal }),
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.ok) {
+          // Revertir
+          cell.innerHTML = '<small class="pl-cell-value">' + escapeHtml(currentDisplay) + '</small>';
+          cell.dataset.value = currentValue;
+          if (window.Harmoni && window.Harmoni.toast) {
+            window.Harmoni.toast({ title: 'No se pudo guardar', detail: d.error || '', kind: 'error' });
+          }
+          return;
+        }
+        // Toast con undo
+        if (window.Harmoni && window.Harmoni.toast) {
+          const fieldLabel = field === 'cargo' ? 'Cargo' : 'Sub-área';
+          window.Harmoni.toast({
+            title: fieldLabel + ' actualizado',
+            detail: '"' + (d.old_value_display || d.old_value || '—') + '" → "' + (d.new_value_display || newDisplay) + '"',
+            kind: 'success',
+            duration: 8000,
+            undoable: true,
+            onUndo: () => {
+              fetch(`/personal/${pid}/inline-edit/`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': getCsrf(),
+                },
+                body: JSON.stringify({ field: field, value: field === 'subarea' ? (d.old_value || '') : (d.old_value || '') }),
+              }).then(() => {
+                // Restaurar display
+                const restoredDisplay = d.old_value_display || d.old_value || '—';
+                cell.innerHTML = '<small class="pl-cell-value">' + escapeHtml(restoredDisplay) + '</small>';
+                cell.dataset.value = field === 'subarea' ? (d.old_value || '') : (d.old_value || '');
+              }).catch(() => {});
+            },
+          });
+        }
+      })
+      .catch(err => {
+        // Revertir
+        cell.innerHTML = '<small class="pl-cell-value">' + escapeHtml(currentDisplay) + '</small>';
+        cell.dataset.value = currentValue;
+        if (window.Harmoni && window.Harmoni.toast) {
+          window.Harmoni.toast({ title: 'Error de conexión', kind: 'error' });
+        }
+      });
+    }
+
+    editor.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); editor.blur(); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+    editor.addEventListener('blur', function() {
+      // Pequeño defer para que keydown Esc gane
+      setTimeout(() => { if (!cancelled && cell.classList.contains('is-editing')) commit(); }, 50);
+    });
+
+    // Click fuera (en otro lugar de la tabla) cancela
+    function offClick(e) {
+      if (!cell.contains(e.target)) {
+        cancel();
+        document.removeEventListener('click', offClick, true);
+      }
+    }
+    setTimeout(() => document.addEventListener('click', offClick, true), 10);
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.querySelectorAll('.pl-editable').forEach(cell => {
+    // Doble-click para no chocar con el single-click del row (que abre drawer)
+    cell.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      startEdit(this);
+    });
+    // Evitar que click simple en celda editable abra drawer (handoff: edit es UX foco)
+    cell.addEventListener('click', function(e) { e.stopPropagation(); });
+  });
+
+  // ════════════════════════════════════════════════════════
+  // BATCH CESAR — endpoint real (reemplaza placeholder)
+  // ════════════════════════════════════════════════════════
+  function bulkCesarReal(ids) {
+    // Modal mínimo con form (motivo + fecha)
+    const motivos = ['RENUNCIA', 'DESPIDO', 'FIN_CONTRATO', 'JUBILACION', 'MUTUO_ACUERDO', 'PERIODO_PRUEBA'];
+    const today = new Date().toISOString().slice(0, 10);
+    const html = `
+      <div class="pl-cesar-modal-backdrop" id="plCesarBack"></div>
+      <div class="pl-cesar-modal" id="plCesarModal" role="dialog" aria-modal="true">
+        <h3>Cesar ${ids.length} trabajador${ids.length>1?'es':''}</h3>
+        <p>Esta acción los marcará como Cesado. Los registros se conservan para liquidación e histórico.</p>
+        <label>Fecha de cese
+          <input type="date" id="plCesarFecha" value="${today}" max="${today}">
+        </label>
+        <label>Motivo
+          <select id="plCesarMotivo">
+            ${motivos.map(m => `<option value="${m}">${m.replace('_', ' ')}</option>`).join('')}
+          </select>
+        </label>
+        <div class="pl-cesar-actions">
+          <button type="button" class="pl-da" id="plCesarCancel">Cancelar</button>
+          <button type="button" class="pl-da pl-da-primary" id="plCesarConfirm" style="background:#dc2626;border-color:#dc2626;">
+            <i class="fas fa-user-slash"></i> Confirmar cese
+          </button>
+        </div>
+      </div>
+    `;
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    document.body.appendChild(div);
+    const back = document.getElementById('plCesarBack');
+    const cancel = () => { div.remove(); };
+    back.addEventListener('click', cancel);
+    document.getElementById('plCesarCancel').addEventListener('click', cancel);
+    document.getElementById('plCesarConfirm').addEventListener('click', function() {
+      const fecha = document.getElementById('plCesarFecha').value;
+      const motivo = document.getElementById('plCesarMotivo').value;
+      const fd = new FormData();
+      ids.forEach(i => fd.append('ids', i));
+      fd.append('fecha_cese', fecha);
+      fd.append('motivo', motivo);
+      fetch('/personal/cesar-batch/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() },
+        body: fd,
+      })
+      .then(r => r.json())
+      .then(d => {
+        cancel();
+        if (d.ok) {
+          if (window.Harmoni && window.Harmoni.toast) {
+            window.Harmoni.toast({
+              title: `${d.cesados} trabajador${d.cesados>1?'es cesados':' cesado'}`,
+              detail: `Motivo: ${motivo} · Fecha: ${fecha}`,
+              kind: 'success',
+            });
+          }
+          setTimeout(() => location.reload(), 800);
+        } else {
+          if (window.Harmoni && window.Harmoni.toast) {
+            window.Harmoni.toast({ title: 'Error', detail: d.error || 'No se pudo cesar', kind: 'error' });
+          }
+        }
+      })
+      .catch(() => {
+        cancel();
+        if (window.Harmoni && window.Harmoni.toast) {
+          window.Harmoni.toast({ title: 'Error de conexión', kind: 'error' });
+        }
+      });
+    });
+  }
+
+  // Override del handler del bulk bar cesar con la versión real
+  document.querySelectorAll('[data-bulk-act="cesar"]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopImmediatePropagation();
+      const ids = Array.from(selected);
+      if (!ids.length) return;
+      bulkCesarReal(ids);
+    }, true);  // capture phase para correr antes del handler legacy
+  });
 });
 </script>
 {% endblock %}
@@ -1130,8 +1500,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             {% endif %}
                             {% endwith %}
                         </td>
-                        <td class="d-none d-md-table-cell"><small>{{ p.cargo|truncatechars:20 }}</small></td>
-                        <td class="d-none d-lg-table-cell"><small>{{ p.subarea.nombre|default:"-" }}</small></td>
+                        <td class="d-none d-md-table-cell pl-editable" data-field="cargo" data-value="{{ p.cargo|default:'' }}" title="Doble-click para editar">
+                          <small class="pl-cell-value">{{ p.cargo|default:'—'|truncatechars:20 }}</small>
+                        </td>
+                        <td class="d-none d-lg-table-cell pl-editable" data-field="subarea" data-value="{{ p.subarea_id|default:'' }}" title="Doble-click para editar">
+                          <small class="pl-cell-value">{{ p.subarea.nombre|default:'—' }}</small>
+                        </td>
                         <td class="d-none d-sm-table-cell">
                             {% if p.grupo_tareo == 'STAFF' %}
                                 <span class="badge bg-primary" style="font-size:.68rem;">STAFF</span>

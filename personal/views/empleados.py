@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.db.models import Q
 from django.http import HttpResponse
 from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST
 from decimal import Decimal, InvalidOperation
 import pandas as pd
 from datetime import datetime, date
@@ -961,4 +962,149 @@ def personal_drawer_data(request, pk):
         'documentos': documentos,
         'historico':  historico,
         'ia':         ia,
+    })
+
+
+# ────────────────────────────────────────────────────────────────────────
+# INLINE EDIT (handoff: doble-click en Área o Cargo en la tabla)
+# Whitelist estricto: solo campos no liquidación-sensible. Devuelve el
+# valor anterior para soportar el botón "Deshacer" del toast.
+# ────────────────────────────────────────────────────────────────────────
+
+INLINE_EDIT_ALLOWED_FIELDS = {'cargo', 'subarea'}
+
+
+@login_required
+@require_POST
+def personal_inline_edit(request, pk):
+    """Edita un campo permitido del Personal via AJAX y devuelve el valor anterior.
+
+    Body JSON: {"field": "cargo"|"subarea", "value": "<nuevo valor o id>"}
+    Response: {"ok": true, "field": ..., "old_value": ..., "new_value_display": ...}
+    """
+    import json
+    from django.http import JsonResponse
+
+    personal = get_object_or_404(filtrar_personal(request.user), pk=pk)
+    if not puede_editar_personal(request.user, personal):
+        return JsonResponse({'ok': False, 'error': 'Sin permisos'}, status=403)
+
+    try:
+        data = json.loads(request.body or '{}')
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
+
+    field = (data.get('field') or '').strip().lower()
+    value = data.get('value')
+
+    if field not in INLINE_EDIT_ALLOWED_FIELDS:
+        return JsonResponse({
+            'ok': False,
+            'error': f'Campo "{field}" no permitido inline. '
+                     f'Permitidos: {", ".join(sorted(INLINE_EDIT_ALLOWED_FIELDS))}',
+        }, status=400)
+
+    if field == 'cargo':
+        old = personal.cargo or ''
+        new = (str(value) or '').strip()
+        if not new:
+            return JsonResponse({'ok': False, 'error': 'Cargo no puede ser vacío'}, status=400)
+        if len(new) > 150:
+            return JsonResponse({'ok': False, 'error': 'Cargo máx 150 caracteres'}, status=400)
+        personal.cargo = new
+        personal.save(update_fields=['cargo'])
+        return JsonResponse({
+            'ok': True, 'field': field,
+            'old_value': old, 'new_value': new,
+            'new_value_display': new,
+        })
+
+    if field == 'subarea':
+        # value = pk de SubArea o "" para limpiar
+        old = personal.subarea_id
+        old_disp = personal.subarea.nombre if personal.subarea else ''
+        new_id = None
+        new_disp = ''
+        if value not in (None, '', '0'):
+            try:
+                new_id = int(value)
+            except (ValueError, TypeError):
+                return JsonResponse({'ok': False, 'error': 'subarea_id inválido'}, status=400)
+            from ..models import SubArea
+            sub = SubArea.objects.filter(pk=new_id, activa=True).first()
+            if not sub:
+                return JsonResponse({'ok': False, 'error': 'SubArea no encontrada'}, status=404)
+            new_disp = sub.nombre
+        personal.subarea_id = new_id
+        personal.save(update_fields=['subarea'])
+        return JsonResponse({
+            'ok': True, 'field': field,
+            'old_value': old, 'old_value_display': old_disp,
+            'new_value': new_id, 'new_value_display': new_disp or '—',
+        })
+
+    return JsonResponse({'ok': False, 'error': 'Unhandled field'}, status=500)
+
+
+# ────────────────────────────────────────────────────────────────────────
+# BATCH CESAR (handoff: bulk bar "Cesar" cuando hay >=1 seleccionado)
+# Recibe ids[] + fecha_cese + motivo en una sola transacción.
+# ────────────────────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def personal_cesar_batch(request):
+    """Cesa múltiples trabajadores en una transacción.
+
+    Body POST: ids=1&ids=2&ids=3, fecha_cese=YYYY-MM-DD, motivo=<str>.
+    Solo admin (is_superuser) puede usarlo.
+    """
+    from django.http import JsonResponse
+    from django.db import transaction
+
+    if not request.user.is_superuser:
+        return JsonResponse({'ok': False, 'error': 'Solo superusuarios'}, status=403)
+
+    ids_raw = request.POST.getlist('ids')
+    if not ids_raw:
+        return JsonResponse({'ok': False, 'error': 'Sin ids'}, status=400)
+
+    try:
+        ids = [int(i) for i in ids_raw if i]
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'ids inválidos'}, status=400)
+
+    fecha_str = (request.POST.get('fecha_cese') or '').strip()
+    if not fecha_str:
+        fecha_cese = date.today()
+    else:
+        try:
+            fecha_cese = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'ok': False, 'error': 'fecha_cese debe ser YYYY-MM-DD'}, status=400)
+
+    motivo = (request.POST.get('motivo') or 'RENUNCIA')[:50]
+
+    # Filtrar al alcance del usuario (multi-tenant safe)
+    qs = filtrar_personal(request.user).filter(pk__in=ids).exclude(estado='Cesado')
+    total = qs.count()
+    if not total:
+        return JsonResponse({'ok': False, 'error': 'Ninguno de los seleccionados es elegible (ya cesados o fuera de tu alcance)'}, status=400)
+
+    fields_update = {'estado': 'Cesado', 'fecha_cese': fecha_cese}
+    # motivo_cese existe? — usar getattr defensivo
+    try:
+        Personal._meta.get_field('motivo_cese')
+        fields_update['motivo_cese'] = motivo
+    except Exception:
+        pass
+
+    with transaction.atomic():
+        updated = qs.update(**fields_update)
+
+    return JsonResponse({
+        'ok': True,
+        'cesados': updated,
+        'fecha_cese': fecha_cese.isoformat(),
+        'motivo': motivo,
     })
