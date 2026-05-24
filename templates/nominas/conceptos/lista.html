@@ -1,87 +1,58 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Conceptos Remunerativos — Configuración{% endblock %}
-{% block extra_css %}
-<style>
-  @media (max-width: 992px) {
-    /* Tabla de conceptos se vuelve scrollable horizontal en tablet */
-    .conceptos-table-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .conceptos-table-wrap table {
-      min-width: 880px;
-    }
-  }
-  @media (max-width: 768px) {
-    /* KPIs grid se vuelve 2 columnas en mobile */
-    .conceptos-kpis {
-      grid-template-columns: repeat(2, 1fr) !important;
-    }
-    /* Filtros stack verticalmente */
-    .conceptos-filtros input,
-    .conceptos-filtros select {
-      max-width: 100% !important;
-      width: 100%;
-    }
-    /* Botones acción header full width */
-    .conceptos-header-actions {
-      width: 100%;
-    }
-    .conceptos-header-actions a {
-      flex: 1 1 calc(50% - 4px);
-      text-align: center;
-      font-size: .8rem !important;
-    }
-  }
-</style>
-{% endblock %}
-{% block content %}
 
-<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
-  <div>
-    <h2 style="margin:0;color:#0d2b27;font-weight:800;">Conceptos remunerativos</h2>
-    <p style="margin:4px 0 0;color:#64748b;">Configuración de ingresos, descuentos y aportes — afectaciones legales y mapeo SUNAT/PLAME</p>
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>Catálogo de configuración
   </div>
-  <div class="conceptos-header-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a href="{% url 'conceptos_audit_log' %}" class="btn btn-outline-secondary btn-sm" title="Ver bitácora de cambios">
-      <i class="fas fa-history me-1"></i> Audit log
-    </a>
-    <a href="{% url 'conceptos_comparador' %}" class="btn btn-outline-secondary btn-sm" title="Comparar dos conceptos lado a lado">
-      <i class="fas fa-balance-scale me-1"></i> Comparar
-    </a>
-    <a href="{% url 'conceptos_export_csv' %}" class="btn btn-outline-secondary btn-sm" title="Descargar todos los conceptos como CSV">
-      <i class="fas fa-download me-1"></i> Exportar CSV
-    </a>
-    <a href="{% url 'conceptos_templates' %}" class="btn btn-outline-secondary">
-      <i class="fas fa-bookmark me-1"></i> Templates típicos
-    </a>
-    <a href="{% url 'concepto_nuevo' %}" class="btn btn-success" style="background:#0f766e;border-color:#0f766e;">
-      <i class="fas fa-plus me-1"></i> Crear concepto
-    </a>
+  <h1>
+    Conceptos <span class="accent">remunerativos</span>
+  </h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Ingresos, descuentos y aportes con sus afectaciones legales (AFP/ONP/ESSALUD/IR/CTS/Gratif) y mapeo SUNAT/PLAME.
+  </p>
+  <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'concepto_nuevo' %}" class="hm-btn-primary">+ Crear concepto</a>
+    <a href="{% url 'conceptos_templates' %}" class="hm-btn-ghost">📋 Templates típicos</a>
+    <a href="{% url 'conceptos_comparador' %}" class="hm-btn-ghost">⚖ Comparar</a>
+    <a href="{% url 'conceptos_audit_log' %}" class="hm-btn-ghost">📜 Audit log</a>
+    <a href="{% url 'conceptos_export_csv' %}" class="hm-btn-ghost">↓ Export CSV</a>
   </div>
-</div>
+</section>
+{% endblock %}
+
+{% block body %}
 
 <!-- KPIs -->
-<div class="conceptos-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
-    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Total</div>
-    <div style="font-size:1.8rem;font-weight:800;color:#0d2b27;line-height:1;">{{ total }}</div>
+<div class="hm-kpis">
+  <div class="hm-kpi featured">
+    <div class="label">Total conceptos</div>
+    <div class="num">{{ total }}</div>
+    <div class="row">
+      <span class="delta up">{{ activos }} activos</span>
+    </div>
   </div>
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
-    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Activos</div>
-    <div style="font-size:1.8rem;font-weight:800;color:#16a34a;line-height:1;">{{ activos }}</div>
+  <div class="hm-kpi">
+    <div class="label">Custom (no sistema)</div>
+    <div class="num">{{ custom }}</div>
+    <div class="row">
+      <span class="deltaLabel">Creados por el cliente</span>
+    </div>
   </div>
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
-    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Custom (no sistema)</div>
-    <div style="font-size:1.8rem;font-weight:800;color:#0d2b27;line-height:1;">{{ custom }}</div>
+  <div class="hm-kpi">
+    <div class="label">Sin código PLAME</div>
+    <div class="num" style="{% if sin_plame > 0 %}color:var(--hm-warning){% else %}color:var(--hm-success){% endif %};">{{ sin_plame }}</div>
+    <div class="row">
+      <span class="deltaLabel">{% if sin_plame %}No exportarán a SUNAT{% else %}Listos para SUNAT{% endif %}</span>
+    </div>
   </div>
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid {% if sin_plame > 0 %}#fcd34d{% else %}#e2e8f0{% endif %};">
-    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Sin código PLAME</div>
-    <div style="font-size:1.8rem;font-weight:800;color:{% if sin_plame > 0 %}#d97706{% else %}#16a34a{% endif %};line-height:1;">{{ sin_plame }}</div>
-  </div>
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid {% if inconsistencias > 0 %}#fca5a5{% else %}#e2e8f0{% endif %};">
-    <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">⚠ Inconsistencias</div>
-    <div style="font-size:1.8rem;font-weight:800;color:{% if inconsistencias > 0 %}#dc2626{% else %}#16a34a{% endif %};line-height:1;">{{ inconsistencias }}</div>
+  <div class="hm-kpi">
+    <div class="label">Inconsistencias</div>
+    <div class="num" style="{% if inconsistencias > 0 %}color:var(--hm-error){% else %}color:var(--hm-success){% endif %};">{{ inconsistencias }}</div>
+    <div class="row">
+      <span class="deltaLabel">{% if inconsistencias %}Flags incongruentes{% else %}Todo OK ✓{% endif %}</span>
+    </div>
   </div>
 </div>
 

@@ -1,70 +1,130 @@
-{% extends "base.html" %}
-{% block title %}Harmoni IA Nóminas — Agente{% endblock %}
-{% block content %}
+{% extends "base_v2.html" %}
+{% block title %}Harmoni IA Nóminas{% endblock %}
 
-<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
-  <div>
-    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
-      <i class="fas fa-robot me-2" style="color:#0f766e;"></i> Harmoni IA Nóminas
-    </h2>
-    <p style="margin:4px 0 0;color:#64748b;">
-      Asistente experto en normativa peruana + reintegros + correcciones de planilla
-    </p>
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>Asistente experto en planilla peruana
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a href="{% url 'reintegros_lista' %}" class="btn btn-sm btn-outline-secondary">
-      <i class="fas fa-undo me-1"></i> Reintegros pendientes
-      {% if reintegros_pendientes %}<span class="badge bg-warning text-dark ms-1">{{ reintegros_pendientes }}</span>{% endif %}
-    </a>
-    <a href="{% url 'agente_nueva' %}" class="btn btn-success" style="background:#0f766e;border-color:#0f766e;">
-      <i class="fas fa-plus me-1"></i> Nueva conversación
-    </a>
-  </div>
-</div>
-
-<!-- Hero introductorio -->
-<div style="background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;padding:24px 28px;border-radius:14px;margin-bottom:20px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;">
-    <div style="flex:1;min-width:280px;">
-      <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">¿Qué puedo hacer por ti?</div>
-      <ul style="margin:8px 0 0;padding-left:20px;font-size:.95rem;line-height:1.7;opacity:.95;">
-        <li><strong>Reintegros</strong> — "Le pagué S/2500 a Juan cuando era S/3000 en abril"</li>
-        <li><strong>Normativa</strong> — "¿Cuál es el tope de embargo?" "¿Cómo funciona la EPS?"</li>
-        <li><strong>Cálculos</strong> — gratificación, CTS, vacaciones truncas, liquidación</li>
-        <li><strong>Casos legales</strong> — pensión alimenticia, subsidios ESSALUD, descuentos</li>
-      </ul>
+  <h1>
+    Harmoni <span class="accent">IA Nóminas</span>
+  </h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Consulta normativa, calcula reintegros y resuelve dudas sobre planilla peruana — todo en lenguaje natural.
+  </p>
+  <div class="meta-row">
+    <div class="it">
+      <span class="pip" style="background:var(--hm-success);"></span>
+      <span>Conversaciones</span> <b class="hm-mono">{{ conversaciones|length }}</b>
     </div>
-    <div>
-      <a href="{% url 'agente_nueva' %}" style="background:#fcd34d;color:#0d2b27;padding:12px 22px;border-radius:8px;font-weight:700;text-decoration:none;font-size:1rem;">
-        Iniciar consulta <i class="fas fa-arrow-right ms-1"></i>
+    {% if reintegros_pendientes %}
+    <div class="it">
+      <span class="pip" style="background:var(--hm-warning);"></span>
+      <span>Reintegros pendientes</span> <b class="hm-mono">{{ reintegros_pendientes }}</b>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block body %}
+  <!-- CTA principal -->
+  <div class="hm-panel" style="background: linear-gradient(165deg, var(--hm-brand-900) 0%, var(--hm-brand-800) 70%); border:0;">
+    <div style="padding: 26px 30px; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+      <div style="color:#fff; flex:1; min-width:280px;">
+        <div style="font-size:13px; color: var(--hm-brand-300); font-weight:600; letter-spacing:.04em; text-transform:uppercase;">¿En qué te ayudo?</div>
+        <h2 style="margin:8px 0 0; font-size:22px; font-weight:700; letter-spacing:-.015em; color:#fff;">
+          Pregunta o describe lo que necesitas resolver
+        </h2>
+        <div style="margin-top:14px; font-size:13.5px; color: rgba(255,255,255,.85); line-height:1.55;">
+          <strong style="color:#fff;">Reintegros</strong> — "Le pagué S/2500 a Juan cuando era S/3000 en abril"<br>
+          <strong style="color:#fff;">Normativa</strong> — "¿Cuál es el tope de embargo?" "¿Cómo funciona la EPS?"<br>
+          <strong style="color:#fff;">Cálculos</strong> — gratificación, CTS, vacaciones truncas, liquidación
+        </div>
+      </div>
+      <a href="{% url 'agente_nueva' %}" class="hm-btn-primary" style="background:var(--hm-accent); color:#0d2b27; box-shadow:0 6px 14px -4px rgba(245,158,11,.4); font-size:14px; padding:11px 20px;">
+        Iniciar consulta →
       </a>
     </div>
   </div>
-</div>
 
-<!-- Lista de conversaciones -->
-{% if conversaciones %}
-<h5 style="font-weight:800;color:#0d2b27;margin:24px 0 12px;">Mis conversaciones recientes</h5>
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-  {% for c in conversaciones %}
-    <a href="{% url 'agente_chat' c.pk %}" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;text-decoration:none;color:inherit;border-top:1px solid #f1f5f9;{% if forloop.first %}border-top:none;{% endif %}transition:background .15s;"
-       onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
-      <div style="flex:1;">
-        <div style="font-weight:700;color:#0d2b27;">{{ c.titulo|default:"Conversación sin título" }}</div>
-        <div style="font-size:.78rem;color:#94a3b8;margin-top:2px;">
-          <i class="far fa-clock me-1"></i>{{ c.actualizada_en|timesince }} atrás · {{ c.mensajes.count }} mensajes
+  <!-- Acciones rápidas -->
+  <div class="hm-row-2">
+    <div class="hm-panel">
+      <div class="hm-panel-h">
+        <div>
+          <h3>Conversaciones recientes</h3>
+          <div class="sub">Tus últimas {{ conversaciones|length }} consultas al agente</div>
+        </div>
+        <a href="{% url 'agente_nueva' %}" class="hm-btn-ghost">+ Nueva</a>
+      </div>
+      <div class="hm-list">
+        {% for c in conversaciones %}
+        <a href="{% url 'agente_chat' c.pk %}" class="hm-item-row">
+          <div class="av">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/></svg>
+          </div>
+          <div class="body">
+            <div class="ln1"><b>{{ c.titulo|default:"Sin título"|truncatechars:60 }}</b></div>
+            <div class="ln2">{{ c.actualizada_en|timesince }} atrás · {{ c.mensajes.count }} mensajes</div>
+          </div>
+        </a>
+        {% empty %}
+        <div style="padding:30px; text-align:center; color:var(--hm-slate-400); font-size:13px;">
+          <p style="margin:0;">Aún no has consultado al agente.</p>
+          <p style="margin:6px 0 0;">Inicia tu primera conversación.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="hm-panel">
+      <div class="hm-panel-h">
+        <div>
+          <h3>Acciones rápidas</h3>
+          <div class="sub">Atajos a herramientas relacionadas</div>
         </div>
       </div>
-      <i class="fas fa-chevron-right" style="color:#cbd5e1;"></i>
-    </a>
-  {% endfor %}
-</div>
-{% else %}
-<div style="background:#fff;padding:40px;text-align:center;border-radius:12px;border:2px dashed #cbd5e1;">
-  <i class="fas fa-comments fa-3x" style="color:#cbd5e1;display:block;margin-bottom:14px;"></i>
-  <h5 style="color:#475569;">Aún no has consultado al agente</h5>
-  <p style="color:#94a3b8;margin:0;font-size:.9rem;">Inicia una conversación y obtén ayuda al instante.</p>
-</div>
-{% endif %}
+      <div class="hm-qa-grid">
+        <a href="{% url 'reintegros_lista' %}" class="hm-qa">
+          <div class="hm-qa-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11v-7l5 5M4 11l16 1c0 0 2 5-2 9"/></svg>
+          </div>
+          <div class="hm-qa-t">Reintegros</div>
+          <div class="hm-qa-d">{{ reintegros_pendientes }} pendientes — aprobar o aplicar</div>
+        </a>
+        <a href="{% url 'calculadora_planilla' %}" class="hm-qa">
+          <div class="hm-qa-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+          </div>
+          <div class="hm-qa-t">Calculadora</div>
+          <div class="hm-qa-d">Simulador planilla + costos empresa</div>
+        </a>
+        <a href="{% url 'conceptos_lista' %}" class="hm-qa">
+          <div class="hm-qa-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8"/></svg>
+          </div>
+          <div class="hm-qa-t">Conceptos</div>
+          <div class="hm-qa-d">Configurar afectaciones + PLAME</div>
+        </a>
+        <a href="{% url 'workflow_mes' %}" class="hm-qa">
+          <div class="hm-qa-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l3 3 9-9M4 12l3 3 9-9M4 18l3 3 9-9"/></svg>
+          </div>
+          <div class="hm-qa-t">Workflow del mes</div>
+          <div class="hm-qa-d">10 pasos guiados del cierre</div>
+        </a>
+      </div>
+    </div>
+  </div>
 
+  <!-- Privacidad nota -->
+  <div style="background: var(--hm-slate-50); padding:14px 18px; border-radius:var(--hm-r-lg); color:var(--hm-slate-600); font-size:12.5px; display:flex; align-items:center; gap:10px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--hm-brand-600);"><path d="M12 2l9 4v6c0 5.5-4 9.5-9 10-5-.5-9-4.5-9-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+    <span>
+      <strong style="color:var(--hm-slate-900);">Privacidad y compliance:</strong>
+      Tus conversaciones son privadas. Todo cambio a planilla requiere aprobación tuya antes de aplicarse.
+      Quedan registradas en el audit log para compliance fiscal.
+    </span>
+  </div>
 {% endblock %}

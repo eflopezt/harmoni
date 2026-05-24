@@ -1,158 +1,181 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Reintegro #{{ reintegro.pk }}{% endblock %}
-{% block content %}
 
-<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
-  <div>
-    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
-      Reintegro #{{ reintegro.pk }}
-      {% if reintegro.estado == 'PROPUESTO' %}<span style="background:#fef3c7;color:#a16207;font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:6px;margin-left:8px;vertical-align:middle;">PROPUESTO</span>
-      {% elif reintegro.estado == 'APROBADO' %}<span style="background:#dbeafe;color:#1d4ed8;font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:6px;margin-left:8px;vertical-align:middle;">APROBADO</span>
-      {% elif reintegro.estado == 'APLICADO' %}<span style="background:#dcfce7;color:#15803d;font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:6px;margin-left:8px;vertical-align:middle;">APLICADO</span>
-      {% else %}<span style="background:#f1f5f9;color:#94a3b8;font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:6px;margin-left:8px;vertical-align:middle;">REVERSADO</span>{% endif %}
-    </h2>
-    <p style="margin:4px 0 0;color:#64748b;">
-      {{ reintegro.personal }} · Periodo origen: <strong>{{ reintegro.periodo_origen_str }}</strong>
-    </p>
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>{{ reintegro.get_motivo_display }} · {{ reintegro.periodo_origen_str }}
   </div>
-  <a href="{% url 'reintegros_lista' %}" class="btn btn-sm btn-outline-secondary">
-    <i class="fas fa-arrow-left me-1"></i> Volver a lista
-  </a>
-</div>
+  <h1 style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    Reintegro <span class="accent">#{{ reintegro.pk }}</span>
+    {% if reintegro.estado == 'PROPUESTO' %}<span class="hm-badge hm-badge-warning" style="font-size:13px;padding:5px 12px;">PROPUESTO</span>
+    {% elif reintegro.estado == 'APROBADO' %}<span class="hm-badge hm-badge-info" style="font-size:13px;padding:5px 12px;">APROBADO</span>
+    {% elif reintegro.estado == 'APLICADO' %}<span class="hm-badge hm-badge-success" style="font-size:13px;padding:5px 12px;">APLICADO</span>
+    {% else %}<span class="hm-badge hm-badge-neutral" style="font-size:13px;padding:5px 12px;">REVERSADO</span>{% endif %}
+  </h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;">
+    <strong style="color:var(--hm-slate-900);">{{ reintegro.personal }}</strong> · {{ reintegro.descripcion|truncatechars:140 }}
+  </p>
+</section>
+{% endblock %}
 
-<div class="row g-3">
-  <div class="col-lg-7">
-    <!-- Hero monto -->
-    <div style="background:linear-gradient(135deg,{% if reintegro.monto_reintegro >= 0 %}#15803d,#0f766e{% else %}#b91c1c,#7f1d1d{% endif %});color:#fff;padding:24px 28px;border-radius:14px;margin-bottom:14px;">
-      <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">
-        {% if reintegro.monto_reintegro >= 0 %}A pagar al trabajador{% else %}A descontar al trabajador{% endif %}
-      </div>
-      <div style="font-size:2.8rem;font-weight:900;line-height:1;margin-top:6px;">
-        {% if reintegro.monto_reintegro >= 0 %}+{% endif %}S/ {{ reintegro.monto_reintegro|floatformat:2 }}
-      </div>
-      <div style="font-size:.9rem;margin-top:6px;opacity:.92;">
-        Neto al trabajador: <strong>S/ {{ reintegro.monto_neto_reintegro|floatformat:2 }}</strong>
-      </div>
-    </div>
-
-    <!-- Detalles -->
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:14px;">
-      <h5 style="font-weight:800;color:#0d2b27;margin:0 0 12px;">Detalles del reintegro</h5>
-      <table class="table table-sm mb-0">
-        <tr><td style="color:#64748b;width:200px;">Trabajador</td><td><strong>{{ reintegro.personal }}</strong></td></tr>
-        <tr><td style="color:#64748b;">Motivo</td><td>{{ reintegro.get_motivo_display }}</td></tr>
-        <tr><td style="color:#64748b;">Descripción</td><td>{{ reintegro.descripcion }}</td></tr>
-        <tr><td style="color:#64748b;">Periodo origen</td><td>{{ reintegro.periodo_origen_str }}</td></tr>
-        <tr><td style="color:#64748b;">Monto pagado</td><td style="font-family:monospace;">S/ {{ reintegro.monto_que_se_pago|floatformat:2 }}</td></tr>
-        <tr><td style="color:#64748b;">Monto correcto</td><td style="font-family:monospace;">S/ {{ reintegro.monto_correcto|floatformat:2 }}</td></tr>
-        <tr style="background:#f8fafc;font-weight:700;"><td>Diferencia (bruto)</td><td style="font-family:monospace;{% if reintegro.monto_reintegro >= 0 %}color:#15803d{% else %}color:#b91c1c{% endif %};">{% if reintegro.monto_reintegro >= 0 %}+{% endif %}S/ {{ reintegro.monto_reintegro|floatformat:2 }}</td></tr>
-      </table>
-    </div>
-
-    <!-- Impacto fiscal -->
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;">
-      <h5 style="font-weight:800;color:#0d2b27;margin:0 0 12px;">Impacto fiscal</h5>
-      <table class="table table-sm mb-0">
-        {% for k, v in impacto_aportes.items %}
-        <tr>
-          <td style="color:#64748b;width:200px;">{{ k }}</td>
-          <td style="font-family:monospace;">S/ {{ v }}</td>
-        </tr>
-        {% endfor %}
-        {% if reintegro.impacto_ir_5ta %}
-        <tr><td style="color:#64748b;">Ajuste IR 5ta estimado</td><td style="font-family:monospace;">S/ {{ reintegro.impacto_ir_5ta|floatformat:2 }}</td></tr>
-        {% endif %}
-      </table>
-    </div>
-  </div>
-
-  <div class="col-lg-5">
-    <!-- Audit -->
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:14px;">
-      <h5 style="font-weight:800;color:#0d2b27;margin:0 0 12px;">Bitácora</h5>
-      <ul style="list-style:none;padding:0;margin:0;font-size:.88rem;">
-        <li style="padding:6px 0;border-bottom:1px solid #f1f5f9;">
-          <i class="fas fa-plus-circle me-1" style="color:#15803d;"></i>
-          <strong>Creado</strong> {{ reintegro.creado_en|date:"d M Y H:i" }}
-          {% if reintegro.propuesto_por %}por {{ reintegro.propuesto_por.username }}{% endif %}
-          {% if reintegro.propuesto_por_ia %}<span style="font-size:.72rem;background:#0f766e22;color:#0f766e;padding:1px 6px;border-radius:4px;margin-left:4px;"><i class="fas fa-robot"></i> IA</span>{% endif %}
-        </li>
-        {% if reintegro.aprobado_en %}
-        <li style="padding:6px 0;border-bottom:1px solid #f1f5f9;">
-          <i class="fas fa-check-circle me-1" style="color:#1d4ed8;"></i>
-          <strong>Aprobado</strong> {{ reintegro.aprobado_en|date:"d M Y H:i" }} por {{ reintegro.aprobado_por.username }}
-        </li>
-        {% endif %}
-        {% if reintegro.aplicado_en %}
-        <li style="padding:6px 0;border-bottom:1px solid #f1f5f9;">
-          <i class="fas fa-file-invoice me-1" style="color:#15803d;"></i>
-          <strong>Aplicado</strong> {{ reintegro.aplicado_en|date:"d M Y H:i" }}
-          {% if reintegro.periodo_aplicar %}al período {{ reintegro.periodo_aplicar }}{% endif %}
-        </li>
-        {% endif %}
-        {% if reintegro.revertido_en %}
-        <li style="padding:6px 0;">
-          <i class="fas fa-undo me-1" style="color:#94a3b8;"></i>
-          <strong>Reversado</strong> {{ reintegro.revertido_en|date:"d M Y H:i" }} por {{ reintegro.revertido_por.username }}
-          <div style="font-size:.78rem;color:#94a3b8;margin-left:18px;margin-top:2px;">Motivo: {{ reintegro.motivo_reversion }}</div>
-        </li>
-        {% endif %}
-      </ul>
-    </div>
-
-    <!-- Acciones según estado -->
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;">
-      <h5 style="font-weight:800;color:#0d2b27;margin:0 0 12px;">Acciones disponibles</h5>
-
-      {% if reintegro.estado == 'PROPUESTO' %}
-        <form method="post" action="{% url 'reintegro_aprobar' reintegro.pk %}" style="margin-bottom:8px;">
-          {% csrf_token %}
-          <button class="btn btn-success w-100" style="background:#1d4ed8;border-color:#1d4ed8;" onclick="return confirm('¿Confirmas que apruebas este reintegro?');">
-            <i class="fas fa-check-circle me-1"></i> Aprobar reintegro
-          </button>
-        </form>
-        <p style="font-size:.78rem;color:#94a3b8;margin:0;">Después de aprobar podrás aplicarlo a un período abierto.</p>
-      {% endif %}
-
-      {% if reintegro.estado == 'APROBADO' %}
-        <form method="post" action="{% url 'reintegro_aplicar' reintegro.pk %}">
-          {% csrf_token %}
-          <label style="font-size:.85rem;font-weight:600;margin-bottom:4px;">Período donde aplicar:</label>
-          <select name="periodo_id" class="form-select form-select-sm mb-2" required>
-            <option value="">— Selecciona período —</option>
-            {% for p in periodos_disponibles %}
-              <option value="{{ p.pk }}">{{ p.mes }}/{{ p.anio }} ({{ p.get_estado_display }})</option>
-            {% endfor %}
-          </select>
-          <button class="btn btn-success w-100" style="background:#15803d;border-color:#15803d;" onclick="return confirm('¿Aplicar el reintegro? Se creará la línea en la planilla.');">
-            <i class="fas fa-file-invoice me-1"></i> Aplicar a período
-          </button>
-        </form>
-      {% endif %}
-
-      {% if reintegro.estado in 'APROBADO,APLICADO' %}
-        <details style="margin-top:14px;">
-          <summary style="font-size:.85rem;color:#b91c1c;cursor:pointer;">
-            <i class="fas fa-undo me-1"></i> Revertir este reintegro
-          </summary>
-          <form method="post" action="{% url 'reintegro_revertir' reintegro.pk %}" style="margin-top:10px;">
-            {% csrf_token %}
-            <textarea name="motivo" class="form-control form-control-sm mb-2" rows="2" placeholder="Motivo de la reversión (obligatorio)" required></textarea>
-            <button class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Esta acción no se puede deshacer. ¿Continuar?');">
-              Confirmar reversión
-            </button>
-          </form>
-        </details>
-      {% endif %}
-
-      {% if reintegro.estado == 'REVERSADO' %}
-        <div style="color:#94a3b8;font-size:.88rem;">
-          <i class="fas fa-info-circle me-1"></i>
-          Este reintegro fue reversado. Para hacer una nueva corrección, crea otra propuesta.
+{% block body %}
+  <div class="hm-row-2">
+    <div>
+      <!-- Hero monto -->
+      <div class="hm-panel" style="background: linear-gradient(165deg, {% if reintegro.monto_reintegro >= 0 %}#0a3d37 0%, #0d6a60{% else %}#7f1d1d 0%, #b91c1c{% endif %} 70%); border:0; color:#fff; margin-bottom:14px;">
+        <div style="padding: 26px 30px;">
+          <div style="font-size:11.5px; color: rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:.06em; font-weight:600;">
+            {% if reintegro.monto_reintegro >= 0 %}A pagar al trabajador{% else %}A descontar al trabajador{% endif %}
+          </div>
+          <div style="font-size:44px; font-weight:700; letter-spacing:-.025em; line-height:1; margin-top:8px; font-family:var(--hm-font-mono);">
+            {% if reintegro.monto_reintegro >= 0 %}+{% endif %}S/ {{ reintegro.monto_reintegro|floatformat:2 }}
+          </div>
+          <div style="font-size:13.5px; margin-top:8px; color:rgba(255,255,255,.85);">
+            Neto al trabajador: <strong style="color:#fff;">S/ {{ reintegro.monto_neto_reintegro|floatformat:2 }}</strong>
+          </div>
         </div>
-      {% endif %}
+      </div>
+
+      <!-- Detalles -->
+      <div class="hm-panel">
+        <div class="hm-panel-h">
+          <div><h3>Detalles del reintegro</h3></div>
+        </div>
+        <div style="padding:0 22px 18px;">
+          <table class="table" style="font-size:13.5px; margin:0;">
+            <tr><td style="color:var(--hm-slate-500);width:200px;">Trabajador</td><td><strong>{{ reintegro.personal }}</strong></td></tr>
+            <tr><td style="color:var(--hm-slate-500);">Motivo</td><td>{{ reintegro.get_motivo_display }}</td></tr>
+            <tr><td style="color:var(--hm-slate-500);">Descripción</td><td>{{ reintegro.descripcion }}</td></tr>
+            <tr><td style="color:var(--hm-slate-500);">Periodo origen</td><td><span class="hm-mono">{{ reintegro.periodo_origen_str }}</span></td></tr>
+            <tr><td style="color:var(--hm-slate-500);">Monto pagado</td><td class="hm-mono">S/ {{ reintegro.monto_que_se_pago|floatformat:2 }}</td></tr>
+            <tr><td style="color:var(--hm-slate-500);">Monto correcto</td><td class="hm-mono">S/ {{ reintegro.monto_correcto|floatformat:2 }}</td></tr>
+            <tr style="background:var(--hm-slate-50);font-weight:700;"><td>Diferencia bruto</td><td class="hm-mono" style="{% if reintegro.monto_reintegro >= 0 %}color:var(--hm-success){% else %}color:var(--hm-error){% endif %};">{% if reintegro.monto_reintegro >= 0 %}+{% endif %}S/ {{ reintegro.monto_reintegro|floatformat:2 }}</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Impacto fiscal -->
+      <div class="hm-panel" style="margin-top:14px;">
+        <div class="hm-panel-h">
+          <div><h3>Impacto fiscal estimado</h3><div class="sub">Aportes y descuentos al aplicar</div></div>
+        </div>
+        <div style="padding:0 22px 18px;">
+          <table class="table" style="font-size:13px; margin:0;">
+            {% for k, v in impacto_aportes.items %}
+            <tr>
+              <td style="color:var(--hm-slate-600);width:240px;">{{ k }}</td>
+              <td class="hm-mono">S/ {{ v }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" style="color:var(--hm-slate-400);font-style:italic;">Sin aportes adicionales — no remunerativo</td></tr>
+            {% endfor %}
+            {% if reintegro.impacto_ir_5ta %}<tr><td style="color:var(--hm-slate-600);">Ajuste IR 5ta estimado</td><td class="hm-mono">S/ {{ reintegro.impacto_ir_5ta|floatformat:2 }}</td></tr>{% endif %}
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- Acciones -->
+      <div class="hm-panel">
+        <div class="hm-panel-h">
+          <div><h3>Acciones</h3></div>
+        </div>
+        <div style="padding:0 22px 22px;">
+          {% if reintegro.estado == 'PROPUESTO' %}
+            <form method="post" action="{% url 'reintegro_aprobar' reintegro.pk %}" style="margin-bottom:10px;">
+              {% csrf_token %}
+              <button class="hm-btn-primary" style="width:100%; justify-content:center;" onclick="return confirm('¿Confirmas que apruebas este reintegro?');">
+                ✓ Aprobar reintegro
+              </button>
+            </form>
+            <p style="font-size:12px;color:var(--hm-slate-500);margin:0;">Después de aprobar podrás aplicarlo a un período abierto.</p>
+          {% endif %}
+
+          {% if reintegro.estado == 'APROBADO' %}
+            <form method="post" action="{% url 'reintegro_aplicar' reintegro.pk %}">
+              {% csrf_token %}
+              <label style="font-size:12.5px;font-weight:600;margin-bottom:6px;display:block;">Período donde aplicar:</label>
+              <select name="periodo_id" class="form-select form-select-sm mb-2" required>
+                <option value="">— Selecciona período —</option>
+                {% for p in periodos_disponibles %}
+                  <option value="{{ p.pk }}">{{ p.mes }}/{{ p.anio }} ({{ p.get_estado_display }})</option>
+                {% endfor %}
+              </select>
+              <button class="hm-btn-primary" style="width:100%; justify-content:center; background:var(--hm-success); box-shadow:0 6px 14px -8px var(--hm-success);" onclick="return confirm('¿Aplicar el reintegro? Se creará la línea en la planilla.');">
+                Aplicar a período
+              </button>
+            </form>
+          {% endif %}
+
+          {% if reintegro.estado in 'APROBADO,APLICADO' %}
+            <details style="margin-top:14px;">
+              <summary style="font-size:12.5px;color:var(--hm-error);cursor:pointer;">Revertir este reintegro</summary>
+              <form method="post" action="{% url 'reintegro_revertir' reintegro.pk %}" style="margin-top:10px;">
+                {% csrf_token %}
+                <textarea name="motivo" class="form-control form-control-sm mb-2" rows="2" placeholder="Motivo (obligatorio)" required></textarea>
+                <button class="hm-btn-ghost" style="width:100%; justify-content:center; color:var(--hm-error); border-color:var(--hm-error);" onclick="return confirm('No se puede deshacer. ¿Continuar?');">
+                  Confirmar reversión
+                </button>
+              </form>
+            </details>
+          {% endif %}
+
+          {% if reintegro.estado == 'REVERSADO' %}
+            <div style="color:var(--hm-slate-500);font-size:13px;padding:14px;background:var(--hm-slate-50);border-radius:8px;">
+              Este reintegro fue reversado. Crea una nueva propuesta si necesitas hacer otra corrección.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Audit / Bitácora -->
+      <div class="hm-panel" style="margin-top:14px;">
+        <div class="hm-panel-h">
+          <div><h3>Bitácora</h3></div>
+        </div>
+        <div class="hm-list">
+          <div class="hm-item-row">
+            <div class="av sys"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+            <div class="body">
+              <div class="ln1"><b>Creado</b> {{ reintegro.creado_en|date:"d M Y H:i" }}</div>
+              <div class="ln2">por {{ reintegro.propuesto_por.username|default:"sistema" }}{% if reintegro.propuesto_por_ia %} · <span class="hm-badge hm-badge-brand">IA</span>{% endif %}</div>
+            </div>
+          </div>
+          {% if reintegro.aprobado_en %}
+          <div class="hm-item-row">
+            <div class="av" style="background:linear-gradient(135deg,var(--hm-info),#1e40af);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg></div>
+            <div class="body">
+              <div class="ln1"><b>Aprobado</b> {{ reintegro.aprobado_en|date:"d M Y H:i" }}</div>
+              <div class="ln2">por {{ reintegro.aprobado_por.username }}</div>
+            </div>
+          </div>
+          {% endif %}
+          {% if reintegro.aplicado_en %}
+          <div class="hm-item-row">
+            <div class="av" style="background:linear-gradient(135deg,var(--hm-success),#047857);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/></svg></div>
+            <div class="body">
+              <div class="ln1"><b>Aplicado</b> {{ reintegro.aplicado_en|date:"d M Y H:i" }}</div>
+              <div class="ln2">{% if reintegro.periodo_aplicar %}al período {{ reintegro.periodo_aplicar }}{% endif %}</div>
+            </div>
+          </div>
+          {% endif %}
+          {% if reintegro.revertido_en %}
+          <div class="hm-item-row">
+            <div class="av slate"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 4-7.5L3 8m0 0V4m0 4h4"/></svg></div>
+            <div class="body">
+              <div class="ln1"><b>Reversado</b> {{ reintegro.revertido_en|date:"d M Y H:i" }}</div>
+              <div class="ln2">por {{ reintegro.revertido_por.username }} · {{ reintegro.motivo_reversion|truncatechars:80 }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
+  <div style="margin-top:14px;">
+    <a href="{% url 'reintegros_lista' %}" class="hm-btn-ghost">← Volver a lista</a>
+  </div>
 {% endblock %}

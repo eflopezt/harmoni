@@ -1,6 +1,13 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Historial — {{ concepto.nombre }}{% endblock %}
-{% block content %}
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet"><span class="hex"></span>{{ concepto.codigo }} · {{ total }} cambio{{ total|pluralize:"s" }}</div>
+  <h1>Historial de <span class="accent">{{ concepto.nombre }}</span></h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">Timeline de cambios sobre este concepto remunerativo: qué se modificó, quién lo hizo y cuándo. Útil para auditoría y rollback.</p>
+</section>
+{% endblock %}
+{% block body %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
   <div>

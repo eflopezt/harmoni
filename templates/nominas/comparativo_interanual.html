@@ -1,6 +1,21 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Comparativa Interanual{% endblock %}
-{% block content %}
+
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>Year-over-Year · Crecimiento real del payroll
+  </div>
+  <h1>
+    Comparativa <span class="accent">interanual</span>
+  </h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Mismo mes del año actual vs mismo mes del año anterior. Detecta crecimiento real, estacionalidad y patrones de payroll.
+  </p>
+</section>
+{% endblock %}
+
+{% block body %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
   <div>

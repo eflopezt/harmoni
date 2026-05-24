@@ -1,6 +1,13 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Comparar Escenarios — Calculadora{% endblock %}
-{% block content %}
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet"><span class="hex"></span>What-if · Comparativa de escenarios</div>
+  <h1>Comparar <span class="accent">Escenarios</span></h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">¿Qué pasa si subo el sueldo de A a B? Calcula ambos lados y muestra el delta de neto, descuentos, costo empresa y costo full-loaded.</p>
+</section>
+{% endblock %}
+{% block body %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
   <div>

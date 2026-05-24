@@ -1,91 +1,86 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Workflow del Mes — Cierre Guiado{% endblock %}
-{% block content %}
 
-<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
-  <div>
-    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
-      <i class="fas fa-route me-2" style="color:#0f766e;"></i> Workflow del Mes
-    </h2>
-    <p style="margin:4px 0 0;color:#64748b;">
-      Checklist guiado para cerrar tu planilla mensual paso a paso.
-      {% if periodo %}Período actual: <strong>{{ periodo.mes }}/{{ periodo.anio }} ({{ periodo.get_estado_display }})</strong>{% endif %}
-    </p>
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>Cierre mensual guiado · 10 pasos
   </div>
-  <a href="{% url 'mi_dia_nominas' %}" class="btn btn-sm btn-outline-secondary">
-    <i class="fas fa-sun me-1"></i> Mi Día Nóminas
-  </a>
-</div>
-
-<!-- Hero progreso -->
-<div style="background:linear-gradient(135deg,{% if progreso_pct >= 80 %}#15803d,#0f766e{% elif progreso_pct >= 50 %}#0f766e,#0d6b62{% else %}#1d4ed8,#0f766e{% endif %});color:#fff;padding:22px 26px;border-radius:14px;margin-bottom:20px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;">
-    <div>
-      <div style="font-size:.85rem;opacity:.92;text-transform:uppercase;letter-spacing:.08em;">Progreso del cierre</div>
-      <div style="font-size:3rem;font-weight:900;line-height:1;margin-top:6px;">{{ progreso_pct }}%</div>
-      <div style="font-size:.95rem;margin-top:4px;opacity:.92;">{{ n_done }} de {{ n_total }} pasos completados</div>
+  <h1>
+    Workflow <span class="accent">del mes</span>
+    {% if periodo %}<span style="font-size:18px;color:var(--hm-slate-500);font-weight:500;">{{ periodo.mes }}/{{ periodo.anio }}</span>{% endif %}
+  </h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Sigue los 10 pasos en orden para cerrar tu planilla mensual sin errores. Cada paso desbloquea el siguiente.
+  </p>
+  <div class="meta-row">
+    <div class="it">
+      <span class="pip" style="background:var(--hm-brand-500);"></span>
+      <span>Progreso</span> <b class="hm-mono">{{ progreso_pct }}%</b>
     </div>
-    <div style="flex:1;min-width:220px;max-width:400px;">
-      <div style="height:14px;background:rgba(255,255,255,.18);border-radius:7px;overflow:hidden;">
-        <div style="height:100%;width:{{ progreso_pct }}%;background:#fcd34d;transition:width .4s;"></div>
-      </div>
-      {% if progreso_pct == 100 %}
-        <div style="margin-top:8px;font-size:.9rem;font-weight:600;">🎉 ¡Cierre del mes completo!</div>
-      {% elif progreso_pct >= 80 %}
-        <div style="margin-top:8px;font-size:.9rem;font-weight:600;">¡Casi terminas! Faltan {{ n_total|add:n_done|add:"-1"|add:"-1" }} pasos.</div>
-      {% endif %}
+    <div class="it">
+      <span class="pip" style="background:var(--hm-success);"></span>
+      <span>Completados</span> <b class="hm-mono">{{ n_done }}/{{ n_total }}</b>
     </div>
   </div>
-</div>
+</section>
+{% endblock %}
 
-<!-- Steps verticales -->
-<div style="position:relative;">
-  <div style="position:absolute;left:22px;top:30px;bottom:30px;width:2px;background:linear-gradient(to bottom,#15803d 0%,#0f766e 50%,#e2e8f0 100%);"></div>
-
-  {% for step in steps %}
-    <div style="display:flex;gap:18px;margin-bottom:14px;align-items:flex-start;">
-      <!-- Number badge -->
-      <div style="flex-shrink:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:1;
-        {% if step.done %}background:#15803d;color:#fff;
-        {% elif step.bloqueado %}background:#e2e8f0;color:#94a3b8;
-        {% else %}background:#fff;border:3px solid #0f766e;color:#0f766e;{% endif %}
-        font-weight:800;font-size:1rem;box-shadow:0 0 0 4px #fff;">
-        {% if step.done %}<i class="fas fa-check"></i>{% else %}{{ step.n }}{% endif %}
+{% block body %}
+  <!-- Progress hero -->
+  <div class="hm-panel" style="background:linear-gradient(165deg, {% if progreso_pct >= 80 %}#0a3d37 0%, #0d8a7c{% elif progreso_pct >= 50 %}#0d2b27 0%, #0f766e{% else %}#1e3a8a 0%, #0f766e{% endif %} 70%); border:0; color:#fff;">
+    <div style="padding:26px 30px; display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11.5px; color: rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:.06em; font-weight:600;">Progreso del cierre</div>
+        <div style="font-size:54px; font-weight:700; line-height:1; margin-top:8px; font-family:var(--hm-font-mono); letter-spacing:-.03em;">{{ progreso_pct }}%</div>
+        <div style="font-size:14px; margin-top:4px; color:rgba(255,255,255,.85);">{{ n_done }} de {{ n_total }} pasos completados</div>
       </div>
+      <div style="flex:1;min-width:240px;max-width:420px;">
+        <div style="height:12px; background:rgba(255,255,255,.18); border-radius:6px; overflow:hidden;">
+          <div style="height:100%; width:{{ progreso_pct }}%; background:var(--hm-accent); transition: width .4s var(--hm-ease-out);"></div>
+        </div>
+        {% if progreso_pct == 100 %}
+          <div style="margin-top:10px;font-size:14px;font-weight:600;color:#fff;">🎉 ¡Cierre del mes completo!</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
-      <!-- Card -->
-      <div style="flex:1;background:#fff;border:1px solid {% if step.done %}#86efac{% elif step.bloqueado %}#e2e8f0{% else %}#0f766e{% endif %};border-radius:10px;padding:14px 18px;{% if step.bloqueado %}opacity:.6;{% endif %}">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:200px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <i class="{{ step.icon }}" style="color:{% if step.done %}#15803d{% elif step.bloqueado %}#94a3b8{% else %}#0f766e{% endif %};font-size:1.1rem;"></i>
-              <strong style="color:#0d2b27;font-size:1rem;">{{ step.titulo }}</strong>
-              {% if step.done %}
-                <span style="background:#dcfce7;color:#15803d;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px;">COMPLETADO</span>
-              {% elif step.bloqueado %}
-                <span style="background:#f1f5f9;color:#94a3b8;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px;">PENDIENTE</span>
-              {% else %}
-                <span style="background:#fef3c7;color:#a16207;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px;">EN CURSO</span>
-              {% endif %}
+  <!-- Steps timeline -->
+  <div style="position:relative;">
+    <div style="position:absolute;left:22px;top:30px;bottom:30px;width:2px;background:linear-gradient(to bottom,var(--hm-success) 0%,var(--hm-brand-500) 50%,var(--hm-slate-200) 100%);"></div>
+
+    {% for step in steps %}
+      <div style="display:flex;gap:18px;margin-bottom:12px;align-items:flex-start;">
+        <div style="flex-shrink:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:1;
+          {% if step.done %}background:var(--hm-success);color:#fff;
+          {% elif step.bloqueado %}background:var(--hm-slate-100);color:var(--hm-slate-400);
+          {% else %}background:#fff;border:3px solid var(--hm-brand-600);color:var(--hm-brand-700);{% endif %}
+          font-weight:800;font-size:15px;box-shadow:0 0 0 4px var(--hm-canvas);">
+          {% if step.done %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>
+          {% else %}{{ step.n }}{% endif %}
+        </div>
+
+        <div class="hm-panel" style="flex:1;{% if step.bloqueado %}opacity:.55;{% endif %}{% if not step.done and not step.bloqueado %}border-color:var(--hm-brand-300);box-shadow:0 0 0 3px rgba(20,163,154,.08);{% endif %}">
+          <div style="padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <i class="{{ step.icon }}" style="color:{% if step.done %}var(--hm-success){% elif step.bloqueado %}var(--hm-slate-400){% else %}var(--hm-brand-600){% endif %};font-size:14px;"></i>
+                <strong style="color:var(--hm-slate-900);font-size:14.5px;">{{ step.titulo }}</strong>
+                {% if step.done %}<span class="hm-badge hm-badge-success">COMPLETADO</span>
+                {% elif step.bloqueado %}<span class="hm-badge hm-badge-neutral">PENDIENTE</span>
+                {% else %}<span class="hm-badge hm-badge-warning">EN CURSO</span>{% endif %}
+              </div>
+              <p style="margin:5px 0 0;color:var(--hm-slate-500);font-size:13px;">{{ step.descripcion }}</p>
             </div>
-            <p style="margin:6px 0 0;color:#64748b;font-size:.88rem;">{{ step.descripcion }}</p>
+            {% if step.link and not step.bloqueado %}
+              <a href="{{ step.link }}" class="{% if step.done %}hm-btn-ghost{% else %}hm-btn-primary{% endif %}" style="flex-shrink:0;">
+                {% if step.done %}Ver{% else %}Ir →{% endif %}
+              </a>
+            {% endif %}
           </div>
-          {% if step.link and not step.bloqueado %}
-            <a href="{{ step.link }}" class="btn btn-sm {% if step.done %}btn-outline-secondary{% else %}btn-success{% endif %}" style="{% if not step.done %}background:#0f766e;border-color:#0f766e;{% endif %}flex-shrink:0;">
-              {% if step.done %}<i class="fas fa-eye me-1"></i> Ver{% else %}<i class="fas fa-arrow-right me-1"></i> Ir{% endif %}
-            </a>
-          {% endif %}
         </div>
       </div>
-    </div>
-  {% endfor %}
-</div>
-
-<div style="background:#f8fafc;padding:16px 20px;border-radius:10px;border:1px solid #e2e8f0;margin-top:20px;color:#64748b;font-size:.88rem;">
-  <strong style="color:#0d2b27;">💡 Sobre este flujo:</strong>
-  Sigue los 10 pasos en orden para cerrar el mes correctamente.
-  Cada paso desbloquea el siguiente. Si tienes dudas en alguno,
-  haz clic en "Ir" para ir directo a la pantalla del paso.
-</div>
-
+    {% endfor %}
+  </div>
 {% endblock %}

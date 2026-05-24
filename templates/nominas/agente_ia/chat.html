@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Chat IA — {{ conversacion.titulo|default:"Sin título" }}{% endblock %}
 {% block content %}
+<div class="hm-v2" style="background:var(--hm-canvas);min-height:calc(100vh - 60px);padding:24px;">
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;gap:14px;">
   <div>
@@ -235,4 +236,5 @@
 .md-content code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: .85em; }
 </style>
 
+</div>
 {% endblock %}

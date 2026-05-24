@@ -1,6 +1,21 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Audit Log — Conceptos{% endblock %}
-{% block content %}
+
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>Bitácora de cambios · Compliance fiscal
+  </div>
+  <h1>
+    Audit log de <span class="accent">conceptos</span>
+  </h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Trail completo de creaciones, modificaciones y eliminaciones — útil para compliance, diagnóstico y recuperación.
+  </p>
+</section>
+{% endblock %}
+
+{% block body %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
   <div>

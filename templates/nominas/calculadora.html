@@ -1,6 +1,21 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Calculadora de Planilla — Simulador{% endblock %}
-{% block content %}
+
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>Simulador sin tocar la base de datos
+  </div>
+  <h1>
+    Calculadora de <span class="accent">planilla</span>
+  </h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Ingresa los datos del trabajador y obtén el desglose completo: aportes AFP/ONP/ESSALUD, IR 5ta, neto líquido y costo total para la empresa.
+  </p>
+</section>
+{% endblock %}
+
+{% block body %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
   <div>

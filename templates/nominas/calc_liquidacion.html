@@ -1,6 +1,13 @@
-{% extends "base.html" %}
-{% block title %}Calculadora Liquidación al Cese{% endblock %}
-{% block content %}
+{% extends "base_v2.html" %}
+{% block title %}Calc Liquidación al Cese{% endblock %}
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet"><span class="hex"></span>Cese de trabajador · Liquidación completa</div>
+  <h1>Calculadora <span class="accent">Liquidación</span></h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">Vacaciones truncas + Gratif trunca + CTS trunca + Sueldo proporcional del mes de cese.</p>
+</section>
+{% endblock %}
+{% block body %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
   <div>

@@ -1,93 +1,111 @@
-{% extends "base.html" %}
-{% block title %}Reintegros — Lista{% endblock %}
-{% block content %}
+{% extends "base_v2.html" %}
+{% block title %}Reintegros — Harmoni{% endblock %}
 
-<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
-  <div>
-    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
-      <i class="fas fa-undo me-2" style="color:#0f766e;"></i> Reintegros de planilla
-    </h2>
-    <p style="margin:4px 0 0;color:#64748b;">
-      Correcciones a planillas anteriores (errores, omisiones, aumentos retroactivos)
-    </p>
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>Correcciones a planillas anteriores
   </div>
-  <a href="{% url 'agente_lista' %}" class="btn btn-sm btn-outline-secondary">
-    <i class="fas fa-robot me-1"></i> Agente IA
-  </a>
-</div>
+  <h1>
+    Reintegros <span class="accent">de planilla</span>
+  </h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Aumentos retroactivos, errores de sueldo, asignación familiar omitida, horas extra no pagadas — gestionados con flujo de aprobación auditado.
+  </p>
+</section>
+{% endblock %}
 
-<!-- KPIs -->
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
-    <div style="font-size:.72rem;color:#94a3b8;text-transform:uppercase;">Propuestos</div>
-    <div style="font-size:1.6rem;font-weight:800;color:#d97706;">{{ stats.PROPUESTO|default:0 }}</div>
+{% block body %}
+  <!-- KPIs -->
+  <div class="hm-kpis">
+    <div class="hm-kpi">
+      <div class="label">Propuestos</div>
+      <div class="num">{{ stats.PROPUESTO|default:0 }}</div>
+      <div class="row">
+        <span class="delta down" style="background:rgba(245,158,11,.12);color:var(--hm-warning);">Esperando aprobación</span>
+      </div>
+    </div>
+    <div class="hm-kpi">
+      <div class="label">Aprobados</div>
+      <div class="num">{{ stats.APROBADO|default:0 }}</div>
+      <div class="row">
+        <span class="delta" style="background:rgba(59,130,246,.10);color:var(--hm-info);">Listos para aplicar</span>
+      </div>
+    </div>
+    <div class="hm-kpi">
+      <div class="label">Aplicados</div>
+      <div class="num">{{ stats.APLICADO|default:0 }}</div>
+      <div class="row">
+        <span class="delta up">En planilla</span>
+      </div>
+    </div>
+    <div class="hm-kpi">
+      <div class="label">Reversados</div>
+      <div class="num">{{ stats.REVERSADO|default:0 }}</div>
+      <div class="row">
+        <span class="deltaLabel">Cancelados con motivo</span>
+      </div>
+    </div>
   </div>
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
-    <div style="font-size:.72rem;color:#94a3b8;text-transform:uppercase;">Aprobados</div>
-    <div style="font-size:1.6rem;font-weight:800;color:#1d4ed8;">{{ stats.APROBADO|default:0 }}</div>
-  </div>
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
-    <div style="font-size:.72rem;color:#94a3b8;text-transform:uppercase;">Aplicados</div>
-    <div style="font-size:1.6rem;font-weight:800;color:#15803d;">{{ stats.APLICADO|default:0 }}</div>
-  </div>
-  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
-    <div style="font-size:.72rem;color:#94a3b8;text-transform:uppercase;">Reversados</div>
-    <div style="font-size:1.6rem;font-weight:800;color:#94a3b8;">{{ stats.REVERSADO|default:0 }}</div>
-  </div>
-</div>
 
-<form method="get" style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
-  <select name="estado" class="form-select form-select-sm" style="max-width:200px;" onchange="this.form.submit()">
-    <option value="">Todos los estados</option>
-    {% for v, l in estados %}<option value="{{ v }}" {% if estado_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
-  </select>
-  <span style="margin-left:auto;color:#94a3b8;font-size:.85rem;align-self:center;">{{ reintegros|length }} mostrados</span>
-</form>
+  <!-- Filtro + tabla -->
+  <div class="hm-panel">
+    <div class="hm-panel-h">
+      <div>
+        <h3>Lista de reintegros</h3>
+        <div class="sub">Mostrando {{ reintegros|length }} registros</div>
+      </div>
+      <form method="get" style="display:flex; gap:8px;">
+        <select name="estado" class="form-select form-select-sm" style="max-width:200px;" onchange="this.form.submit()">
+          <option value="">Todos los estados</option>
+          {% for v, l in estados %}<option value="{{ v }}" {% if estado_filter == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </form>
+    </div>
 
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-  <table class="table table-sm mb-0" style="font-size:.88rem;">
-    <thead style="background:#f8fafc;">
-      <tr>
-        <th style="padding:10px 14px;">Estado</th>
-        <th style="padding:10px 14px;">Trabajador</th>
-        <th style="padding:10px 14px;">Motivo</th>
-        <th style="padding:10px 14px;">Periodo origen</th>
-        <th style="padding:10px 14px;text-align:right;">Monto</th>
-        <th style="padding:10px 14px;">Propuesto por</th>
-        <th style="padding:10px 14px;text-align:right;">Acción</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in reintegros %}
-      <tr style="border-top:1px solid #f1f5f9;">
-        <td style="padding:10px 14px;">
-          {% if r.estado == 'PROPUESTO' %}<span style="background:#fef3c7;color:#a16207;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:4px;">PROPUESTO</span>
-          {% elif r.estado == 'APROBADO' %}<span style="background:#dbeafe;color:#1d4ed8;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:4px;">APROBADO</span>
-          {% elif r.estado == 'APLICADO' %}<span style="background:#dcfce7;color:#15803d;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:4px;">APLICADO</span>
-          {% else %}<span style="background:#f1f5f9;color:#94a3b8;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:4px;">REVERSADO</span>{% endif %}
-        </td>
-        <td style="padding:10px 14px;">
-          <strong style="color:#0d2b27;">{{ r.personal }}</strong>
-        </td>
-        <td style="padding:10px 14px;color:#64748b;font-size:.85rem;">{{ r.get_motivo_display }}</td>
-        <td style="padding:10px 14px;color:#64748b;font-size:.85rem;">{{ r.periodo_origen_str }}</td>
-        <td style="padding:10px 14px;text-align:right;font-family:monospace;font-weight:700;{% if r.monto_reintegro >= 0 %}color:#15803d{% else %}color:#b91c1c{% endif %};">
-          {% if r.monto_reintegro >= 0 %}+{% endif %}S/ {{ r.monto_reintegro|floatformat:2 }}
-        </td>
-        <td style="padding:10px 14px;font-size:.85rem;">
-          {{ r.propuesto_por.username|default:"sistema" }}{% if r.propuesto_por_ia %} <i class="fas fa-robot" style="color:#0f766e;" title="Propuesto por IA"></i>{% endif %}
-        </td>
-        <td style="padding:10px 14px;text-align:right;">
-          <a href="{% url 'reintegro_detalle' r.pk %}" class="btn btn-sm btn-outline-secondary">
-            Ver →
-          </a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="7" style="padding:40px;text-align:center;color:#94a3b8;">No hay reintegros{% if estado_filter %} en estado {{ estado_filter }}{% endif %}.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
+    <div style="padding:0 16px 16px;">
+      <table class="table" style="font-size:13px; margin-bottom:0;">
+        <thead>
+          <tr style="background:var(--hm-slate-50); border-bottom:1px solid var(--hm-slate-200);">
+            <th style="padding:10px 14px; color:var(--hm-slate-500); font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:600;">Estado</th>
+            <th style="padding:10px 14px; color:var(--hm-slate-500); font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:600;">Trabajador</th>
+            <th style="padding:10px 14px; color:var(--hm-slate-500); font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:600;">Motivo</th>
+            <th style="padding:10px 14px; color:var(--hm-slate-500); font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:600;">Periodo</th>
+            <th style="padding:10px 14px; color:var(--hm-slate-500); font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:600; text-align:right;">Monto</th>
+            <th style="padding:10px 14px; color:var(--hm-slate-500); font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:600;">Origen</th>
+            <th style="padding:10px 14px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reintegros %}
+          <tr style="border-bottom:1px solid var(--hm-slate-100);">
+            <td style="padding:12px 14px;">
+              {% if r.estado == 'PROPUESTO' %}<span class="hm-badge hm-badge-warning">PROPUESTO</span>
+              {% elif r.estado == 'APROBADO' %}<span class="hm-badge hm-badge-info">APROBADO</span>
+              {% elif r.estado == 'APLICADO' %}<span class="hm-badge hm-badge-success">APLICADO</span>
+              {% else %}<span class="hm-badge hm-badge-neutral">REVERSADO</span>{% endif %}
+            </td>
+            <td style="padding:12px 14px;">
+              <strong style="color:var(--hm-slate-900);">{{ r.personal }}</strong>
+            </td>
+            <td style="padding:12px 14px; color:var(--hm-slate-600); font-size:12.5px;">{{ r.get_motivo_display }}</td>
+            <td style="padding:12px 14px; color:var(--hm-slate-600); font-family:var(--hm-font-mono); font-size:12px;">{{ r.periodo_origen_str }}</td>
+            <td style="padding:12px 14px; text-align:right; font-family:var(--hm-font-mono); font-weight:700; {% if r.monto_reintegro >= 0 %}color:var(--hm-success){% else %}color:var(--hm-error){% endif %};">
+              {% if r.monto_reintegro >= 0 %}+{% endif %}S/ {{ r.monto_reintegro|floatformat:2 }}
+            </td>
+            <td style="padding:12px 14px; font-size:12.5px;">
+              {{ r.propuesto_por.username|default:"sistema" }}
+              {% if r.propuesto_por_ia %}<span class="hm-badge hm-badge-brand" style="margin-left:4px;">IA</span>{% endif %}
+            </td>
+            <td style="padding:12px 14px; text-align:right;">
+              <a href="{% url 'reintegro_detalle' r.pk %}" class="hm-btn-ghost" style="padding:5px 10px; font-size:12px;">Ver →</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="padding:40px;text-align:center;color:var(--hm-slate-400);">No hay reintegros{% if estado_filter %} en estado {{ estado_filter }}{% endif %}.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 {% endblock %}

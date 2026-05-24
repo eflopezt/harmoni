@@ -1,6 +1,13 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Wizard configurar planilla — Paso 1{% endblock %}
-{% block content %}
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet"><span class="hex"></span>Paso 1 de 2 · Configura tu planilla en 5 minutos</div>
+  <h1>Wizard <span class="accent">Planilla</span></h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">Elige el perfil que más se parezca a tu empresa. Te recomendaremos los conceptos típicos del rubro y los dejaremos pre-configurados para que solo revises y apliques.</p>
+</section>
+{% endblock %}
+{% block body %}
 <div style="max-width:900px;margin:0 auto;">
 
   <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;padding:30px;border-radius:14px;margin-bottom:24px;text-align:center;">

@@ -1,6 +1,13 @@
-{% extends "base.html" %}
-{% block title %}Calculadora CTS{% endblock %}
-{% block content %}
+{% extends "base_v2.html" %}
+{% block title %}Calc CTS{% endblock %}
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet"><span class="hex"></span>Mayo o Noviembre · D.Leg. 650</div>
+  <h1>Calculadora <span class="accent">CTS</span></h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">Compensación por Tiempo de Servicios — 1/12 sueldo + 1/72 gratif por mes computable.</p>
+</section>
+{% endblock %}
+{% block body %}
 
 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
   <div>

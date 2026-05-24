@@ -1,6 +1,13 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Wizard configurar planilla — Paso 2{% endblock %}
-{% block content %}
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet"><span class="hex"></span>Paso 2 de 2 · {{ perfil.nombre }}</div>
+  <h1>Selecciona <span class="accent">Conceptos</span></h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">Marca los conceptos que aplican a tu empresa. Los recomendados son típicos del rubro {{ perfil.nombre }}. Después podés afinar desde el módulo Conceptos.</p>
+</section>
+{% endblock %}
+{% block body %}
 <div style="max-width:980px;margin:0 auto;">
 
   <div style="background:linear-gradient(135deg,#0d2b27,#0f766e);color:#fff;padding:30px;border-radius:14px;margin-bottom:24px;text-align:center;">

@@ -1,6 +1,13 @@
-{% extends "base.html" %}
+{% extends "base_v2.html" %}
 {% block title %}Templates de Conceptos{% endblock %}
-{% block content %}
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet"><span class="hex"></span>Conceptos pre-armados · Aplicar en 1 click</div>
+  <h1>Templates de <span class="accent">Conceptos</span></h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">Conceptos típicos pre-armados con todas las afectaciones legales correctas + código PLAME. Aplica con 1 click para no tener que configurar desde cero.</p>
+</section>
+{% endblock %}
+{% block body %}
 
 <a href="{% url 'conceptos_lista' %}" style="color:#64748b;font-size:.85rem;text-decoration:none;">
   ← Volver a conceptos
