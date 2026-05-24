@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Calculadora Reversa — Neto a Bruto{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-exchange-alt me-2" style="color:#0f766e;"></i> Calculadora Reversa
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      ¿Qué <strong>sueldo bruto</strong> debes pagar para que el trabajador reciba exactamente S/<strong>X</strong> de neto?
+    </p>
+  </div>
+  <a href="{% url 'calculadora_planilla' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Calculadora normal
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <form method="post" style="background:#fff;padding:20px;border-radius:12px;border:1px solid #e2e8f0;">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;">Neto objetivo (S/) *</label>
+        <input type="number" name="neto_objetivo" step="0.01" min="0" value="{{ params.neto_objetivo|default:'2000' }}" class="form-control form-control-lg" required>
+        <small style="color:#94a3b8;font-size:.75rem;">Lo que quieres que reciba el trabajador en líquido</small>
+      </div>
+      <div class="form-check mb-3">
+        <input type="checkbox" name="asig_familiar" id="af" class="form-check-input" {% if params.asig_familiar %}checked{% endif %}>
+        <label for="af" class="form-check-label" style="font-size:.85rem;">Asignación familiar</label>
+      </div>
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;">Régimen pensionario</label>
+        <select name="regimen" class="form-select">
+          <option value="ONP" {% if params.regimen == 'ONP' %}selected{% endif %}>ONP 13%</option>
+          <option value="AFP" {% if params.regimen == 'AFP' %}selected{% endif %}>AFP (10% + comisión + prima)</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;">AFP (si aplica)</label>
+        <select name="afp" class="form-select">
+          {% for afp in afp_options %}<option value="{{ afp }}" {% if params.afp == afp %}selected{% endif %}>{{ afp }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-check mb-3">
+        <input type="checkbox" name="tiene_eps" id="eps" class="form-check-input" {% if params.tiene_eps %}checked{% endif %}>
+        <label for="eps" class="form-check-label" style="font-size:.85rem;">Tiene EPS</label>
+      </div>
+      <button class="btn btn-success w-100" style="background:#0f766e;border-color:#0f766e;">
+        <i class="fas fa-search-dollar me-1"></i> Calcular bruto necesario
+      </button>
+    </form>
+  </div>
+
+  <div class="col-lg-7">
+    {% if result %}
+      {% if result.error %}
+        <div class="alert alert-danger">{{ result.error }}</div>
+      {% else %}
+        <div style="background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;padding:24px 28px;border-radius:14px;margin-bottom:14px;">
+          <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">Sueldo bruto sugerido</div>
+          <div style="font-size:3.2rem;font-weight:900;line-height:1;margin-top:6px;">S/ {{ result.bruto_sugerido|floatformat:2 }}</div>
+          <div style="font-size:.95rem;margin-top:8px;opacity:.92;">
+            Para que el trabajador reciba <strong>S/ {{ result.neto_objetivo|floatformat:2 }}</strong> de neto.
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:10px;">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;font-size:.88rem;">
+            <div>
+              <div style="color:#64748b;font-size:.72rem;text-transform:uppercase;">Neto resultante</div>
+              <div style="font-family:monospace;font-weight:800;color:#15803d;font-size:1.1rem;">S/ {{ result.detalle.neto|floatformat:2 }}</div>
+              <div style="color:#94a3b8;font-size:.72rem;">vs objetivo: ±S/ {{ result.diferencia_neto|floatformat:2 }}</div>
+            </div>
+            <div>
+              <div style="color:#64748b;font-size:.72rem;text-transform:uppercase;">Costo total empresa</div>
+              <div style="font-family:monospace;font-weight:800;color:#1d4ed8;font-size:1.1rem;">S/ {{ result.detalle.costo_total|floatformat:2 }}</div>
+              <div style="color:#94a3b8;font-size:.72rem;">fully-loaded: S/ {{ result.costo_empresa|floatformat:2 }}</div>
+            </div>
+            <div>
+              <div style="color:#64748b;font-size:.72rem;text-transform:uppercase;">Total descuentos</div>
+              <div style="font-family:monospace;font-weight:800;color:#b91c1c;">S/ {{ result.detalle.total_descuentos|floatformat:2 }}</div>
+              <div style="color:#94a3b8;font-size:.72rem;">{{ result.detalle.pct_descuentos|floatformat:1 }}% del bruto</div>
+            </div>
+            <div>
+              <div style="color:#64748b;font-size:.72rem;text-transform:uppercase;">Aportes empresa</div>
+              <div style="font-family:monospace;font-weight:800;color:#0d2b27;">S/ {{ result.detalle.total_aportes|floatformat:2 }}</div>
+              <div style="color:#94a3b8;font-size:.72rem;">{{ result.detalle.pct_carga_empleador|floatformat:1 }}% del bruto</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#f8fafc;padding:14px 18px;border-radius:10px;color:#64748b;font-size:.85rem;">
+          <strong style="color:#0d2b27;">💡 Cómo funciona:</strong>
+          Búsqueda binaria sobre el motor de cálculo de planilla. Encuentra el bruto que produce el neto deseado con precisión de S/ 0.50.
+          Útil para negociaciones de contratación o cuando el trabajador pide "quiero recibir S/X limpio en mano".
+        </div>
+      {% endif %}
+    {% else %}
+      <div style="background:#fff;padding:36px;text-align:center;border-radius:12px;border:2px dashed #cbd5e1;">
+        <i class="fas fa-exchange-alt fa-3x" style="color:#cbd5e1;display:block;margin-bottom:14px;"></i>
+        <h5 style="color:#475569;">Ingresa el neto objetivo</h5>
+        <p style="color:#94a3b8;margin:0;font-size:.9rem;">Te calculo el sueldo bruto que necesitas pagar.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

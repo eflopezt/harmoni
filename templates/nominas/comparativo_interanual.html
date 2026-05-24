@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Comparativa Interanual{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-chart-bar me-2" style="color:#0f766e;"></i> Comparativa Interanual
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      Mismo mes año actual vs año anterior &mdash; analiza crecimiento real del payroll
+    </p>
+  </div>
+  <a href="{% url 'nominas_comparativo_mensual' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-chart-line me-1"></i> Comparativo mensual
+  </a>
+</div>
+
+<form method="get" style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+  <label style="font-weight:600;font-size:.85rem;margin:0;">Año:</label>
+  <select name="anio" class="form-select form-select-sm" style="max-width:130px;" onchange="this.form.submit()">
+    {% for a in anios_disp %}<option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>{% endfor %}
+  </select>
+  <label style="font-weight:600;font-size:.85rem;margin:0;">Mes:</label>
+  <select name="mes" class="form-select form-select-sm" style="max-width:160px;" onchange="this.form.submit()">
+    {% for m, label in meses %}<option value="{{ m }}" {% if m == mes %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+</form>
+
+{% if not actual or not yoy %}
+  <div style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;padding:18px 22px;border-radius:10px;">
+    <i class="fas fa-info-circle me-1"></i>
+    {% if not actual %}No hay período aprobado para {{ mes }}/{{ anio }}.{% endif %}
+    {% if not yoy %}No hay período del mismo mes del año anterior ({{ mes }}/{% widthratio anio 1 1 %}<script>document.write({{ anio }}-1);</script>) para comparar.{% endif %}
+    Selecciona un período disponible o genera el período faltante.
+  </div>
+{% else %}
+  <!-- Comparativa side-by-side -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <!-- Actual -->
+    <div style="background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;padding:20px 24px;border-radius:12px;">
+      <div style="font-size:.8rem;opacity:.9;text-transform:uppercase;letter-spacing:.06em;">Mes actual</div>
+      <div style="font-size:1.8rem;font-weight:800;margin-top:4px;">{{ actual.periodo.mes }}/{{ actual.periodo.anio }}</div>
+      <div style="font-size:2.4rem;font-weight:900;line-height:1;margin-top:8px;">S/ {{ actual.neto|floatformat:0 }}</div>
+      <div style="font-size:.85rem;opacity:.92;margin-top:4px;">{{ actual.trab }} trabajadores</div>
+    </div>
+    <!-- YoY -->
+    <div style="background:#f1f5f9;color:#64748b;padding:20px 24px;border-radius:12px;border:1px solid #cbd5e1;">
+      <div style="font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;">Mismo mes año anterior</div>
+      <div style="font-size:1.8rem;font-weight:800;margin-top:4px;color:#0d2b27;">{{ yoy.periodo.mes }}/{{ yoy.periodo.anio }}</div>
+      <div style="font-size:2.4rem;font-weight:900;line-height:1;margin-top:8px;color:#0d2b27;">S/ {{ yoy.neto|floatformat:0 }}</div>
+      <div style="font-size:.85rem;margin-top:4px;">{{ yoy.trab }} trabajadores</div>
+    </div>
+  </div>
+
+  <!-- Deltas grid -->
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+    <table class="table mb-0" style="font-size:.9rem;">
+      <thead style="background:#f8fafc;">
+        <tr>
+          <th style="padding:10px 14px;">Métrica</th>
+          <th style="padding:10px 14px;text-align:right;">{{ yoy.periodo.anio }}</th>
+          <th style="padding:10px 14px;text-align:right;">{{ actual.periodo.anio }}</th>
+          <th style="padding:10px 14px;text-align:right;">Delta</th>
+          <th style="padding:10px 14px;text-align:right;">%</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-top:1px solid #f1f5f9;">
+          <td style="padding:10px 14px;">Trabajadores</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">{{ yoy.trab }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">{{ actual.trab }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.trab > 0 %}#15803d{% elif deltas.trab < 0 %}#b91c1c{% else %}#64748b{% endif %};font-weight:700;">{% if deltas.trab > 0 %}+{% endif %}{{ deltas.trab }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.trab_pct and deltas.trab_pct > 0 %}#15803d{% elif deltas.trab_pct and deltas.trab_pct < 0 %}#b91c1c{% else %}#64748b{% endif %};font-weight:700;">{% if deltas.trab_pct %}{% if deltas.trab_pct > 0 %}+{% endif %}{{ deltas.trab_pct|floatformat:1 }}%{% else %}—{% endif %}</td>
+        </tr>
+        <tr style="border-top:1px solid #f1f5f9;">
+          <td style="padding:10px 14px;">Total bruto</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">S/ {{ yoy.bruto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">S/ {{ actual.bruto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.bruto > 0 %}#15803d{% else %}#b91c1c{% endif %};font-weight:700;">{% if deltas.bruto > 0 %}+{% endif %}S/ {{ deltas.bruto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.bruto_pct and deltas.bruto_pct > 0 %}#15803d{% else %}#b91c1c{% endif %};font-weight:700;">{% if deltas.bruto_pct %}{% if deltas.bruto_pct > 0 %}+{% endif %}{{ deltas.bruto_pct|floatformat:1 }}%{% else %}—{% endif %}</td>
+        </tr>
+        <tr style="border-top:1px solid #f1f5f9;background:#f0fdf4;">
+          <td style="padding:10px 14px;font-weight:700;">Total neto</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">S/ {{ yoy.neto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;font-weight:700;">S/ {{ actual.neto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.neto > 0 %}#15803d{% else %}#b91c1c{% endif %};font-weight:800;">{% if deltas.neto > 0 %}+{% endif %}S/ {{ deltas.neto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.neto_pct and deltas.neto_pct > 0 %}#15803d{% else %}#b91c1c{% endif %};font-weight:800;">{% if deltas.neto_pct %}{% if deltas.neto_pct > 0 %}+{% endif %}{{ deltas.neto_pct|floatformat:1 }}%{% else %}—{% endif %}</td>
+        </tr>
+        <tr style="border-top:1px solid #f1f5f9;">
+          <td style="padding:10px 14px;">Promedio neto</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">S/ {{ yoy.avg_neto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">S/ {{ actual.avg_neto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.avg_neto > 0 %}#15803d{% else %}#b91c1c{% endif %};font-weight:700;">{% if deltas.avg_neto > 0 %}+{% endif %}S/ {{ deltas.avg_neto|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.avg_neto_pct and deltas.avg_neto_pct > 0 %}#15803d{% else %}#b91c1c{% endif %};font-weight:700;">{% if deltas.avg_neto_pct %}{% if deltas.avg_neto_pct > 0 %}+{% endif %}{{ deltas.avg_neto_pct|floatformat:1 }}%{% else %}—{% endif %}</td>
+        </tr>
+        <tr style="border-top:1px solid #f1f5f9;">
+          <td style="padding:10px 14px;">Aporte ESSALUD empresa</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">S/ {{ yoy.essalud|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;">S/ {{ actual.essalud|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.essalud > 0 %}#1d4ed8{% else %}#15803d{% endif %};font-weight:700;">{% if deltas.essalud > 0 %}+{% endif %}S/ {{ deltas.essalud|floatformat:2 }}</td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if deltas.essalud_pct and deltas.essalud_pct > 0 %}#1d4ed8{% else %}#15803d{% endif %};font-weight:700;">{% if deltas.essalud_pct %}{% if deltas.essalud_pct > 0 %}+{% endif %}{{ deltas.essalud_pct|floatformat:1 }}%{% else %}—{% endif %}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="background:#f8fafc;padding:16px 20px;border-radius:10px;border:1px solid #e2e8f0;margin-top:16px;color:#64748b;font-size:.88rem;">
+    <strong style="color:#0d2b27;">💡 Cómo interpretar:</strong>
+    Si el <strong>neto creció más que los trabajadores</strong> (ej: +18% neto vs +10% trabajadores), significa que el promedio salarial subió — buen indicador.
+    Si la <strong>carga ESSALUD creció proporcionalmente al neto</strong>, todo está alineado.
+    Si el neto cayó pero los trabajadores subieron, revisa qué cambió en la planilla.
+  </div>
+{% endif %}
+
+{% endblock %}

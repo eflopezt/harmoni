@@ -10,11 +10,15 @@ from . import views_calculadora
 from . import views_workflow_mes
 from . import views_anomalias
 from . import views_reporte_mes
+from . import views_calc_especializadas
+from . import views_interanual
 
 urlpatterns = [
     # Panel y portal
     path('', views.nominas_panel, name='nominas_panel'),
     path('mis-recibos/', views.mis_recibos, name='mis_recibos'),
+    # Calculadora simple para trabajador — sin secciones de costos empresa
+    path('mi-calculadora/', views_calculadora.calculadora_planilla, name='mi_calculadora_trabajador'),
 
     # Migración legacy (Spring u otro sistema)
     path('importar-legacy/', views_legacy_import.importar_legacy, name='nominas_importar_legacy'),
@@ -66,6 +70,14 @@ urlpatterns = [
                                       name='calculadora_comparar'),
     path('calculadora/afp/',          views_calculadora.calculadora_afp_comparar,
                                       name='calculadora_afp'),
+    path('calculadora/reversa/',      views_calc_especializadas.calc_reversa,
+                                      name='calc_reversa'),
+    path('calculadora/gratificacion/', views_calc_especializadas.calc_gratificacion,
+                                      name='calc_gratificacion'),
+    path('calculadora/cts/',          views_calc_especializadas.calc_cts,
+                                      name='calc_cts'),
+    path('calculadora/liquidacion/',  views_calc_especializadas.calc_liquidacion,
+                                      name='calc_liquidacion'),
     path('calculadora/pdf/',          views_calculadora.calculadora_pdf,
                                       name='calculadora_pdf'),
 
@@ -113,6 +125,8 @@ urlpatterns = [
     # Comparativo Mensual — evolución últimos N meses (gerencia)
     path('comparativo/', views.comparativo_mensual,
          name='nominas_comparativo_mensual'),
+    path('interanual/', views_interanual.comparativo_interanual,
+         name='nominas_comparativo_interanual'),
 
     # Saldos de Apertura — Onboarding Express (Wizard)
     path('apertura/', views.saldos_apertura,

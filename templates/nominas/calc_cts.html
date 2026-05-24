@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Calculadora CTS{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-piggy-bank me-2" style="color:#0f766e;"></i> Calculadora CTS
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      Mayo o Noviembre · D.Leg. 650 · 1/12 sueldo + 1/72 por gratif
+    </p>
+  </div>
+  <a href="{% url 'calculadora_planilla' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Calc normal
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <form method="post" style="background:#fff;padding:20px;border-radius:12px;border:1px solid #e2e8f0;">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;">Sueldo del trabajador (S/) *</label>
+        <input type="number" name="sueldo" step="0.01" min="0" value="{{ params.sueldo|default:'2500' }}" class="form-control form-control-lg" required>
+      </div>
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;">Meses completos del semestre (0-6)</label>
+        <select name="meses" class="form-select">
+          {% for n in '0123456' %}<option value="{{ n }}" {% if params.meses|stringformat:"s" == n %}selected{% endif %}>{{ n }} meses</option>{% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;">Días adicionales (0-30)</label>
+        <input type="number" name="dias_extra" min="0" max="30" value="{{ params.dias_extra|default:'0' }}" class="form-control">
+        <small style="color:#94a3b8;font-size:.72rem;">Si solo trabajó parte del mes adicional.</small>
+      </div>
+      <button class="btn btn-success w-100" style="background:#0f766e;border-color:#0f766e;">
+        <i class="fas fa-piggy-bank me-1"></i> Calcular CTS
+      </button>
+    </form>
+  </div>
+
+  <div class="col-lg-7">
+    {% if result %}
+      {% if result.error %}
+        <div class="alert alert-danger">{{ result.error }}</div>
+      {% else %}
+        <div style="background:linear-gradient(135deg,#1d4ed8,#0f766e);color:#fff;padding:22px 26px;border-radius:14px;margin-bottom:14px;">
+          <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">CTS a depositar</div>
+          <div style="font-size:3rem;font-weight:900;line-height:1;margin-top:6px;">S/ {{ result.total|floatformat:2 }}</div>
+          <div style="font-size:.85rem;margin-top:6px;opacity:.92;">
+            Período: {{ result.meses }} meses{% if result.dias_extra %} + {{ result.dias_extra }} días{% endif %}
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+          <table class="table mb-0">
+            <tr><td colspan="2" style="background:#f8fafc;padding:8px 14px;color:#64748b;font-size:.75rem;text-transform:uppercase;">Remuneración computable</td></tr>
+            <tr><td>Sueldo</td><td style="text-align:right;font-family:monospace;">S/ {{ result.sueldo|floatformat:2 }}</td></tr>
+            <tr><td>1/6 de gratificación mensual</td><td style="text-align:right;font-family:monospace;">+ S/ {{ result.gratif_mensual|floatformat:2 }}</td></tr>
+            <tr style="font-weight:700;border-top:1px solid #e2e8f0;">
+              <td>Remuneración computable</td><td style="text-align:right;font-family:monospace;color:#0d2b27;">S/ {{ result.rem_computable|floatformat:2 }}</td>
+            </tr>
+            <tr><td colspan="2" style="background:#f8fafc;padding:8px 14px;color:#64748b;font-size:.75rem;text-transform:uppercase;">Cómputo CTS</td></tr>
+            <tr><td>{{ result.meses }} meses × 1/12</td><td style="text-align:right;font-family:monospace;">S/ {{ result.cts_meses|floatformat:2 }}</td></tr>
+            {% if result.dias_extra %}<tr><td>{{ result.dias_extra }} días × 1/12 × 1/30</td><td style="text-align:right;font-family:monospace;">S/ {{ result.cts_dias|floatformat:2 }}</td></tr>{% endif %}
+            <tr style="background:#eff6ff;font-weight:800;">
+              <td>TOTAL CTS</td><td style="text-align:right;font-family:monospace;color:#1d4ed8;">S/ {{ result.total|floatformat:2 }}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="background:#f8fafc;padding:14px 18px;border-radius:10px;color:#64748b;font-size:.85rem;margin-top:12px;">
+          <strong style="color:#0d2b27;">📚 Base legal:</strong>
+          D.Leg. 650 + DS 004-97-TR — CTS = 1 sueldo/año, depositado en mayo (1er semestre) y noviembre (2do semestre).
+          Remuneración computable = sueldo + 1/6 gratificación. Cómputo: 1/12 por mes + 1/12 × días/30 por días sueltos.
+        </div>
+      {% endif %}
+    {% else %}
+      <div style="background:#fff;padding:36px;text-align:center;border-radius:12px;border:2px dashed #cbd5e1;">
+        <i class="fas fa-piggy-bank fa-3x" style="color:#cbd5e1;display:block;margin-bottom:14px;"></i>
+        <h5 style="color:#475569;">Calculadora de CTS</h5>
+        <p style="color:#94a3b8;margin:0;font-size:.9rem;">Para depósitos de mayo y noviembre.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

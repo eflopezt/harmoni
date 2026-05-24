@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Calculadora Gratificación{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-gift me-2" style="color:#0f766e;"></i> Calculadora Gratificación
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      Julio o Diciembre · Ley 27735 · Bonificación extraordinaria 9% / 6.75% EPS
+    </p>
+  </div>
+  <a href="{% url 'calculadora_planilla' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Calc normal
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <form method="post" style="background:#fff;padding:20px;border-radius:12px;border:1px solid #e2e8f0;">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;">Sueldo del trabajador (S/) *</label>
+        <input type="number" name="sueldo" step="0.01" min="0" value="{{ params.sueldo|default:'2500' }}" class="form-control form-control-lg" required>
+      </div>
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;">Meses computables (0-6)</label>
+        <select name="meses" class="form-select">
+          {% for n in '0123456' %}<option value="{{ n }}" {% if params.meses|stringformat:"s" == n %}selected{% endif %}>{{ n }} meses</option>{% endfor %}
+        </select>
+        <small style="color:#94a3b8;font-size:.72rem;">6 = semestre completo. Menos si entró en el semestre.</small>
+      </div>
+      <div class="form-check mb-3">
+        <input type="checkbox" name="tiene_eps" id="eps" class="form-check-input" {% if params.tiene_eps %}checked{% endif %}>
+        <label for="eps" class="form-check-label" style="font-size:.85rem;">Tiene EPS (bonif 6.75%)</label>
+      </div>
+      <button class="btn btn-success w-100" style="background:#0f766e;border-color:#0f766e;">
+        <i class="fas fa-gift me-1"></i> Calcular gratificación
+      </button>
+    </form>
+  </div>
+
+  <div class="col-lg-7">
+    {% if result %}
+      {% if result.error %}
+        <div class="alert alert-danger">{{ result.error }}</div>
+      {% else %}
+        <div style="background:linear-gradient(135deg,#15803d,#0f766e);color:#fff;padding:22px 26px;border-radius:14px;margin-bottom:14px;">
+          <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;">Gratificación total a pagar</div>
+          <div style="font-size:3rem;font-weight:900;line-height:1;margin-top:6px;">S/ {{ result.total|floatformat:2 }}</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+          <table class="table mb-0">
+            <tr><td>Gratif base ({{ result.meses }}/6 meses)</td><td style="text-align:right;font-family:monospace;">S/ {{ result.gratif|floatformat:2 }}</td></tr>
+            <tr><td>Bonificación extraordinaria {{ result.bonif_tasa }}%{% if result.tiene_eps %} (EPS){% endif %}</td><td style="text-align:right;font-family:monospace;">S/ {{ result.bonif_extra|floatformat:2 }}</td></tr>
+            <tr style="background:#f0fdf4;font-weight:800;">
+              <td>TOTAL A PAGAR</td><td style="text-align:right;font-family:monospace;color:#15803d;">S/ {{ result.total|floatformat:2 }}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="background:#f8fafc;padding:14px 18px;border-radius:10px;color:#64748b;font-size:.85rem;margin-top:12px;">
+          <strong style="color:#0d2b27;">📚 Base legal:</strong>
+          Ley 27735 + DS 005-2002-TR — gratificación = 1 sueldo cada 6 meses.
+          Ley 29351 + Ley 30334 — bonificación extraordinaria 9% (ESSALUD que el empleador no descuenta).
+          Si tiene EPS: 6.75% (Ley 26790 — crédito del 25% sobre la tasa ESSALUD efectiva).
+        </div>
+      {% endif %}
+    {% else %}
+      <div style="background:#fff;padding:36px;text-align:center;border-radius:12px;border:2px dashed #cbd5e1;">
+        <i class="fas fa-gift fa-3x" style="color:#cbd5e1;display:block;margin-bottom:14px;"></i>
+        <h5 style="color:#475569;">Calculadora de Gratificación</h5>
+        <p style="color:#94a3b8;margin:0;font-size:.9rem;">Llena los datos y obtén el cálculo completo.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

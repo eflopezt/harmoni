@@ -493,13 +493,31 @@
                     <a href="{% url 'config_tasas_afp' %}" class="nav-item" data-match="/nominas/config/tasas-afp">
                         <i class="fas fa-percentage"></i><span>Tasas AFP (SBS)</span>
                     </a>
-                    <a href="{% url 'calculadora_planilla' %}" class="nav-item" data-match="/nominas/calculadora">
+                    <a href="{% url 'calculadora_planilla' %}" class="nav-item" data-match="^/nominas/calculadora/$">
                         <i class="fas fa-calculator"></i><span>Calculadora Simulador</span>
+                    </a>
+                    <a href="{% url 'calc_reversa' %}" class="nav-item" data-match="/nominas/calculadora/reversa">
+                        <i class="fas fa-exchange-alt"></i><span>Calc Reversa (neto→bruto)</span>
+                    </a>
+                    <a href="{% url 'calc_gratificacion' %}" class="nav-item" data-match="/nominas/calculadora/gratificacion">
+                        <i class="fas fa-gift"></i><span>Calc Gratificación</span>
+                    </a>
+                    <a href="{% url 'calc_cts' %}" class="nav-item" data-match="/nominas/calculadora/cts">
+                        <i class="fas fa-piggy-bank"></i><span>Calc CTS</span>
+                    </a>
+                    <a href="{% url 'calc_liquidacion' %}" class="nav-item" data-match="/nominas/calculadora/liquidacion">
+                        <i class="fas fa-door-open"></i><span>Calc Liquidación</span>
+                    </a>
+                    <a href="{% url 'calculadora_afp' %}" class="nav-item" data-match="/nominas/calculadora/afp">
+                        <i class="fas fa-trophy"></i><span>AFP Recomendador</span>
                     </a>
 
                     <div class="nav-subheader"><i class="fas fa-chart-line"></i><span>Análisis</span></div>
                     <a href="{% url 'nominas_comparativo_mensual' %}" class="nav-item" data-match="/nominas/comparativo">
                         <i class="fas fa-chart-line"></i><span>Comparativo Mensual</span>
+                    </a>
+                    <a href="{% url 'nominas_comparativo_interanual' %}" class="nav-item" data-match="/nominas/interanual">
+                        <i class="fas fa-chart-bar"></i><span>Comparativo Interanual</span>
                     </a>
                     <a href="{% url 'nominas_ir5ta' %}" class="nav-item" data-match="/nominas/ir5ta">
                         <i class="fas fa-percent"></i><span>IR 5ta Categoría</span>
