@@ -439,6 +439,96 @@ tr.row-cesado td { opacity: 0.65; }
   .pl-panel-dl { grid-template-columns: 1fr; }
   .pl-ia-metrics { grid-template-columns: 1fr 1fr; }
 }
+
+/* ────────────────────────────────────────────────────────────
+   BULK BAR slide-in (handoff: bg ink dark + count + acciones)
+   ──────────────────────────────────────────────────────────── */
+.pl-bulk-bar {
+  display: flex; align-items: center; gap: 14px;
+  background: #0F172A;            /* --hm-ink slate-900 */
+  color: #fff;
+  padding: 11px 16px 11px 22px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 14px 30px -10px rgba(15, 23, 42, 0.4),
+              0 2px 4px rgba(15, 23, 42, 0.18);
+  transform: translateY(-12px); opacity: 0;
+  pointer-events: none;
+  max-height: 0; overflow: hidden;
+  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1),
+              opacity 0.22s cubic-bezier(0.2, 0.7, 0.3, 1),
+              max-height 0.22s cubic-bezier(0.2, 0.7, 0.3, 1),
+              margin-bottom 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.pl-bulk-bar.is-open {
+  transform: translateY(0); opacity: 1;
+  pointer-events: auto;
+  max-height: 80px;
+}
+
+.pl-bulk-bar__count {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.84rem; font-weight: 500;
+  flex-shrink: 0;
+}
+.pl-bulk-bar__pin {
+  background: #5EEAD4; color: #042F2A;
+  padding: 3px 11px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 800;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.pl-bulk-bar__actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-left: auto;
+}
+.pl-bba {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.92);
+  padding: 6px 12px; border-radius: 7px;
+  font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.pl-bba:hover {
+  background: rgba(94, 234, 212, 0.15);
+  border-color: rgba(94, 234, 212, 0.35);
+  color: #fff;
+}
+.pl-bba-danger:hover {
+  background: rgba(239, 68, 68, 0.20);
+  border-color: rgba(252, 165, 165, 0.4);
+  color: #fee2e2;
+}
+
+.pl-bulk-bar__clear {
+  background: transparent; border: none; color: rgba(255,255,255,0.55);
+  width: 32px; height: 32px; border-radius: 7px;
+  cursor: pointer; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.pl-bulk-bar__clear:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+/* Row seleccionada highlight */
+tr.pl-row.is-selected {
+  background: #CCFBF1 !important;
+}
+tr.pl-row.is-selected td { color: #064E3B; }
+
+.pl-master-cb, .pl-row-cb {
+  cursor: pointer;
+  border-color: #cbd5e1;
+}
+.pl-master-cb:checked, .pl-row-cb:checked {
+  background-color: #0F766E;
+  border-color: #0F766E;
+}
 </style>
 {% endblock %}
 
@@ -688,6 +778,127 @@ document.addEventListener('DOMContentLoaded', function() {
       if (panel) panel.classList.add('is-active');
     });
   });
+
+  // ════════════════════════════════════════════════════════
+  // BULK BAR + MULTISELECT (handoff: appears when selected > 0)
+  // ════════════════════════════════════════════════════════
+  const masterCb  = document.getElementById('plSelectAll');
+  const bulkBar   = document.getElementById('plBulkBar');
+  const bulkCount = document.getElementById('plBulkCount');
+  const bulkPlural = document.getElementById('plBulkPlural');
+  const rowCbs    = document.querySelectorAll('.pl-row-cb');
+
+  const selected = new Set();   // Set<string pid>
+
+  function updateBulk() {
+    const n = selected.size;
+    bulkCount.textContent = n;
+    bulkPlural.textContent = n === 1 ? '' : 's';
+    if (n > 0) {
+      bulkBar.classList.add('is-open');
+      bulkBar.setAttribute('aria-hidden', 'false');
+    } else {
+      bulkBar.classList.remove('is-open');
+      bulkBar.setAttribute('aria-hidden', 'true');
+    }
+    // Master checkbox state
+    if (masterCb) {
+      const total = rowCbs.length;
+      masterCb.checked = n > 0 && n === total;
+      masterCb.indeterminate = n > 0 && n < total;
+    }
+  }
+
+  function toggleRow(pid, checked, cb) {
+    if (checked) selected.add(pid);
+    else selected.delete(pid);
+    // Toggle visual highlight on row
+    const row = cb ? cb.closest('tr.pl-row') : document.querySelector(`tr.pl-row[data-pid="${pid}"]`);
+    if (row) row.classList.toggle('is-selected', checked);
+    updateBulk();
+  }
+
+  // Row checkbox change
+  rowCbs.forEach(cb => {
+    cb.addEventListener('change', function() {
+      toggleRow(this.value, this.checked, this);
+    });
+  });
+
+  // Master checkbox toggle
+  if (masterCb) {
+    masterCb.addEventListener('change', function() {
+      const target = this.checked;
+      rowCbs.forEach(cb => {
+        cb.checked = target;
+        toggleRow(cb.value, target, cb);
+      });
+    });
+  }
+
+  // Bulk actions handler
+  document.querySelectorAll('[data-bulk-act]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const act = this.dataset.bulkAct;
+      const ids = Array.from(selected);
+      if (act === 'clear') {
+        rowCbs.forEach(cb => { cb.checked = false; });
+        selected.clear();
+        document.querySelectorAll('tr.pl-row.is-selected').forEach(r => r.classList.remove('is-selected'));
+        updateBulk();
+        return;
+      }
+      if (!ids.length) return;
+      if (act === 'export') {
+        // Redirige al export con query ids[]
+        const params = ids.map(i => 'ids=' + encodeURIComponent(i)).join('&');
+        window.location.href = '/personal/exportar/?' + params;
+        return;
+      }
+      if (act === 'mensaje') {
+        // Compone mailto con correos disponibles
+        const correos = [];
+        ids.forEach(pid => {
+          const r = document.querySelector(`tr.pl-row[data-pid="${pid}"]`);
+          if (r && r.dataset.correo) correos.push(r.dataset.correo);
+        });
+        if (!correos.length) {
+          if (window.Harmoni && window.Harmoni.toast) {
+            window.Harmoni.toast({ title: 'Ningún seleccionado tiene correo', kind: 'warning' });
+          }
+          return;
+        }
+        window.location.href = 'mailto:?bcc=' + correos.join(',');
+        return;
+      }
+      if (act === 'cesar') {
+        if (!confirm(`¿Cesar ${ids.length} trabajador${ids.length>1?'es':''}? Esta acción los marcará como Cesado. La fecha y motivo se confirmarán en el siguiente paso.`)) return;
+        // Redirige a una vista batch (si no existe, al primer cese)
+        if (ids.length === 1) {
+          window.location.href = `/personal/${ids[0]}/dar-baja/`;
+        } else {
+          // Sin endpoint batch implementado todavía → fallback
+          if (window.Harmoni && window.Harmoni.toast) {
+            window.Harmoni.toast({
+              title: 'Cese masivo en desarrollo',
+              detail: `Por ahora cesa uno a uno. Empezando por el primero seleccionado.`,
+              kind: 'info',
+            });
+          }
+          setTimeout(() => { window.location.href = `/personal/${ids[0]}/dar-baja/`; }, 1500);
+        }
+        return;
+      }
+    });
+  });
+
+  // Esc cierra selección si bulk bar abierto (y no hay drawer abierto)
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && selected.size > 0
+        && (!drawer || !drawer.classList.contains('is-open'))) {
+      document.querySelector('[data-bulk-act="clear"]').click();
+    }
+  });
 });
 </script>
 {% endblock %}
@@ -790,6 +1001,30 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+{# ── Bulk bar slide-in (handoff: bg ink + acciones cuando selected.size > 0) ── #}
+<div class="pl-bulk-bar" id="plBulkBar" aria-hidden="true">
+  <div class="pl-bulk-bar__count">
+    <span class="pl-bulk-bar__pin"><span id="plBulkCount">0</span></span>
+    <span>seleccionado<span id="plBulkPlural">s</span></span>
+  </div>
+  <div class="pl-bulk-bar__actions">
+    <button type="button" class="pl-bba" data-bulk-act="mensaje">
+      <i class="fas fa-comment-dots"></i><span class="d-none d-sm-inline">Mensaje</span>
+    </button>
+    <button type="button" class="pl-bba" data-bulk-act="export">
+      <i class="fas fa-file-excel"></i><span class="d-none d-sm-inline">Exportar</span>
+    </button>
+    {% if user.is_superuser %}
+    <button type="button" class="pl-bba pl-bba-danger" data-bulk-act="cesar">
+      <i class="fas fa-user-slash"></i><span class="d-none d-sm-inline">Cesar</span>
+    </button>
+    {% endif %}
+  </div>
+  <button type="button" class="pl-bulk-bar__clear" data-bulk-act="clear" title="Limpiar selección (Esc)">
+    <i class="fas fa-xmark"></i>
+  </button>
+</div>
+
 <div class="pl-table-card" id="plTableCard">
     <div class="card-body" style="padding:0;">
         <form method="get" class="m-3">
@@ -839,6 +1074,10 @@ document.addEventListener('DOMContentLoaded', function() {
             <table class="table table-hover table-sm">
                 <thead>
                     <tr>
+                        <th style="width:34px;padding-left:14px;" onclick="event.stopPropagation();">
+                          <input type="checkbox" id="plSelectAll" class="form-check-input pl-master-cb"
+                                 title="Seleccionar todos en esta página">
+                        </th>
                         <th>DNI</th>
                         <th>Nombres</th>
                         <th class="d-none d-md-table-cell">Cargo</th>
@@ -852,7 +1091,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tbody>
                     {% for p in page_obj %}
                     <tr class="pl-row{% if p.estado == 'Cesado' %} row-cesado{% endif %}"
-                        data-pid="{{ p.pk }}" style="cursor:pointer;">
+                        data-pid="{{ p.pk }}" data-nombre="{{ p.apellidos_nombres|escape }}"
+                        data-correo="{{ p.correo_corporativo|default:p.correo_personal }}"
+                        style="cursor:pointer;">
+                        <td style="padding-left:14px;" onclick="event.stopPropagation();">
+                          <input type="checkbox" class="form-check-input pl-row-cb"
+                                 value="{{ p.pk }}" aria-label="Seleccionar {{ p.apellidos_nombres }}">
+                        </td>
                         <td class="fw-bold mono{% if p.estado == 'Cesado' %} text-muted{% endif %}">{{ p.nro_doc }}</td>
                         <td>
                             <small class="d-md-none text-muted">{{ p.cargo }}</small>
@@ -933,7 +1178,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="{% if user.is_superuser %}8{% else %}7{% endif %}" class="text-center text-muted py-4">
+                        <td colspan="{% if user.is_superuser %}9{% else %}8{% endif %}" class="text-center text-muted py-4">
                             <i class="fas fa-users text-muted me-2" style="font-size:1.4rem;opacity:.4;"></i><br>
                             No hay personal registrado con los filtros actuales
                         </td>
