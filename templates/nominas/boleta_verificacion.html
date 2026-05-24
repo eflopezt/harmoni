@@ -330,19 +330,9 @@
 <body>
   <header class="topbar">
     <div class="brand-logo">
-      <svg width="20" height="20" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"  stop-color="#5eead4"/>
-            <stop offset="100%" stop-color="#0d9488"/>
-          </linearGradient>
-        </defs>
-        <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
-              stroke="url(#lg)" stroke-width="3.2" fill="none"
-              stroke-linecap="round"/>
-        <rect x="7"  y="5" width="7" height="28" rx="3.5" fill="#fff"/>
-        <rect x="26" y="5" width="7" height="28" rx="3.5" fill="#fff"/>
-      </svg>
+      <img src="{% static 'images/brand/png/harmoni-favicon-32.png' %}"
+           alt="Harmoni" width="28" height="28"
+           style="border-radius:6px;display:block;">
     </div>
     <div>
       <div class="brand-name">Harmoni ERP <span>· Verificación oficial</span></div>

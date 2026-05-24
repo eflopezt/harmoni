@@ -24,11 +24,13 @@
 <div class="auth-wrapper">
     <div class="auth-card">
 
-        <!-- Logo — brand pack oficial -->
+        <!-- Logo — brand pack oficial. Usamos el lockup CON fondo teal incorporado
+             (harmoni-logo-original) porque está diseñado para verse sobre fondos claros.
+             La versión transparent está reservada para fondos oscuros. -->
         <div class="auth-logo" style="text-align:center;margin-bottom:32px;">
-            <img src="{% static 'images/brand/png/harmoni-logo-400.png' %}"
-                 alt="Harmoni"
-                 style="max-width:260px;width:100%;height:auto;display:inline-block;margin-bottom:12px;">
+            <img src="{% static 'images/brand/harmoni-logo-original.png' %}"
+                 alt="Harmoni — ERP de RRHH y Planillas"
+                 style="max-width:280px;width:100%;height:auto;display:inline-block;margin-bottom:14px;border-radius:14px;box-shadow:0 4px 14px -4px rgba(13,43,39,0.18);">
             <p style="font-family:'Inter',system-ui,sans-serif;color:#475569;font-size:.92rem;margin:0;">
                 Sistema de Gestión de Recursos Humanos
             </p>

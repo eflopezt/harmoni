@@ -229,26 +229,9 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 <nav class="nav" id="nav">
 <div class="ctr nav-i">
     <a href="/" class="nav-logo">
-      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="nl-wv" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"  stop-color="rgba(13,148,136,0)"/>
-            <stop offset="30%" stop-color="#0d9488"/>
-            <stop offset="50%" stop-color="#5eead4"/>
-            <stop offset="70%" stop-color="#0d9488"/>
-            <stop offset="100%" stop-color="rgba(13,148,136,0)"/>
-          </linearGradient>
-        </defs>
-        <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
-              stroke="url(#nl-wv)" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-        <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
-              stroke="rgba(200,250,242,0.45)" stroke-width="0.9" fill="none" stroke-linecap="round"/>
-        <rect x="7"  y="5" width="7" height="28" rx="3.5" fill="white"/>
-        <rect x="26" y="5" width="7" height="28" rx="3.5" fill="white"/>
-        <circle cx="5"  cy="22"   r="1.1" fill="#5eead4" opacity="0.95"/>
-        <circle cx="35" cy="19.5" r="1.1" fill="#5eead4" opacity="0.95"/>
-      </svg>
-      Harmoni
+      {# Nav landing: fondo oscuro/glass → usar lockup transparent #}
+      <img src="{% static 'images/brand/png/harmoni-logo-400.png' %}"
+           alt="Harmoni" style="height:34px;width:auto;display:block;">
     </a>
     <div class="nav-r">
         <a href="#modulos">Modulos</a>
@@ -572,28 +555,10 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 <div class="ctr ft-i">
     <div class="ft-brand">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="ft-bg" cx="50%" cy="45%" r="65%">
-              <stop offset="0%" stop-color="#1b4a43"/>
-              <stop offset="100%" stop-color="#081a17"/>
-            </radialGradient>
-            <linearGradient id="ft-wv" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"  stop-color="#084e47"/>
-              <stop offset="50%" stop-color="#5eead4"/>
-              <stop offset="100%" stop-color="#084e47"/>
-            </linearGradient>
-          </defs>
-          <rect width="40" height="40" fill="url(#ft-bg)" rx="8"/>
-          <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
-                stroke="url(#ft-wv)" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <path d="M 3,22 C 9,28 16,14 20,21 C 24,28 31,14 37,20"
-                stroke="rgba(200,250,242,0.5)" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-          <rect x="7"  y="5" width="7" height="28" rx="3.5" fill="white"/>
-          <rect x="26" y="5" width="7" height="28" rx="3.5" fill="white"/>
-          <circle cx="5"  cy="22"   r="1" fill="#5eead4" opacity="0.95"/>
-          <circle cx="35" cy="19.5" r="1" fill="#5eead4" opacity="0.95"/>
-        </svg>
+        {# Footer landing: fondo oscuro → mark transparent (sin lockup, ya hay span con texto) #}
+        <img src="{% static 'images/brand/png/harmoni-mark-128.png' %}"
+             alt="Harmoni" width="32" height="32"
+             style="display:block;">
         <span>Harmoni</span>
       </div>
       <small>ERP de RRHH y Planillas</small>
