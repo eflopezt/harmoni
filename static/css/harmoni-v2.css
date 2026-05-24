@@ -930,3 +930,84 @@
   .hm-body { padding: 14px 16px 20px; gap: 14px; }
   .hm-topbar { padding: 0 16px; gap: 8px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * GLOBAL POLISH COCKPIT — aplica a TODA la app V2 sin tocar templates
+ * Afecta cualquier template dentro del wrapper .hm-body (322 templates V2).
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* Headings tighter tracking + weight más editorial (Notion-style) */
+.hm-body h1,
+.hm-body h2 {
+  letter-spacing: -0.01em;
+  font-weight: 800;
+  color: var(--hm-ink, #0F172A);
+}
+
+/* Tablas Bootstrap (.table) ahora respetan tokens V2 globalmente */
+.hm-body .table thead th {
+  background: #F8FAFC;
+  color: var(--hm-slate-600, #475569);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--hm-slate-100, #E2E8F0);
+}
+.hm-body .table-hover tbody tr { transition: background 0.15s; }
+.hm-body .table-hover tbody tr:hover { background: var(--hm-canvas, #F4FAF7) !important; }
+.hm-body .table tbody td { border-color: #F1F5F9; }
+
+/* Card Bootstrap → border-radius 12 + shadow editorial sutil */
+.hm-body .card {
+  border-radius: 12px;
+  border-color: var(--hm-slate-100, #E2E8F0);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+/* Inputs / selects de filtros con focus teal */
+.hm-body .form-control:focus,
+.hm-body .form-select:focus {
+  border-color: var(--hm-teal, #0D9488);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+}
+
+/* Botón primary Bootstrap → teal V2 (era #0d6efd azul Bootstrap) */
+.hm-body .btn-primary {
+  background-color: var(--hm-teal, #0D9488);
+  border-color: var(--hm-teal, #0D9488);
+}
+.hm-body .btn-primary:hover,
+.hm-body .btn-primary:focus,
+.hm-body .btn-primary:active {
+  background-color: var(--hm-brand-700, #0f5f57);
+  border-color: var(--hm-brand-700, #0f5f57);
+}
+
+/* Stat / KPI numbers a JetBrains Mono tabular */
+.hm-body .stat-value,
+.hm-body .kpi-value,
+.hm-body .number-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.hm-body td.text-end,
+.hm-body td.amount-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Labels uppercase editorial wide */
+.hm-body .stat-label,
+.hm-body .kpi-label {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--hm-slate-400, #94a3b8);
+  font-weight: 700;
+}
+.hm-body .page-subtitle {
+  font-size: 0.82rem;
+  color: var(--hm-slate-600, #64748b);
+  margin-top: 4px;
+}

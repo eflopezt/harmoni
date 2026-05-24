@@ -1,491 +1,857 @@
 {% extends "base_v2.html" %}
 
-{% block title %}Módulo Tareo{% endblock %}
+{% block title %}Tareo{% endblock %}
 
 {% block extra_css %}
 <style>
-.tareo-card {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 2px 12px rgba(0,0,0,.10);
-    transition: transform .15s;
+/* ════════════════════════════════════════════════════════════
+   Asistencia / Tareo Dashboard — handoff Linear/Notion-style
+   Reutiliza convenciones de personal_list.html con prefijo .ats-*
+   para evitar colisiones entre páginas.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Page header ───────────────────────────────────────────── */
+.ats-header { padding: 4px 0 0; }
+.ats-h-top {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; margin-bottom: 4px;
 }
-.tareo-card:hover { transform: translateY(-2px); }
-.stat-icon {
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; flex-shrink: 0;
+.ats-h-title {
+  margin: 0; font-size: 1.55rem; font-weight: 800; color: #0F172A;
+  display: inline-flex; align-items: baseline; gap: 12px;
+  letter-spacing: -0.01em;
 }
-.badge-estado-COMPLETADO            { background: #198754; }
-.badge-estado-COMPLETADO_CON_ERRORES { background: #fd7e14; }
-.badge-estado-EN_PROCESO            { background: #0d6efd; }
-.badge-estado-PENDIENTE             { background: #6c757d; }
-.badge-estado-FALLIDO               { background: #dc3545; }
-.selector-mes { background: rgba(255,255,255,.08); border-radius: 10px; padding: 10px 16px; }
-.ciclo-badge  { font-size: .78rem; background: rgba(255,255,255,.15); border-radius: 20px;
-                padding: 3px 10px; color: #fff; display: inline-block; }
+.ats-h-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.92rem; color: #94a3b8; font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.ats-h-count strong { color: #0F766E; font-weight: 700; }
+.ats-h-sub { font-size: 0.82rem; color: #64748b; margin: 2px 0 0; }
+.ats-h-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ats-h-kbd {
+  font-size: .66rem; background: #f1f5f9; border: 1px solid #e2e8f0;
+  padding: 1px 5px; border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Saved views tabs (sticky) ────────────────────────────── */
+.ats-views {
+  display: flex; gap: 2px; margin: 14px 0 0;
+  border-bottom: 1px solid #E2E8F0;
+  position: sticky; top: 0; z-index: 10;
+  background: var(--hm-canvas, #F4FAF7);
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.ats-view-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  border: none; background: transparent;
+  border-bottom: 2px solid transparent;
+  font-size: 0.82rem; color: #475569; font-weight: 500;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.ats-view-tab:hover { color: #0F172A; background: rgba(204, 251, 241, 0.4); }
+.ats-view-tab.is-active {
+  color: #0F766E; border-bottom-color: #0F766E; font-weight: 600;
+}
+.ats-view-tab .ats-view-hex {
+  width: 8px; height: 9px; flex-shrink: 0;
+  background: #0F766E;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.ats-view-tab.is-active .ats-view-hex { opacity: 1; }
+.ats-view-tab .ats-view-pill {
+  background: rgba(204, 251, 241, 0.65); color: #064E3B;
+  border-radius: 999px; padding: 1px 8px;
+  font-size: 0.65rem; font-weight: 700;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.ats-view-tab.is-active .ats-view-pill { background: #0F766E; color: #fff; }
+
+/* ── Toolbar (chips + period selector + density) ────────── */
+.ats-toolbar {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 12px 0; border-bottom: 1px solid #E2E8F0; margin-bottom: 14px;
+}
+.ats-filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 20px;
+  padding: 4px 12px; font-size: 0.74rem; font-weight: 600; color: #0F766E;
+}
+.ats-filter-chip i { font-size: .68rem; opacity: .8; }
+.ats-toolbar-spacer { flex: 1; }
+.ats-period-form {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 8px;
+  padding: 3px 6px;
+}
+.ats-period-form select {
+  border: none; background: transparent; font-size: .78rem;
+  color: #0F172A; font-weight: 600; padding: 3px 4px; outline: none;
+  font-family: inherit; cursor: pointer;
+}
+.ats-period-form select:focus { color: #0F766E; }
+.ats-period-form .ats-period-lbl {
+  font-size: .68rem; color: #94a3b8; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em; padding-left: 4px;
+}
+
+/* ── Density segmented control ────────────────────────────── */
+.ats-density {
+  display: inline-flex; background: #f1f5f9; border-radius: 8px; padding: 2px;
+  border: 1px solid #E2E8F0;
+}
+.ats-density button {
+  border: none; background: transparent;
+  padding: 4px 12px; font-size: 0.72rem; color: #64748b; font-weight: 600;
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+.ats-density button:hover { color: #0F172A; }
+.ats-density button.is-active {
+  background: #fff; color: #0F766E;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+}
+
+/* ── KPI tiles (sustituye .tareo-card) ─────────────────────── */
+.ats-kpi-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 18px;
+}
+.ats-kpi {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+  transition: border-color .15s, box-shadow .15s;
+}
+.ats-kpi:hover {
+  border-color: #99f6e4;
+  box-shadow: 0 4px 14px -6px rgba(13, 148, 136, 0.18);
+}
+.ats-kpi-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; flex-shrink: 0;
+}
+.ats-kpi-icon--brand   { background: #f0fdfa; color: #0F766E; }
+.ats-kpi-icon--info    { background: #ecfeff; color: #0e7490; }
+.ats-kpi-icon--success { background: #ecfdf5; color: #047857; }
+.ats-kpi-icon--danger  { background: #fef2f2; color: #b91c1c; }
+.ats-kpi-icon--warn    { background: #fffbeb; color: #b45309; }
+.ats-kpi-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ats-kpi-val {
+  font-size: 1.55rem; font-weight: 800; color: #0F172A;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums; line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.ats-kpi-lbl {
+  font-size: .72rem; color: #64748b; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.ats-kpi-hint {
+  font-size: .68rem; color: #94a3b8; margin-top: 1px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.ats-kpi-hint.ok    { color: #0F766E; }
+.ats-kpi-hint.warn  { color: #b45309; }
+
+/* ── HE breakdown row ─────────────────────────────────────── */
+.ats-he-row {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 18px;
+}
+.ats-he-pill {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border-left: 4px solid #94a3b8;
+}
+.ats-he-pill--25  { border-left-color: #f59e0b; }
+.ats-he-pill--35  { border-left-color: #fd7e14; }
+.ats-he-pill--100 { border-left-color: #dc2626; }
+.ats-he-pill__lbl {
+  font-size: .82rem; color: #0F172A; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ats-he-pill__lbl small { font-size: .68rem; color: #94a3b8; font-weight: 500; }
+.ats-he-pill__val {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: .92rem; font-weight: 800;
+  padding: 3px 10px; border-radius: 999px;
+  background: #f8fafc; color: #0F172A;
+}
+.ats-he-pill--25  .ats-he-pill__val { background: #fffbeb; color: #b45309; }
+.ats-he-pill--35  .ats-he-pill__val { background: #fff7ed; color: #c2410c; }
+.ats-he-pill--100 .ats-he-pill__val { background: #fef2f2; color: #b91c1c; }
+
+/* ── Quick-access cards (Calendario / Reportes / etc.) ──── */
+.ats-qa-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-bottom: 18px;
+}
+.ats-qa {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  padding: 12px 14px;
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none; color: inherit;
+  border-left: 3px solid transparent;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.ats-qa:hover {
+  background: #F4FAF7;
+  box-shadow: 0 4px 14px -6px rgba(13, 148, 136, 0.18);
+  color: inherit;
+}
+.ats-qa--brand   { border-left-color: #0F766E; }
+.ats-qa--danger  { border-left-color: #dc2626; }
+.ats-qa--warn    { border-left-color: #f59e0b; }
+.ats-qa--info    { border-left-color: #0e7490; }
+.ats-qa-ic {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .95rem; flex-shrink: 0;
+}
+.ats-qa--brand  .ats-qa-ic { background: #f0fdfa; color: #0F766E; }
+.ats-qa--danger .ats-qa-ic { background: #fef2f2; color: #b91c1c; }
+.ats-qa--warn   .ats-qa-ic { background: #fffbeb; color: #b45309; }
+.ats-qa--info   .ats-qa-ic { background: #ecfeff; color: #0e7490; }
+.ats-qa-body { min-width: 0; }
+.ats-qa-title { font-size: .88rem; font-weight: 700; color: #0F172A; line-height: 1.1; }
+.ats-qa-sub { font-size: .7rem; color: #64748b; margin-top: 2px; }
+
+/* ── Two-column layout (Banco / Importaciones) ───────────── */
+.ats-section { margin-bottom: 18px; }
+.ats-section-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: minmax(280px, 1fr) minmax(360px, 2fr);
+}
+@media (max-width: 900px) { .ats-section-grid { grid-template-columns: 1fr; } }
+
+.ats-panel {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+.ats-panel-h {
+  padding: 10px 14px; border-bottom: 1px solid #E2E8F0;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: #F8FAFC;
+}
+.ats-panel-h-title {
+  font-size: .78rem; font-weight: 700; color: #0F172A;
+  text-transform: uppercase; letter-spacing: .05em;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.ats-panel-h-title i { color: #0F766E; }
+.ats-panel-h-pill {
+  background: #CCFBF1; color: #064E3B;
+  font-size: .62rem; font-weight: 700;
+  padding: 1px 8px; border-radius: 999px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.ats-panel-btn {
+  font-size: .72rem; font-weight: 600; color: #0F766E;
+  text-decoration: none; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid #99f6e4; background: #f0fdfa;
+  transition: background .15s;
+}
+.ats-panel-btn:hover { background: #CCFBF1; color: #064E3B; }
+.ats-panel-body { padding: 0; }
+
+/* Banco list */
+.ats-banco-list { list-style: none; padding: 0; margin: 0; }
+.ats-banco-list li {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 14px; border-top: 1px solid #F1F5F9;
+  font-size: .82rem;
+}
+.ats-banco-list li:first-child { border-top: none; }
+.ats-banco-list .lbl { color: #64748b; }
+.ats-banco-list .val {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; color: #0F172A;
+}
+.ats-banco-list .val--success { color: #047857; }
+.ats-banco-list .val--warn    { color: #b45309; }
+.ats-banco-list .val--danger  { color: #b91c1c; }
+.ats-empty {
+  text-align: center; padding: 28px 18px;
+  color: #94a3b8; font-size: .82rem;
+}
+.ats-empty i { display: block; font-size: 1.8rem; margin-bottom: 8px; opacity: .4; }
+
+/* ── Table card (importaciones) ───────────────────────────── */
+.ats-table-card {
+  /* Sin border-radius extra: ya lo trae .ats-panel */
+}
+.ats-table-wrap { overflow-x: auto; }
+.ats-table-card table { margin: 0; width: 100%; }
+.ats-table-card thead th {
+  background: #F8FAFC; color: #64748b;
+  font-size: 0.66rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 10px 12px; border-bottom: 1px solid #E2E8F0; text-align: left;
+}
+.ats-table-card tbody td {
+  padding: 10px 12px; font-size: 0.85rem; color: #1e293b;
+  vertical-align: middle; border-top: 1px solid #F1F5F9;
+}
+.ats-table-card tbody tr { transition: background 0.15s; }
+.ats-table-card tbody tr:hover { background: #F4FAF7; }
+.ats-table-card tbody tr:first-child td { border-top: none; }
+
+/* Density variants */
+.ats-table-card.density-compact tbody td { padding: 5px 10px; font-size: 0.78rem; }
+.ats-table-card.density-comfort tbody td { padding: 14px 14px; font-size: 0.87rem; }
+
+.ats-table-card .mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: .78rem; color: #475569;
+}
+.ats-table-card .right { text-align: right; }
+
+/* Estado badges */
+.ats-estado {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: .68rem; font-weight: 700;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.ats-estado--ok      { background: #d1fae5; color: #064E3B; }
+.ats-estado--warn    { background: #fef3c7; color: #92400e; }
+.ats-estado--proc    { background: #dbeafe; color: #1e40af; }
+.ats-estado--err     { background: #fee2e2; color: #991b1b; }
+.ats-estado--neutral { background: #f1f5f9; color: #475569; }
+
+/* ── Alertas cierre ───────────────────────────────────────── */
+.ats-alerts {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  border-left: 4px solid #f59e0b;
+  margin-bottom: 18px; overflow: hidden;
+}
+.ats-alerts-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  padding: 12px 14px;
+}
+.ats-alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border-radius: 9px;
+  text-decoration: none; color: inherit;
+  background: #FFF9EB; border: 1px solid #FDE68A;
+  transition: border-color .15s, transform .15s;
+}
+.ats-alert:hover { border-color: #f59e0b; transform: translateY(-1px); color: inherit; }
+.ats-alert--danger  { background: #FEF2F2; border-color: #FECACA; }
+.ats-alert--danger:hover { border-color: #dc2626; }
+.ats-alert--info    { background: #EFF6FF; border-color: #BFDBFE; }
+.ats-alert--info:hover { border-color: #2563eb; }
+.ats-alert i { font-size: 1rem; margin-top: 2px; flex-shrink: 0; color: #b45309; }
+.ats-alert--danger i { color: #b91c1c; }
+.ats-alert--info i { color: #1e40af; }
+.ats-alert-body { min-width: 0; }
+.ats-alert-title { font-size: .84rem; font-weight: 700; color: #0F172A; line-height: 1.2; }
+.ats-alert-sub { font-size: .72rem; color: #64748b; margin-top: 2px; }
+
+/* ── Quick links footer ───────────────────────────────────── */
+.ats-links {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  padding: 14px 16px;
+}
+.ats-links-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 10px;
+}
+.ats-links-row:first-child { margin-top: 0; }
+.ats-links-row + .ats-links-row { border-top: 1px solid #F1F5F9; padding-top: 10px; }
+.ats-links-lbl {
+  font-size: .66rem; font-weight: 700; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: .07em;
+  min-width: 78px;
+}
+.ats-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 7px;
+  font-size: .76rem; font-weight: 600; text-decoration: none;
+  background: #fff; color: #475569; border: 1px solid #E2E8F0;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.ats-link:hover { background: #F4FAF7; color: #0F172A; border-color: #99f6e4; }
+.ats-link i { font-size: .78rem; opacity: .9; }
+.ats-link--brand:hover  { border-color: #0F766E; color: #0F766E; }
+.ats-link--info:hover   { border-color: #0e7490; color: #0e7490; }
+.ats-link--warn:hover   { border-color: #b45309; color: #b45309; }
+.ats-link--danger:hover { border-color: #b91c1c; color: #b91c1c; }
+
+/* ── Sync inline status ───────────────────────────────────── */
+.ats-sync-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .72rem; color: #64748b; font-weight: 500;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  margin-left: 6px;
+}
+.ats-sync-status.is-err  { color: #b91c1c; }
+.ats-sync-status.is-prog { color: #b45309; }
 </style>
 {% endblock %}
 
 {% block body %}
 
-<!-- ── Encabezado + selector de mes ───────────────────────────────────── -->
-<div class="card tareo-card mb-4" style="background: linear-gradient(135deg,#1a2b47,#2d4a8a)">
-    <div class="card-body text-white py-3">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-                <h2 class="mb-0 text-white">
-                    <i class="fas fa-clock text-warning me-2"></i>Módulo Tareo
-                    <span class="ms-2 fs-5 fw-normal opacity-75">— {{ mes_nombre }} {{ anio_sel }}</span>
-                </h2>
-                <div class="mt-1 d-flex gap-2 flex-wrap">
-                    <span class="ciclo-badge">
-                        <i class="fas fa-calendar-alt me-1"></i>
-                        Período: {{ mes_ini|date:"d/m/Y" }} – {{ mes_fin|date:"d/m/Y" }}
-                    </span>
-                    <span class="ciclo-badge" style="opacity:.65; font-size:.72rem">
-                        Ciclo HE: {{ ciclo_ini|date:"d/m" }} → {{ ciclo_fin|date:"d/m" }}
-                    </span>
-                </div>
-            </div>
-            <!-- Selector de mes -->
-            <form method="get" class="selector-mes d-flex align-items-center gap-2 flex-wrap">
-                <label class="text-white small fw-semibold mb-0">
-                    <i class="fas fa-filter me-1"></i>Período:
-                </label>
-                <select name="mes" class="form-select form-select-sm" style="width:140px"
-                        onchange="this.form.submit()">
-                    {% for num, nombre in meses %}
-                    <option value="{{ num }}" {% if num == mes_sel %}selected{% endif %}>{{ nombre }}</option>
-                    {% endfor %}
-                </select>
-                <select name="anio" class="form-select form-select-sm" style="width:90px"
-                        onchange="this.form.submit()">
-                    {% for a in anios_disponibles %}
-                    <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}>{{ a }}</option>
-                    {% endfor %}
-                </select>
-                <div class="d-flex gap-2 ms-2 flex-wrap align-items-center">
-                    <a href="{% url 'asistencia_staff' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
-                       class="btn btn-sm btn-light fw-semibold">
-                        <i class="fas fa-table me-1"></i>STAFF
-                    </a>
-                    <a href="{% url 'asistencia_rco' %}" class="btn btn-sm btn-outline-light">
-                        <i class="fas fa-hard-hat me-1"></i>RCO
-                    </a>
-                    <a href="{% url 'asistencia_importar' %}" class="btn btn-sm btn-warning text-dark fw-semibold">
-                        <i class="fas fa-file-upload me-1"></i>Importar
-                    </a>
-                    {# Botón sync directo Synkro (atajo desde dashboard) #}
-                    <button id="btnSynkroSyncDash" type="button" class="btn btn-sm btn-info text-white fw-semibold"
-                            data-bs-toggle="tooltip" data-bs-placement="bottom"
-                            title="Sincroniza picados y papeletas desde Synkro RRHH (BD remota)">
-                        <i class="fas fa-bolt me-1"></i>Sync Synkro
-                    </button>
-                    <small id="synkroStatusDash" class="text-white-50" style="font-size:.72rem"></small>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ── Alerta sin datos ───────────────────────────────────────────────── -->
-{% if not stats.total_registros %}
-<div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
-    <i class="fas fa-exclamation-triangle me-3 fs-4 flex-shrink-0 opacity-75"></i>
+{# ── Page header — h1 + count mono + sub + actions (handoff) ──── #}
+<div class="ats-header">
+  <div class="ats-h-top">
     <div>
-        <strong>Sin registros para {{ mes_nombre }} {{ anio_sel }}</strong>
-        <div class="small mt-1">
-            No hay datos de tareo en el período
-            <strong>{{ mes_ini|date:"d/m/Y" }} – {{ mes_fin|date:"d/m/Y" }}</strong>.
-            <a href="{% url 'asistencia_importar_synkro' %}" class="alert-link ms-1">
-                <i class="fas fa-upload me-1"></i>Importar datos →
-            </a>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- ── KPIs principales ───────────────────────────────────────────────── -->
-<div class="row g-3 mb-4">
-    <!-- Personal STAFF -->
-    <div class="col-6 col-md-3">
-        <div class="card tareo-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
-                    <i class="fas fa-id-card"></i>
-                </div>
-                <div>
-                    <div class="fs-3 fw-bold text-primary">{{ stats.total_staff_bd }}</div>
-                    <div class="text-muted small">Personal STAFF</div>
-                    {% if stats.staff_personas %}
-                    <div class="text-muted" style="font-size:.72rem">
-                        {{ stats.staff_personas }} con registros
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Personal RCO -->
-    <div class="col-6 col-md-3">
-        <div class="card tareo-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-info bg-opacity-10 text-info">
-                    <i class="fas fa-hard-hat"></i>
-                </div>
-                <div>
-                    <div class="fs-3 fw-bold text-info">{{ stats.total_rco_bd }}</div>
-                    <div class="text-muted small">Personal RCO</div>
-                    {% if stats.rco_personas %}
-                    <div class="text-info" style="font-size:.72rem">
-                        <i class="fas fa-check-circle me-1"></i>{{ stats.rco_personas }} en el período
-                    </div>
-                    {% else %}
-                    <div class="text-muted" style="font-size:.72rem">Sin registros en el período</div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Total HE -->
-    <div class="col-6 col-md-3">
-        <div class="card tareo-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-success bg-opacity-10 text-success">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div>
-                    <div class="fs-3 fw-bold text-success">{{ stats.he_total|floatformat:0 }}</div>
-                    <div class="text-muted small">HE Total (h) ciclo</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Faltas + SS -->
-    <div class="col-6 col-md-3">
-        <div class="card tareo-card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-danger bg-opacity-10 text-danger">
-                    <i class="fas fa-user-times"></i>
-                </div>
-                <div>
-                    <div class="fs-3 fw-bold text-danger">{{ stats.faltas }}</div>
-                    <div class="text-muted small">Faltas / LSG</div>
-                    {% if stats.ss_count %}
-                    <div class="text-warning" style="font-size:.72rem">
-                        + {{ stats.ss_count }} Sin Salida
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── Accesos Rápidos ────────────────────────────────────────────────── -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <a href="{% url 'asistencia_calendario' %}?mes={{ mes_sel }}&anio={{ anio_sel }}" class="text-decoration-none">
-            <div class="card tareo-card h-100 border-start border-4" style="border-color:#0f766e !important">
-                <div class="card-body d-flex align-items-center gap-3 py-2">
-                    <div class="stat-icon" style="background:rgba(15,118,110,.1);color:#0f766e"><i class="fas fa-calendar-alt"></i></div>
-                    <div><div class="fw-bold" style="color:#0f766e">Calendario</div><div class="text-muted" style="font-size:.72rem">Grilla diaria</div></div>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="{% url 'asistencia_reportes' %}?mes={{ mes_sel }}&anio={{ anio_sel }}" class="text-decoration-none">
-            <div class="card tareo-card h-100 border-start border-4 border-danger">
-                <div class="card-body d-flex align-items-center gap-3 py-2">
-                    <div class="stat-icon bg-danger bg-opacity-10 text-danger"><i class="fas fa-file-pdf"></i></div>
-                    <div><div class="fw-bold text-danger">Reportes PDF</div><div class="text-muted" style="font-size:.72rem">Individual / Masivo</div></div>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="{% url 'asistencia_papeletas' %}" class="text-decoration-none">
-            <div class="card tareo-card h-100 border-start border-4 border-warning">
-                <div class="card-body d-flex align-items-center gap-3 py-2">
-                    <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="fas fa-file-alt"></i></div>
-                    <div><div class="fw-bold text-warning">Papeletas</div><div class="text-muted" style="font-size:.72rem">Permisos y licencias</div></div>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="{% url 'asistencia_kpis' %}?mes={{ mes_sel }}&anio={{ anio_sel }}" class="text-decoration-none">
-            <div class="card tareo-card h-100 border-start border-4 border-info">
-                <div class="card-body d-flex align-items-center gap-3 py-2">
-                    <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="fas fa-chart-line"></i></div>
-                    <div><div class="fw-bold text-info">KPIs</div><div class="text-muted" style="font-size:.72rem">Dashboard analítico</div></div>
-                </div>
-            </div>
-        </a>
-    </div>
-</div>
-
-<!-- ── Desglose HE ────────────────────────────────────────────────────── -->
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card tareo-card border-start border-4 border-warning">
-            <div class="card-body py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold"><i class="fas fa-clock me-1 text-warning"></i>HE 25% <small class="text-muted">(primeras 2h)</small></span>
-                    <span class="badge bg-warning text-dark fs-6 px-3">{{ stats.he_25_total|floatformat:1 }} h</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card tareo-card border-start border-4" style="border-color:#fd7e14 !important">
-            <div class="card-body py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold"><i class="fas fa-clock me-1" style="color:#fd7e14"></i>HE 35% <small class="text-muted">(siguientes)</small></span>
-                    <span class="badge text-white fs-6 px-3" style="background:#fd7e14">{{ stats.he_35_total|floatformat:1 }} h</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card tareo-card border-start border-4 border-danger">
-            <div class="card-body py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold"><i class="fas fa-clock me-1 text-danger"></i>HE 100% <small class="text-muted">(feriados)</small></span>
-                    <span class="badge bg-danger fs-6 px-3">{{ stats.he_100_total|floatformat:1 }} h</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── Banco de horas + Últimas importaciones ─────────────────────────── -->
-<div class="row g-3 mb-4">
-    <!-- Banco de horas del mes seleccionado -->
-    <div class="col-md-4">
-        <div class="card tareo-card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center py-2">
-                <span>
-                    <i class="fas fa-piggy-bank me-2 text-success"></i>
-                    <strong>Banco de Horas</strong>
-                    <span class="badge bg-success ms-1">{{ mes_nombre }}</span>
-                </span>
-                <a href="{% url 'asistencia_banco_horas' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
-                   class="btn btn-sm btn-outline-success">Ver todo</a>
-            </div>
-            <div class="card-body p-0">
-                {% if banco_stats.personas %}
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between px-3 py-2">
-                        <span class="text-muted small">Personas con banco</span>
-                        <strong>{{ banco_stats.personas }}</strong>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between px-3 py-2">
-                        <span class="text-muted small">Saldo total</span>
-                        <strong class="text-success">{{ banco_stats.saldo_total|floatformat:1 }} h</strong>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between px-3 py-2">
-                        <span class="text-muted small">Acum. HE 25%</span>
-                        <strong style="color:#856404">{{ banco_stats.acumulado_25|floatformat:1 }} h</strong>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between px-3 py-2">
-                        <span class="text-muted small">Acum. HE 35%</span>
-                        <strong style="color:#cc5500">{{ banco_stats.acumulado_35|floatformat:1 }} h</strong>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between px-3 py-2">
-                        <span class="text-muted small">Ya compensadas</span>
-                        <strong class="text-danger">
-                            {% if banco_stats.compensado %}-{{ banco_stats.compensado|floatformat:1 }} h{% else %}0 h{% endif %}
-                        </strong>
-                    </li>
-                </ul>
-                {% else %}
-                <div class="text-center text-muted py-4">
-                    <i class="fas fa-inbox fs-2 d-block mb-2 opacity-50"></i>
-                    Sin banco de horas para<br>{{ mes_nombre }} {{ anio_sel }}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Últimas importaciones -->
-    <div class="col-md-8">
-        <div class="card tareo-card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center py-2">
-                <span><i class="fas fa-history me-2 text-secondary"></i><strong>Últimas Importaciones</strong></span>
-                <a href="{% url 'asistencia_importar' %}" class="btn btn-sm btn-outline-success">
-                    <i class="fas fa-plus me-1"></i>Nueva
-                </a>
-            </div>
-            <div class="card-body p-0">
-                {% if ultimas_imports %}
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-3">#</th>
-                                <th>Tipo</th>
-                                <th>Período</th>
-                                <th class="text-end">Registros</th>
-                                <th>Estado</th>
-                                <th>Fecha</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for imp in ultimas_imports %}
-                            <tr>
-                                <td class="ps-3 text-muted small">{{ imp.id }}</td>
-                                <td><span class="badge bg-secondary">{{ imp.tipo }}</span></td>
-                                <td class="small">
-                                    {% if imp.periodo_inicio %}
-                                        {{ imp.periodo_inicio|date:"d/m/Y" }} – {{ imp.periodo_fin|date:"d/m/Y" }}
-                                    {% else %}—{% endif %}
-                                </td>
-                                <td class="text-end small">
-                                    <span class="text-success fw-semibold">{{ imp.total_registros }}</span>
-                                    {% if imp.registros_error %}
-                                        <span class="text-danger ms-1">({{ imp.registros_error }} err)</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge badge-estado-{{ imp.estado }}">
-                                        {% if imp.estado == 'COMPLETADO' %}✓ OK
-                                        {% elif imp.estado == 'COMPLETADO_CON_ERRORES' %}⚠ Errores
-                                        {% elif imp.estado == 'EN_PROCESO' %}⟳ Proc.
-                                        {% elif imp.estado == 'FALLIDO' %}✗ Fallido
-                                        {% else %}{{ imp.estado }}{% endif %}
-                                    </span>
-                                </td>
-                                <td class="small text-muted">{{ imp.creado_en|date:"d/m H:i" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center text-muted py-4">
-                    <i class="fas fa-inbox fs-2 d-block mb-2 opacity-50"></i>
-                    Sin importaciones aún.<br>
-                    <a href="{% url 'asistencia_importar' %}">Importar ahora</a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── Alertas de Cierre de Planilla ─────────────────────────────────── -->
-{% if alertas %}
-<div class="card tareo-card mb-4 border-start border-4 border-warning">
-    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-        <span>
-            <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
-            <strong>Alertas para Cierre de Planilla</strong>
-            <span class="badge bg-warning text-dark ms-2">{{ alertas|length }}</span>
+      <h1 class="ats-h-title">
+        <i class="fas fa-clock" style="color:#0F766E;font-size:1.15rem;"></i>Tareo
+        <span class="ats-h-count">
+          <strong>{{ stats.total_registros|default:0 }}</strong> registros · {{ mes_nombre }} {{ anio_sel }}
         </span>
-        <a href="{% url 'asistencia_exportar_validacion' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
-           class="btn btn-sm btn-outline-warning">
-            <i class="fas fa-download me-1"></i>Reporte Validación
-        </a>
+      </h1>
+      <p class="ats-h-sub">
+        Asistencia, horas extra y banco de horas · ciclo HE
+        <span class="ats-h-kbd">{{ ciclo_ini|date:"d/m" }} → {{ ciclo_fin|date:"d/m" }}</span>
+        · período <span class="ats-h-kbd">{{ mes_ini|date:"d/m/Y" }} – {{ mes_fin|date:"d/m/Y" }}</span>
+      </p>
     </div>
-    <div class="card-body py-2">
-        <div class="row g-2">
-            {% for alerta in alertas %}
-            <div class="col-12 col-md-6">
-                <a href="{{ alerta.url }}" class="text-decoration-none">
-                    <div class="alert alert-{{ alerta.tipo }} d-flex align-items-start gap-2 py-2 px-3 mb-0 h-100"
-                         style="border-radius:8px; font-size:.85rem">
-                        <i class="fas {{ alerta.icono }} mt-1 flex-shrink-0"></i>
-                        <div>
-                            <strong>{{ alerta.titulo }}</strong>
-                            <div class="opacity-75 small">{{ alerta.detalle }}</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            {% endfor %}
+    <div class="ats-h-actions">
+      <a href="{% url 'asistencia_importar' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-file-import"></i><span class="d-none d-sm-inline ms-1">Importar Excel</span>
+      </a>
+      <button id="btnSynkroSyncDash" type="button" class="btn btn-outline-secondary btn-sm"
+              data-bs-toggle="tooltip" data-bs-placement="bottom"
+              title="Sincroniza picados y papeletas desde Synkro RRHH (BD remota)">
+        <i class="fas fa-bolt"></i><span class="d-none d-sm-inline ms-1">Sync Synkro</span>
+      </button>
+      <span id="synkroStatusDash" class="ats-sync-status"></span>
+      <a href="{% url 'asistencia_staff' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+         class="btn btn-sm" style="background:#0F766E;color:#fff;border:none;font-weight:600;">
+        <i class="fas fa-table me-1"></i>Vista STAFF
+      </a>
+    </div>
+  </div>
+
+  {# ── Saved views como tabs sticky (handoff) — períodos rápidos ── #}
+  <nav class="ats-views" role="tablist">
+    {% with hoy_anio=ciclo_fin|date:"Y" hoy_mes=ciclo_fin|date:"n" %}
+    <a href="?mes={{ mes_sel }}&anio={{ anio_sel }}"
+       class="ats-view-tab is-active">
+      <span class="ats-view-hex"></span>{{ mes_nombre }} {{ anio_sel }}
+      <span class="ats-view-pill">{{ stats.total_registros|default:0 }}</span>
+    </a>
+    {% endwith %}
+    <a href="{% url 'asistencia_calendario' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+       class="ats-view-tab">
+      <span class="ats-view-hex"></span>Calendario
+    </a>
+    <a href="{% url 'asistencia_staff' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+       class="ats-view-tab">
+      <span class="ats-view-hex"></span>STAFF
+      {% if stats.staff_personas %}<span class="ats-view-pill">{{ stats.staff_personas }}</span>{% endif %}
+    </a>
+    <a href="{% url 'asistencia_rco' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+       class="ats-view-tab">
+      <span class="ats-view-hex"></span>RCO
+      {% if stats.rco_personas %}<span class="ats-view-pill">{{ stats.rco_personas }}</span>{% endif %}
+    </a>
+    <a href="{% url 'asistencia_papeletas' %}"
+       class="ats-view-tab">
+      <span class="ats-view-hex"></span>Papeletas
+    </a>
+    <a href="{% url 'asistencia_banco_horas' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+       class="ats-view-tab">
+      <span class="ats-view-hex"></span>Banco horas
+    </a>
+    <a href="{% url 'asistencia_kpis' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+       class="ats-view-tab">
+      <span class="ats-view-hex"></span>KPIs
+    </a>
+  </nav>
+</div>
+
+{# ── Toolbar: chips (período actual) + period selector + density ── #}
+<div class="ats-toolbar">
+  <span class="ats-filter-chip">
+    <i class="fas fa-calendar-alt"></i>{{ mes_nombre }} {{ anio_sel }}
+  </span>
+  <span class="ats-filter-chip">
+    <i class="fas fa-cogs"></i>Ciclo HE {{ ciclo_ini|date:"d/m" }}–{{ ciclo_fin|date:"d/m" }}
+  </span>
+  {% if not stats.total_registros %}
+  <span class="ats-filter-chip" style="background:#fef3c7;border-color:#fcd34d;color:#92400e;">
+    <i class="fas fa-exclamation-triangle"></i>Sin registros en el período
+  </span>
+  {% endif %}
+
+  <div class="ats-toolbar-spacer"></div>
+
+  {# Period selector compacto inline (reemplaza el bloque azul gigante) #}
+  <form method="get" class="ats-period-form">
+    <span class="ats-period-lbl">Período</span>
+    <select name="mes" onchange="this.form.submit()">
+      {% for num, nombre in meses %}
+      <option value="{{ num }}" {% if num == mes_sel %}selected{% endif %}>{{ nombre }}</option>
+      {% endfor %}
+    </select>
+    <select name="anio" onchange="this.form.submit()">
+      {% for a in anios_disponibles %}
+      <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  {# Density segmented control — JS controla la clase de la tabla #}
+  <div class="ats-density" role="group" aria-label="Densidad de tabla">
+    <button type="button" data-density="compact" title="Compacto">
+      <i class="fas fa-grip-lines"></i>
+    </button>
+    <button type="button" data-density="regular" class="is-active" title="Regular">
+      <i class="fas fa-bars"></i>
+    </button>
+    <button type="button" data-density="comfort" title="Cómodo">
+      <i class="fas fa-equals"></i>
+    </button>
+  </div>
+</div>
+
+{# ── KPIs principales ─────────────────────────────────────── #}
+<div class="ats-kpi-grid">
+  <div class="ats-kpi">
+    <div class="ats-kpi-icon ats-kpi-icon--brand"><i class="fas fa-id-card"></i></div>
+    <div class="ats-kpi-body">
+      <span class="ats-kpi-val">{{ stats.total_staff_bd }}</span>
+      <span class="ats-kpi-lbl">Personal STAFF</span>
+      {% if stats.staff_personas %}
+        <span class="ats-kpi-hint ok">{{ stats.staff_personas }} con registros</span>
+      {% else %}
+        <span class="ats-kpi-hint">sin registros</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="ats-kpi">
+    <div class="ats-kpi-icon ats-kpi-icon--info"><i class="fas fa-hard-hat"></i></div>
+    <div class="ats-kpi-body">
+      <span class="ats-kpi-val">{{ stats.total_rco_bd }}</span>
+      <span class="ats-kpi-lbl">Personal RCO</span>
+      {% if stats.rco_personas %}
+        <span class="ats-kpi-hint ok">{{ stats.rco_personas }} en el período</span>
+      {% else %}
+        <span class="ats-kpi-hint">sin registros</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="ats-kpi">
+    <div class="ats-kpi-icon ats-kpi-icon--success"><i class="fas fa-clock"></i></div>
+    <div class="ats-kpi-body">
+      <span class="ats-kpi-val">{{ stats.he_total|floatformat:0 }}</span>
+      <span class="ats-kpi-lbl">HE Total (h) · ciclo</span>
+      <span class="ats-kpi-hint">25% + 35% + 100%</span>
+    </div>
+  </div>
+  <div class="ats-kpi">
+    <div class="ats-kpi-icon ats-kpi-icon--danger"><i class="fas fa-user-times"></i></div>
+    <div class="ats-kpi-body">
+      <span class="ats-kpi-val">{{ stats.faltas }}</span>
+      <span class="ats-kpi-lbl">Faltas / LSG</span>
+      {% if stats.ss_count %}
+        <span class="ats-kpi-hint warn">+ {{ stats.ss_count }} Sin Salida</span>
+      {% else %}
+        <span class="ats-kpi-hint">sin faltas</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── Desglose HE ──────────────────────────────────────────── #}
+<div class="ats-he-row">
+  <div class="ats-he-pill ats-he-pill--25">
+    <span class="ats-he-pill__lbl">
+      <i class="fas fa-clock"></i>HE 25% <small>primeras 2h</small>
+    </span>
+    <span class="ats-he-pill__val">{{ stats.he_25_total|floatformat:1 }} h</span>
+  </div>
+  <div class="ats-he-pill ats-he-pill--35">
+    <span class="ats-he-pill__lbl">
+      <i class="fas fa-clock"></i>HE 35% <small>siguientes</small>
+    </span>
+    <span class="ats-he-pill__val">{{ stats.he_35_total|floatformat:1 }} h</span>
+  </div>
+  <div class="ats-he-pill ats-he-pill--100">
+    <span class="ats-he-pill__lbl">
+      <i class="fas fa-clock"></i>HE 100% <small>feriados</small>
+    </span>
+    <span class="ats-he-pill__val">{{ stats.he_100_total|floatformat:1 }} h</span>
+  </div>
+</div>
+
+{# ── Quick access ──────────────────────────────────────────── #}
+<div class="ats-qa-grid">
+  <a href="{% url 'asistencia_calendario' %}?mes={{ mes_sel }}&anio={{ anio_sel }}" class="ats-qa ats-qa--brand">
+    <div class="ats-qa-ic"><i class="fas fa-calendar-alt"></i></div>
+    <div class="ats-qa-body">
+      <div class="ats-qa-title">Calendario</div>
+      <div class="ats-qa-sub">Grilla diaria</div>
+    </div>
+  </a>
+  <a href="{% url 'asistencia_reportes' %}?mes={{ mes_sel }}&anio={{ anio_sel }}" class="ats-qa ats-qa--danger">
+    <div class="ats-qa-ic"><i class="fas fa-file-pdf"></i></div>
+    <div class="ats-qa-body">
+      <div class="ats-qa-title">Reportes PDF</div>
+      <div class="ats-qa-sub">Individual / masivo</div>
+    </div>
+  </a>
+  <a href="{% url 'asistencia_papeletas' %}" class="ats-qa ats-qa--warn">
+    <div class="ats-qa-ic"><i class="fas fa-file-alt"></i></div>
+    <div class="ats-qa-body">
+      <div class="ats-qa-title">Papeletas</div>
+      <div class="ats-qa-sub">Permisos y licencias</div>
+    </div>
+  </a>
+  <a href="{% url 'asistencia_kpis' %}?mes={{ mes_sel }}&anio={{ anio_sel }}" class="ats-qa ats-qa--info">
+    <div class="ats-qa-ic"><i class="fas fa-chart-line"></i></div>
+    <div class="ats-qa-body">
+      <div class="ats-qa-title">KPIs</div>
+      <div class="ats-qa-sub">Dashboard analítico</div>
+    </div>
+  </a>
+</div>
+
+{# ── Banco de horas + Últimas importaciones ─────────────────── #}
+<div class="ats-section">
+  <div class="ats-section-grid">
+
+    <div class="ats-panel">
+      <div class="ats-panel-h">
+        <span class="ats-panel-h-title">
+          <i class="fas fa-piggy-bank"></i>Banco de horas
+          <span class="ats-panel-h-pill">{{ mes_nombre }}</span>
+        </span>
+        <a href="{% url 'asistencia_banco_horas' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
+           class="ats-panel-btn">Ver todo</a>
+      </div>
+      <div class="ats-panel-body">
+        {% if banco_stats.personas %}
+        <ul class="ats-banco-list">
+          <li><span class="lbl">Personas con banco</span><span class="val">{{ banco_stats.personas }}</span></li>
+          <li><span class="lbl">Saldo total</span><span class="val val--success">{{ banco_stats.saldo_total|floatformat:1 }} h</span></li>
+          <li><span class="lbl">Acum. HE 25%</span><span class="val val--warn">{{ banco_stats.acumulado_25|floatformat:1 }} h</span></li>
+          <li><span class="lbl">Acum. HE 35%</span><span class="val val--warn">{{ banco_stats.acumulado_35|floatformat:1 }} h</span></li>
+          <li><span class="lbl">Ya compensadas</span><span class="val val--danger">
+              {% if banco_stats.compensado %}-{{ banco_stats.compensado|floatformat:1 }} h{% else %}0 h{% endif %}
+          </span></li>
+        </ul>
+        {% else %}
+        <div class="ats-empty">
+          <i class="fas fa-inbox"></i>
+          Sin banco de horas para<br>{{ mes_nombre }} {{ anio_sel }}
         </div>
+        {% endif %}
+      </div>
     </div>
+
+    <div class="ats-panel">
+      <div class="ats-panel-h">
+        <span class="ats-panel-h-title">
+          <i class="fas fa-history"></i>Últimas importaciones
+        </span>
+        <a href="{% url 'asistencia_importar' %}" class="ats-panel-btn">
+          <i class="fas fa-plus"></i> Nueva
+        </a>
+      </div>
+      <div class="ats-panel-body">
+        {% if ultimas_imports %}
+        <div class="ats-table-card" id="atsTableCard">
+          <div class="ats-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Tipo</th>
+                  <th>Período</th>
+                  <th class="right">Registros</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for imp in ultimas_imports %}
+                <tr>
+                  <td class="mono">{{ imp.id }}</td>
+                  <td><span class="ats-estado ats-estado--neutral">{{ imp.tipo }}</span></td>
+                  <td class="mono">
+                    {% if imp.periodo_inicio %}
+                      {{ imp.periodo_inicio|date:"d/m/Y" }} – {{ imp.periodo_fin|date:"d/m/Y" }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="right mono">
+                    <strong style="color:#047857;">{{ imp.total_registros }}</strong>
+                    {% if imp.registros_error %}
+                      <span style="color:#b91c1c;">({{ imp.registros_error }} err)</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if imp.estado == 'COMPLETADO' %}
+                      <span class="ats-estado ats-estado--ok">OK</span>
+                    {% elif imp.estado == 'COMPLETADO_CON_ERRORES' %}
+                      <span class="ats-estado ats-estado--warn">Errores</span>
+                    {% elif imp.estado == 'EN_PROCESO' %}
+                      <span class="ats-estado ats-estado--proc">Proc.</span>
+                    {% elif imp.estado == 'FALLIDO' %}
+                      <span class="ats-estado ats-estado--err">Fallido</span>
+                    {% else %}
+                      <span class="ats-estado ats-estado--neutral">{{ imp.estado }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="mono">{{ imp.creado_en|date:"d/m H:i" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="ats-empty">
+          <i class="fas fa-inbox"></i>
+          Sin importaciones aún.<br>
+          <a href="{% url 'asistencia_importar' %}" style="color:#0F766E;font-weight:600;">Importar ahora →</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# ── Alertas de Cierre ───────────────────────────────────── #}
+{% if alertas %}
+<div class="ats-alerts">
+  <div class="ats-panel-h" style="background:#FFFBEB;border-bottom-color:#FDE68A;">
+    <span class="ats-panel-h-title" style="color:#92400e;">
+      <i class="fas fa-exclamation-triangle" style="color:#b45309;"></i>Alertas para cierre de planilla
+      <span class="ats-panel-h-pill" style="background:#FDE68A;color:#92400e;">{{ alertas|length }}</span>
+    </span>
+    <a href="{% url 'asistencia_exportar_validacion' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
+       class="ats-panel-btn" style="background:#FFFBEB;border-color:#FDE68A;color:#92400e;">
+      <i class="fas fa-download"></i> Reporte validación
+    </a>
+  </div>
+  <div class="ats-alerts-grid">
+    {% for alerta in alertas %}
+    <a href="{{ alerta.url }}" class="ats-alert {% if alerta.tipo == 'danger' %}ats-alert--danger{% elif alerta.tipo == 'info' %}ats-alert--info{% endif %}">
+      <i class="fas {{ alerta.icono }}"></i>
+      <div class="ats-alert-body">
+        <div class="ats-alert-title">{{ alerta.titulo }}</div>
+        <div class="ats-alert-sub">{{ alerta.detalle }}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
 </div>
 {% endif %}
 
-<!-- ── Accesos rápidos ────────────────────────────────────────────────── -->
-<div class="card tareo-card">
-    <div class="card-header py-2"><strong><i class="fas fa-th-large me-2"></i>Accesos Rápidos</strong></div>
-    <div class="card-body pt-2 pb-3">
-        <div class="d-flex gap-2 flex-wrap mb-2">
-            <span class="text-muted small fw-semibold align-self-center" style="min-width:80px">Vistas</span>
-            <a href="{% url 'asistencia_staff' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
-               class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-table me-1"></i>STAFF Mensual
-            </a>
-            <a href="{% url 'asistencia_rco' %}" class="btn btn-outline-info btn-sm">
-                <i class="fas fa-hard-hat me-1"></i>Detalle RCO
-            </a>
-            <a href="{% url 'asistencia_banco_horas' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
-               class="btn btn-outline-success btn-sm">
-                <i class="fas fa-piggy-bank me-1"></i>Banco de Horas
-            </a>
-            <a href="{% url 'asistencia_kpis' %}" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-chart-line me-1"></i>KPIs
-            </a>
-        </div>
-        <div class="d-flex gap-2 flex-wrap mb-2">
-            <span class="text-muted small fw-semibold align-self-center" style="min-width:80px">Importar</span>
-            <a href="{% url 'asistencia_importar_synkro' %}" class="btn btn-outline-success btn-sm">
-                <i class="fas fa-sync me-1"></i>Synkro
-            </a>
-            <a href="{% url 'asistencia_importar_sunat' %}" class="btn btn-outline-warning btn-sm">
-                <i class="fas fa-file-alt me-1"></i>SUNAT TR5
-            </a>
-            <a href="{% url 'asistencia_importar_s10' %}" class="btn btn-outline-info btn-sm">
-                <i class="fas fa-file-excel me-1"></i>S10
-            </a>
-            <a href="{% url 'asistencia_importar' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-file-upload me-1"></i>Excel Genérico
-            </a>
-        </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <span class="text-muted small fw-semibold align-self-center" style="min-width:80px">Exportar</span>
-            <a href="{% url 'asistencia_exportar_s10' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
-               class="btn btn-outline-dark btn-sm">
-                <i class="fas fa-file-download me-1"></i>Carga S10
-            </a>
-            <a href="{% url 'asistencia_exportar_cierre' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
-               class="btn btn-outline-dark btn-sm">
-                <i class="fas fa-file-export me-1"></i>Reporte Cierre
-            </a>
-            <a href="{% url 'asistencia_exportar_faltas' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
-               class="btn btn-outline-danger btn-sm">
-                <i class="fas fa-user-times me-1"></i>Faltas
-            </a>
-            <a href="{% url 'asistencia_exportar_planilla' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
-               class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-table me-1"></i>Planilla S10
-            </a>
-            <a href="{% url 'asistencia_exportar_validacion' %}?anio={{ anio_sel }}&mes={{ mes_sel }}"
-               class="btn btn-outline-secondary btn-sm" style="border-color:#7c3aed;color:#7c3aed">
-                <i class="fas fa-shield-alt me-1"></i>Validación
-            </a>
-            <a href="{% url 'asistencia_parametros' %}" class="btn btn-outline-dark btn-sm">
-                <i class="fas fa-sliders-h me-1"></i>Parámetros
-            </a>
-            <a href="{% url 'asistencia_configuracion' %}" class="btn btn-outline-dark btn-sm">
-                <i class="fas fa-cogs me-1"></i>Configuración
-            </a>
-        </div>
-    </div>
+{# ── Quick links footer ───────────────────────────────────── #}
+<div class="ats-links">
+  <div class="ats-links-row">
+    <span class="ats-links-lbl">Vistas</span>
+    <a href="{% url 'asistencia_staff' %}?mes={{ mes_sel }}&anio={{ anio_sel }}" class="ats-link ats-link--brand">
+      <i class="fas fa-table"></i>STAFF mensual
+    </a>
+    <a href="{% url 'asistencia_rco' %}" class="ats-link ats-link--info">
+      <i class="fas fa-hard-hat"></i>Detalle RCO
+    </a>
+    <a href="{% url 'asistencia_banco_horas' %}?anio={{ anio_sel }}&mes={{ mes_sel }}" class="ats-link ats-link--brand">
+      <i class="fas fa-piggy-bank"></i>Banco de horas
+    </a>
+    <a href="{% url 'asistencia_kpis' %}" class="ats-link ats-link--info">
+      <i class="fas fa-chart-line"></i>KPIs
+    </a>
+  </div>
+  <div class="ats-links-row">
+    <span class="ats-links-lbl">Importar</span>
+    <a href="{% url 'asistencia_importar_synkro' %}" class="ats-link ats-link--brand">
+      <i class="fas fa-sync"></i>Synkro
+    </a>
+    <a href="{% url 'asistencia_importar_sunat' %}" class="ats-link ats-link--warn">
+      <i class="fas fa-file-alt"></i>SUNAT TR5
+    </a>
+    <a href="{% url 'asistencia_importar_s10' %}" class="ats-link ats-link--info">
+      <i class="fas fa-file-excel"></i>S10
+    </a>
+    <a href="{% url 'asistencia_importar' %}" class="ats-link">
+      <i class="fas fa-file-upload"></i>Excel genérico
+    </a>
+  </div>
+  <div class="ats-links-row">
+    <span class="ats-links-lbl">Exportar</span>
+    <a href="{% url 'asistencia_exportar_s10' %}?anio={{ anio_sel }}&mes={{ mes_sel }}" class="ats-link">
+      <i class="fas fa-file-download"></i>Carga S10
+    </a>
+    <a href="{% url 'asistencia_exportar_cierre' %}?anio={{ anio_sel }}&mes={{ mes_sel }}" class="ats-link">
+      <i class="fas fa-file-export"></i>Reporte cierre
+    </a>
+    <a href="{% url 'asistencia_exportar_faltas' %}?anio={{ anio_sel }}&mes={{ mes_sel }}" class="ats-link ats-link--danger">
+      <i class="fas fa-user-times"></i>Faltas
+    </a>
+    <a href="{% url 'asistencia_exportar_planilla' %}?anio={{ anio_sel }}&mes={{ mes_sel }}" class="ats-link ats-link--brand">
+      <i class="fas fa-table"></i>Planilla S10
+    </a>
+    <a href="{% url 'asistencia_exportar_validacion' %}?anio={{ anio_sel }}&mes={{ mes_sel }}" class="ats-link" style="border-color:#7c3aed;color:#7c3aed;">
+      <i class="fas fa-shield-alt"></i>Validación
+    </a>
+    <a href="{% url 'asistencia_parametros' %}" class="ats-link">
+      <i class="fas fa-sliders-h"></i>Parámetros
+    </a>
+    <a href="{% url 'asistencia_configuracion' %}" class="ats-link">
+      <i class="fas fa-cogs"></i>Configuración
+    </a>
+  </div>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// ── Botón Sync Synkro en el dashboard de asistencia ─────────────────────
+// ── Density segmented control (handoff) ─────────────────────
+(function() {
+  const card = document.getElementById('atsTableCard');
+  const densityBtns = document.querySelectorAll('.ats-density button[data-density]');
+  if (!densityBtns.length) return;
+
+  function setDensity(d) {
+    if (card) {
+      card.classList.remove('density-compact', 'density-regular', 'density-comfort');
+      card.classList.add('density-' + d);
+    }
+    densityBtns.forEach(b => b.classList.toggle('is-active', b.dataset.density === d));
+  }
+
+  const saved = localStorage.getItem('harmoni_ats_density') || 'regular';
+  setDensity(saved);
+
+  densityBtns.forEach(b => {
+    b.addEventListener('click', function() {
+      const d = this.dataset.density;
+      setDensity(d);
+      localStorage.setItem('harmoni_ats_density', d);
+    });
+  });
+})();
+
+// ── Botón Sync Synkro en el dashboard de asistencia ─────────
 (function() {
   const btn = document.getElementById('btnSynkroSyncDash');
   const status = document.getElementById('synkroStatusDash');
@@ -506,20 +872,19 @@
     fetch('{% url "synkro_sync_status" %}')
       .then(r => r.json())
       .then(d => {
-        if (!d.has_log) { status.textContent = 'Sin sync aún'; return; }
+        if (!d.has_log) { status.textContent = 'sin sync aún'; return; }
         const m = d.metricas || {};
         const cambios = (m.papeletas_creadas||0) + (m.papeletas_actualizadas||0)
                       + (m.registros_tareo_creados||0) + (m.registros_tareo_actualizados||0);
-        let icon = 'fa-check-circle', color = 'rgba(255,255,255,.85)';
-        if (d.estado === 'EN_PROGRESO') { icon = 'fa-spinner fa-spin'; color = '#fef9c3'; }
-        else if (d.estado === 'ERROR')  { icon = 'fa-exclamation-triangle'; color = '#fecaca'; }
-        status.style.color = color;
+        status.classList.remove('is-err', 'is-prog');
+        let icon = 'fa-check-circle';
+        if (d.estado === 'EN_PROGRESO') { icon = 'fa-spinner fa-spin'; status.classList.add('is-prog'); }
+        else if (d.estado === 'ERROR')  { icon = 'fa-exclamation-triangle'; status.classList.add('is-err'); }
         if (d.estado === 'EN_PROGRESO') {
-          status.innerHTML = `<i class="fas ${icon} me-1"></i>Sincronizando…`;
+          status.innerHTML = `<i class="fas ${icon}"></i>Sincronizando…`;
           setTimeout(refreshStatus, 3000);
         } else {
-          status.innerHTML = `<i class="fas ${icon} me-1"></i>` +
-            `${fmtRel(d.iniciado_en)} · ${cambios} cambios`;
+          status.innerHTML = `<i class="fas ${icon}"></i>${fmtRel(d.iniciado_en)} · ${cambios} cambios`;
         }
       })
       .catch(() => { status.textContent = ''; });
@@ -536,22 +901,21 @@
       .then(r => r.json())
       .then(d => {
         if (!d.ok) {
-          status.style.color = '#fecaca';
-          status.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>${d.error || 'Error'}`;
+          status.classList.add('is-err');
+          status.innerHTML = `<i class="fas fa-exclamation-triangle"></i>${d.error || 'Error'}`;
           return;
         }
         setTimeout(refreshStatus, 1500);
       })
       .catch(() => {
-        status.style.color = '#fecaca';
-        status.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error de conexión';
+        status.classList.add('is-err');
+        status.innerHTML = '<i class="fas fa-exclamation-triangle"></i>Error de conexión';
       })
       .finally(() => {
         setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 2000);
       });
   });
 
-  // Cargar estado al inicio + refresh cada 60s
   refreshStatus();
   setInterval(refreshStatus, 60000);
 })();
