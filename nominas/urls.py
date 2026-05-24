@@ -59,6 +59,8 @@ urlpatterns = [
                                       name='onboarding_validador_pdf'),
     path('mi-dia/',                   views_mi_dia.mi_dia_nominas,
                                       name='mi_dia_nominas'),
+    path('mi-dia-v2/',                views_mi_dia.mi_dia_v2,
+                                      name='mi_dia_v2'),
     path('workflow-mes/',             views_workflow_mes.workflow_mes,
                                       name='workflow_mes'),
     path('anomalias/<int:pk>/',       views_anomalias.anomalias_periodo,

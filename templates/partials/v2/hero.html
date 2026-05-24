@@ -1,0 +1,33 @@
+{% comment %}
+  Hero header V2 — saludo editorial + título grande + meta row.
+
+  Uso:
+    {% include 'partials/v2/hero.html' with greet="Mi día en Harmoni" title="Hola Edwin. Todo bajo control" title_accent="con 3 procesos esperando tu atención" meta_items=meta_items %}
+
+  meta_items: lista de dicts [{label, value, color}] o solo string.
+{% endcomment %}
+
+<section class="hm-hero">
+  {% if greet %}
+    <div class="greet">
+      <span class="hex"></span>{{ greet }}
+    </div>
+  {% endif %}
+  {% if title %}
+    <h1>{{ title }}{% if title_accent %} <span class="accent">{{ title_accent }}</span>{% endif %}</h1>
+  {% endif %}
+  {% if hero_sub %}
+    <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">{{ hero_sub }}</p>
+  {% endif %}
+
+  {% if meta_items %}
+  <div class="meta-row">
+    {% for item in meta_items %}
+      <div class="it">
+        {% if item.color %}<span class="pip" style="background: {{ item.color }};"></span>{% endif %}
+        <span>{{ item.label }}</span> <b>{{ item.value }}</b>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>

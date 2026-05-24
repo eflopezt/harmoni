@@ -1,0 +1,33 @@
+{% comment %}
+  KPI card V2 — número grande, delta opcional, variante "featured" (oscuro).
+
+  Uso:
+    {% include 'partials/v2/kpi.html' with label="Colaboradores" value="224" unit="" delta="+12" delta_dir="up" delta_label="vs mes anterior" featured=True %}
+
+  Parámetros:
+    - label:      texto pequeño arriba
+    - value:      número grande
+    - unit:       opcional (ej "%", "PEN", "/mes")
+    - delta:      texto del delta (ej "+12", "-3.5%")
+    - delta_dir:  "up" o "down"
+    - delta_label: texto secundario del delta
+    - featured:   True → fondo oscuro brand-900
+    - icon_svg:   opcional, HTML SVG en esquina
+{% endcomment %}
+
+<div class="hm-kpi{% if featured %} featured{% endif %}">
+  <div class="label">{{ label }}</div>
+  <div class="num">
+    {{ value }}{% if unit %}<span class="unit">{{ unit }}</span>{% endif %}
+  </div>
+  {% if delta or delta_label %}
+  <div class="row">
+    {% if delta %}
+    <span class="delta {{ delta_dir|default:'up' }}">
+      {% if delta_dir == 'down' %}↓{% else %}↑{% endif %} {{ delta }}
+    </span>
+    {% endif %}
+    {% if delta_label %}<span class="deltaLabel">{{ delta_label }}</span>{% endif %}
+  </div>
+  {% endif %}
+</div>

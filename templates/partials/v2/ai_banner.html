@@ -1,0 +1,23 @@
+{% comment %}
+  AI Banner V2 — banner editorial con icono pill teal.
+
+  Uso:
+    {% include 'partials/v2/ai_banner.html' with ai_title="Tienes 3 cosas que revisar hoy" ai_desc="Onboarding score bajó a 78. Revisa el validador." ai_cta_label="Ver detalle" ai_cta_url="/onboarding/" %}
+{% endcomment %}
+
+{% if ai_title %}
+<div class="hm-ai-banner">
+  <div class="icon-pill">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <path d="M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5zM19 4l.7 2 2 .7-2 .7L19 9.4l-.7-2-2-.7 2-.7zM5 16l.7 2 2 .7-2 .7L5 21.4l-.7-2-2-.7 2-.7z"/>
+    </svg>
+  </div>
+  <div class="body">
+    <div class="t">{{ ai_title }}</div>
+    {% if ai_desc %}<div class="d">{{ ai_desc }}</div>{% endif %}
+  </div>
+  {% if ai_cta_label and ai_cta_url %}
+  <a href="{{ ai_cta_url }}" class="hm-btn-primary" style="white-space:nowrap;">{{ ai_cta_label }}</a>
+  {% endif %}
+</div>
+{% endif %}

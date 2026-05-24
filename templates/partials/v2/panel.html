@@ -1,0 +1,27 @@
+{% comment %}
+  Panel V2 — card grande con header (título + sub + tabs opcionales).
+
+  Uso (con tag):
+    {% with panel_title="Actividad reciente" panel_sub="Últimas 24h" %}
+      {% include 'partials/v2/panel_open.html' %}
+      <!-- contenido aquí -->
+      {% include 'partials/v2/panel_close.html' %}
+    {% endwith %}
+
+  O directamente usar las clases CSS:
+    <div class="hm-panel">
+      <div class="hm-panel-h">
+        <div>
+          <h3>Título</h3>
+          <div class="sub">Subtítulo</div>
+        </div>
+        <div class="tabs">
+          <button class="on">Tab 1</button>
+          <button>Tab 2</button>
+        </div>
+      </div>
+      <div class="hm-panel-b">
+        Contenido...
+      </div>
+    </div>
+{% endcomment %}

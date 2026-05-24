@@ -255,7 +255,17 @@ def build_mi_dia_report(usuario):
 def mi_dia_nominas(request):
     """Dashboard HTML 'Mi Día Nóminas'."""
     ctx = build_mi_dia_report(request.user)
-    return render(request, 'nominas/mi_dia_nominas.html', ctx)
+    # Toggle V2 via ?v2=1 (preview del nuevo design system)
+    template = 'nominas/mi_dia_v2.html' if request.GET.get('v2') == '1' else 'nominas/mi_dia_nominas.html'
+    return render(request, template, ctx)
+
+
+@login_required
+@solo_admin
+def mi_dia_v2(request):
+    """Vista nueva con design system V2 Cockpit."""
+    ctx = build_mi_dia_report(request.user)
+    return render(request, 'nominas/mi_dia_v2.html', ctx)
 
 
 # ─── API JSON ────────────────────────────────────────────────────────

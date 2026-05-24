@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+{# base_v2.html — Layout V2 Cockpit. Extender en lugar de base.html para el diseño nuevo. #}
+
+{% block content %}
+<div class="hm-v2">
+  <div style="background:var(--hm-canvas);min-height:calc(100vh - 60px);">
+
+    {# Hero (opcional) — saludo + título grande #}
+    {% block hero %}{% endblock %}
+
+    {# AI banner (opcional) — banner editorial con CTA #}
+    {% block ai_banner %}{% endblock %}
+
+    {# Body — KPIs, panels, contenido principal #}
+    <div class="hm-body">
+      {% block body %}{% endblock %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
