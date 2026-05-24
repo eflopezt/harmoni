@@ -1,6 +1,9 @@
 # Snapshots de conceptos (generados por manage.py snapshot_conceptos)
 snapshots/
 
+# Provisioning de clientes Enterprise (CONTIENE SECRETS — nunca commitear)
+provisioning/
+
 # Python
 __pycache__/
 *.py[cod]

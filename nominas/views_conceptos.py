@@ -28,15 +28,35 @@ from .signals_audit import clear_audit_context, set_audit_context
 
 
 def _set_audit_from_request(request, accion_override=None):
-    """Inyecta usuario + IP + UA + URL para que los signals tengan contexto."""
+    """Inyecta usuario + IP + UA + URL + empresa para que los signals tengan contexto."""
     ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() \
          or request.META.get('REMOTE_ADDR') or None
+
+    # Detectar empresa del usuario (multi-tenant, ADR-001)
+    empresa = None
+    if request.user.is_authenticated:
+        try:
+            from personal.models import Personal
+            p = Personal.objects.filter(usuario=request.user).select_related('empresa').first()
+            if p:
+                empresa = p.empresa
+        except Exception:
+            pass
+        # Fallback: primera empresa para superuser sin Personal asociado
+        if not empresa and request.user.is_superuser:
+            try:
+                from empresas.models import Empresa
+                empresa = Empresa.objects.order_by('pk').first()
+            except Exception:
+                pass
+
     set_audit_context(
         usuario=request.user if request.user.is_authenticated else None,
         ip=ip,
         user_agent=request.META.get('HTTP_USER_AGENT', '')[:300],
         contexto=request.path[:200],
         accion_override=accion_override,
+        empresa=empresa,
     )
 
 
@@ -869,7 +889,7 @@ def conceptos_audit_log(request):
     from datetime import timedelta
     from django.utils import timezone
 
-    logs = ConceptoAuditLog.objects.select_related('concepto', 'usuario').order_by('-fecha')
+    logs = ConceptoAuditLog.objects.select_related('concepto', 'usuario', 'empresa').order_by('-fecha')
 
     # Filtros
     codigo = request.GET.get('codigo', '').strip()
@@ -883,6 +903,10 @@ def conceptos_audit_log(request):
     usuario_q = request.GET.get('usuario', '').strip()
     if usuario_q:
         logs = logs.filter(usuario_username__icontains=usuario_q)
+
+    empresa_filter = request.GET.get('empresa', '').strip()
+    if empresa_filter and empresa_filter.isdigit():
+        logs = logs.filter(empresa_id=int(empresa_filter))
 
     dias = request.GET.get('dias', '').strip()
     desde = None
@@ -913,6 +937,14 @@ def conceptos_audit_log(request):
         .values_list('accion', 'n')
     )
 
+    # Lista de empresas para el filtro
+    empresas_list = []
+    try:
+        from empresas.models import Empresa
+        empresas_list = list(Empresa.objects.values('id', 'razon_social').order_by('razon_social'))
+    except Exception:
+        pass
+
     return render(request, 'nominas/conceptos/audit_log.html', {
         'rows': rows,
         'total_filtrados': total_filtrados,
@@ -921,6 +953,8 @@ def conceptos_audit_log(request):
         'accion': accion,
         'usuario_q': usuario_q,
         'dias': dias,
+        'empresa_filter': empresa_filter,
+        'empresas_list': empresas_list,
         'acciones': ConceptoAuditLog.ACCION_CHOICES,
         'stats_accion': stats_accion,
         'total_logs': ConceptoAuditLog.objects.count(),

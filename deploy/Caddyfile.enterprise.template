@@ -1,0 +1,48 @@
+# =============================================================================
+# Caddyfile — Subdomain por cliente Enterprise (ADR-001)
+# Agregar este bloque al Caddyfile principal por cada cliente enterprise.
+#
+# Sustituir:
+#   __CLIENT_SLUG__   → ej: edo
+#   __CLIENT_PORT__   → puerto del container (ej: 8001)
+#   __CUSTOM_DOMAIN__ → ej: harmoni.grupoedo.pe (opcional, vacío = solo subdominio)
+# =============================================================================
+
+__CLIENT_SLUG__.harmoni.pe {
+    reverse_proxy localhost:__CLIENT_PORT__ {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Harmoni-Client __CLIENT_SLUG__
+    }
+
+    # Headers de seguridad
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Logs separados por cliente
+    log {
+        output file /var/log/caddy/harmoni-__CLIENT_SLUG__.access.log
+        format console
+    }
+
+    # Compression
+    encode gzip zstd
+
+    # Limits
+    request_body {
+        max_size 50MB
+    }
+}
+
+# Dominio personalizado opcional (cliente paga DNS propio)
+# __CUSTOM_DOMAIN__ {
+#     reverse_proxy localhost:__CLIENT_PORT__ {
+#         header_up X-Harmoni-Client __CLIENT_SLUG__
+#     }
+# }

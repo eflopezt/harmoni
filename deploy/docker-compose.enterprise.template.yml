@@ -1,0 +1,118 @@
+# =============================================================================
+# Harmoni ERP — Cliente Enterprise (Docker dedicado por cliente)
+# ADR-001 — Arquitectura híbrida multi-tenant + Docker enterprise
+#
+# Variables a sustituir antes del deploy:
+#   __CLIENT_SLUG__   → ej: edo, mayimbe, stiler (lowercase, ascii)
+#   __CLIENT_PORT__   → puerto único en el host (ej: 8001, 8002, etc.)
+#   __DB_NAME__       → ej: harmoni_edo_db
+#   __DB_USER__       → ej: harmoni_edo
+#   __DB_PASSWORD__   → password único generado
+#
+# Provisioning:
+#   python manage.py provision_enterprise_client <slug> --port=8001 [--apply]
+#
+# Layout en VPS:
+#   /opt/harmoni-clients/<slug>/
+#     ├── .env.<slug>
+#     ├── docker-compose.yml         (este archivo, ya sustituido)
+#     ├── app/                       (código clonado del repo, read-only)
+#     ├── staticfiles/
+#     ├── media/                     (UPLOADS del cliente — backup separado)
+#     ├── logs/
+#     └── snapshots/                 (snapshots conceptos nightly)
+# =============================================================================
+
+services:
+  web:
+    build:
+      context: __APP_PATH__
+      dockerfile: Dockerfile
+    container_name: harmoni-__CLIENT_SLUG__-web
+    restart: unless-stopped
+    env_file: .env.__CLIENT_SLUG__
+    # IMPORTANTE: cada cliente con su propio puerto en el host
+    # (NO usamos network_mode: host para evitar choques entre clientes)
+    ports:
+      - "__CLIENT_PORT__:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - HARMONI_CLIENT_SLUG=__CLIENT_SLUG__
+      - HARMONI_TIER=ENTERPRISE
+    volumes:
+      - /opt/harmoni-clients/__CLIENT_SLUG__/app:/app:ro
+      - /opt/harmoni-clients/__CLIENT_SLUG__/staticfiles:/app/staticfiles
+      - /opt/harmoni-clients/__CLIENT_SLUG__/media:/app/media
+      - /opt/harmoni-clients/__CLIENT_SLUG__/logs:/app/logs
+      - /opt/harmoni-clients/__CLIENT_SLUG__/snapshots:/app/snapshots
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import http.client; c=http.client.HTTPConnection('localhost',8000,timeout=5); c.request('GET','/health/'); r=c.getresponse(); exit(0 if r.status in (200,301,302) else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    command: >
+      gunicorn config.wsgi:application
+        --bind 0.0.0.0:8000
+        --workers 3
+        --threads 2
+        --worker-class gthread
+        --max-requests 1000
+        --max-requests-jitter 50
+        --timeout 300
+        --graceful-timeout 30
+        --preload
+        --access-logfile -
+        --error-logfile -
+        --log-level warning
+    labels:
+      - "harmoni.client=__CLIENT_SLUG__"
+      - "harmoni.tier=enterprise"
+
+  celery:
+    build:
+      context: __APP_PATH__
+      dockerfile: Dockerfile
+    container_name: harmoni-__CLIENT_SLUG__-celery
+    restart: unless-stopped
+    env_file: .env.__CLIENT_SLUG__
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - HARMONI_CLIENT_SLUG=__CLIENT_SLUG__
+    volumes:
+      - /opt/harmoni-clients/__CLIENT_SLUG__/media:/app/media
+      - /opt/harmoni-clients/__CLIENT_SLUG__/logs:/app/logs
+    command: >
+      celery -A config worker
+        --loglevel=info
+        --concurrency=2
+        --autoscale=4,1
+        --max-tasks-per-child=100
+        -Ofair
+        --prefetch-multiplier=1
+    depends_on:
+      web:
+        condition: service_healthy
+    labels:
+      - "harmoni.client=__CLIENT_SLUG__"
+      - "harmoni.tier=enterprise"
+
+  celery-beat:
+    build:
+      context: __APP_PATH__
+      dockerfile: Dockerfile
+    container_name: harmoni-__CLIENT_SLUG__-beat
+    restart: unless-stopped
+    env_file: .env.__CLIENT_SLUG__
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - HARMONI_CLIENT_SLUG=__CLIENT_SLUG__
+    volumes:
+      - /opt/harmoni-clients/__CLIENT_SLUG__/logs:/app/logs
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler --max-interval 300
+    depends_on:
+      web:
+        condition: service_healthy
+    labels:
+      - "harmoni.client=__CLIENT_SLUG__"
+      - "harmoni.tier=enterprise"

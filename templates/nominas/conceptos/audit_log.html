@@ -64,6 +64,14 @@
     <option value="30" {% if dias == '30' %}selected{% endif %}>Últimos 30 días</option>
     <option value="90" {% if dias == '90' %}selected{% endif %}>Últimos 90 días</option>
   </select>
+  {% if empresas_list|length > 1 %}
+  <select name="empresa" class="form-select form-select-sm" style="max-width:200px;">
+    <option value="">Todas las empresas</option>
+    {% for e in empresas_list %}
+      <option value="{{ e.id }}" {% if empresa_filter|stringformat:"s" == e.id|stringformat:"s" %}selected{% endif %}>{{ e.razon_social }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
   <button class="btn btn-sm btn-success" style="background:#0f766e;border-color:#0f766e;">
     <i class="fas fa-filter me-1"></i> Filtrar
   </button>

@@ -14,12 +14,10 @@ from django.views.decorators.http import require_GET
 @cache_page(60)  # cache 1 min — datos cambian poco y queremos blindar de abuso
 def nominas_health(request):
     """
-    Endpoint sin auth con métricas agregadas:
-    - status global (ok/warn/critico)
-    - score onboarding
-    - conceptos activos count
-    - boletas firmadas %
-    - últimos cambios (count)
+    Endpoint sin auth con métricas agregadas.
+
+    Acepta ?empresa=<id> para filtrar a una empresa específica (multi-tenant, ADR-001).
+    Sin parámetro: métricas globales del sistema.
 
     NO devuelve datos sensibles (sin códigos, nombres, RUC, ni montos).
     """
@@ -27,6 +25,8 @@ def nominas_health(request):
         'status':           'ok',
         'service':          'harmoni-nominas',
         'timestamp':        None,
+        'empresa_id':       None,
+        'empresa_ruc':      None,
         'onboarding_score': None,
         'conceptos':        {'activos': 0, 'total': 0},
         'cambios_7d':       0,
@@ -34,6 +34,19 @@ def nominas_health(request):
 
     from django.utils import timezone
     payload['timestamp'] = timezone.now().isoformat()
+
+    # Filtro por empresa (ADR-001: cada empresa puede tener su propio health)
+    empresa_filter = request.GET.get('empresa', '').strip()
+    empresa = None
+    if empresa_filter and empresa_filter.isdigit():
+        try:
+            from empresas.models import Empresa
+            empresa = Empresa.objects.filter(pk=int(empresa_filter)).first()
+            if empresa:
+                payload['empresa_id'] = empresa.pk
+                payload['empresa_ruc'] = empresa.ruc  # RUC público (registrado en SUNAT)
+        except Exception:
+            pass
 
     # Onboarding score (no expone qué está mal)
     try:
@@ -55,12 +68,15 @@ def nominas_health(request):
     except Exception:
         pass
 
-    # Audit log cambios 7d
+    # Audit log cambios 7d (filtrado por empresa si aplica)
     try:
         from datetime import timedelta
         from .models import ConceptoAuditLog
         desde = timezone.now() - timedelta(days=7)
-        payload['cambios_7d'] = ConceptoAuditLog.objects.filter(fecha__gte=desde).count()
+        qs = ConceptoAuditLog.objects.filter(fecha__gte=desde)
+        if empresa:
+            qs = qs.filter(empresa=empresa)
+        payload['cambios_7d'] = qs.count()
     except Exception:
         pass
 

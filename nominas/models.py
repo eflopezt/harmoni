@@ -751,6 +751,15 @@ class ConceptoAuditLog(models.Model):
         ('CSV_IMPORT', 'Importado desde CSV'),
     ]
 
+    # ¿En qué empresa ocurrió? (multi-tenant filter — ADR-001)
+    empresa        = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        help_text='Empresa del contexto en que se hizo el cambio. Null = global/sistema.',
+    )
+
     # ¿Qué cambió?
     concepto       = models.ForeignKey(
         ConceptoRemunerativo,

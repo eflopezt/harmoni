@@ -21,17 +21,18 @@ from .models import ConceptoAuditLog, ConceptoRemunerativo
 _local = threading.local()
 
 
-def set_audit_context(usuario=None, ip=None, user_agent=None, contexto=None, accion_override=None):
+def set_audit_context(usuario=None, ip=None, user_agent=None, contexto=None, accion_override=None, empresa=None):
     """Llamado desde middleware o vista antes de save/delete."""
     _local.usuario = usuario
     _local.ip = ip
     _local.user_agent = user_agent or ''
     _local.contexto = contexto or ''
     _local.accion_override = accion_override
+    _local.empresa = empresa
 
 
 def clear_audit_context():
-    for attr in ('usuario', 'ip', 'user_agent', 'contexto', 'accion_override'):
+    for attr in ('usuario', 'ip', 'user_agent', 'contexto', 'accion_override', 'empresa'):
         if hasattr(_local, attr):
             delattr(_local, attr)
 
@@ -43,7 +44,34 @@ def _get_ctx():
         'user_agent':    getattr(_local, 'user_agent', ''),
         'contexto':      getattr(_local, 'contexto', ''),
         'accion_override': getattr(_local, 'accion_override', None),
+        'empresa':       getattr(_local, 'empresa', None),
     }
+
+
+def _empresa_actual_del_request(request=None):
+    """Detecta la empresa activa del usuario.
+
+    Estrategia:
+    1. Si está en thread-local (set explícito) → úsala
+    2. Si el usuario tiene Personal.empresa → úsala
+    3. Si no, primera empresa de la DB
+    """
+    ctx_empresa = getattr(_local, 'empresa', None)
+    if ctx_empresa:
+        return ctx_empresa
+    if request and request.user.is_authenticated:
+        try:
+            from personal.models import Personal
+            p = Personal.objects.filter(usuario=request.user).select_related('empresa').first()
+            if p and p.empresa:
+                return p.empresa
+        except Exception:
+            pass
+    try:
+        from empresas.models import Empresa
+        return Empresa.objects.order_by('pk').first()
+    except Exception:
+        return None
 
 
 # ─── Campos a monitorear ──────────────────────────────────────────────
@@ -171,6 +199,7 @@ def concepto_post_save(sender, instance, created, **kwargs):
             ip=ctx['ip'],
             user_agent=(ctx['user_agent'] or '')[:300],
             contexto=(ctx['contexto'] or '')[:200],
+            empresa=ctx['empresa'],
         )
         return
 
@@ -213,6 +242,7 @@ def concepto_post_save(sender, instance, created, **kwargs):
         ip=ctx['ip'],
         user_agent=(ctx['user_agent'] or '')[:300],
         contexto=(ctx['contexto'] or '')[:200],
+        empresa=ctx['empresa'],
     )
 
     # Email alert si cambió un campo crítico (best-effort)
@@ -243,4 +273,5 @@ def concepto_post_delete(sender, instance, **kwargs):
         ip=ctx['ip'],
         user_agent=(ctx['user_agent'] or '')[:300],
         contexto=(ctx['contexto'] or '')[:200],
+        empresa=ctx['empresa'],
     )
