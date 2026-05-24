@@ -33,12 +33,23 @@ logger = logging.getLogger('harmoni.ai.nominas')
 # Heurística simple para enrutar mensajes a tools
 # ──────────────────────────────────────────────────────────────────────
 
+# Orden importante: el primero en la lista gana ante empate de matches.
+# Casos masivos se evalúan antes del reintegro individual.
 INTENTS = [
+    {
+        'name': 'reintegro_masivo',
+        'patterns': [
+            r'(olvid[eé]|no pagu[eé]|no pague|falt[oó] pagar|aument[eo]|subir|incrementar)',
+            r'(todos|a todos los|al personal|al staff|a todos)',
+            r'(sueldo|salario|remuneraci[oó]n)',
+        ],
+        'tool': 'reintegro_masivo_hint',
+    },
     {
         'name': 'consulta_normativa',
         'patterns': [
             r'(cu[aá]ndo|cu[aá]l|qu[eé] es|como funciona|cuando|cual|que es)',
-            r'(gratif|cts|afp|onp|essalud|eps|ir 5ta|vacaciones|liquidaci[oó]n|embargo|subsidio|maternidad|incapacidad|asignaci[oó]n familiar|sueldo m[ií]nimo|rmv|uit)',
+            r'(gratif|cts|afp|onp|essalud|eps|ir 5ta|vacaciones|liquidaci[oó]n|embargo|subsidio|maternidad|incapacidad|asignaci[oó]n familiar|sueldo m[ií]nimo|rmv|uit|reintegro|aumento|retroactivo)',
         ],
         'tool': 'consultar_normativa',
     },
@@ -52,9 +63,9 @@ INTENTS = [
     {
         'name': 'reintegro_sueldo',
         'patterns': [
-            r'(me equivoqu[eé]|equivocado|paragaron|pagu[eé] de m[aá]s|de menos|recibi[oó])',
-            r'(sueldo|remuneraci[oó]n)',
-            r'(\d{3,5})',
+            r'(me equivoqu[eé]|equivocado|paragaron|pagu[eé] de m[aá]s|de menos|recibi[oó]|olvid[eé]|olvide|no pagu[eé]|no pague|falt[oó] pagar|aument[eo]|subir|incrementar)',
+            r'(sueldo|remuneraci[oó]n|salario|paga|aumento|incremento)',
+            r'(\d{2,5})',
         ],
         'tool': 'calcular_reintegro_sueldo',
     },
@@ -215,6 +226,37 @@ def _procesar_heuristico(conversacion, texto_usuario: str, usuario=None, ip=None
 
         respuesta_texto = _formatear_normativa_response(tool_result.get('resultados', []))
 
+    elif intent == 'reintegro_masivo':
+        # Modo heurístico no puede ejecutar la tool masiva sin parámetros estructurados,
+        # pero SÍ puede consultar el RAG y dar una respuesta útil que cite normativa
+        # y dirija al usuario a configurar IA para automatizar.
+        tool_args = {'query': texto_usuario}
+        tool_result = ejecutar_tool('consultar_normativa', tool_args)
+        tools_llamadas.append({
+            'name': 'consultar_normativa', 'args': tool_args, 'result': tool_result,
+        })
+        MensajeAgenteIA.objects.create(
+            conversacion=conversacion, rol='tool',
+            contenido='Búsqueda en normativa peruana',
+            tool_name='consultar_normativa',
+            tool_args=tool_args, tool_result=tool_result,
+        )
+
+        normativa_md = _formatear_normativa_response(tool_result.get('resultados', []))
+        respuesta_texto = (
+            "**Detecté un caso de reintegro retroactivo masivo** (aumento que olvidaste aplicar "
+            "a varios trabajadores, asignación no pagada, etc.).\n\n"
+            "Aquí la normativa aplicable:\n\n"
+            f"{normativa_md}\n\n"
+            "---\n\n"
+            "🤖 **Para que yo calcule el impacto automáticamente** (cuántos trabajadores afectados, "
+            "bruto, neto, costo empresa) y proponga los registros de reintegro en lote, necesito "
+            "que actives la IA en **Configuración → IA**: pega tu API key de Google Gemini "
+            "(gratis en https://aistudio.google.com/apikey) o DeepSeek/OpenAI.\n\n"
+            "Mientras tanto, podés correr manualmente la herramienta `reintegro_masivo` desde el "
+            "shell de Django (también disponible para tu equipo técnico)."
+        )
+
     else:
         # Respuesta general — fallback
         respuesta_texto = (
@@ -226,10 +268,13 @@ def _procesar_heuristico(conversacion, texto_usuario: str, usuario=None, ip=None
             "**Cálculos de reintegros:**\n"
             "- _\"Le pagué S/2500 a Juan cuando era S/3000 en abril, calcula el reintegro\"_\n"
             "- _\"No le pagué la asignación familiar a María por 3 meses\"_\n"
-            "- _\"Tiene 5 horas extra pendientes del mes pasado\"_\n\n"
+            "- _\"Tiene 5 horas extra pendientes del mes pasado\"_\n"
+            "- _\"Olvidé aumentar S/200 a todos el mes pasado\"_ (caso masivo)\n\n"
             "**Datos de planilla:**\n"
             "- _\"Muéstrame la boleta de Pedro de marzo 2026\"_\n"
             "- _\"Lista los reintegros pendientes\"_\n\n"
+            "💡 Para razonamiento avanzado con citas normativas y propuestas automáticas, "
+            "activa tu API key en **Configuración → IA**.\n\n"
             "¿En qué te ayudo?"
         )
 
