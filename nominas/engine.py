@@ -180,6 +180,227 @@ def calcular_prov_gratif(sueldo: Decimal, asig_fam: Decimal) -> Decimal:
     return _redondear((sueldo + asig_fam) / Decimal('6'))
 
 
+# ─── Horas Extra (helpers expuestos públicamente) ──────────────────────
+
+def valor_hora(sueldo_mensual: Decimal, divisor_dias: int = 30, jornada_horas: int = 8) -> Decimal:
+    """
+    Calcula el valor hora ordinario.
+
+    Default: sueldo / 30 días / 8 h. Para jornadas distintas (medio tiempo,
+    construcción civil con 48h semanales, etc.) ajustar parámetros.
+
+    Args:
+        sueldo_mensual: Remuneración mensual base.
+        divisor_dias:   Días del mes para cálculo (default 30 — práctica laboral).
+        jornada_horas:  Horas diarias de jornada legal (default 8).
+    """
+    if sueldo_mensual <= 0 or divisor_dias <= 0 or jornada_horas <= 0:
+        return Decimal('0')
+    return _redondear(Decimal(sueldo_mensual) / Decimal(divisor_dias) / Decimal(jornada_horas))
+
+
+def calcular_he(horas: Decimal, sueldo_mensual: Decimal, tipo: str = 'HE_25',
+                jornada_horas: int = 8) -> Decimal:
+    """
+    Calcula el monto a pagar por horas extra.
+
+    Args:
+        horas:          Cantidad de horas extra del período.
+        sueldo_mensual: Sueldo base mensual.
+        tipo:           'HE_25' (primeras 2h sobretiempo), 'HE_35' (3h+ y
+                        nocturno), 'HE_100' (descanso/feriado), 'HE_50'
+                        (custom convenio mejor).
+        jornada_horas:  Horas diarias jornada legal (default 8).
+
+    Returns:
+        Monto a pagar redondeado a 2 decimales.
+
+    Base legal:
+    - Ley 27671 Art. 10: 25% primeras 2h, 35% siguientes.
+    - DS 004-2006-TR: nocturno (22:00-06:00) recargo 35% sobre RMV nocturna.
+    - DL 713 Art. 9: feriado/domingo trabajado = doble (100% sobretasa).
+    """
+    if horas <= 0 or sueldo_mensual <= 0:
+        return Decimal('0')
+
+    factores = {
+        'HE_25':  Decimal('1.25'),
+        'HE_35':  Decimal('1.35'),
+        'HE_50':  Decimal('1.50'),  # custom convenio mejor que ley
+        'HE_100': Decimal('2.00'),
+    }
+    factor = factores.get(tipo, Decimal('1.25'))
+    vh = valor_hora(sueldo_mensual, jornada_horas=jornada_horas)
+    return _redondear(Decimal(horas) * vh * factor)
+
+
+# ─── Subsidios ESSALUD ─────────────────────────────────────────────────
+
+def calcular_subsidio_incapacidad(
+    sueldo_mensual: Decimal,
+    dias_incapacidad: int,
+) -> dict:
+    """
+    Subsidio por incapacidad temporal — Ley 26790 + Reglamento.
+
+    Reglas:
+    - Días 1-20: empleador paga remuneración íntegra (afecta normal — REMUNERATIVA).
+    - Día 21 hasta máximo 11 meses 10 días: ESSALUD paga subsidio (NO REMUNERATIVO).
+    - Subsidio diario = (rem 12 meses anteriores / 360) — promedio diario.
+      Simplificación: valor_diario = sueldo_mensual / 30.
+
+    Args:
+        sueldo_mensual:   Remuneración promedio del trabajador.
+        dias_incapacidad: Cantidad TOTAL de días de incapacidad.
+
+    Returns:
+        dict con:
+        - dias_empleador, monto_empleador (afecto)
+        - dias_essalud, monto_essalud_subsidio (NO afecto, paga ESSALUD)
+        - total_dias, total_monto
+        - dia_max_essalud (340 días = 11m10d)
+    """
+    if dias_incapacidad <= 0 or sueldo_mensual <= 0:
+        return {
+            'dias_empleador': 0, 'monto_empleador': Decimal('0'),
+            'dias_essalud': 0,  'monto_essalud_subsidio': Decimal('0'),
+            'total_dias': 0,    'total_monto': Decimal('0'),
+        }
+
+    valor_diario = Decimal(sueldo_mensual) / Decimal('30')
+
+    dias_empleador = min(int(dias_incapacidad), 20)
+    monto_empleador = _redondear(valor_diario * Decimal(dias_empleador))
+
+    dias_essalud_potenciales = max(int(dias_incapacidad) - 20, 0)
+    # Tope: 11 meses 10 días = 340 días
+    dias_essalud = min(dias_essalud_potenciales, 340)
+    monto_essalud = _redondear(valor_diario * Decimal(dias_essalud))
+
+    return {
+        'valor_diario':            _redondear(valor_diario),
+        'dias_empleador':          dias_empleador,
+        'monto_empleador':         monto_empleador,
+        'dias_essalud':            dias_essalud,
+        'monto_essalud_subsidio':  monto_essalud,
+        'total_dias':              dias_empleador + dias_essalud,
+        'total_monto':             monto_empleador + monto_essalud,
+        'limite_alcanzado':        dias_essalud_potenciales > 340,
+    }
+
+
+def calcular_subsidio_maternidad(sueldo_mensual: Decimal, dias: int = 98) -> dict:
+    """
+    Subsidio por maternidad — Ley 26790 + Ley 30367.
+
+    98 días de licencia pre y post natal (49+49). Paga ESSALUD.
+    Subsidio diario = promedio remuneraciones últimos 12 meses / 360.
+    Simplificación: sueldo_mensual / 30.
+
+    NO REMUNERATIVO — no afecto a aportes ni descuentos.
+    """
+    if sueldo_mensual <= 0 or dias <= 0:
+        return {'monto': Decimal('0'), 'dias': 0, 'valor_diario': Decimal('0')}
+
+    valor_diario = Decimal(sueldo_mensual) / Decimal('30')
+    monto = _redondear(valor_diario * Decimal(dias))
+
+    return {
+        'valor_diario': _redondear(valor_diario),
+        'dias':         int(dias),
+        'monto':        monto,
+    }
+
+
+# ─── Pensión alimenticia (Art. 648 CPC) ────────────────────────────────
+
+def calcular_pension_alimenticia(
+    rem_total: Decimal,
+    descuentos_legales: Decimal,
+    porcentaje: Decimal,
+) -> dict:
+    """
+    Pensión alimenticia por orden judicial.
+
+    Base de cálculo: remuneración total menos descuentos legales (AFP/ONP, IR).
+    Límite: 60% (Art. 648 CPC).
+
+    Args:
+        rem_total:          Ingresos totales del trabajador.
+        descuentos_legales: AFP/ONP + IR 5ta (descuentos obligatorios).
+        porcentaje:         Porcentaje ordenado por juez (ej: 30 = 30%).
+
+    Returns:
+        dict con base_calculo, monto, porcentaje_aplicado.
+    """
+    rem_total = Decimal(rem_total or 0)
+    descuentos_legales = Decimal(descuentos_legales or 0)
+    porcentaje = min(Decimal(porcentaje or 0), Decimal('60'))  # Tope legal
+
+    base = max(rem_total - descuentos_legales, Decimal('0'))
+    monto = _redondear(base * porcentaje / Decimal('100'))
+
+    return {
+        'base_calculo':        _redondear(base),
+        'porcentaje_aplicado': porcentaje,
+        'monto':               monto,
+        'tope_legal_60_alcanzado': porcentaje >= Decimal('60'),
+    }
+
+
+# ─── Embargo civil (Art. 648 CPC) ──────────────────────────────────────
+
+def calcular_embargo_civil(
+    rem_total: Decimal,
+    rmv: Decimal = None,
+) -> dict:
+    """
+    Embargo civil sobre remuneración — Art. 648 CPC.
+
+    Reglas:
+    - Inembargable hasta 5 URP (5 × RMV) — protege salario mínimo de vida.
+    - Sobre el exceso: hasta 1/3 (33.33%) embargable.
+
+    Para deudas alimentarias el tope sube a 60% — usar calcular_pension_alimenticia
+    en su lugar.
+
+    Returns: dict con inembargable, embargable, monto_max_descontable
+    """
+    rem_total = Decimal(rem_total or 0)
+    rmv_efectivo = Decimal(rmv) if rmv else _get_rmv()
+
+    inembargable = rmv_efectivo * Decimal('5')
+    exceso = max(rem_total - inembargable, Decimal('0'))
+    monto_max = _redondear(exceso / Decimal('3'))
+
+    return {
+        'rem_total':         rem_total,
+        'inembargable':      _redondear(inembargable),
+        'exceso':            _redondear(exceso),
+        'monto_max_embargo': monto_max,
+        'aplica_embargo':    monto_max > 0,
+    }
+
+
+# ─── Bonificación escolaridad ──────────────────────────────────────────
+
+def calcular_bonif_escolaridad(
+    sueldo: Decimal,
+    multiplicador: Decimal = Decimal('1'),
+) -> Decimal:
+    """
+    Bonificación escolaridad (convencional — D.Leg. 728 Art. 8).
+
+    Típicamente 1 sueldo (multiplicador=1). En sector público es típicamente
+    S/400 fijo, en privado es convenido.
+
+    REMUNERATIVO — afecta gratif, CTS, vacaciones.
+    """
+    if sueldo <= 0:
+        return Decimal('0')
+    return _redondear(Decimal(sueldo) * Decimal(multiplicador))
+
+
 def _ir_anual(base_imponible: Decimal, uit: Decimal) -> Decimal:
     """
     Aplica la escala progresiva de IR 5ta a una base imponible anual.
