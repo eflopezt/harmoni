@@ -13,20 +13,21 @@
    ============================================================================= */
 :root {
     /* Layout */
-    --sidebar-width: 260px;
+    --sidebar-width: 248px;        /* handoff V2 Cockpit */
     --topbar-height: 60px;
 
-    /* Sidebar palette — Teal Harmoni */
-    --sidebar-bg: #0d2b27;
-    --sidebar-text: #7fb3ae;
-    --sidebar-text-hover: #e0f7f5;
-    --sidebar-active-bg: #134e4a;
-    --sidebar-active-text: #ffffff;
-    --sidebar-active-accent: #5eead4;
-    --sidebar-section-title: #4a8c86;
+    /* Sidebar palette — V2 Cockpit "claro editorial" (handoff Notion-style) */
+    --sidebar-bg: #ffffff;          /* paper */
+    --sidebar-text: #475569;        /* slate-600 — items label */
+    --sidebar-text-hover: #0F172A;  /* slate-900 — hover */
+    --sidebar-active-bg: #CCFBF1;   /* teal-tint — active highlight */
+    --sidebar-active-text: #064E3B; /* teal-dark — active text */
+    --sidebar-active-accent: #0F766E; /* teal — active accent (icons, dot)  */
+    --sidebar-section-title: #94a3b8; /* slate-400 — section headers */
+    --sidebar-border: #E2E8F0;      /* slate-200 — border-right + separators */
 
     /* Surfaces */
-    --content-bg: #f0fafa;
+    --content-bg: #F4FAF7;          /* canvas — verde sutil del handoff */
     --topbar-bg: #ffffff;
 
     /* Brand / semantic */
@@ -255,12 +256,13 @@ a:hover {
     z-index: 1050;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
+    border-right: 1px solid var(--sidebar-border);
 }
 
 /* ---- Sidebar header (brand) ---- */
 .sidebar-header {
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--sidebar-border);
     flex-shrink: 0;
 }
 
@@ -287,18 +289,19 @@ a:hover {
 }
 
 .sidebar-brand-text {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--sidebar-text-hover);  /* slate-900 sobre sidebar claro */
     line-height: 1.2;
+    letter-spacing: -0.01em;
 }
 
 .sidebar-brand-subtitle {
     display: block;
     font-size: 0.7rem;
     color: var(--text-muted);
-    font-weight: 400;
-    margin-top: 1px;
+    font-weight: 500;
+    margin-top: 2px;
 }
 
 /* ---- Sidebar body (scrollable nav) ---- */
@@ -319,18 +322,18 @@ a:hover {
 }
 
 .sidebar-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.10);
     border-radius: 2px;
 }
 
 .sidebar-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.18);
 }
 
 /* Firefox scrollbar */
 .sidebar-body {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    scrollbar-color: rgba(15, 23, 42, 0.10) transparent;
 }
 
 /* ---- Navigation sections ---- */
@@ -341,9 +344,9 @@ a:hover {
     display: flex;
     flex-shrink: 0;
     padding: 0 0.4rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid var(--sidebar-border);
     gap: 2px;
-    background: rgba(0, 0, 0, 0.12);
+    background: #F8FAFC;  /* slate-50, subtle banding */
 }
 
 .sidebar-tab {
@@ -484,9 +487,9 @@ a:hover {
     letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--sidebar-section-title);
-    opacity: 0.55;
+    opacity: 0.85;
     user-select: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid var(--sidebar-border);
     margin-top: 0.35rem;
 }
 
@@ -520,7 +523,7 @@ a:hover {
 }
 
 .nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(15, 23, 42, 0.04);
     color: var(--sidebar-text-hover);
     text-decoration: none;
 }
@@ -529,7 +532,11 @@ a:hover {
     color: var(--sidebar-active-text);
     background-color: var(--sidebar-active-bg);
     border-left-color: var(--sidebar-active-accent);
-    font-weight: 500;
+    font-weight: 600;
+}
+
+.nav-item.active i {
+    color: var(--sidebar-active-accent);
 }
 
 .nav-item i {
@@ -556,9 +563,10 @@ a:hover {
 
 /* ---- Sidebar footer (user card) ---- */
 .sidebar-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--sidebar-border);
     padding: 0.75rem 1rem;
     flex-shrink: 0;
+    background: #F8FAFC;  /* subtle banding del footer */
 }
 
 .user-card-link {
@@ -573,7 +581,7 @@ a:hover {
 }
 
 .user-card-link:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(15, 23, 42, 0.04);
     color: var(--sidebar-text);
     text-decoration: none;
 }

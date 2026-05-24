@@ -111,12 +111,12 @@
 
     <!-- ── Empresa selector (multi-empresa) ── -->
     {% if empresas_disponibles|length > 1 %}
-    <div class="px-3 pb-2" style="border-bottom:1px solid rgba(255,255,255,0.1);">
+    <div class="px-3 pb-2" style="border-bottom:1px solid var(--sidebar-border);">
       <form method="post" action="{% url 'empresa_seleccionar' %}" id="empresaSelectorForm">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.path }}">
         <select name="empresa_id" class="form-select form-select-sm"
-          style="background:#1a3d38;color:#fff;border-color:rgba(255,255,255,0.2);font-size:11px;"
+          style="background:#F8FAFC;color:var(--sidebar-text-hover);border-color:var(--sidebar-border);font-size:11px;font-weight:500;"
           onchange="this.form.submit()" title="Empresa activa">
           {% for emp in empresas_disponibles %}
           <option value="{{ emp.pk }}"
