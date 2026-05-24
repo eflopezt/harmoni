@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time as dt_time, timedelta
 from decimal import Decimal
 
 from django.db import transaction
@@ -36,6 +36,15 @@ from integraciones.synkro_models import (
 logger = logging.getLogger('asistencia')
 
 CERO = Decimal('0')
+
+# Turno noche — corte de salida que cruza medianoche.
+# Validación: caso DNI 70919188 (LOPEZ TORRE) en Excel manual (plan Q2 2026).
+# Regla: un picado antes de las 05:30 AM se interpreta como SALIDA del día
+# anterior cuando ese día anterior tiene un picado >= 18:00 (entrada nocturna).
+# La heurística del pivot evita falsos positivos con trabajadores diurnos
+# muy tempranos (e.g., panadería entrando 05:00 AM).
+CORTE_TURNO_NOCHE_AM = dt_time(5, 30)
+PIVOT_NOCHE_PM = dt_time(18, 0)
 
 # Tipos de trabajador en Synkro (RH_TipoTrabajador):
 #   2 = Obrero (construcción civil) — NO importar a Harmoni
@@ -450,6 +459,48 @@ def sync_papeletas(cursor_desde: datetime | None,
 # ─────────────────────────────────────────────────────────────────────────
 
 
+def _remapear_turno_noche(
+    grupos: dict[tuple[int, date], list[datetime]],
+) -> int:
+    """Re-agrupa picados de madrugada al día anterior cuando hay evidencia
+    de turno noche.
+
+    Reglas:
+      - Un grupo cuya totalidad de picados son < 05:30 AM es candidato a
+        ser SALIDA del día anterior.
+      - Solo se remapea si el grupo del día anterior ya tiene picados y al
+        menos uno es >= 18:00 (entrada de turno noche evidenciada).
+
+    Muta `grupos` in-place: mueve picados del candidato al día anterior y
+    elimina la clave del candidato. Retorna el número de claves remapeadas.
+
+    Edge case conocido: si en la corrida solo se sincroniza el día N+1
+    (madrugada) y el día N ya estaba sincronizado pero quedó con salida
+    None, este remapeo no lo detecta — habría que ir a BD a buscar el
+    RegistroTareo previo. Mitigación: el sync periódico solapa la ventana
+    (ventana_picados_dias=7 por defecto) así que ambos días vendrán juntos.
+    TODO: agregar lookup BD opcional si se observa que el caso ocurre.
+    """
+    remapear: list[tuple[tuple[int, date], tuple[int, date]]] = []
+    for clave_src, picados_src in grupos.items():
+        if not picados_src:
+            continue
+        if not all(p.time() < CORTE_TURNO_NOCHE_AM for p in picados_src):
+            continue
+        id_personal, fecha_src = clave_src
+        clave_dst = (id_personal, fecha_src - timedelta(days=1))
+        picados_dst = grupos.get(clave_dst)
+        if not picados_dst:
+            continue
+        if not any(p.time() >= PIVOT_NOCHE_PM for p in picados_dst):
+            continue
+        remapear.append((clave_src, clave_dst))
+
+    for src, dst in remapear:
+        grupos[dst].extend(grupos.pop(src))
+    return len(remapear)
+
+
 def sync_picados(cursor_desde: datetime | None,
                  personal_dni_map: dict[int, str],
                  personal_idx: dict[str, int],
@@ -494,6 +545,15 @@ def sync_picados(cursor_desde: datetime | None,
     if not grupos:
         return {'creados': 0, 'actualizados': 0, 'no_encontrados': 0,
                 'omitidos_cerrado': 0, 'max_cursor': max_cursor}
+
+    # Turno noche: re-agrupar picados de madrugada al día anterior cuando
+    # hay evidencia de entrada nocturna. Ver _remapear_turno_noche.
+    remapeos_noche = _remapear_turno_noche(grupos)
+    if remapeos_noche:
+        logger.info(
+            '[sync_picados] turno noche: %d grupos de madrugada remapeados '
+            'al día anterior.', remapeos_noche
+        )
 
     # Caches
     feriados_set = set(
