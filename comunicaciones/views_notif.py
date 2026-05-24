@@ -64,6 +64,8 @@ def _notif_to_dict(n):
         'tipo':     meta.get('tipo_notificacion', 'INFO'),
         'tiempo':   _tiempo_relativo(n.creado_en),
         'creado_en': n.creado_en.isoformat(),
+        'snoozed_until': n.snoozed_until.isoformat() if n.snoozed_until else None,
+        'archivada':     bool(n.archivada_en),
     }
 
 
@@ -74,26 +76,103 @@ def _notif_to_dict(n):
 @login_required
 def notificaciones_json(request):
     """
-    Retorna las últimas 10 notificaciones IN_APP del usuario.
+    Retorna notificaciones IN_APP del usuario según el tab.
     Incluye conteo de no leídas para el badge.
+
+    Query params:
+      tab=todas (default) | no_leidas | snoozed | archivadas
+
+    Reglas:
+      - Tab "todas": excluye snoozed activos y archivadas
+      - Tab "no_leidas": solo PENDIENTE/ENVIADA, excluye snoozed/archivadas
+      - Tab "snoozed": solo las con snoozed_until > now, no archivadas
+      - Tab "archivadas": solo las con archivada_en seteado
     """
+    from django.db.models import Q
+
     personal = _get_personal(request)
     if not personal:
         return JsonResponse({'count': 0, 'items': []})
 
-    qs = Notificacion.objects.filter(
-        destinatario=personal,
-        tipo='IN_APP',
-    ).order_by('-creado_en')[:10]
+    tab = (request.GET.get('tab') or 'todas').lower()
+    now = timezone.now()
 
-    no_leidas = Notificacion.objects.filter(
-        destinatario=personal,
-        tipo='IN_APP',
+    base = Notificacion.objects.filter(destinatario=personal, tipo='IN_APP')
+
+    if tab == 'archivadas':
+        qs = base.filter(archivada_en__isnull=False).order_by('-archivada_en')[:30]
+    elif tab == 'snoozed':
+        qs = base.filter(
+            archivada_en__isnull=True,
+            snoozed_until__gt=now,
+        ).order_by('snoozed_until')[:30]
+    else:
+        # todas / no_leidas: excluir archivadas y snoozed activos
+        qs = base.filter(archivada_en__isnull=True).filter(
+            Q(snoozed_until__isnull=True) | Q(snoozed_until__lte=now)
+        )
+        if tab == 'no_leidas':
+            qs = qs.filter(estado__in=['PENDIENTE', 'ENVIADA'])
+        qs = qs.order_by('-creado_en')[:15]
+
+    # Badge count: siempre no leídas visibles (no snoozed, no archivadas)
+    no_leidas = base.filter(
+        archivada_en__isnull=True,
         estado__in=['PENDIENTE', 'ENVIADA'],
-    ).count()
+    ).filter(Q(snoozed_until__isnull=True) | Q(snoozed_until__lte=now)).count()
 
     items = [_notif_to_dict(n) for n in qs]
-    return JsonResponse({'count': no_leidas, 'items': items})
+    return JsonResponse({'count': no_leidas, 'items': items, 'tab': tab})
+
+
+@login_required
+@require_POST
+def notificacion_snooze(request, pk):
+    """Snooze una notificación. Body o query: ?hours=24 (default 24)."""
+    personal = _get_personal(request)
+    if not personal:
+        return JsonResponse({'ok': False, 'error': 'No personal'}, status=403)
+
+    try:
+        hours = int(request.POST.get('hours') or request.GET.get('hours') or 24)
+        hours = max(1, min(hours, 24 * 30))  # 1h a 30 días
+    except (ValueError, TypeError):
+        hours = 24
+
+    from datetime import timedelta
+    until = timezone.now() + timedelta(hours=hours)
+    updated = Notificacion.objects.filter(
+        pk=pk, destinatario=personal, archivada_en__isnull=True,
+    ).update(snoozed_until=until)
+    return JsonResponse({'ok': bool(updated), 'snoozed_until': until.isoformat(), 'hours': hours})
+
+
+@login_required
+@require_POST
+def notificacion_archive(request, pk):
+    """Archiva una notificación. La oculta del inbox principal."""
+    personal = _get_personal(request)
+    if not personal:
+        return JsonResponse({'ok': False, 'error': 'No personal'}, status=403)
+
+    updated = Notificacion.objects.filter(
+        pk=pk, destinatario=personal,
+    ).update(archivada_en=timezone.now(), snoozed_until=None)
+    return JsonResponse({'ok': bool(updated)})
+
+
+@login_required
+@require_POST
+def notificacion_unarchive(request, pk):
+    """Restaura una notificación archivada al inbox principal."""
+    personal = _get_personal(request)
+    if not personal:
+        return JsonResponse({'ok': False, 'error': 'No personal'}, status=403)
+
+    updated = Notificacion.objects.filter(
+        pk=pk, destinatario=personal, archivada_en__isnull=False,
+    ).update(archivada_en=None)
+    return JsonResponse({'ok': bool(updated)})
 
 
 # ═══════════════════════════════════════════════════════════════

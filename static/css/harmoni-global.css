@@ -300,6 +300,44 @@
   font-variant-numeric: tabular-nums;
 }
 
+.hm-notif-item__actions {
+  display: flex;
+  gap: 4px;
+  align-self: flex-start;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+.hm-notif-item:hover .hm-notif-item__actions {
+  opacity: 1;
+}
+.hm-notif-action {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.hm-notif-action:hover {
+  background: #CCFBF1;
+  color: #064E3B;
+  border-color: #5EEAD4;
+}
+.hm-notif-action[data-act="archive"]:hover {
+  background: #fef3c7; color: #92400e; border-color: #fde68a;
+}
+.hm-notif-action[data-act="snooze"]:hover {
+  background: #ede9fe; color: #5b21b6; border-color: #c4b5fd;
+}
+
 .hm-notif-empty {
   text-align: center;
   padding: 48px 24px;

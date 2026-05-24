@@ -1153,6 +1153,8 @@
               <nav class="hm-notif-tabs" role="tablist">
                 <button class="hm-notif-tab is-active" data-notif-tab="todas" role="tab">Todas</button>
                 <button class="hm-notif-tab" data-notif-tab="no_leidas" role="tab">No leídas</button>
+                <button class="hm-notif-tab" data-notif-tab="snoozed" role="tab">Snoozed</button>
+                <button class="hm-notif-tab" data-notif-tab="archivadas" role="tab">Archivadas</button>
               </nav>
               <div class="hm-notif-list" id="notifList">
                 <div class="hm-notif-empty" id="notifEmpty">
@@ -1606,7 +1608,7 @@
   // Estado en memoria del último fetch
   let lastItems = [];
   let lastCount = 0;
-  let activeTab = 'todas';  // 'todas' | 'no_leidas'
+  let activeTab = 'todas';  // 'todas' | 'no_leidas' | 'snoozed' | 'archivadas'
 
   function renderBadge(count) {
     if (count > 0) {
@@ -1629,38 +1631,104 @@
   }
 
   function renderList() {
-    const items = activeTab === 'no_leidas'
-      ? lastItems.filter(n => !n.leida)
-      : lastItems;
+    // Items vienen del backend ya filtrados por tab — usar tal cual
+    const items = lastItems;
 
     if (!items.length) {
       empty.style.display = 'block';
-      // Quitar items previos pero conservar el empty state
+      // Texto contextual según tab
+      const emptyTexts = {
+        todas:       { icon: 'fa-bell-slash',  text: 'Sin notificaciones' },
+        no_leidas:   { icon: 'fa-check-circle', text: 'Estás al día — sin no leídas' },
+        snoozed:     { icon: 'fa-clock',        text: 'Sin notificaciones snoozed' },
+        archivadas:  { icon: 'fa-box-archive',  text: 'Sin notificaciones archivadas' },
+      };
+      const c = emptyTexts[activeTab] || emptyTexts.todas;
+      empty.innerHTML = '<i class="fas ' + c.icon + '"></i><p>' + c.text + '</p>';
       list.querySelectorAll('.hm-notif-item').forEach(el => el.remove());
       return;
     }
     empty.style.display = 'none';
 
-    // Render: limpiamos y agregamos
     list.querySelectorAll('.hm-notif-item').forEach(el => el.remove());
     items.forEach(n => {
       const a = document.createElement('a');
       a.href = n.url || '#';
       a.className = 'hm-notif-item' + (!n.leida ? ' hm-notif-item--unread' : '');
+
+      // Meta line con snoozed indicator si aplica
+      let metaExtra = '';
+      if (n.snoozed_until && activeTab === 'snoozed') {
+        const until = new Date(n.snoozed_until);
+        const now = new Date();
+        const diffH = Math.max(0, Math.round((until - now) / 36e5));
+        metaExtra = ' · vuelve en ' + (diffH < 24 ? diffH + 'h' : Math.round(diffH/24) + 'd');
+      }
+
+      // Acciones inline según tab
+      let actionsHtml = '';
+      if (activeTab !== 'archivadas') {
+        actionsHtml += '<button class="hm-notif-action" data-act="snooze" title="Snooze 24h"><i class="fas fa-clock"></i></button>';
+        actionsHtml += '<button class="hm-notif-action" data-act="archive" title="Archivar"><i class="fas fa-box-archive"></i></button>';
+      } else {
+        actionsHtml += '<button class="hm-notif-action" data-act="unarchive" title="Restaurar"><i class="fas fa-arrow-rotate-left"></i></button>';
+      }
+
       a.innerHTML = ''
         + '<div class="hm-notif-item__icon" style="background:' + (n.color || '#0d9488') + '22;color:' + (n.color || '#0d9488') + ';">'
         +   '<i class="fas ' + (n.icono || 'fa-bell') + '"></i>'
         + '</div>'
         + '<div class="hm-notif-item__body">'
         +   '<div class="hm-notif-item__title">' + (n.asunto || '') + '</div>'
-        +   '<div class="hm-notif-item__meta">' + (n.tiempo || '') + '</div>'
-        + '</div>';
+        +   '<div class="hm-notif-item__meta">' + (n.tiempo || '') + metaExtra + '</div>'
+        + '</div>'
+        + '<div class="hm-notif-item__actions">' + actionsHtml + '</div>';
+
+      // Click en el item principal (no en acciones) → marca leída + navega
       a.addEventListener('click', function(e) {
+        if (e.target.closest('.hm-notif-action')) return;
         e.preventDefault();
-        marcarLeida(n.id, n.url);
+        if (activeTab !== 'archivadas') {
+          marcarLeida(n.id, n.url);
+        } else if (n.url && n.url !== '#') {
+          window.location.href = n.url;
+        }
       });
+
+      // Handlers de acciones inline
+      a.querySelectorAll('.hm-notif-action').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const act = this.dataset.act;
+          handleAction(act, n.id);
+        });
+      });
+
       list.appendChild(a);
     });
+  }
+
+  function handleAction(act, id) {
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+    const headers = {'X-CSRFToken': csrf ? csrf.value : ''};
+    const url = '/comunicaciones/notificaciones/' + id + '/' + act + '/';
+    fetch(url, { method: 'POST', headers: headers })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          loadNotif();
+          if (window.Harmoni && window.Harmoni.toast) {
+            const msgs = {
+              snooze:    'Notificación postergada 24h',
+              archive:   'Notificación archivada',
+              unarchive: 'Notificación restaurada',
+            };
+            window.Harmoni.toast({ title: msgs[act] || 'OK', kind: 'success' });
+          }
+        }
+      })
+      .catch(() => {});
   }
 
   function renderNotif(items, count) {
@@ -1671,7 +1739,8 @@
   }
 
   function loadNotif() {
-    fetch('{% url "notificaciones_json" %}')
+    const url = '{% url "notificaciones_json" %}?tab=' + encodeURIComponent(activeTab);
+    fetch(url)
       .then(r => r.json())
       .then(d => renderNotif(d.items, d.count))
       .catch(() => {});
@@ -1722,13 +1791,14 @@
     }
   });
 
-  // Tabs
+  // Tabs — al cambiar, refetch (los items ahora vienen del backend filtrados por tab)
   tabs.forEach(t => {
     t.addEventListener('click', function() {
+      if (this.classList.contains('is-active')) return;
       tabs.forEach(x => x.classList.remove('is-active'));
       this.classList.add('is-active');
       activeTab = this.dataset.notifTab;
-      renderList();
+      loadNotif();
     });
   });
 

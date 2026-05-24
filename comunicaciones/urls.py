@@ -43,6 +43,9 @@ urlpatterns = [
     path('notificaciones/json/', views_notif.notificaciones_json, name='notificaciones_json'),
     path('notificaciones/<int:pk>/leer/', views_notif.notificacion_marcar_leida, name='notificacion_marcar_leida'),
     path('notificaciones/leer-todas/', views_notif.notificaciones_marcar_todas, name='notificaciones_marcar_todas'),
+    path('notificaciones/<int:pk>/snooze/', views_notif.notificacion_snooze, name='notificacion_snooze'),
+    path('notificaciones/<int:pk>/archive/', views_notif.notificacion_archive, name='notificacion_archive'),
+    path('notificaciones/<int:pk>/unarchive/', views_notif.notificacion_unarchive, name='notificacion_unarchive'),
 
     # ── API: count no-leídas y recientes (para header bell externo) ──
     path('api/no-leidas/', views_notif.notificaciones_api_count, name='notificaciones_api_count'),

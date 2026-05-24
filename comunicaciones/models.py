@@ -119,6 +119,15 @@ class Notificacion(models.Model):
 
     enviada_en = models.DateTimeField(null=True, blank=True, verbose_name="Enviada en")
     leida_en = models.DateTimeField(null=True, blank=True, verbose_name="Leída en")
+    snoozed_until = models.DateTimeField(
+        null=True, blank=True, verbose_name="Snoozed hasta",
+        help_text="Si está en el futuro, la notificación se oculta del inbox "
+                  "principal hasta esa fecha (tab Snoozed la muestra)."
+    )
+    archivada_en = models.DateTimeField(
+        null=True, blank=True, verbose_name="Archivada en",
+        help_text="Si está seteado, va al tab Archivadas y se excluye del inbox principal."
+    )
     error_detalle = models.TextField(blank=True, verbose_name="Detalle de error")
     metadata = models.JSONField(default=dict, blank=True, verbose_name="Metadatos",
                                 help_text="Datos extra de contexto en formato JSON")
@@ -133,6 +142,8 @@ class Notificacion(models.Model):
             models.Index(fields=['destinatario', 'tipo', 'estado']),
             models.Index(fields=['-creado_en']),
             models.Index(fields=['estado']),
+            models.Index(fields=['destinatario', 'archivada_en']),
+            models.Index(fields=['destinatario', 'snoozed_until']),
         ]
 
     def __str__(self):
