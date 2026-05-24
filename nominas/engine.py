@@ -791,7 +791,8 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     #      - 9.00% si trabajador está en ESSALUD regular (sin EPS)
     #      - 6.75% si trabajador está afiliado a EPS — porque la diferencia (2.25%)
     #        ya está cubierta por el aporte a la EPS particular (Ley 26790 art. 15)
-    tiene_eps = bool(getattr(p.personal, 'tiene_eps', False))
+    _personal_obj = getattr(p, 'personal', None)
+    tiene_eps = bool(getattr(_personal_obj, 'tiene_eps', False)) if _personal_obj else False
     bonif_tasa = BONIF_EXTRAORDINARIA_TASA_EPS if tiene_eps else BONIF_EXTRAORDINARIA_TASA
     bonif_extra = _redondear(gratif * bonif_tasa / Decimal('100'))
 

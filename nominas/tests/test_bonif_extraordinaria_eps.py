@@ -40,10 +40,15 @@ class TestBonifExtraordinariaEPS:
             tiene_eps=tiene_eps,
             asignacion_familiar=False,
         )
-        periodo = PeriodoNomina.objects.create(
-            tipo='GRATIFICACION', anio=2026, mes=7,
-            fecha_inicio=date(2026, 1, 1), fecha_fin=date(2026, 6, 30),
-            estado='BORRADOR', empresa=emp,
+        # Use get_or_create + unique mes per worker dni-hash to avoid UNIQUE conflict
+        # when same test creates multiple registros
+        mes_unique = 7 + (int(dni) % 5)  # 7-11
+        periodo, _ = PeriodoNomina.objects.get_or_create(
+            tipo='GRATIFICACION', anio=2026, mes=mes_unique,
+            defaults={
+                'fecha_inicio': date(2026, 1, 1), 'fecha_fin': date(2026, 6, 30),
+                'estado': 'BORRADOR', 'empresa': emp,
+            },
         )
         # 6 meses completos
         registro = RegistroNomina.objects.create(
