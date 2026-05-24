@@ -14,16 +14,46 @@
     <meta property="og:url" content="https://harmoni.pe">
     <meta property="og:image" content="{% static 'images/brand/png/harmoni-logo-1200.png' %}">
     <link rel="apple-touch-icon" sizes="192x192" href="{% static 'images/brand/png/harmoni-mark-256.png' %}">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="theme-color" content="#0d9488">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{--p:#0f766e;--pd:#0b5e57;--pl:#14b8a6;--ac:#06b6d4;--ac2:#8b5cf6;--dk:#050d0b;--dk2:#0a1a16;
---g50:#f8fafc;--g100:#f1f5f9;--g200:#e2e8f0;--g300:#cbd5e1;--g400:#94a3b8;--g500:#64748b;--g600:#475569;--g700:#334155;--g800:#1e293b;--g900:#0f172a}
+/* Tokens alineados con brand pack oficial Harmoni (--hm-* del design system V2). */
+:root{
+  /* Brand teal — handoff exacto */
+  --p:#0D9488;        /* era #0f766e — ahora --hm-teal oficial */
+  --pd:#064E3B;       /* --hm-teal-dark */
+  --pl:#5EEAD4;       /* --hm-teal-light */
+  --pt:#CCFBF1;       /* --hm-teal-tint */
+  --ac:#0EA5E9;       /* cyan accent secundario */
+  --ac2:#8b5cf6;      /* purple accent (preservado) */
+  --dk:#042F2A;       /* --hm-teal-deep para fondos hero */
+  --dk2:#0d2b27;      /* --hm-brand-900 */
+  /* Acento warm (CTAs destacados) */
+  --acc:#F59E0B;
+  /* Neutros (mantienen sintaxis g50..g900 pero alineados a slate oficial) */
+  --g50:#f8fafc;--g100:#f1f5f9;--g200:#E2E8F0;--g300:#cbd5e1;--g400:#94a3b8;
+  --g500:#64748b;--g600:#475569;--g700:#334155;--g800:#1e293b;--g900:#0F172A;
+  /* Canvas */
+  --canvas:#F4FAF7;   /* --hm-canvas verde sutil */
+  /* Tipo numérica para precios/KPIs */
+  --font-mono:'JetBrains Mono', ui-monospace, monospace;
+}
 html{scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;background:#fff;overflow-x:hidden}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  color:var(--g800);line-height:1.6;background:#fff;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+/* Números en columnas tabulares de la landing (precios, stats) */
+.mono,.price-num,.stat-num{
+  font-family:var(--font-mono);
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-0.02em;
+}
 .ctr{max-width:1200px;margin:0 auto;padding:0 24px}
 
 /* ══ NAV ══ */
@@ -96,7 +126,7 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 .mk-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .mk-kpi{background:rgba(255,255,255,.03);border-radius:10px;padding:14px 12px;border:1px solid rgba(255,255,255,.04)}
 .mk-kpi small{font-size:.5rem;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:1px}
-.mk-kpi div{font-size:1.2rem;font-weight:800;color:#fff;margin-top:2px}
+.mk-kpi div{font-size:1.2rem;font-weight:800;color:#fff;margin-top:2px;font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
 .mk-chart{flex:1;background:rgba(255,255,255,.02);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,.03);position:relative}
 .mk-chart small{font-size:.55rem;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:1px}
 .mk-bars{display:flex;align-items:flex-end;gap:5px;height:90px;margin-top:8px}
@@ -158,7 +188,7 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 .stats{background:linear-gradient(135deg,var(--dk2),var(--pd));padding:64px 0;position:relative;overflow:hidden}
 .stats::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='.5' fill='rgba(255,255,255,0.03)'/%3E%3C/svg%3E")}
 .stats-g{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center;position:relative}
-.stat-n{font-size:3.2rem;font-weight:900;color:#fff;line-height:1;margin-bottom:6px;background:linear-gradient(180deg,#fff 60%,rgba(255,255,255,.5));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-n{font-size:3.2rem;font-weight:900;color:#fff;line-height:1;margin-bottom:6px;background:linear-gradient(180deg,#fff 60%,rgba(255,255,255,.5));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-0.04em}
 .stat-l{font-size:.8rem;color:rgba(255,255,255,.4);font-weight:500}
 
 /* ══ COMPLIANCE ══ */
@@ -178,7 +208,7 @@ body{font-family:'Inter',system-ui,sans-serif;color:var(--g800);line-height:1.6;
 .pr-c.pop:hover{transform:scale(1.02) translateY(-4px)}
 .pr-n{font-size:1rem;font-weight:700;color:var(--g900)}
 .pr-d{font-size:.8rem;color:var(--g500);margin-bottom:20px}
-.pr-a{font-size:2.8rem;font-weight:900;color:var(--g900);letter-spacing:-1px}
+.pr-a{font-size:2.8rem;font-weight:900;color:var(--g900);letter-spacing:-1px;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 .pr-a span{font-size:.82rem;font-weight:500;color:var(--g400);letter-spacing:0}
 .pr-p{font-size:.75rem;color:var(--g400);margin-bottom:24px}
 .pr-l{list-style:none;margin-bottom:28px}
