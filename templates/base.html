@@ -54,6 +54,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/harmoni-v2.css' %}?v=1">
 
+    <!-- Harmoni global overlays: toast system + notif drawer (handoff design) -->
+    <link rel="stylesheet" href="{% static 'css/harmoni-global.css' %}?v=1">
+
     {% block extra_css %}{% endblock %}
     {% if DEMO_MODE %}
     <style>
@@ -1117,8 +1120,8 @@
                 <span class="notification-badge">{{ cambios_pendientes }}</span>
             </a>
             {% endif %}
-            {# Notificaciones in-app — badge animado cuando hay no leídas #}
-            <div class="notif-widget position-relative me-2" id="notifWidget">
+            {# Notificaciones in-app — drawer lateral 420px (handoff design) #}
+            <div class="notif-widget me-2" id="notifWidget">
               <button class="btn btn-link p-1 text-muted position-relative notif-bell-btn"
                       id="notifBtn"
                       title="Notificaciones" style="font-size:1.1rem;">
@@ -1130,26 +1133,35 @@
                              padding:2px 5px;font-weight:700;
                              box-shadow:0 1px 3px rgba(220,38,38,.4);">0</span>
               </button>
-              <div class="notif-dropdown shadow-lg" id="notifDropdown" style="display:none;
-                   position:absolute;right:0;top:calc(100% + 8px);width:340px;
-                   background:#fff;border:1px solid #e2e8f0;border-radius:10px;z-index:1050;overflow:hidden;">
-                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
-                  <span class="fw-semibold" style="font-size:.9rem;">Notificaciones</span>
-                  <button class="btn btn-link btn-sm p-0 text-muted" id="btnMarcarTodas"
-                          style="font-size:.75rem;">Marcar todas le&#237;das</button>
-                </div>
-                <div id="notifList" style="max-height:340px;overflow-y:auto;">
-                  <div class="text-center py-4 text-muted" style="font-size:.85rem;" id="notifEmpty">
-                    <i class="fas fa-bell-slash opacity-25 fa-2x mb-2 d-block"></i>Sin notificaciones
-                  </div>
-                </div>
-                <div class="border-top text-center py-2">
-                  <a href="{% url 'mis_comunicados_com' %}" style="font-size:.8rem;" class="text-muted text-decoration-none">
-                    Ver todas las comunicaciones
-                  </a>
+            </div>
+            {# Drawer + backdrop — fuera del flow del topbar, se anima desde el right #}
+            <div class="hm-notif-backdrop" id="notifBackdrop" aria-hidden="true"></div>
+            <aside class="hm-notif-drawer" id="notifDrawer"
+                   role="dialog" aria-labelledby="notifDrawerTitle" aria-hidden="true">
+              <header class="hm-notif-drawer__header">
+                <h2 class="hm-notif-drawer__title" id="notifDrawerTitle">Bandeja de entrada</h2>
+                <span class="hm-notif-drawer__count" id="notifDrawerCount" style="display:none;">0</span>
+                <button class="hm-notif-drawer__close" id="notifDrawerClose"
+                        aria-label="Cerrar bandeja"
+                        title="Cerrar (Esc)">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </header>
+              <nav class="hm-notif-tabs" role="tablist">
+                <button class="hm-notif-tab is-active" data-notif-tab="todas" role="tab">Todas</button>
+                <button class="hm-notif-tab" data-notif-tab="no_leidas" role="tab">No leídas</button>
+              </nav>
+              <div class="hm-notif-list" id="notifList">
+                <div class="hm-notif-empty" id="notifEmpty">
+                  <i class="fas fa-bell-slash"></i>
+                  <p>Sin notificaciones</p>
                 </div>
               </div>
-            </div>
+              <footer class="hm-notif-drawer__footer">
+                <a href="{% url 'mis_comunicados_com' %}" class="hm-link">Ver todas las comunicaciones</a>
+                <button class="hm-notif-drawer__btn-marcar" id="btnMarcarTodas">Marcar todas leídas</button>
+              </footer>
+            </aside>
             <!-- Dark Mode Toggle -->
             <button class="btn btn-link p-1 text-muted" id="darkModeToggle"
                     title="Modo oscuro" style="font-size:1rem;line-height:1;border:none;background:none;">
@@ -1574,24 +1586,33 @@
 </script>
 
 <script>
-// ── Notificaciones in-app ──────────────────────────────────────────
+// ── Notificaciones in-app — drawer 420px (handoff design) ──────────
 (function() {
-  const btn = document.getElementById('notifBtn');
-  const dropdown = document.getElementById('notifDropdown');
-  const badge = document.getElementById('notifBadge');
-  const list = document.getElementById('notifList');
-  const empty = document.getElementById('notifEmpty');
+  const btn      = document.getElementById('notifBtn');
+  const drawer   = document.getElementById('notifDrawer');
+  const backdrop = document.getElementById('notifBackdrop');
+  const badge    = document.getElementById('notifBadge');
+  const list     = document.getElementById('notifList');
+  const empty    = document.getElementById('notifEmpty');
+  const countEl  = document.getElementById('notifDrawerCount');
+  const closeBtn = document.getElementById('notifDrawerClose');
+  const tabs     = document.querySelectorAll('.hm-notif-tab');
 
-  if (!btn) return;
+  if (!btn || !drawer) return;
 
-  function renderNotif(items, count) {
+  // Estado en memoria del último fetch
+  let lastItems = [];
+  let lastCount = 0;
+  let activeTab = 'todas';  // 'todas' | 'no_leidas'
+
+  function renderBadge(count) {
     if (count > 0) {
       badge.textContent = count > 9 ? '9+' : count;
       badge.style.display = 'block';
-      // Si es la primera carga y hay no leídas, anima el bell shake
+      countEl.textContent = count;
+      countEl.style.display = '';
       if (!btn.classList.contains('has-unread')) {
         btn.classList.add('has-unread');
-        // Quita la animación shake después que termine (CSS sólo una vez)
         setTimeout(() => {
           const icon = document.getElementById('notifBellIcon');
           if (icon) icon.style.animation = 'none';
@@ -1599,32 +1620,51 @@
       }
     } else {
       badge.style.display = 'none';
+      countEl.style.display = 'none';
       btn.classList.remove('has-unread');
     }
+  }
 
-    if (!items || items.length === 0) {
+  function renderList() {
+    const items = activeTab === 'no_leidas'
+      ? lastItems.filter(n => !n.leida)
+      : lastItems;
+
+    if (!items.length) {
       empty.style.display = 'block';
+      // Quitar items previos pero conservar el empty state
+      list.querySelectorAll('.hm-notif-item').forEach(el => el.remove());
       return;
     }
     empty.style.display = 'none';
 
-    list.innerHTML = items.map(n => `
-      <a href="${n.url}" class="notif-item d-flex align-items-start gap-2 px-3 py-2 text-decoration-none
-         ${n.leida ? 'opacity-75' : ''}" style="border-bottom:1px solid #f1f5f9;"
-         onclick="marcarLeida(${n.id}, event, '${n.url}')">
-        <div class="notif-icon flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center"
-             style="width:32px;height:32px;background:${n.color}20;color:${n.color};font-size:.8rem;margin-top:2px;">
-          <i class="fas ${n.icono}"></i>
-        </div>
-        <div class="flex-grow-1">
-          <div style="font-size:.82rem;line-height:1.3;color:#1e293b;font-weight:${n.leida ? 400 : 600};">
-            ${n.asunto}
-          </div>
-          <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;">${n.tiempo}</div>
-        </div>
-        ${!n.leida ? '<div class="flex-shrink-0"><div style="width:8px;height:8px;border-radius:50%;background:#0f766e;margin-top:6px;"></div></div>' : ''}
-      </a>
-    `).join('');
+    // Render: limpiamos y agregamos
+    list.querySelectorAll('.hm-notif-item').forEach(el => el.remove());
+    items.forEach(n => {
+      const a = document.createElement('a');
+      a.href = n.url || '#';
+      a.className = 'hm-notif-item' + (!n.leida ? ' hm-notif-item--unread' : '');
+      a.innerHTML = ''
+        + '<div class="hm-notif-item__icon" style="background:' + (n.color || '#0d9488') + '22;color:' + (n.color || '#0d9488') + ';">'
+        +   '<i class="fas ' + (n.icono || 'fa-bell') + '"></i>'
+        + '</div>'
+        + '<div class="hm-notif-item__body">'
+        +   '<div class="hm-notif-item__title">' + (n.asunto || '') + '</div>'
+        +   '<div class="hm-notif-item__meta">' + (n.tiempo || '') + '</div>'
+        + '</div>';
+      a.addEventListener('click', function(e) {
+        e.preventDefault();
+        marcarLeida(n.id, n.url);
+      });
+      list.appendChild(a);
+    });
+  }
+
+  function renderNotif(items, count) {
+    lastItems = items || [];
+    lastCount = count || 0;
+    renderBadge(lastCount);
+    renderList();
   }
 
   function loadNotif() {
@@ -1634,8 +1674,7 @@
       .catch(() => {});
   }
 
-  function marcarLeida(id, e, url) {
-    e.preventDefault();
+  function marcarLeida(id, url) {
     const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
     fetch(`/comunicaciones/notificaciones/${id}/leer/`, {
       method: 'POST',
@@ -1647,28 +1686,64 @@
   }
   window.marcarLeida = marcarLeida;
 
+  function openDrawer() {
+    drawer.classList.add('hm-notif-drawer--open');
+    drawer.setAttribute('aria-hidden', 'false');
+    backdrop.classList.add('hm-notif-backdrop--show');
+    backdrop.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    loadNotif();
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('hm-notif-drawer--open');
+    drawer.setAttribute('aria-hidden', 'true');
+    backdrop.classList.remove('hm-notif-backdrop--show');
+    backdrop.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  // Toggle al click campana
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (drawer.classList.contains('hm-notif-drawer--open')) closeDrawer();
+    else openDrawer();
+  });
+
+  // Cerrar: backdrop, botón X, Escape
+  backdrop.addEventListener('click', closeDrawer);
+  closeBtn.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && drawer.classList.contains('hm-notif-drawer--open')) {
+      closeDrawer();
+    }
+  });
+
+  // Tabs
+  tabs.forEach(t => {
+    t.addEventListener('click', function() {
+      tabs.forEach(x => x.classList.remove('is-active'));
+      this.classList.add('is-active');
+      activeTab = this.dataset.notifTab;
+      renderList();
+    });
+  });
+
+  // Marcar todas
   document.getElementById('btnMarcarTodas').addEventListener('click', function() {
     const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
     fetch('{% url "notificaciones_marcar_todas" %}', {
       method: 'POST',
       headers: {'X-CSRFToken': csrf ? csrf.value : ''},
-    }).then(() => loadNotif()).catch(() => {});
+    }).then(() => {
+      loadNotif();
+      if (window.Harmoni && window.Harmoni.toast) {
+        window.Harmoni.toast({title: 'Todas las notificaciones marcadas como leídas', kind: 'success'});
+      }
+    }).catch(() => {});
   });
 
-  btn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    const visible = dropdown.style.display !== 'none';
-    dropdown.style.display = visible ? 'none' : 'block';
-    if (!visible) loadNotif();
-  });
-
-  document.addEventListener('click', function(e) {
-    if (!document.getElementById('notifWidget').contains(e.target)) {
-      dropdown.style.display = 'none';
-    }
-  });
-
-  // Cargar al inicio + polling cada 60s
+  // Cargar al inicio + polling 60s
   loadNotif();
   setInterval(loadNotif, 60000);
 })();

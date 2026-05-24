@@ -1,120 +1,192 @@
 /**
- * Harmoni Toast — sistema global de notificaciones efímeras.
+ * Harmoni Toast System — global.
  *
- * Uso:
- *   harmoniToast('Vacante creada ✓');                       // default success
- *   harmoniToast('Error de conexión', 'error');             // rojo
- *   harmoniToast('Procesando…', 'info', { duration: 0 });   // sin auto-dismiss
+ * Estilo handoff design: bottom-right, background --hm-teal-deep, border-left 3px
+ * variante, progress bar visible, botón Deshacer opcional.
  *
- * Si la URL trae ?toast=mensaje[&toast_type=success|error|info|warning]
- * o si Django messages framework dejó un mensaje, se muestra automáticamente.
+ * API nueva (recomendada):
+ *   Harmoni.toast({ title: 'Saved', kind: 'success' });
+ *   Harmoni.toast({
+ *     title: 'Empleado desactivado',
+ *     detail: 'Carla Pérez (DNI 12345678)',
+ *     kind: 'warning',
+ *     undoable: true,
+ *     onUndo: () => fetch('/personal/.../reactivar/', {method:'POST'}),
+ *   });
+ *   Harmoni.toast({ title: 'Procesando…', duration: 0 });  // sin auto-dismiss
+ *
+ * API legacy (backward compat):
+ *   harmoniToast('Vacante creada ✓');                      // default success
+ *   harmoniToast('Error de conexión', 'error');
+ *   harmoniToast('Procesando…', 'info', { duration: 0 });
+ *
+ * Kind: 'success' | 'warning' | 'error' | 'info' | undefined.
+ *
+ * Auto-disparadores:
+ *   - URL: ?toast=mensaje&toast_type=success (limpia URL tras mostrar)
+ *   - DOM: <div class="django-messages-toast" data-type="...">texto</div>
+ *   - Event: window.dispatchEvent(new CustomEvent('harmoni:toast', { detail: {...} }))
  */
 (function () {
     'use strict';
 
-    const COLORS = {
-        success: { bg: '#0f766e', icon: 'fa-check-circle' },
-        error:   { bg: '#dc2626', icon: 'fa-times-circle' },
-        warning: { bg: '#d97706', icon: 'fa-exclamation-triangle' },
-        info:    { bg: '#0891b2', icon: 'fa-info-circle' },
+    const ICONS = {
+        success: 'fa-circle-check',
+        warning: 'fa-triangle-exclamation',
+        error:   'fa-circle-xmark',
+        info:    'fa-circle-info',
     };
 
     function ensureContainer() {
-        let c = document.getElementById('harmoni-toast-container');
+        let c = document.getElementById('hmToastContainer');
         if (c) return c;
         c = document.createElement('div');
-        c.id = 'harmoni-toast-container';
-        c.style.cssText = [
-            'position:fixed', 'top:20px', 'right:20px', 'z-index:9999',
-            'display:flex', 'flex-direction:column', 'gap:10px',
-            'max-width:min(360px, 92vw)',
-            'pointer-events:none',
-        ].join(';');
+        c.id = 'hmToastContainer';
+        c.className = 'hm-toast-container';
+        c.setAttribute('role', 'region');
+        c.setAttribute('aria-live', 'polite');
+        c.setAttribute('aria-label', 'Notificaciones efímeras');
         document.body.appendChild(c);
         return c;
     }
 
-    function show(message, type, opts) {
-        const cfg = COLORS[type] || COLORS.success;
-        const duration = (opts && typeof opts.duration === 'number') ? opts.duration : 4000;
-
-        const el = document.createElement('div');
-        el.style.cssText = [
-            `background:${cfg.bg}`,
-            'color:#fff',
-            'padding:12px 16px',
-            'border-radius:10px',
-            'box-shadow:0 8px 24px rgba(0,0,0,.18)',
-            'font:500 14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif',
-            'display:flex', 'align-items:center', 'gap:10px',
-            'pointer-events:auto', 'cursor:pointer',
-            'transform:translateX(120%)', 'opacity:0',
-            'transition:transform .25s ease, opacity .25s ease',
-        ].join(';');
-
-        const icon = document.createElement('i');
-        icon.className = `fas ${cfg.icon}`;
-        icon.style.cssText = 'flex-shrink:0;font-size:18px';
-        el.appendChild(icon);
-
-        const text = document.createElement('span');
-        text.style.cssText = 'flex:1';
-        text.textContent = message;
-        el.appendChild(text);
-
-        const close = document.createElement('button');
-        close.innerHTML = '&times;';
-        close.style.cssText = 'background:none;border:0;color:rgba(255,255,255,.85);font-size:18px;cursor:pointer;padding:0 4px';
-        close.setAttribute('aria-label', 'Cerrar');
-        el.appendChild(close);
-
-        ensureContainer().appendChild(el);
-
-        // animate in
-        requestAnimationFrame(() => {
-            el.style.transform = 'translateX(0)';
-            el.style.opacity = '1';
-        });
-
-        function dismiss() {
-            el.style.transform = 'translateX(120%)';
-            el.style.opacity = '0';
-            setTimeout(() => el.remove(), 280);
-        }
-        close.addEventListener('click', dismiss);
-        el.addEventListener('click', (e) => {
-            if (e.target !== close) dismiss();
-        });
-        if (duration > 0) {
-            setTimeout(dismiss, duration);
-        }
-        return { dismiss };
+    function escapeHTML(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // Expose globally
-    window.harmoniToast = show;
+    /**
+     * Muestra un toast con la API moderna.
+     * @param {object} opts
+     * @param {string} opts.title       — Texto principal (requerido)
+     * @param {string} [opts.detail]    — Texto secundario
+     * @param {string} [opts.kind]      — 'success' | 'warning' | 'error' | 'info'
+     * @param {number} [opts.duration]  — ms (default 5000, 0 = no auto-dismiss)
+     * @param {boolean}[opts.undoable]  — botón Deshacer
+     * @param {function}[opts.onUndo]   — callback al click Deshacer
+     * @returns {{dismiss: function, element: HTMLElement}}
+     */
+    function toast(opts) {
+        opts = opts || {};
+        const title    = opts.title || '';
+        const detail   = opts.detail || '';
+        const kind     = (opts.kind && ICONS[opts.kind]) ? opts.kind : '';
+        const duration = typeof opts.duration === 'number' ? opts.duration : 5000;
+        const undoable = !!opts.undoable;
 
-    // Auto-pickup desde URL: ?toast=mensaje&toast_type=success
+        const el = document.createElement('div');
+        el.className = 'hm-toast' + (kind ? ' hm-toast--' + kind : '');
+        el.style.setProperty('--hm-toast-duration', duration + 'ms');
+
+        const iconKey = kind ? ICONS[kind] : 'fa-bell';
+
+        el.innerHTML = ''
+            + '<button class="hm-toast__close" aria-label="Cerrar">&times;</button>'
+            + '<div class="hm-toast__row">'
+            +   '<i class="fas ' + iconKey + ' hm-toast__icon" aria-hidden="true"></i>'
+            +   '<div class="hm-toast__body">'
+            +     '<div class="hm-toast__title">' + escapeHTML(title) + '</div>'
+            +     (detail ? '<div class="hm-toast__detail">' + escapeHTML(detail) + '</div>' : '')
+            +     (undoable ? '<div class="hm-toast__actions"><button class="hm-toast__btn" data-undo>Deshacer</button></div>' : '')
+            +   '</div>'
+            + '</div>'
+            + (duration > 0 ? '<div class="hm-toast__progress"></div>' : '');
+
+        let dismissed = false;
+        let timer = null;
+
+        function dismiss() {
+            if (dismissed) return;
+            dismissed = true;
+            if (timer) { clearTimeout(timer); timer = null; }
+            el.classList.add('hm-toast--leave');
+            el.classList.remove('hm-toast--show');
+            setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 280);
+        }
+
+        el.querySelector('.hm-toast__close').addEventListener('click', dismiss);
+        if (undoable) {
+            el.querySelector('[data-undo]').addEventListener('click', function () {
+                try {
+                    if (typeof opts.onUndo === 'function') opts.onUndo();
+                } catch (e) { console.error('Toast onUndo error', e); }
+                dismiss();
+            });
+        }
+
+        // Pausa progress al hover
+        el.addEventListener('mouseenter', function () {
+            const p = el.querySelector('.hm-toast__progress');
+            if (p) p.style.animationPlayState = 'paused';
+            if (timer) { clearTimeout(timer); timer = null; }
+        });
+        el.addEventListener('mouseleave', function () {
+            const p = el.querySelector('.hm-toast__progress');
+            if (p) p.style.animationPlayState = 'running';
+            if (duration > 0 && !dismissed) timer = setTimeout(dismiss, 2000);
+        });
+
+        ensureContainer().appendChild(el);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => el.classList.add('hm-toast--show'));
+        });
+        if (duration > 0) timer = setTimeout(dismiss, duration);
+
+        return { dismiss: dismiss, element: el };
+    }
+
+    // ── API legacy: harmoniToast(message, type, opts) ──
+    function legacyToast(message, type, legacyOpts) {
+        return toast({
+            title: message,
+            kind: type,
+            duration: legacyOpts && typeof legacyOpts.duration === 'number'
+                      ? legacyOpts.duration : 5000,
+        });
+    }
+
+    // ── Expose ──
+    window.Harmoni = window.Harmoni || {};
+    window.Harmoni.toast = toast;
+    window.harmoniToast = legacyToast;
+
+    // ── Bridge para custom events ──
+    window.addEventListener('harmoni:toast', function (e) {
+        if (e && e.detail) toast(e.detail);
+    });
+
+    // ── Auto-pickup desde URL: ?toast=mensaje&toast_type=success ──
     document.addEventListener('DOMContentLoaded', function () {
         try {
             const url = new URL(window.location.href);
             const msg = url.searchParams.get('toast');
             if (msg) {
                 const type = url.searchParams.get('toast_type') || 'success';
-                show(decodeURIComponent(msg), type);
-                // Limpiar la URL para no re-mostrar al refrescar
+                toast({ title: decodeURIComponent(msg), kind: type });
                 url.searchParams.delete('toast');
                 url.searchParams.delete('toast_type');
                 history.replaceState({}, '', url.toString());
             }
         } catch (e) { /* noop */ }
 
-        // Auto-pickup desde Django messages (busca .messages > li)
-        document.querySelectorAll('.django-messages-toast').forEach((node) => {
+        // ── Auto-pickup desde Django messages framework ──
+        document.querySelectorAll('.django-messages-toast').forEach(function (node) {
             const msg = node.textContent.trim();
             const type = node.dataset.type || 'success';
-            if (msg) show(msg, type);
+            if (msg) toast({ title: msg, kind: type });
             node.remove();
+        });
+
+        // ── Seeds del nuevo formato (data-title, data-detail, data-kind) ──
+        document.querySelectorAll('.hm-toast-seed').forEach(function (seed) {
+            toast({
+                title:  seed.dataset.title || '',
+                detail: seed.dataset.detail || '',
+                kind:   seed.dataset.kind || '',
+            });
+            seed.parentNode.removeChild(seed);
         });
     });
 })();
