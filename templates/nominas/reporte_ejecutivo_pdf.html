@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Reporte Ejecutivo — {{ periodo }}</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm; @bottom-center { content: "Harmoni ERP · Reporte Ejecutivo · Página " counter(page); font-size: 8pt; color: #94a3b8; } }
+    body { font-family: 'Helvetica', sans-serif; font-size: 9.5pt; color: #0d2b27; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #0f766e; padding-bottom: 8px; margin-bottom: 12px; }
+    h1 { color: #0f766e; margin: 0; font-size: 16pt; }
+    .subt { color: #64748b; font-size: 9.5pt; }
+    .meta { text-align: right; font-size: 8.5pt; color: #64748b; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0 14px; }
+    .kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; text-align: center; }
+    .kpi-label { font-size: 7.5pt; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .kpi-value { font-size: 14pt; font-weight: 800; color: #0d2b27; line-height: 1.1; margin-top: 2px; }
+    .kpi-delta { font-size: 8pt; margin-top: 2px; }
+    .green { color: #15803d; }
+    .red { color: #b91c1c; }
+    h3 { color: #0d2b27; font-size: 11pt; border-left: 3px solid #0f766e; padding-left: 6px; margin: 10px 0 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+    th, td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; }
+    td.right { text-align: right; font-family: 'Courier New', monospace; }
+    .alerts { background: #fffbeb; border-left: 3px solid #fcd34d; padding: 8px 10px; border-radius: 4px; font-size: 9pt; margin-top: 6px; }
+    .alert-row { padding: 4px 0; border-bottom: 1px solid #fde68a; }
+    .alert-row:last-child { border-bottom: none; }
+    .footer { font-size: 7.5pt; color: #94a3b8; text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>Reporte Ejecutivo del Mes</h1>
+      <div class="subt">
+        <strong>{{ empresa.razon_social|default:"" }}</strong>
+        {% if empresa.ruc %} · RUC {{ empresa.ruc }}{% endif %}
+        · Período <strong>{{ periodo.get_tipo_display }} {{ periodo.mes }}/{{ periodo.anio }}</strong>
+        · Estado <strong>{{ periodo.get_estado_display }}</strong>
+      </div>
+    </div>
+    <div class="meta">
+      <div>Generado {{ fecha_emision|date:"j F Y, H:i" }}</div>
+      <div>Harmoni ERP</div>
+    </div>
+  </div>
+
+  <!-- KPIs principales -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Trabajadores</div>
+      <div class="kpi-value">{{ kpis.total_trab }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total bruto</div>
+      <div class="kpi-value">S/ {{ kpis.total_bruto|floatformat:0 }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total neto</div>
+      <div class="kpi-value green">S/ {{ kpis.total_neto|floatformat:0 }}</div>
+      {% if delta_pct %}
+      <div class="kpi-delta {% if delta_pct > 0 %}green{% else %}red{% endif %}">
+        {% if delta_pct > 0 %}+{% endif %}{{ delta_pct|floatformat:1 }}% vs mes anterior
+      </div>
+      {% endif %}
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Aporte ESSALUD</div>
+      <div class="kpi-value">S/ {{ kpis.total_essalud|floatformat:0 }}</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="kpi">
+      <div class="kpi-label">Promedio neto</div>
+      <div class="kpi-value">S/ {{ kpis.avg_neto|floatformat:0 }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Mayor neto</div>
+      <div class="kpi-value">S/ {{ kpis.max_neto|floatformat:0 }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Menor neto</div>
+      <div class="kpi-value">S/ {{ kpis.min_neto|floatformat:0 }}</div>
+    </div>
+  </div>
+
+  <!-- Top 5 -->
+  <h3>Top 5 mayores netos</h3>
+  <table>
+    <thead>
+      <tr style="background:#f8fafc;">
+        <th>Trabajador</th>
+        <th>Cargo</th>
+        <th class="right">Bruto</th>
+        <th class="right">Descuentos</th>
+        <th class="right">Neto</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in top_5 %}
+      <tr>
+        <td>{{ r.personal.apellidos_nombres|default:"-" }}</td>
+        <td style="color:#64748b;font-size:8.5pt;">{{ r.personal.cargo|default:"-" }}</td>
+        <td class="right">S/ {{ r.total_ingresos|floatformat:2 }}</td>
+        <td class="right red">S/ {{ r.total_descuentos|floatformat:2 }}</td>
+        <td class="right green" style="font-weight:700;">S/ {{ r.neto_a_pagar|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Anomalías -->
+  {% if n_anomalias > 0 %}
+  <h3>⚠ Anomalías detectadas ({{ n_anomalias }}) {% if anomalias_criticos %}<span style="color:#b91c1c;">— {{ anomalias_criticos }} críticas</span>{% endif %}</h3>
+  <div class="alerts">
+    {% for a in anomalias %}
+      <div class="alert-row">
+        <strong style="color:{{ a.color }};">{{ a.tipo }}</strong> ·
+        {{ a.registro.personal.apellidos_nombres|default:"-" }} —
+        {{ a.mensaje }}
+      </div>
+    {% endfor %}
+    {% if n_anomalias > 5 %}
+      <div style="margin-top:4px;font-style:italic;color:#94a3b8;">... y {{ n_anomalias|add:"-5" }} más. Ver detalle completo en sistema.</div>
+    {% endif %}
+  </div>
+  {% else %}
+  <h3>✓ Sin anomalías detectadas</h3>
+  <div style="background:#dcfce7;border-left:3px solid #86efac;padding:8px 10px;border-radius:4px;font-size:9pt;color:#15803d;">
+    El período se comporta normal vs el mes anterior. Listo para aprobar.
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    Este reporte se genera automáticamente desde Harmoni ERP — sistema integral de planilla peruano.<br>
+    Cumplimiento: D.Leg. 728/727, Ley 27735 (gratif), DS 009-2011-TR (boletas), Ley 26790 (EPS).
+  </div>
+
+</body>
+</html>

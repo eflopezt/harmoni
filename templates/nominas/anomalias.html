@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Anomalías — {{ periodo }}{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-search me-2" style="color:#0f766e;"></i> Detector de Anomalías
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      Comparativa <strong>{{ periodo.mes }}/{{ periodo.anio }}</strong>
+      {% if anterior %}vs período anterior <strong>{{ anterior.mes }}/{{ anterior.anio }}</strong>{% else %}(sin período anterior para comparar){% endif %}
+    </p>
+  </div>
+  <a href="{% url 'nominas_periodo_detalle' periodo.pk %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Volver al período
+  </a>
+</div>
+
+<!-- Resumen -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Trabajadores ahora</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#0d2b27;">{{ total_act }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Mes anterior</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#94a3b8;">{{ total_ant }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid {% if criticos > 0 %}#fca5a5{% else %}#e2e8f0{% endif %};">
+    <div style="font-size:.72rem;color:#b91c1c;text-transform:uppercase;letter-spacing:.05em;">Críticos</div>
+    <div style="font-size:1.6rem;font-weight:800;color:{% if criticos > 0 %}#b91c1c{% else %}#0d2b27{% endif %};">{{ criticos }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid {% if warns > 0 %}#fcd34d{% else %}#e2e8f0{% endif %};">
+    <div style="font-size:.72rem;color:#a16207;text-transform:uppercase;letter-spacing:.05em;">Warnings</div>
+    <div style="font-size:1.6rem;font-weight:800;color:{% if warns > 0 %}#a16207{% else %}#0d2b27{% endif %};">{{ warns }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="font-size:.72rem;color:#0369a1;text-transform:uppercase;letter-spacing:.05em;">Info</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#0d2b27;">{{ infos }}</div>
+  </div>
+</div>
+
+{% if not anomalias %}
+  <div style="background:#dcfce7;border:1px solid #86efac;color:#15803d;padding:20px 24px;border-radius:12px;text-align:center;">
+    <i class="fas fa-check-circle fa-2x" style="display:block;margin-bottom:10px;"></i>
+    <h5 style="font-weight:800;margin:0 0 6px;">¡Sin anomalías detectadas!</h5>
+    <p style="margin:0;font-size:.9rem;opacity:.9;">El período se comporta normal vs el mes anterior. Listo para aprobar.</p>
+  </div>
+{% else %}
+  <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+    <table class="table mb-0" style="font-size:.88rem;">
+      <thead style="background:#f8fafc;">
+        <tr>
+          <th style="padding:10px 14px;width:42px;"></th>
+          <th style="padding:10px 14px;">Trabajador</th>
+          <th style="padding:10px 14px;">Anomalía</th>
+          <th style="padding:10px 14px;width:120px;text-align:right;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in anomalias %}
+        <tr style="border-top:1px solid #f1f5f9;background:{% if a.severidad == 'critico' %}#fef2f2{% elif a.severidad == 'warn' %}#fffbeb{% else %}#fff{% endif %};">
+          <td style="padding:10px 14px;text-align:center;">
+            <i class="{{ a.icon }}" style="color:{{ a.color }};font-size:1.2rem;"></i>
+          </td>
+          <td style="padding:10px 14px;">
+            <strong style="color:#0d2b27;">{{ a.registro.personal.apellidos_nombres|default:'-' }}</strong>
+            <div style="font-size:.75rem;color:#94a3b8;font-family:monospace;">
+              {{ a.registro.personal.nro_doc|default:'-' }}
+            </div>
+          </td>
+          <td style="padding:10px 14px;color:#0d2b27;">
+            <span style="background:{{ a.color }}22;color:{{ a.color }};font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:6px;">
+              {{ a.tipo }}
+            </span>
+            {{ a.mensaje }}
+          </td>
+          <td style="padding:10px 14px;text-align:right;">
+            {% if a.registro.id %}
+            <a href="{% url 'nominas_registro_detalle' a.registro.id %}" class="btn btn-sm btn-outline-secondary">
+              <i class="fas fa-eye me-1"></i> Ver
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+<div style="background:#f8fafc;padding:16px 20px;border-radius:10px;border:1px solid #e2e8f0;margin-top:20px;color:#64748b;font-size:.85rem;">
+  <strong style="color:#0d2b27;">💡 Cómo se detectan:</strong>
+  <ul style="margin:6px 0 0 18px;padding:0;">
+    <li><strong>Críticos:</strong> Neto cambió &gt; 50% vs mes anterior</li>
+    <li><strong>Warning:</strong> Neto cambió &gt; 30%, descuentos &gt; 50% bruto, sueldo básico &gt; 15% cambio, faltantes</li>
+    <li><strong>Info:</strong> Nuevos trabajadores en este período</li>
+  </ul>
+  Revisa cada anomalía antes de aprobar el período para evitar errores que después serían difíciles de corregir.
+</div>
+
+{% endblock %}

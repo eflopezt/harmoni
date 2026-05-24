@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}AFP Recomendador — ¿Cuál conviene más?{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-trophy me-2" style="color:#0f766e;"></i> AFP Recomendador
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      Compara ONP + las 4 AFPs simultáneamente. Recomienda la opción con mayor neto al trabajador.
+    </p>
+  </div>
+  <a href="{% url 'calculadora_planilla' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Calculadora normal
+  </a>
+</div>
+
+<form method="post" style="background:#fff;padding:20px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:18px;">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label style="font-weight:600;font-size:.85rem;">Sueldo bruto (S/)</label>
+      <input type="number" name="sueldo" step="0.01" min="0" value="{{ result.sueldo|default:'3000' }}" class="form-control" required>
+    </div>
+    <div class="col-md-6 d-flex align-items-end gap-3" style="font-size:.85rem;">
+      <label><input type="checkbox" name="asig_familiar"> Asignación familiar</label>
+      <label><input type="checkbox" name="tiene_eps"> Tiene EPS</label>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button class="btn btn-success w-100" style="background:#0f766e;border-color:#0f766e;">
+        <i class="fas fa-trophy me-1"></i> Comparar
+      </button>
+    </div>
+  </div>
+</form>
+
+{% if result and not result.error %}
+  <!-- Ganador hero -->
+  <div style="background:linear-gradient(135deg,#15803d 0%,#0f766e 100%);color:#fff;padding:22px 26px;border-radius:14px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.08em;"><i class="fas fa-medal"></i> Mejor opción</div>
+        <div style="font-size:2.4rem;font-weight:900;line-height:1;margin-top:6px;">{{ result.mejor.label }}</div>
+        <div style="font-size:1rem;margin-top:4px;opacity:.92;">Neto: <strong>S/ {{ result.mejor.neto|floatformat:2 }}</strong></div>
+      </div>
+      <div style="background:rgba(255,255,255,.18);padding:14px 18px;border-radius:10px;">
+        <div style="font-size:.78rem;opacity:.9;text-transform:uppercase;">Diferencia max</div>
+        <div style="font-size:1.6rem;font-weight:800;color:#fcd34d;">+S/ {{ result.diferencia_max|floatformat:2 }}/mes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ranking -->
+  <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+    <table class="table mb-0" style="font-size:.9rem;">
+      <thead style="background:#f8fafc;">
+        <tr>
+          <th style="padding:10px 14px;width:60px;text-align:center;">#</th>
+          <th style="padding:10px 14px;">Opción</th>
+          <th style="padding:10px 14px;text-align:right;">Descuentos</th>
+          <th style="padding:10px 14px;text-align:right;">Neto líquido</th>
+          <th style="padding:10px 14px;text-align:right;">vs mejor</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for op in ranking %}
+        <tr style="background:{% if op.es_mejor %}#f0fdf4{% elif op.es_peor %}#fef2f2{% else %}#fff{% endif %};border-top:1px solid #f1f5f9;">
+          <td style="padding:10px 14px;text-align:center;">
+            {% if op.rank == 1 %}<i class="fas fa-trophy" style="color:#fbbf24;font-size:1.2rem;"></i>
+            {% elif op.rank == 2 %}<span style="background:#94a3b8;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-block;line-height:24px;font-weight:700;">{{ op.rank }}</span>
+            {% elif op.rank == 3 %}<span style="background:#a78bfa;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-block;line-height:24px;font-weight:700;">{{ op.rank }}</span>
+            {% else %}<span style="color:#94a3b8;font-weight:700;">{{ op.rank }}</span>{% endif %}
+          </td>
+          <td style="padding:10px 14px;">
+            <strong style="color:#0d2b27;">{{ op.label }}</strong>
+            {% if op.afp %}
+              <div style="font-size:.75rem;color:#94a3b8;margin-top:2px;">
+                Comisión {{ op.comision_flujo }}% · Seguro {{ op.seguro }}%
+              </div>
+            {% else %}
+              <div style="font-size:.75rem;color:#94a3b8;margin-top:2px;">Tasa única 13% sin tope</div>
+            {% endif %}
+          </td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:#b91c1c;">
+            S/ {{ op.descuentos|floatformat:2 }}
+            <div style="font-size:.7rem;color:#94a3b8;">{{ op.pct_descuento|floatformat:1 }}%</div>
+          </td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;font-weight:800;color:{% if op.es_mejor %}#15803d{% else %}#0d2b27{% endif %};font-size:1.05rem;">
+            S/ {{ op.neto|floatformat:2 }}
+          </td>
+          <td style="padding:10px 14px;text-align:right;font-family:monospace;color:{% if op.es_mejor %}#15803d{% else %}#b91c1c{% endif %};font-weight:700;">
+            {% if op.es_mejor %}—{% else %}S/ {{ op.delta_vs_mejor|floatformat:2 }}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="background:#f8fafc;padding:16px 20px;border-radius:10px;margin-top:16px;color:#64748b;font-size:.85rem;">
+    <strong style="color:#0d2b27;">💡 Cómo elegir:</strong>
+    Si el trabajador <strong>no tiene aún jubilación cercana</strong>, conviene la AFP con comisión más baja (Habitat suele ganar en sueldos altos por el tope RMA del seguro).
+    Si <strong>ya está cerca de jubilarse</strong> o quiere garantía estatal, ONP es mejor.
+    Esta comparación asume el escenario fiscal actual. Cambia con cambios SBS cuatrimestrales.
+  </div>
+{% elif result.error %}
+  <div class="alert alert-danger">{{ result.error }}</div>
+{% endif %}
+
+{% endblock %}

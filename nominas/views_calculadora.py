@@ -363,6 +363,90 @@ def calculadora_pdf(request):
 
 
 # ────────────────────────────────────────────────────────────────
+# Comparador AFP — qué AFP conviene más
+# ────────────────────────────────────────────────────────────────
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def calculadora_afp_comparar(request):
+    """
+    Compara las 4 AFPs + ONP simultáneamente para un sueldo dado.
+    Recomienda la opción con mayor neto.
+    """
+    result = None
+    ranking = []
+    if request.method == 'POST':
+        try:
+            sueldo = Decimal(request.POST.get('sueldo', '0'))
+            if sueldo <= 0:
+                raise ValueError('Sueldo debe ser positivo')
+            asig_familiar = request.POST.get('asig_familiar') == 'on'
+            tiene_eps = request.POST.get('tiene_eps') == 'on'
+
+            # Calcular para ONP + 4 AFPs
+            opciones = []
+
+            # ONP
+            r = _simular(sueldo, {
+                'asig_familiar': asig_familiar,
+                'horas_extra': '0', 'comisiones': '0',
+                'regimen': 'ONP', 'afp': '',
+                'tiene_eps': tiene_eps, 'sctr_tasa': '0',
+            })
+            opciones.append({
+                'label': 'ONP', 'tipo': 'ONP', 'afp': None,
+                'neto': r['neto'], 'descuentos': r['total_descuentos'],
+                'pct_descuento': r['pct_descuentos'],
+                'detalle': r,
+            })
+
+            # 4 AFPs
+            for afp_nombre in AFP_TASAS.keys():
+                r = _simular(sueldo, {
+                    'asig_familiar': asig_familiar,
+                    'horas_extra': '0', 'comisiones': '0',
+                    'regimen': 'AFP', 'afp': afp_nombre,
+                    'tiene_eps': tiene_eps, 'sctr_tasa': '0',
+                })
+                tasas = AFP_TASAS[afp_nombre]
+                opciones.append({
+                    'label': f'AFP {afp_nombre}', 'tipo': 'AFP', 'afp': afp_nombre,
+                    'comision_flujo': tasas['comision_flujo'],
+                    'seguro': tasas['seguro'],
+                    'neto': r['neto'], 'descuentos': r['total_descuentos'],
+                    'pct_descuento': r['pct_descuentos'],
+                    'detalle': r,
+                })
+
+            # Ordenar por neto descendente (mayor neto = mejor)
+            opciones.sort(key=lambda o: -o['neto'])
+
+            # Marcar el ganador y delta vs el siguiente
+            mejor_neto = opciones[0]['neto']
+            peor_neto = opciones[-1]['neto']
+            for i, op in enumerate(opciones):
+                op['rank'] = i + 1
+                op['delta_vs_mejor'] = op['neto'] - mejor_neto
+                op['es_mejor'] = (i == 0)
+                op['es_peor'] = (i == len(opciones) - 1)
+
+            ranking = opciones
+            result = {
+                'sueldo': sueldo,
+                'mejor': ranking[0],
+                'diferencia_max': mejor_neto - peor_neto,
+            }
+        except Exception as e:
+            result = {'error': str(e)}
+
+    return render(request, 'nominas/calculadora_afp.html', {
+        'result':       result,
+        'ranking':      ranking,
+        'afp_options':  list(AFP_TASAS.keys()),
+    })
+
+
+# ────────────────────────────────────────────────────────────────
 # Comparativa 2 escenarios
 # ────────────────────────────────────────────────────────────────
 

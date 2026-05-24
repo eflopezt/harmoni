@@ -8,6 +8,8 @@ from . import views_onboarding_validator
 from . import views_mi_dia
 from . import views_calculadora
 from . import views_workflow_mes
+from . import views_anomalias
+from . import views_reporte_mes
 
 urlpatterns = [
     # Panel y portal
@@ -54,10 +56,16 @@ urlpatterns = [
                                       name='mi_dia_nominas'),
     path('workflow-mes/',             views_workflow_mes.workflow_mes,
                                       name='workflow_mes'),
+    path('anomalias/<int:pk>/',       views_anomalias.anomalias_periodo,
+                                      name='nominas_anomalias_periodo'),
+    path('periodos/<int:pk>/reporte-ejecutivo.pdf', views_reporte_mes.reporte_ejecutivo_pdf,
+                                      name='nominas_reporte_ejecutivo_pdf'),
     path('calculadora/',              views_calculadora.calculadora_planilla,
                                       name='calculadora_planilla'),
     path('calculadora/comparar/',     views_calculadora.calculadora_comparar,
                                       name='calculadora_comparar'),
+    path('calculadora/afp/',          views_calculadora.calculadora_afp_comparar,
+                                      name='calculadora_afp'),
     path('calculadora/pdf/',          views_calculadora.calculadora_pdf,
                                       name='calculadora_pdf'),
 

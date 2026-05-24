@@ -83,6 +83,71 @@ def concepto_pre_save(sender, instance, **kwargs):
 
 
 # ─── post_save: comparar y registrar ─────────────────────────────────
+# ─── Campos críticos cuya modificación dispara email ──────────────
+# Estos campos afectan cálculos legales y deben dejar trail VISIBLE.
+CRITICAL_FIELDS = {
+    'afecto_essalud', 'afecto_afp', 'afecto_onp',
+    'afecto_renta', 'afecto_cts', 'afecto_gratif', 'afecto_vacaciones',
+    'codigo_plame', 'casilla_plame',
+    'tipo', 'subtipo', 'porcentaje',
+}
+
+
+def _enviar_email_cambio_critico(instance, cambios_criticos, usuario):
+    """Envía email a admins cuando se modifica campo crítico de un concepto."""
+    if not cambios_criticos:
+        return
+    try:
+        from django.conf import settings as dj_settings
+        from django.core.mail import send_mail
+        from django.contrib.auth import get_user_model
+
+        # Destinatarios: todos los superusers
+        User = get_user_model()
+        emails = list(User.objects.filter(
+            is_superuser=True, is_active=True,
+        ).exclude(email='').values_list('email', flat=True))
+        if not emails:
+            return
+
+        user_name = (usuario.get_full_name() or usuario.username) if usuario else 'sistema (CLI)'
+        cambios_str = '\n'.join(
+            f'  • {k}: {v.get("antes")} → {v.get("despues")}'
+            for k, v in cambios_criticos.items()
+        )
+
+        subject = f'[Harmoni Nóminas] Cambio crítico en concepto "{instance.codigo}"'
+        body = f"""\
+Se modificó un campo CRÍTICO en el catálogo de conceptos remunerativos:
+
+Concepto:   [{instance.codigo}] {instance.nombre}
+Modificado: {user_name}
+Cambios:
+{cambios_str}
+
+Estos campos afectan cálculos legales (PLAME, afectaciones, fórmulas).
+Si este cambio no fue autorizado, revisa el audit log de inmediato:
+
+  /nominas/conceptos/configurar/{instance.pk}/historial/
+
+Ignorar este aviso si el cambio fue intencional.
+
+—
+Harmoni ERP · Audit log automático
+"""
+
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=getattr(dj_settings, 'DEFAULT_FROM_EMAIL', 'noreply@harmoni.pe'),
+            recipient_list=emails,
+            fail_silently=True,
+        )
+    except Exception:
+        # Email es best-effort, NO falla la operación de save si email no se envía
+        pass
+
+
 @receiver(post_save, sender=ConceptoRemunerativo)
 def concepto_post_save(sender, instance, created, **kwargs):
     ctx = _get_ctx()
@@ -149,6 +214,11 @@ def concepto_post_save(sender, instance, created, **kwargs):
         user_agent=(ctx['user_agent'] or '')[:300],
         contexto=(ctx['contexto'] or '')[:200],
     )
+
+    # Email alert si cambió un campo crítico (best-effort)
+    criticos = {k: v for k, v in cambios.items() if k in CRITICAL_FIELDS}
+    if criticos:
+        _enviar_email_cambio_critico(instance, criticos, usuario)
 
 
 # ─── post_delete: registrar eliminación ─────────────────────────────
