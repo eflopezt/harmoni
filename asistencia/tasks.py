@@ -32,8 +32,10 @@ def health_check_papeletas(self):
     """Auto-corrige inconsistencias papeleta ↔ RegistroTareo.
 
     Se ejecuta de madrugada para que el día siguiente arranque consistente.
-    Si detecta y corrige > 0 casos, loggea como warning.
+    Si detecta y corrige > 0 casos, loggea como warning y reporta a Sentry
+    (warning level) para tener trazabilidad de la frecuencia de inconsistencias.
     """
+    import sentry_sdk
     from django.core.management import call_command
     from io import StringIO
     out = StringIO()
@@ -42,10 +44,18 @@ def health_check_papeletas(self):
         salida = out.getvalue()
         if 'inconsistencias corregidas' in salida:
             logger.warning('[health_check_papeletas] %s', salida.strip())
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag('healthcheck', 'papeletas')
+                scope.set_context('healthcheck_salida', {'output': salida.strip()[:2000]})
+                sentry_sdk.capture_message(
+                    'health_check_papeletas: inconsistencias corregidas',
+                    level='warning',
+                )
         else:
             logger.info('[health_check_papeletas] OK')
     except Exception as e:
         logger.error('[health_check_papeletas] Error: %s', e, exc_info=True)
+        # CeleryIntegration captura automáticamente la excepción al re-raise.
         raise self.retry(exc=e)
 
 

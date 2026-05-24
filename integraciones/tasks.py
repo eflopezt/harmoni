@@ -16,8 +16,28 @@ def sync_synkro_auto():
     if 'synkro' not in settings.DATABASES:
         return 'skipped: synkro DB not configured'
 
+    import sentry_sdk
     from integraciones.services.synkro_sync import run_sync
+
     log = run_sync(origen='AUTO', ventana_picados_dias=7)
+
+    # run_sync atrapa excepciones y marca log.estado='ERROR' sin re-raise.
+    # Reportamos explícitamente a Sentry para no perder el evento.
+    if log.estado == 'ERROR':
+        with sentry_sdk.new_scope() as scope:
+            scope.set_tag('integration', 'synkro')
+            scope.set_tag('origen', 'AUTO')
+            scope.set_context('synkro_log', {
+                'log_id': log.id,
+                'duracion_s': log.duracion_segundos,
+                'ventana_dias': 7,
+                'error': log.error_mensaje,
+            })
+            sentry_sdk.capture_message(
+                f'Sync Synkro AUTO falló: {log.error_mensaje}',
+                level='error',
+            )
+
     return (f'estado={log.estado} dur={log.duracion_segundos}s '
             f'pap_c={log.papeletas_creadas} pap_u={log.papeletas_actualizadas} '
             f'reg_c={log.registros_tareo_creados} reg_u={log.registros_tareo_actualizados}')
