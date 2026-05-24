@@ -4,8 +4,8 @@
     {
       "name": "Harmoni Dev Server",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "D:\\Harmoni\\.venv\\Scripts\\python.exe", "D:\\Harmoni\\manage.py", "runserver", "8001", "--noreload"],
-      "cwd": "D:\\Harmoni",
+      "runtimeArgs": ["/c", "C:\\Users\\edwii\\iCloudDrive\\CSRT\\D\\Harmoni\\.venv\\Scripts\\python.exe", "C:\\Users\\edwii\\iCloudDrive\\CSRT\\D\\Harmoni\\manage.py", "runserver", "8001", "--noreload"],
+      "cwd": "C:\\Users\\edwii\\iCloudDrive\\CSRT\\D\\Harmoni",
       "port": 8001,
       "autoPort": false
     }
