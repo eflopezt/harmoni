@@ -353,6 +353,279 @@ El monto del aumento por los períodos atrasados se trata como **reintegro de re
 """,
     },
 
+    # ─── SCTR ────────────────────────────────────────────────────
+    {
+        'titulo':      'SCTR — Seguro Complementario de Trabajo de Riesgo',
+        'base_legal':  'Ley 26790 art. 19 + D.S. 003-98-SA',
+        'tags':        ['sctr', 'seguro', 'riesgo', 'essalud', 'aporte_empleador'],
+        'keywords':    ['sctr', 'seguro complementario', 'trabajo de riesgo', 'riesgo',
+                        'accidente trabajo', 'enfermedad profesional', 'anexo 5',
+                        'sctr salud', 'sctr pension', 'minería', 'mineria', 'construcción civil',
+                        'construccion civil', 'manufactura', 'd.s. 009-97-sa'],
+        'descripcion': """\
+**SCTR — Seguro Complementario de Trabajo de Riesgo** (Ley 26790 art. 19 + D.S. 003-98-SA):
+
+Obligatorio para empleadores cuya actividad (principal o accesoria) figure como **alto riesgo** en el Anexo 5 del D.S. 009-97-SA: minería, construcción civil, manufactura pesada, transporte de carga, agroindustria, pesca, energía, etc.
+
+**Estructura — dos coberturas independientes**:
+| Cobertura | Quién emite | Tasa referencial mínima |
+|-----------|-------------|------------------------|
+| **SCTR Salud** | ESSALUD o EPS | desde 0.53% |
+| **SCTR Pensión** | ONP o aseguradora privada | desde 1.23% |
+
+La tasa exacta la fija la aseguradora según nivel de riesgo del puesto (CIIU + historial siniestral).
+
+**Características críticas**:
+- **100% costo empleador** — NO descuenta al trabajador.
+- Obligatorio incluso para administrativos si están expuestos al riesgo (visitas a obra, planta).
+- Es ADICIONAL a ESSALUD regular y AFP/ONP — no las reemplaza.
+- Cubre invalidez/sobrevivencia + atención médica por accidente o enfermedad profesional.
+
+**Sanción por no contratarlo**: empleador asume directamente todas las prestaciones (médicas + pensiones), además de multa SUNAFIL.
+
+**Estado en Harmoni**: registro manual vía `otros_descuentos`/concepto custom — cálculo automático pendiente.
+""",
+    },
+
+    # ─── RMV + Jornada legal 48h ─────────────────────────────────
+    {
+        'titulo':      'RMV (Remuneración Mínima Vital) y Jornada Legal 48h',
+        'base_legal':  'D.S. 006-2024-TR (RMV) + D.Leg. 854 + Art. 25 Constitución',
+        'tags':        ['rmv', 'sueldo_minimo', 'jornada', 'minimo_vital'],
+        'keywords':    ['rmv', 'remuneración mínima', 'remuneracion minima', 'sueldo mínimo',
+                        'sueldo minimo', 'minimo vital', 'mínimo vital', '1130', '1,130',
+                        'jornada', 'jornada legal', '48 horas', '48h', '8 horas diarias',
+                        'jornada máxima', 'jornada maxima', 'refrigerio', 'descanso semanal'],
+        'descripcion': """\
+**RMV — Remuneración Mínima Vital** (D.S. 006-2024-TR):
+- **S/ 1,130.00** mensuales — vigente desde enero 2025.
+- Piso de toda remuneración mensual en régimen privado a jornada completa.
+- Base de cálculo de:
+  - Asignación familiar (10% RMV = S/ 113)
+  - Inembargabilidad (5 URP = 5 × RMV = S/ 5,650)
+  - Bono nocturno (RMV nocturna ≥ RMV + 35%)
+
+**Jornada Legal de Trabajo** (D.Leg. 854 + Art. 25 Constitución):
+- Máximo **8 horas diarias** o **48 horas semanales** — lo que sea favorable al trabajador.
+- Distribuible en jornadas atípicas si el promedio del ciclo respeta las 48h.
+- **Refrigerio mínimo 45 minutos**, NO computa dentro de la jornada (Ley 27671 art. 7).
+- **Descanso semanal obligatorio**: 24 horas continuas, preferentemente domingo (D.Leg. 713 art. 1).
+- **Trabajo nocturno** (22:00–06:00): remuneración no inferior a RMV + 35% (D.S. 004-2006-TR).
+
+**Excepciones a la jornada de 48h**:
+- Personal de dirección (gerentes con poder decisorio).
+- Personal de confianza (con cierta flexibilidad).
+- Trabajadores que prestan servicios intermitentes de espera, vigilancia o custodia.
+- Estos NO tienen derecho a HE.
+
+**Override por configuración**: `ConfiguracionSistema.rmv_valor` (admin puede actualizar al cambiar la ley).
+""",
+    },
+
+    # ─── Descanso semanal y feriado laborado (DSL/FL/DLA) ────────
+    {
+        'titulo':      'Descanso semanal y feriado laborado (DSL / FL / DLA)',
+        'base_legal':  'D.Leg. 713 art. 3, 4, 6 y 9',
+        'tags':        ['descanso_semanal', 'feriado', 'dsl', 'fl', 'dla', 'he_100'],
+        'keywords':    ['descanso laborado', 'descanso semanal', 'dsl', 'fl', 'dla',
+                        'feriado laborado', 'feriado trabajado', 'domingo trabajado',
+                        'compensación día', 'compensacion dia', 'descanso sustitutorio',
+                        'doble pago', 'sobretasa 100', 'd.leg. 713 art 9'],
+        'descripcion': """\
+**Descanso semanal y feriado laborado** (D.Leg. 713 art. 3, 4, 6 y 9):
+
+**Regla general** — todo trabajador tiene derecho a:
+- **24 horas continuas** de descanso semanal (preferentemente domingo).
+- Descanso en los **feriados no laborables** publicados anualmente.
+
+**Si se trabaja en descanso semanal o feriado SIN descanso sustitutorio**:
+- Pago doble (sueldo del día + 100% sobretasa).
+- Es decir: **valor_hora × horas × 2.00**.
+
+**Códigos en Harmoni**:
+| Código | Significado | Tratamiento |
+|--------|-------------|-------------|
+| `DSL` | Descanso Semanal Laborado | Todas las horas al 100% (HE_100) |
+| `FL`  | Feriado Laborado | Todas las horas al 100% (HE_100) |
+| `DLA` | Descanso Laborado Anticipado (compensa día por adelantado) | Día se paga, no genera HE |
+| `DL`  | Descanso Laborable (libre, sin trabajar) | Día pagado, sin HE |
+| `CDT` | Compensación Día Trabajado (descanso sustitutorio) | Día libre, sin pago extra |
+
+**Excepción — Papeleta de compensación aprobada** (D.Leg. 713 art. 6):
+- Si el trabajador labora en descanso/feriado PERO existe papeleta de compensación aprobada (se le dará otro día libre dentro de los próximos 7 días), el día se calcula como NORMAL (sin recargo 100%).
+- En `he_calculator.py` esto se controla con el parámetro `tiene_papeleta_comp=True`.
+
+**Foráneo en domingo**:
+- Jornada reducida típicamente 4h (config `jornada_domingo_horas`).
+- Horas dentro de jornada → normal. Exceso → HE 100%.
+
+**Implementación**: `asistencia/services/he_calculator.py::calcular_he_componentes` líneas 174-199.
+""",
+    },
+
+    # ─── Permisos y licencias (LCG / LF / LP / LSG) ──────────────
+    {
+        'titulo':      'Permisos y licencias laborales (LCG, LSG, LF, LP)',
+        'base_legal':  'D.Leg. 728 art. 56 + Ley 29409 + Ley 30807',
+        'tags':        ['permiso', 'licencia', 'paternidad', 'luto', 'fallecimiento', 'lcg', 'lp'],
+        'keywords':    ['permiso', 'licencia', 'lcg', 'lsg', 'lf', 'lp',
+                        'licencia goce', 'licencia sin goce', 'licencia paternidad',
+                        'licencia luto', 'fallecimiento', 'duelo',
+                        'ley 29409', 'ley 30807', '10 días paternidad', 'nacimiento hijo'],
+        'descripcion': """\
+**Permisos y licencias laborales**:
+
+| Código | Tipo | Pagada | Base legal |
+|--------|------|--------|-----------|
+| `LCG`  | Licencia con goce | Sí (REMUNERATIVA — afecta todo) | Convenio / D.Leg. 728 art. 56 |
+| `LSG`  | Licencia sin goce | No | Acuerdo entre partes |
+| `LF`   | Licencia por fallecimiento (luto) | Sí (3-5 días según convenio) | Convenio colectivo / costumbre |
+| `LP`   | Licencia por paternidad | Sí (10 días calendario) | Ley 29409 + Ley 30807 |
+| `CDT`  | Compensación día trabajado | Sí (día libre por día trabajado) | D.Leg. 713 art. 6 |
+| `FA`   | Falta injustificada | No | Descuento + posible falta grave |
+| `TR`   | Tardanza | Descuento proporcional | Reglamento interno trabajo |
+
+**Licencia por paternidad** (Ley 29409 + Ley 30807):
+- **10 días calendario** (ampliados de 4 a 10 por Ley 30807 de 2018).
+- Se cuenta desde fecha de nacimiento o desde alta hospitalaria del recién nacido.
+- Aplica al padre trabajador del régimen privado y público.
+- Es **remunerativa** — el empleador la paga como día trabajado.
+- En caso de **parto múltiple o discapacidad**: días adicionales (Ley 30807).
+
+**Licencia por maternidad**: ver entrada "Subsidio por Maternidad" (98 días, Ley 26644 + Ley 30367).
+
+**Implementación**: códigos en `CODIGOS_SIN_HE` — no generan HE pero sí se pagan según política.
+""",
+    },
+
+    # ─── Contratos D.Leg. 728 vs 1057 ────────────────────────────
+    {
+        'titulo':      'Contratos: D.Leg. 728 (privado) vs D.Leg. 1057 (CAS)',
+        'base_legal':  'D.S. 003-97-TR (TUO D.Leg. 728) + D.Leg. 1057 + Ley 28015 (MYPE)',
+        'tags':        ['contrato', 'regimen', 'd.leg 728', 'd.leg 1057', 'cas', 'mype'],
+        'keywords':    ['contrato', 'régimen', 'regimen', 'd.leg 728', 'dleg 728', '728',
+                        'cas', 'd.leg 1057', '1057', 'mype', 'microempresa', 'pequeña empresa',
+                        'pequena empresa', 'plazo indeterminado', 'plazo fijo',
+                        'sujeto modalidad', 'tiempo parcial', 'periodo prueba',
+                        'período prueba', 'tipo contrato', 'modalidad contrato'],
+        'descripcion': """\
+**Regímenes laborales en Perú**:
+
+**D.Leg. 728 — Régimen Privado** (TUO D.S. 003-97-TR):
+- Aplicado por defecto en Harmoni.
+- Beneficios completos:
+  - Gratificación julio/diciembre (1 sueldo c/u + bonif. extra)
+  - CTS (1 sueldo/año)
+  - Vacaciones 30 días
+  - Asignación familiar 10% RMV
+  - Indemnización despido arbitrario (1.5 sueldos × año, tope 12)
+  - AFP/ONP + ESSALUD
+- **Modalidades**:
+  - Contrato a **plazo indeterminado** (regla general)
+  - Contrato a **plazo fijo** (sujeto a modalidad — temporal, accidental, obra/servicio)
+  - **Tiempo parcial** (< 4 h/día promedio) — NO genera CTS ni vacaciones plenas
+- **Período de prueba**: 3 meses (general), 6 meses (calificado), 12 meses (dirección).
+
+**D.Leg. 1057 — Contrato Administrativo de Servicios (CAS)**:
+- Régimen especial del **sector público**.
+- Beneficios reducidos:
+  - Vacaciones 30 días
+  - Aguinaldos (no equivalentes a grati)
+  - CTS desde 2020 (Ley 31131)
+  - ESSALUD + AFP/ONP
+- **Harmoni hoy NO calcula nóminas CAS** — orientado al régimen privado.
+
+**Régimen MYPE** (Ley 28015 + D.S. 013-2013-PRODUCE):
+- **Microempresa** (< 10 trab., ventas ≤ 150 UIT):
+  - Grati y CTS REDUCIDAS (medio sueldo grati, sin CTS)
+  - Vacaciones 15 días (no 30)
+  - Sin asignación familiar obligatoria
+- **Pequeña empresa** (< 100 trab., ventas ≤ 1,700 UIT):
+  - Grati 1/2 sueldo, CTS 15 días/año
+  - Vacaciones 15 días
+- Soporte en Harmoni: marcar régimen en `Empresa.regimen` (futuro release).
+""",
+    },
+
+    # ─── Trabajo nocturno y bono RMV nocturna ────────────────────
+    {
+        'titulo':      'Trabajo nocturno y RMV nocturna (+35%)',
+        'base_legal':  'D.S. 004-2006-TR + Ley 27671',
+        'tags':        ['nocturno', 'rmv_nocturna', 'jornada_nocturna', 'horario_nocturno'],
+        'keywords':    ['nocturno', 'nocturna', 'jornada nocturna', 'horario nocturno',
+                        '22:00', '06:00', 'rmv nocturna', 'bono nocturno', 'recargo nocturno',
+                        '35% nocturno', 'horario noche', 'turno noche'],
+        'descripcion': """\
+**Trabajo nocturno** (D.S. 004-2006-TR + Ley 27671):
+
+**Definición**: jornada o parte de jornada realizada entre las **22:00 y las 06:00** del día siguiente.
+
+**Reglas**:
+- **Remuneración mínima nocturna** = RMV + 35% sobretasa = S/ 1,130 × 1.35 = **S/ 1,525.50** (2026).
+- Aplica a trabajadores cuya jornada habitual es nocturna (no es lo mismo que HE nocturnas).
+- Si la jornada es **mixta** (parte día / parte noche), la sobretasa aplica proporcional a las horas nocturnas.
+
+**Diferencia con HE nocturna**:
+- **Bono nocturno**: aumenta el sueldo base para trabajadores con jornada nocturna habitual.
+- **HE en horario nocturno** (22:00-06:00): se pagan con **recargo del 35%** (en lugar de 25%), porque la 1ra y 2da hora extra en horario nocturno suben al tramo de 35%.
+
+**Restricciones**:
+- Adolescentes (15-18 años): prohibido trabajo nocturno (Ley 27337 art. 58).
+- Trabajadoras embarazadas o lactantes: pueden solicitar cambio a turno diurno.
+
+**No aplica RMV nocturna a**:
+- Trabajadores del régimen agrario (Ley 31110 — régimen propio).
+- Trabajadores que realizan trabajos por hora (eventual, intermitente).
+""",
+    },
+
+    # ─── Tabla resumen aportes y bases ───────────────────────────
+    {
+        'titulo':      'Tabla resumen — aportes, descuentos y topes 2026',
+        'base_legal':  'Consolidado: Ley 26790 + DL 19990 + DL 25897 + DS 233-2025-EF + DS 006-2024-TR',
+        'tags':        ['resumen', 'tabla', 'aportes', 'topes', 'cheat_sheet'],
+        'keywords':    ['tabla aportes', 'tasas vigentes', 'cheat sheet', 'resumen tasas',
+                        'cuanto descuento', 'cuánto descuento', 'cuanto aporta', 'cuánto aporta',
+                        'porcentajes planilla', 'topes 2026', 'parámetros vigentes',
+                        'parametros vigentes', 'uit 2026', 'rmv 2026', 'tope rma'],
+        'descripcion': """\
+**Parámetros vigentes Q2 2026**:
+
+| Parámetro | Valor | Base legal |
+|-----------|-------|-----------|
+| **RMV** | S/ 1,130.00 | D.S. 006-2024-TR |
+| **UIT** | S/ 5,500.00 | D.S. 233-2025-EF |
+| **Tope RMA AFP** (prima seguro) | S/ 12,131.49 | SBS |
+| **Asignación familiar** | S/ 113.00 (10% RMV) | Ley 25129 |
+| **Inembargable (5 URP)** | S/ 5,650.00 | Art. 648 CPC |
+| **Jornada máxima** | 48 h/sem, 8 h/día | D.Leg. 854 |
+
+**Aportes y descuentos**:
+
+| Concepto | Tasa | Tope | Quién paga |
+|----------|------|------|-----------|
+| ESSALUD regular | 9.00% | sin tope | empleador |
+| ESSALUD con EPS | 6.75% efectivo | sin tope | empleador |
+| ONP | 13.00% | sin tope | trabajador |
+| AFP obligatorio | 10.00% | sin tope | trabajador |
+| AFP comisión flujo | 1.47% - 1.69% | sin tope | trabajador |
+| AFP prima seguro | 1.74% | RMA S/ 12,131.49 | trabajador |
+| SCTR Salud | desde 0.53% | sin tope | empleador |
+| SCTR Pensión | desde 1.23% | sin tope | empleador |
+| Bonif. grati (ESSALUD) | 9.00% | sin tope | empleador |
+| Bonif. grati (EPS) | 6.75% | sin tope | empleador |
+
+**Recargos HE**:
+- HE 25%: 1ra y 2da hora sobretiempo.
+- HE 35%: 3ra+ hora y nocturno (22:00-06:00).
+- HE 100%: descanso semanal o feriado laborado.
+
+**Escala IR 5ta 2026**:
+- Hasta 5 UIT: 8% | 5-20 UIT: 14% | 20-35 UIT: 17% | 35-45 UIT: 20% | >45 UIT: 30%
+- Deducción 7 UIT = S/ 38,500.
+""",
+    },
+
     # ─── Boleta electrónica ──────────────────────────────────────
     {
         'titulo':      'Boleta de Pago Electrónica',

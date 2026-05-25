@@ -11,7 +11,7 @@ Carpeta para documentación técnica/operativa **NO comercial**. Tu repo es priv
 | [PLAN_ESTABILIZACION_2026.md](./PLAN_ESTABILIZACION_2026.md) | Hoja de ruta para llevar Harmoni a producción robusta |
 | [BUGS_RESUELTOS_2026-Q2.md](./BUGS_RESUELTOS_2026-Q2.md) | Registro de bugs serios detectados y fixes aplicados |
 | [DEUDA_TECNICA.md](./DEUDA_TECNICA.md) | Lista priorizada de refactors pendientes |
-| [REGLAS_NEGOCIO_ASISTENCIA.md](./REGLAS_NEGOCIO_ASISTENCIA.md) | Reglas peruanas: ciclos, jornadas, HE, papeletas |
+| [REGLAS_PERUANAS.md](./REGLAS_PERUANAS.md) | Normativa peruana centralizada (RMV, jornada, HE, beneficios, AFP/ONP/EsSalud, IR 5ta, embargo, contratos) |
 | [INTEGRACIONES.md](./INTEGRACIONES.md) | Sync Synkro, SUNAT, AFP Net, bancos, Sentry |
 
 ## Convenciones
