@@ -737,14 +737,28 @@ class RateLimitedLoginView(DjangoLoginView):
     fallidos en una ventana, bloquea con HTTP 429 durante un tiempo de penalty.
     Login exitoso resetea el contador. Usa el cache de Django (Redis en prod).
 
-    En MODO DEMO (settings.DEMO_MODE=True) los límites son más permisivos
+    En MODO DEMO (env DEMO_MODE=True) los límites son más permisivos
     para evitar bloquear durante presentaciones — el riesgo de brute-force
     en demo es bajo porque los datos se resetean cada noche.
     """
 
-    MAX_FALLOS = 20 if getattr(__import__('django.conf', fromlist=['settings']).settings, 'DEMO_MODE', False) else 5
-    VENTANA_INTENTOS = 5 * 60      # 5 min
-    BLOQUEO_SEGUNDOS = 60 if getattr(__import__('django.conf', fromlist=['settings']).settings, 'DEMO_MODE', False) else 15 * 60
+    @staticmethod
+    def _is_demo_mode():
+        import os
+        return os.environ.get('DEMO_MODE', 'False').lower() in ('true', '1', 'yes')
+
+    # Properties para evaluar dinámicamente (no a load time)
+    @property
+    def MAX_FALLOS(self):
+        return 20 if self._is_demo_mode() else 5
+
+    @property
+    def VENTANA_INTENTOS(self):
+        return 5 * 60      # 5 min (igual en demo y prod)
+
+    @property
+    def BLOQUEO_SEGUNDOS(self):
+        return 60 if self._is_demo_mode() else 15 * 60
 
     @staticmethod
     def _client_ip(request):
