@@ -72,6 +72,9 @@ urlpatterns = [
     
     # Personal
     path('personal/', views.personal_list, name='personal_list'),
+    path('personal/eventual/nuevo/',
+         __import__('personal.views.eventuales', fromlist=['eventual_nuevo']).eventual_nuevo,
+         name='personal_eventual_nuevo'),
     # Aliases populares
     path('empleados/', views.personal_list, name='empleados_list_alias'),
     path('personal/crear/', views.personal_create, name='personal_create'),

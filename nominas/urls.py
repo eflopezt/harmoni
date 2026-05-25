@@ -15,6 +15,7 @@ from . import views_interanual
 from . import views_agente_ia
 from . import views_propinas
 from . import views_conceptos_masivos
+from . import views_archivo_banco
 
 urlpatterns = [
     # Panel y portal
@@ -104,6 +105,11 @@ urlpatterns = [
     path('periodos/<int:pk>/conceptos/importar/',
          views_conceptos_masivos.periodo_conceptos_importar,
          name='nominas_periodo_conceptos_importar'),
+
+    # Archivo plano bancario para depósito masivo de haberes
+    path('periodos/<int:pk>/archivo-banco/',
+         views_archivo_banco.periodo_archivo_banco,
+         name='nominas_periodo_archivo_banco'),
     path('periodos/<int:pk>/resumen/', views.periodo_resumen_ajax, name='nominas_periodo_resumen'),
     path('periodos/<int:pk>/boletas.zip', views.periodo_boletas_zip, name='nominas_periodo_boletas_zip'),
     path('periodos/<int:pk>/plame/', views.periodo_exportar_plame, name='nominas_periodo_plame'),

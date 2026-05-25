@@ -242,6 +242,27 @@ class Empresa(models.Model):
         null=True, blank=True, related_name='+',
     )
 
+    # ── Portal de beneficios externo (opcional) ──
+    # Algunas empresas usan plataformas externas para beneficios sociales
+    # (Crehana, Coursera empresarial, Rappi Empresas, etc.). Harmoni expone
+    # un botón "Mis beneficios" en el portal del trabajador que redirige
+    # a esta URL cuando está configurada.
+    portal_beneficios_nombre = models.CharField(
+        max_length=80, blank=True, default='',
+        verbose_name='Nombre del portal de beneficios',
+        help_text='Ej: "Beneficios Stiler", "EDO Bienestar". Visible para el trabajador.',
+    )
+    portal_beneficios_url = models.URLField(
+        blank=True, default='',
+        verbose_name='URL del portal de beneficios',
+        help_text='URL externa a la que se redirige al trabajador desde el portal.',
+    )
+    portal_beneficios_logo_url = models.URLField(
+        blank=True, default='',
+        verbose_name='Logo del portal de beneficios (opcional)',
+        help_text='URL del logo para mostrar junto al botón. PNG/SVG recomendado.',
+    )
+
     class Meta:
         verbose_name        = 'Empresa'
         verbose_name_plural = 'Empresas'

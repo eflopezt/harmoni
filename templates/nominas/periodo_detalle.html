@@ -530,6 +530,63 @@
     <i class="fas fa-file-pdf me-1"></i>Reporte Ejecutivo
   </a>
 
+  {# Archivo plano bancario — depósito masivo de haberes #}
+  <div class="dropdown d-inline-block">
+    <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button"
+            data-bs-toggle="dropdown" aria-expanded="false"
+            title="Generar archivo plano para depósito masivo de haberes a los bancos">
+      <i class="fas fa-university me-1"></i>Pago a bancos
+    </button>
+    <ul class="dropdown-menu shadow-sm" style="font-size:.85rem;min-width:260px;">
+      <li class="px-3 py-2" style="font-size:.72rem;color:#64748b;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">
+        Depósito masivo de haberes
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BCP">
+          <span style="background:#0F5BAF;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BCP</span>
+          BCP — Telecrédito Web (TXT)
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BBVA">
+          <span style="background:#072146;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BBVA</span>
+          BBVA — Net Cash (CSV)
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=SCOTIA">
+          <span style="background:#EE1313;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">SCB</span>
+          Scotiabank — Telebanking (CSV)
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=INTERBANK">
+          <span style="background:#00A046;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">IBK</span>
+          Interbank — Comercio.com (TXT)
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BN">
+          <span style="background:#003575;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BN</span>
+          Banco de la Nación (TXT)
+        </a>
+      </li>
+      <li><hr class="dropdown-divider"></li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=GENERICO">
+          <i class="fas fa-file-csv text-success"></i>
+          Genérico — CSV universal
+        </a>
+      </li>
+    </ul>
+  </div>
+
   {# Conceptos manuales masivos (Excel) — propinas, bonificaciones, comisiones #}
   {% if periodo.estado != 'APROBADO' and periodo.estado != 'CERRADO' and periodo.estado != 'ANULADO' %}
   <div class="dropdown d-inline-block" id="importar-conceptos">

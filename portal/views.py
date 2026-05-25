@@ -265,6 +265,20 @@ def portal_home(request):
             'pulse_pendiente': pulse_pendiente,
         })
 
+    # Portal de beneficios externo (si la empresa lo tiene configurado)
+    portal_beneficios = None
+    try:
+        emp = getattr(personal, 'empresa', None) if personal else None
+        if emp and emp.portal_beneficios_url:
+            portal_beneficios = {
+                'nombre': emp.portal_beneficios_nombre or 'Mis Beneficios',
+                'url':    emp.portal_beneficios_url,
+                'logo':   emp.portal_beneficios_logo_url or '',
+            }
+    except Exception:
+        pass
+    context['portal_beneficios'] = portal_beneficios
+
     return render(request, 'portal/portal_home.html', context)
 
 

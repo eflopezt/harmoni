@@ -1,0 +1,130 @@
+{% extends "base_v2.html" %}
+{% load humanize %}
+
+{% block title %}Alta rápida personal eventual — Harmoni{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom:20px;">
+  <h1 style="font-size:1.5rem;color:#0d2b27;margin:0;">
+    <i class="fas fa-bolt me-2 text-warning"></i>Alta rápida — Personal de eventos
+  </h1>
+  <p style="color:#64748b;font-size:.9rem;margin-top:6px;">
+    Registra en 30 segundos a un trabajador que viene solo para un evento puntual
+    (catering, banquete, fiesta). Auto-cese al día siguiente del evento.
+  </p>
+</div>
+
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+  {{ msg }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+
+<div style="max-width:720px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:30px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);border:1px solid #FCD34D;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13.5px;color:#78350F;line-height:1.5;">
+      <i class="fas fa-info-circle me-1"></i>
+      <strong>Personal eventual</strong> = trabajador contratado por un evento específico
+      (1-3 días típicamente). El sistema crea el legajo, un contrato modal
+      "Intermitente/Discontinuo" (D.S. 003-97-TR Art. 65) y programa el cese
+      automático al día siguiente del evento.
+    </div>
+
+    {# ── Datos identidad ── #}
+    <h6 style="color:#0f766e;font-weight:700;font-size:11px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px;">
+      Identificación
+    </h6>
+    <div class="row g-3 mb-4">
+      <div class="col-sm-4">
+        <label class="form-label fw-semibold">DNI *</label>
+        <input type="text" name="nro_doc" class="form-control" required maxlength="12"
+               placeholder="73000000" pattern="[0-9]{7,12}">
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label fw-semibold">Apellidos y Nombres *</label>
+        <input type="text" name="apellidos_nombres" class="form-control" required
+               placeholder="PEREZ GARCIA, JUAN" style="text-transform:uppercase;">
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label fw-semibold">Sexo</label>
+        <select name="sexo" class="form-select">
+          <option value="M">M</option>
+          <option value="F">F</option>
+        </select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label fw-semibold">Celular</label>
+        <input type="tel" name="celular" class="form-control" placeholder="+51 987654321">
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label fw-semibold">Régimen pensión</label>
+        <select name="regimen_pension" class="form-select">
+          <option value="ONP">ONP</option>
+          <option value="AFP">AFP</option>
+          <option value="SIN_PENSION">Sin pensión</option>
+        </select>
+      </div>
+    </div>
+
+    {# ── Evento ── #}
+    <h6 style="color:#0f766e;font-weight:700;font-size:11px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px;">
+      Datos del evento
+    </h6>
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6">
+        <label class="form-label fw-semibold">Fecha del evento *</label>
+        <input type="date" name="fecha_evento" class="form-control" required
+               value="{{ hoy }}" min="{{ hoy }}">
+        <div class="form-text" style="font-size:.78rem;">
+          El sistema cesará automáticamente al trabajador el día siguiente.
+        </div>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label fw-semibold">Pago total del evento (S/) *</label>
+        <div class="input-group">
+          <span class="input-group-text">S/</span>
+          <input type="number" name="pago_total" class="form-control" required
+                 step="0.01" min="0" placeholder="120.00">
+        </div>
+        <div class="form-text" style="font-size:.78rem;">
+          Monto bruto a pagar por el día. Descuentos AFP/ONP/IR se calculan automáticos.
+        </div>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label fw-semibold">Cargo / Función</label>
+        <input type="text" name="cargo" class="form-control"
+               value="Personal de eventos" placeholder="Mozo eventual, Barman eventual, etc.">
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label fw-semibold">SubÁrea (opcional)</label>
+        <select name="subarea_id" class="form-select">
+          <option value="">— Sin asignar —</option>
+          {% for sa in subareas %}
+          <option value="{{ sa.pk }}">{{ sa.area.nombre }} → {{ sa.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <a href="{% url 'personal_list' %}" class="btn btn-light">
+        <i class="fas fa-arrow-left me-1"></i>Volver
+      </a>
+      <button type="submit" class="btn btn-success btn-lg">
+        <i class="fas fa-check me-1"></i>Registrar personal eventual
+      </button>
+    </div>
+  </form>
+</div>
+
+<div style="max-width:720px;margin-top:20px;font-size:12px;color:#94a3b8;">
+  <i class="fas fa-circle-info me-1"></i>
+  Para registrar múltiples trabajadores en lote (ej. 20 mozos para un banquete),
+  usá el comando <code>python manage.py importar_maestro_empleados</code> con
+  tipo_contrato=EVENTUAL en el Excel.
+</div>
+{% endblock %}
