@@ -8,6 +8,7 @@ import json
 import os
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q, Count
@@ -2831,8 +2832,57 @@ def api_generar_descripcion(request):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  CV PARSER — Importado de NexoTalent
+#  CV PARSER — Importado de NexoTalent (parsing local + IA opcional)
 # ═══════════════════════════════════════════════════════════════════
+
+def _build_cv_llm_caller():
+    """Construye un caller para FASE 2 (enriquecimiento con LLM).
+
+    Devuelve None si Anthropic no está disponible o si no hay API key.
+    El caller resultante tiene firma `(texto, parsed) -> dict` y sólo
+    se le pide rellenar campos vacíos (no rehacer todo el parsing).
+    """
+    api_key = getattr(settings, 'ANTHROPIC_API_KEY', '') or os.environ.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        return None
+    try:
+        from anthropic import Anthropic
+    except ImportError:
+        return None
+
+    modelo = getattr(settings, 'CV_PARSER_LLM_MODEL', 'claude-haiku-4-20250414')
+
+    def _caller(texto: str, parsed: dict) -> dict:
+        """Llama a Claude pidiendo SOLO los campos vacíos del parsing local."""
+        faltantes = [c for c in ('nombre_completo', 'email', 'telefono', 'dni', 'fecha_nacimiento')
+                     if not parsed.get(c)]
+        if not faltantes:
+            return {}
+        # Prompt acotado — el LLM no rehace todo
+        prompt = (
+            'Extrae ÚNICAMENTE los campos solicitados del siguiente CV. '
+            'Si un campo no aparece literalmente en el texto, devuelve string vacío. '
+            'NO inventes datos. Responde sólo JSON.\n\n'
+            f'Campos solicitados: {", ".join(faltantes)}\n\n'
+            f'CV:\n{texto[:6000]}\n\n'
+            'Responde con JSON puro, sin markdown, con esas claves exactas.'
+        )
+        try:
+            client = Anthropic(api_key=api_key)
+            resp = client.messages.create(
+                model=modelo,
+                max_tokens=400,
+                messages=[{'role': 'user', 'content': prompt}],
+            )
+            raw = resp.content[0].text if resp.content else '{}'
+            # Limpiar fences markdown si los hubiera
+            raw = raw.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
+            return json.loads(raw)
+        except Exception:
+            return {}
+
+    return _caller
+
 
 @login_required
 @solo_admin
@@ -2874,7 +2924,13 @@ def subir_cv_express(request, vacante_pk=None):
             tmp_path = tmp.name
 
         try:
-            parsed = parse_cv_from_file(tmp_path)
+            # FASE 2 (LLM enrichment) habilitable por settings.
+            # Si CV_PARSER_LLM_ENABLED=True, se inyecta un caller que
+            # llama a Anthropic SOLO para rellenar campos vacíos.
+            llm_caller = _build_cv_llm_caller() if getattr(
+                settings, 'CV_PARSER_LLM_ENABLED', False
+            ) else None
+            parsed = parse_cv_from_file(tmp_path, llm_caller=llm_caller)
         finally:
             try:
                 os.unlink(tmp_path)

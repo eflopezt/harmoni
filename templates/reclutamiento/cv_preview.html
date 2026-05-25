@@ -109,6 +109,12 @@
                 </span>
             </div>
             <div class="pv-field">
+                <span class="lbl">Fecha de nacimiento</span>
+                <span class="val {% if not parsed.fecha_nacimiento %}empty{% endif %}">
+                    {{ parsed.fecha_nacimiento|default:"(no detectado)" }}
+                </span>
+            </div>
+            <div class="pv-field">
                 <span class="lbl">Años de experiencia (calculados)</span>
                 <span class="val">{{ parsed.anios_experiencia }}</span>
             </div>
@@ -123,11 +129,18 @@
             <div class="pv-field">
                 <span class="lbl">Secciones detectadas</span>
                 <span class="val">
-                    {% if parsed.tiene_experiencia %}✓ Experiencia{% endif %}
-                    {% if parsed.tiene_educacion %} ✓ Educación{% endif %}
-                    {% if not parsed.tiene_experiencia and not parsed.tiene_educacion %}<span class="empty">—</span>{% endif %}
+                    {% for s in parsed.secciones_detectadas %}<span class="pv-skill" style="background:#dcfce7;color:#166534;">{{ s }}</span> {% endfor %}
+                    {% if not parsed.secciones_detectadas %}<span class="empty">—</span>{% endif %}
                 </span>
             </div>
+            {% if parsed.ia_usada %}
+            <div class="pv-field">
+                <span class="lbl"><i class="fas fa-robot text-info"></i> Enriquecido por IA</span>
+                <span class="val" style="color:#0369a1;">
+                    {% for c in parsed.campos_de_ia %}<span class="pv-skill" style="background:#dbeafe;color:#1e40af;">{{ c }}</span> {% endfor %}
+                </span>
+            </div>
+            {% endif %}
         </div>
 
         {% if parsed.skills %}

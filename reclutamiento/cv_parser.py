@@ -1,23 +1,45 @@
 """
 CV Parser — adaptación del pipeline de NexoTalent para Harmoni.
 
-Pipeline:
-  1. Extracción de texto (PDF/DOCX/TXT)
-     - PyMuPDF (fitz) → más rápido para PDFs nativos
-     - pdfplumber → fallback
-     - python-docx → DOCX
-  2. Extracción de entidades (regex + NER opcional)
-     - Email, teléfono peruano, DNI/RUC
-     - Skills (lista predefinida + heurísticas)
-     - Experiencia (años calculados desde fechas)
-     - Educación (último título/institución)
+Pipeline en DOS FASES (estilo NexoTalent):
+
+  FASE 1 — Parsing LOCAL determinista (sin IA):
+    1. Extracción de texto (PDF/DOCX/TXT)
+       - PyMuPDF (fitz) → más rápido para PDFs nativos
+       - pdfplumber → fallback
+       - python-docx → DOCX
+    2. **Segmentación en secciones** por headers comunes en español:
+         "DATOS PERSONALES", "EXPERIENCIA LABORAL",
+         "FORMACIÓN ACADÉMICA", "HABILIDADES", "IDIOMAS", "REFERENCIAS".
+    3. Por cada sección, extracción acotada:
+       - datos_personales → nombre, DNI, email, teléfono, fecha_nacimiento
+       - experiencias    → pares (empresa, cargo, fecha_inicio, fecha_fin)
+       - educacion       → institución + año
+       - idiomas         → lista
+       - skills          → catálogo gastronómico/tech/admin
+
+  FASE 2 — Enriquecimiento con IA (opcional):
+    - Sólo se invoca si parsing local dejó campos clave vacíos
+      (nombre, email, fecha_nacimiento) o si `forzar_ia=True`.
+    - El LLM recibe el texto crudo + las secciones ya detectadas y
+      sólo se le pide rellenar los campos que faltan
+      (no rehacer todo, evita alucinaciones).
+    - La respuesta del LLM se VALIDA contra el texto original
+      (no se aceptan emails ni teléfonos que no aparezcan en el CV).
+    - Inyectable vía parámetro `llm_caller` para tests (mock).
+
+REGLA CRÍTICA — separación fecha_nacimiento vs experiencia:
+    Las fechas que aparecen en la sección "Datos Personales"
+    (ej. "Fecha de nacimiento: 14/03/1990") NUNCA contaminan
+    el cálculo de `anios_experiencia`. El bug original tomaba
+    el año mínimo de TODO el texto, así un postulante nacido en
+    1990 con 5 años de experiencia recibía `anios_experiencia=36`.
 
 Las funciones devuelven `str` para texto o `dict` con campos extraídos.
 Si todas las extracciones fallan, devuelve dict con campos vacíos —
 nunca crashea.
 
-Crédito: pipeline derivado de NexoTalent (apps/ia/pdf_extractor.py,
-cv_structure.py, ner_extractor.py).
+Crédito: pipeline derivado de NexoTalent.
 """
 from __future__ import annotations
 
@@ -25,7 +47,7 @@ import logging
 import os
 import re
 from datetime import date
-from typing import Optional
+from typing import Callable, Optional
 
 logger = logging.getLogger('reclutamiento.cv_parser')
 
@@ -200,7 +222,7 @@ def _strip_tildes(s: str) -> str:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Extracción de entidades (regex)
+# Regex de entidades
 # ──────────────────────────────────────────────────────────────────
 
 # Email (RFC 5322 simplificado)
@@ -226,41 +248,225 @@ RE_FECHA = re.compile(
     re.IGNORECASE,
 )
 
-# Headers de secciones (basado en NexoTalent cv_structure.py)
+# Fecha de nacimiento explícita (DD/MM/YYYY o DD-MM-YYYY)
+# Captura sólo cuando aparece junto a etiquetas como "Fecha de nacimiento",
+# "Nacimiento", "Born", "Fec. Nac.", etc.
+RE_FECHA_NACIMIENTO_LABEL = re.compile(
+    r'(?im)(?:fecha\s+de\s+nacimiento|fec(?:ha)?\.?\s+nac\.?|nacimiento|date\s+of\s+birth|born|nacido(?:\s+el)?)\s*[:\-]?\s*'
+    r'(?P<fecha>'
+        r'\d{1,2}[/\-\.]\d{1,2}[/\-\.](?:19|20)\d{2}'
+        r'|\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+de\s+(?:19|20)\d{2}'
+        r'|(?:ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)[a-z]*\.?\s+\d{1,2},?\s+(?:19|20)\d{2}'
+        r'|(?:19|20)\d{2}'
+    r')',
+)
+
+
+# ──────────────────────────────────────────────────────────────────
+# Headers de secciones (Fase 1: segmentación)
+# ──────────────────────────────────────────────────────────────────
+
+SECCION_DATOS_PERSONALES = 'datos_personales'
+SECCION_EXPERIENCIA = 'experiencia'
+SECCION_EDUCACION = 'educacion'
+SECCION_SKILLS = 'skills'
+SECCION_IDIOMAS = 'idiomas'
+SECCION_REFERENCIAS = 'referencias'
+SECCION_OTROS = 'otros'
+
+# Cada header se matchea sobre una LÍNEA (no parte interna).
+# Permite minúsculas y mayúsculas; quita tildes antes de matchear.
+_HEADERS_POR_SECCION = {
+    SECCION_DATOS_PERSONALES: [
+        r'datos\s+personales',
+        r'informacion\s+personal',
+        r'datos\s+de\s+contacto',
+        r'perfil\s+personal',
+        r'personal\s+data',
+        r'personal\s+information',
+    ],
+    SECCION_EXPERIENCIA: [
+        r'experiencia\s+laboral',
+        r'experiencia\s+profesional',
+        r'experiencia\s+de\s+trabajo',
+        r'experiencia(?:\s+\w+){0,2}',  # "Experiencia", "Experiencia previa"
+        r'historial\s+laboral',
+        r'historial\s+profesional',
+        r'work\s+experience',
+        r'professional\s+experience',
+        r'antecedentes\s+laborales',
+        r'trayectoria\s+profesional',
+    ],
+    SECCION_EDUCACION: [
+        r'formacion\s+academica',
+        r'formacion\s+profesional',
+        r'educacion',
+        r'estudios',
+        r'estudios\s+realizados',
+        r'education',
+        r'academic\s+background',
+    ],
+    SECCION_SKILLS: [
+        r'habilidades',
+        r'competencias',
+        r'aptitudes',
+        r'skills',
+        r'herramientas',
+        r'conocimientos',
+        r'conocimientos\s+tecnicos',
+    ],
+    SECCION_IDIOMAS: [
+        r'idiomas',
+        r'languages',
+    ],
+    SECCION_REFERENCIAS: [
+        r'referencias',
+        r'referencias\s+laborales',
+        r'referencias\s+personales',
+        r'references',
+    ],
+}
+
+# Compilados en runtime
+_HEADER_RE_CACHE: dict[str, re.Pattern] = {}
+
+
+def _header_pattern(seccion: str) -> re.Pattern:
+    if seccion not in _HEADER_RE_CACHE:
+        alt = '|'.join(_HEADERS_POR_SECCION[seccion])
+        _HEADER_RE_CACHE[seccion] = re.compile(
+            rf'^\s*(?:{alt})\s*:?\s*$',
+            re.IGNORECASE,
+        )
+    return _HEADER_RE_CACHE[seccion]
+
+
+# Compatibilidad con código viejo que importa estas constantes
 RE_HEADER_EXPERIENCIA = re.compile(
     r'(?im)^(?:experiencia\s+(?:laboral|profesional|de\s+trabajo)|'
     r'historial\s+(?:laboral|profesional)|work\s+experience|'
-    r'antecedentes\s+laborales)\b'
+    r'antecedentes\s+laborales|trayectoria\s+profesional)\b'
 )
 RE_HEADER_EDUCACION = re.compile(
     r'(?im)^(?:formaci[oó]n\s+(?:acad[eé]mica|profesional)|'
     r'educaci[oó]n|estudios|education)\b'
 )
 RE_HEADER_SKILLS = re.compile(
-    r'(?im)^(?:habilidades|competencias|skills|herramientas|conocimientos)\b'
+    r'(?im)^(?:habilidades|competencias|skills|herramientas|conocimientos|aptitudes)\b'
 )
 RE_HEADER_IDIOMAS = re.compile(
     r'(?im)^(?:idiomas|languages)\b'
 )
 
 
+# ──────────────────────────────────────────────────────────────────
+# FASE 1.1 — Segmentar texto en secciones
+# ──────────────────────────────────────────────────────────────────
+
+def segmentar_secciones(text: str) -> dict[str, str]:
+    """Divide el texto del CV en secciones tipadas.
+
+    Devuelve un dict {seccion: texto_de_la_seccion}. La sección
+    `otros` contiene el contenido previo al primer header detectado
+    (típicamente el nombre + datos de contacto en la cabecera).
+
+    Estrategia:
+      - Recorre línea por línea.
+      - Si la línea matchea uno de los headers de sección → cambia
+        de cubeta.
+      - Conserva orden original; no clasifica por contenido.
+
+    Esto permite que `parse_cv` posteriormente extraiga fechas,
+    skills, etc. SÓLO de la sección correspondiente.
+    """
+    if not text:
+        return {SECCION_OTROS: ''}
+
+    secciones: dict[str, list[str]] = {SECCION_OTROS: []}
+    actual = SECCION_OTROS
+
+    # Normalización: quitar tildes sólo para matching de headers
+    for raw_line in text.split('\n'):
+        line_norm = _strip_tildes(raw_line).strip()
+        matched = None
+        if line_norm and len(line_norm) <= 60:
+            # Headers son siempre líneas cortas
+            for seccion in _HEADERS_POR_SECCION:
+                if _header_pattern(seccion).match(line_norm):
+                    matched = seccion
+                    break
+
+        if matched:
+            actual = matched
+            secciones.setdefault(actual, [])
+            # Header line en sí no se guarda
+            continue
+        secciones.setdefault(actual, []).append(raw_line)
+
+    return {k: '\n'.join(v).strip() for k, v in secciones.items()}
+
+
+# ──────────────────────────────────────────────────────────────────
+# FASE 1.2 — Extraer fecha de nacimiento (aislada)
+# ──────────────────────────────────────────────────────────────────
+
+def extraer_fecha_nacimiento(text: str, datos_personales_text: str = '') -> Optional[str]:
+    """Detecta la fecha de nacimiento del CV.
+
+    Busca primero en la sección "Datos Personales"; si no encuentra,
+    busca en todo el texto pero exigiendo etiqueta explícita
+    ("Fecha de nacimiento:", "Nacimiento:", "Born:", etc.) para
+    evitar falsos positivos.
+
+    Devuelve la cadena original (ej. "14/03/1990") o None.
+    """
+    candidatos = (datos_personales_text, text)
+    for fuente in candidatos:
+        if not fuente:
+            continue
+        m = RE_FECHA_NACIMIENTO_LABEL.search(fuente)
+        if m:
+            return m.group('fecha').strip()
+    return None
+
+
+def _año_de_fecha_str(s: str) -> Optional[int]:
+    """Extrae el año (1900-2100) de una cadena de fecha."""
+    if not s:
+        return None
+    m = re.search(r'\b(19|20)\d{2}\b', s)
+    if m:
+        return int(m.group())
+    return None
+
+
+# ──────────────────────────────────────────────────────────────────
+# FASE 1.3 — Parse principal (sección-aware)
+# ──────────────────────────────────────────────────────────────────
+
 def parse_cv(text: str) -> dict:
     """Parsea un texto de CV y devuelve dict con entidades extraídas.
 
+    Esta función ahora es **section-aware**: primero segmenta el CV
+    por secciones y luego extrae fechas/años SÓLO de la sección
+    de experiencia laboral (no del CV completo).
+
     Estructura del dict retornado:
         {
-            'email':              'maria@ejemplo.com',  # primer match
+            'email':              'maria@ejemplo.com',
             'telefono':           '987654321',
             'dni':                '71234567',
-            'nombre_completo':    'MARIA QUISPE LOPEZ',  # mejor guess
-            'anios_experiencia':  3,                     # calculado de fechas
-            'fecha_min':          1995,                  # año más antiguo
-            'fecha_max':          2025,
+            'nombre_completo':    'MARIA QUISPE LOPEZ',
+            'fecha_nacimiento':   '14/03/1990',           # NUEVO
+            'anios_experiencia':  3,
+            'fecha_min':          2019,
+            'fecha_max':          2026,
             'skills':             ['cocina_caliente', 'haccp', ...],
             'tiene_experiencia':  True,
             'tiene_educacion':    True,
             'longitud_texto':     12345,
             'idiomas':            ['ingles avanzado'],
+            'secciones_detectadas': ['datos_personales', 'experiencia', ...],
         }
     """
     if not text:
@@ -269,61 +475,101 @@ def parse_cv(text: str) -> dict:
     result = _empty_parse_result()
     result['longitud_texto'] = len(text)
 
-    # ── Contacto ──
-    emails = RE_EMAIL.findall(text)
+    # ── FASE 1.1: segmentar ──
+    secciones = segmentar_secciones(text)
+    result['secciones_detectadas'] = sorted(
+        k for k, v in secciones.items() if v and k != SECCION_OTROS
+    )
+
+    datos_pers = secciones.get(SECCION_DATOS_PERSONALES, '')
+    exp_text = secciones.get(SECCION_EXPERIENCIA, '')
+    cabecera = secciones.get(SECCION_OTROS, '')
+
+    # ── Contacto (datos_personales + cabecera, NUNCA experiencia) ──
+    contacto_text = '\n'.join(p for p in (cabecera, datos_pers) if p) or text
+
+    emails = RE_EMAIL.findall(contacto_text)
     if emails:
         result['email'] = emails[0].lower()
+    elif (emails_all := RE_EMAIL.findall(text)):
+        result['email'] = emails_all[0].lower()
 
-    tels = RE_TELEFONO_PE.findall(text)
+    tels = RE_TELEFONO_PE.findall(contacto_text) or RE_TELEFONO_PE.findall(text)
     if tels:
         # Normalizar — solo dígitos
         tel = re.sub(r'\D', '', tels[0])
         result['telefono'] = tel[-9:] if len(tel) >= 9 else tel
 
-    # DNI (8 dígitos exactos, excluyendo fechas posibles)
-    dnis = RE_DNI_PE.findall(text)
-    for d in dnis:
-        # Filtrar años (19XX o 20XX que aparecen como 8 dígitos seguidos)
+    # DNI: filtrar años y excluir DNIs que aparecen en la sección de experiencia
+    dnis_contacto = RE_DNI_PE.findall(contacto_text) or RE_DNI_PE.findall(text)
+    for d in dnis_contacto:
         if not d.startswith(('19', '20')) or len(d) != 8 or int(d[:4]) > 2050:
             result['dni'] = d
             break
 
-    # ── Nombre completo (heurística: primeras 2-3 líneas no vacías) ──
-    lineas = [l.strip() for l in text.split('\n') if l.strip()]
-    for linea in lineas[:5]:
-        # Línea con 2-4 palabras, en mayúsculas (típico nombre)
+    # ── Fecha de nacimiento (aislada — NO entra a experiencia) ──
+    fecha_nac = extraer_fecha_nacimiento(text, datos_pers)
+    if fecha_nac:
+        result['fecha_nacimiento'] = fecha_nac
+
+    año_nacimiento = _año_de_fecha_str(fecha_nac) if fecha_nac else None
+
+    # ── Nombre completo (cabecera + primeras líneas) ──
+    fuente_nombre = cabecera or text
+    lineas = [l.strip() for l in fuente_nombre.split('\n') if l.strip()]
+    for linea in lineas[:6]:
         palabras = linea.split()
         if (2 <= len(palabras) <= 4
                 and all(p[0].isupper() for p in palabras if p)
                 and not RE_EMAIL.search(linea)
                 and not RE_TELEFONO_PE.search(linea)
+                and not RE_FECHA_NACIMIENTO_LABEL.search(linea)
                 and len(linea) < 80):
             result['nombre_completo'] = linea
             break
 
-    # ── Fechas y experiencia ──
-    años_encontrados = []
-    for m in RE_FECHA.finditer(text):
-        s = m.group()
-        # Extraer año del match
-        año_match = re.search(r'(?:19|20)\d{2}', s)
-        if año_match:
-            año = int(año_match.group())
-            if 1950 <= año <= date.today().year + 1:
-                años_encontrados.append(año)
+    # ── Fechas y experiencia (SÓLO de la sección experiencia) ──
+    # Si no hay sección "Experiencia", caemos a heurística sobre el
+    # texto completo PERO excluyendo el año de nacimiento.
+    años_exp: list[int] = []
+    fuente_fechas = exp_text or text
+    año_actual = date.today().year
 
-    if años_encontrados:
-        result['fecha_min'] = min(años_encontrados)
-        result['fecha_max'] = max(años_encontrados)
-        # Experiencia = max - min, capada a 50
+    for m in RE_FECHA.finditer(fuente_fechas):
+        s = m.group()
+        año_match = re.search(r'(?:19|20)\d{2}', s)
+        if not año_match:
+            continue
+        año = int(año_match.group())
+        if not (1950 <= año <= año_actual + 1):
+            continue
+        # Excluir explícitamente el año de nacimiento
+        if año_nacimiento and año == año_nacimiento:
+            continue
+        # Si la fecha aparece junto a una etiqueta de nacimiento, excluir
+        ctx_start = max(0, m.start() - 50)
+        ctx = fuente_fechas[ctx_start:m.end()]
+        if RE_FECHA_NACIMIENTO_LABEL.search(ctx):
+            continue
+        años_exp.append(año)
+
+    if años_exp:
+        result['fecha_min'] = min(años_exp)
+        result['fecha_max'] = max(años_exp)
+        # Si hay "Actualidad"/"Presente" en la sección, fecha_max=hoy
+        if exp_text and re.search(
+            r'\b(?:actualidad|presente|hoy|actual)\b',
+            exp_text, re.IGNORECASE,
+        ):
+            result['fecha_max'] = max(result['fecha_max'], año_actual)
         result['anios_experiencia'] = min(
             max(0, result['fecha_max'] - result['fecha_min']),
             50,
         )
 
-    # ── Secciones ──
-    result['tiene_experiencia'] = bool(RE_HEADER_EXPERIENCIA.search(text))
-    result['tiene_educacion'] = bool(RE_HEADER_EDUCACION.search(text))
+    # ── Secciones (booleans para compatibilidad) ──
+    result['tiene_experiencia'] = bool(exp_text)
+    result['tiene_educacion'] = bool(secciones.get(SECCION_EDUCACION))
 
     # ── Skills (búsqueda case-insensitive + normalización tildes) ──
     text_norm = _strip_tildes(text.lower())
@@ -350,6 +596,7 @@ def _empty_parse_result() -> dict:
         'telefono':          '',
         'dni':               '',
         'nombre_completo':   '',
+        'fecha_nacimiento':  '',
         'anios_experiencia': 0,
         'fecha_min':         None,
         'fecha_max':         None,
@@ -358,28 +605,161 @@ def _empty_parse_result() -> dict:
         'tiene_experiencia': False,
         'tiene_educacion':   False,
         'longitud_texto':    0,
+        'secciones_detectadas': [],
     }
 
 
-def parse_cv_from_file(filepath: str) -> dict:
-    """Extrae texto y parsea entidades en un solo paso."""
+def parse_cv_from_file(
+    filepath: str,
+    *,
+    llm_caller: Optional[Callable[[str, dict], dict]] = None,
+    forzar_ia: bool = False,
+) -> dict:
+    """Extrae texto y parsea entidades en un solo paso (FASE 1 + 2).
+
+    Args:
+        filepath: ruta al archivo.
+        llm_caller: callable opcional para FASE 2 (enriquecimiento).
+            Firma: `(texto_crudo, parsed_dict) -> dict_con_campos_faltantes`.
+            Si es None, sólo se ejecuta FASE 1 (local).
+            Sirve para inyectar mocks en tests.
+        forzar_ia: si True, llama al LLM aunque no haya campos vacíos.
+
+    Devuelve el dict de parse_cv enriquecido con:
+        - texto_extraido: str
+        - experiencias: list (extraídas de la sección experiencia)
+        - educacion_items: list
+        - ia_usada: bool  (True si FASE 2 corrió)
+        - campos_de_ia: list[str]  (qué campos vinieron del LLM)
+    """
     text = extract_text_from_file(filepath)
+
+    # FASE 1: parsing LOCAL
     result = parse_cv(text)
     result['texto_extraido'] = text
-    # Extracción estructurada de experiencias y educación
     result['experiencias'] = extraer_experiencias(text)
     result['educacion_items'] = extraer_educacion(text)
+    result['ia_usada'] = False
+    result['campos_de_ia'] = []
+
+    # FASE 2: enriquecimiento con IA (opcional, sólo si faltan campos)
+    if llm_caller is not None:
+        result = _enriquecer_con_ia(text, result, llm_caller, forzar=forzar_ia)
+
     return result
 
 
 # ──────────────────────────────────────────────────────────────────
-# Extracción estructurada (adaptado de NexoTalent cv_structure.py)
+# FASE 2 — Enriquecimiento con IA (sólo si faltan campos)
+# ──────────────────────────────────────────────────────────────────
+
+# Campos que justifican llamar al LLM si están vacíos
+_CAMPOS_CRITICOS = ('nombre_completo', 'email', 'telefono')
+
+# Campos que el LLM puede rellenar (sin sobrescribir si ya hay valor)
+_CAMPOS_ENRIQUECIBLES = (
+    'nombre_completo', 'email', 'telefono', 'dni', 'fecha_nacimiento',
+)
+
+
+def _enriquecer_con_ia(
+    texto: str,
+    parsed: dict,
+    llm_caller: Callable[[str, dict], dict],
+    *,
+    forzar: bool = False,
+) -> dict:
+    """Llama al LLM SÓLO si parsing local dejó campos críticos vacíos.
+
+    Valida cada campo del LLM contra el texto original; los rechaza
+    si parecen inventados (no aparecen literalmente en el CV).
+    """
+    if not forzar:
+        faltantes = [c for c in _CAMPOS_CRITICOS if not parsed.get(c)]
+        if not faltantes:
+            return parsed
+
+    try:
+        sugerencias = llm_caller(texto, parsed) or {}
+    except Exception as exc:
+        logger.warning('LLM enrichment falló: %s', exc)
+        return parsed
+
+    if not isinstance(sugerencias, dict):
+        return parsed
+
+    aplicados: list[str] = []
+    texto_lower = texto.lower()
+
+    for campo in _CAMPOS_ENRIQUECIBLES:
+        # No sobrescribir si parsing local ya tenía valor
+        if parsed.get(campo):
+            continue
+        valor = sugerencias.get(campo)
+        if not valor or not isinstance(valor, str):
+            continue
+        valor = valor.strip()
+        if len(valor) < 2 or len(valor) > 250:
+            continue
+
+        # VALIDACIÓN ANTI-ALUCINACIÓN:
+        # El valor del LLM debe aparecer literalmente en el CV
+        # (insensitive). Si no aparece, lo descartamos.
+        if not _validar_contra_texto(campo, valor, texto, texto_lower):
+            logger.info('LLM sugirió %s="%s" pero no aparece en el CV — descartado.',
+                        campo, valor[:60])
+            continue
+
+        parsed[campo] = valor
+        aplicados.append(campo)
+
+    parsed['ia_usada'] = bool(aplicados)
+    parsed['campos_de_ia'] = aplicados
+    return parsed
+
+
+def _validar_contra_texto(campo: str, valor: str, texto: str, texto_lower: str) -> bool:
+    """Verifica que el valor sugerido por el LLM aparezca en el CV."""
+    if not valor:
+        return False
+    val_low = valor.lower().strip()
+
+    if campo == 'email':
+        # email completo debe aparecer literal
+        return val_low in texto_lower
+    if campo == 'telefono':
+        # números del teléfono deben aparecer (con o sin separadores)
+        solo_digitos = re.sub(r'\D', '', valor)
+        if len(solo_digitos) < 6:
+            return False
+        digitos_en_texto = re.sub(r'\D', '', texto)
+        return solo_digitos in digitos_en_texto
+    if campo == 'dni':
+        solo_digitos = re.sub(r'\D', '', valor)
+        return len(solo_digitos) == 8 and solo_digitos in texto
+    if campo == 'fecha_nacimiento':
+        # Año debe aparecer y o bien la fecha completa o un patrón similar
+        año = _año_de_fecha_str(valor)
+        if not año:
+            return False
+        return str(año) in texto
+    if campo == 'nombre_completo':
+        # Al menos 2 de las palabras del nombre deben aparecer
+        palabras = [w for w in val_low.split() if len(w) >= 3]
+        if len(palabras) < 2:
+            return False
+        coincidencias = sum(1 for w in palabras if w in texto_lower)
+        return coincidencias >= 2
+    return val_low in texto_lower
+
+
+# ──────────────────────────────────────────────────────────────────
+# Extracción estructurada (experiencias / educación)
 # ──────────────────────────────────────────────────────────────────
 
 # Patrones de fecha extendidos para experiencias
 RE_BLOQUE_FECHA = re.compile(
     r'(?P<inicio>'
-        # Mes año ó solo año
         r'(?:Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Set|Oct|Nov|Dic)[a-z]*\.?\s+\d{4}'
         r'|\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{4}'
         r'|\d{4}'
@@ -402,7 +782,6 @@ def _seccion_texto(text: str, header_re, max_chars: int = 4000) -> str:
     if not m:
         return ''
     start = m.end()
-    # Buscar el siguiente header (cualquiera)
     next_headers = [
         RE_HEADER_EXPERIENCIA, RE_HEADER_EDUCACION,
         RE_HEADER_SKILLS, RE_HEADER_IDIOMAS,
@@ -422,12 +801,19 @@ def extraer_experiencias(text: str) -> list:
         {
             'fecha_inicio': 'Mar 2022',
             'fecha_fin':    'Actualidad',
-            'lineas_siguientes': ['Restaurante Insignia', 'Mesera Senior'],
-            'año_inicio': 2022,
-            'año_fin':    2026,
+            'lineas':       ['Restaurante Insignia', 'Mesera Senior'],
+            'año_inicio':   2022,
+            'año_fin':      2026,
         }
     """
-    seccion = _seccion_texto(text, RE_HEADER_EXPERIENCIA, max_chars=4000)
+    # Usar segmentación moderna para acotar a sección de experiencia.
+    # Esto NO incluye datos personales — clave para evitar el bug
+    # de fecha de nacimiento confundida con inicio de experiencia.
+    secciones = segmentar_secciones(text)
+    seccion = secciones.get(SECCION_EXPERIENCIA, '')
+    if not seccion:
+        # Fallback al header-based viejo
+        seccion = _seccion_texto(text, RE_HEADER_EXPERIENCIA, max_chars=4000)
     if not seccion:
         return []
 
@@ -438,18 +824,14 @@ def extraer_experiencias(text: str) -> list:
         fecha_inicio = m.group('inicio').strip()
         fecha_fin = m.group('fin').strip()
 
-        # Texto entre este match y el siguiente (max 300 chars)
         end_pos = matches[i + 1].start() if i + 1 < len(matches) else min(m.end() + 400, len(seccion))
         contexto = seccion[m.end():end_pos].strip()
-        # Tomar primeras 2-3 líneas no vacías
         lineas = [l.strip() for l in contexto.split('\n') if l.strip()][:3]
 
-        # Año inicio / fin numéricos
         año_inicio = _año_de_str(fecha_inicio)
         año_fin = _año_de_str(fecha_fin)
         if not año_fin and fecha_fin.lower() in ('actualidad', 'presente', 'hoy', 'actual'):
-            from datetime import date as _date
-            año_fin = _date.today().year
+            año_fin = date.today().year
 
         experiencias.append({
             'fecha_inicio': fecha_inicio,
@@ -457,28 +839,31 @@ def extraer_experiencias(text: str) -> list:
             'año_inicio':   año_inicio,
             'año_fin':      año_fin,
             'lineas':       lineas,
+            # Aliases para código legado:
+            'periodo':      f'{fecha_inicio} - {fecha_fin}',
+            'texto':        ' '.join(lineas),
         })
 
-    return experiencias[:10]  # cap a 10
+    return experiencias[:10]
 
 
 def extraer_educacion(text: str) -> list:
     """Detecta bloques de educación con años + institución/título."""
-    seccion = _seccion_texto(text, RE_HEADER_EDUCACION, max_chars=2500)
+    secciones = segmentar_secciones(text)
+    seccion = secciones.get(SECCION_EDUCACION, '')
+    if not seccion:
+        seccion = _seccion_texto(text, RE_HEADER_EDUCACION, max_chars=2500)
     if not seccion:
         return []
 
     items = []
-    # Para educación, usar años solos también es válido
     año_re = re.compile(r'\b(19|20)\d{2}\b')
     años_encontrados = [(m.start(), m.group()) for m in año_re.finditer(seccion)]
 
     if not años_encontrados:
         return []
 
-    # Tomar el primer año como referencia y el contexto siguiente
     for pos, año in años_encontrados[:5]:
-        # Texto en línea + siguiente línea
         line_start = seccion.rfind('\n', 0, pos) + 1
         line_end = seccion.find('\n\n', pos)
         if line_end == -1:
@@ -493,7 +878,7 @@ def extraer_educacion(text: str) -> list:
     return items[:5]
 
 
-def _año_de_str(s: str) -> int | None:
+def _año_de_str(s: str) -> Optional[int]:
     m = re.search(r'\b(19|20)\d{2}\b', s)
     if m:
         return int(m.group())
