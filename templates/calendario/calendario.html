@@ -175,13 +175,85 @@
     font-weight: 500;
 }
 .cal-more {
-    font-size: .65rem;
-    color: #6b7280;
-    font-weight: 600;
-    padding: 0 4px;
+    font-size: .68rem;
+    color: #0f766e;
+    background: #f0fdfa;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
     cursor: pointer;
+    display: inline-block;
+    margin: 1px 4px;
+    border: 1px solid #99f6e4;
+    transition: background .15s, color .15s;
 }
-.cal-more:hover { color: #0f766e; }
+.cal-more:hover { background: #0f766e; color: #fff; border-color: #0f766e; }
+
+/* ─── Modal de detalle del día (siempre visible, independiente del breakpoint) ─── */
+.cal-day-modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.55);
+    backdrop-filter: blur(4px);
+    z-index: 100300;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.cal-day-modal-backdrop.active { display: flex; }
+.cal-day-modal {
+    background: #fff;
+    border-radius: 12px;
+    width: min(640px, 100%);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,.35);
+}
+.cal-day-modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.cal-day-modal-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f766e;
+    text-transform: capitalize;
+}
+.cal-day-modal-meta {
+    font-size: .78rem;
+    color: #6b7280;
+    margin-top: 2px;
+}
+.cal-day-modal-body {
+    padding: 8px 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+.cal-day-modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    background: #f9fafb;
+    border-radius: 0 0 12px 12px;
+}
+.cal-day-modal-close {
+    background: none;
+    border: 0;
+    font-size: 22px;
+    color: #9ca3af;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+}
+.cal-day-modal-close:hover { color: #1f2937; }
 
 /* ─── Detail Panel ─── */
 .cal-detail-panel {
@@ -521,6 +593,29 @@
     </div>
 </div>
 
+<!-- ─── Modal: Detalle del día (todos los eventos) ─── -->
+<div class="cal-day-modal-backdrop" id="calDayModalBackdrop"
+     onclick="if(event.target===this) closeDayModal();" role="dialog" aria-modal="true">
+    <div class="cal-day-modal">
+        <div class="cal-day-modal-header">
+            <div>
+                <h3 class="cal-day-modal-title" id="calDayModalTitle">—</h3>
+                <div class="cal-day-modal-meta" id="calDayModalMeta">—</div>
+            </div>
+            <button type="button" class="cal-day-modal-close" onclick="closeDayModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="cal-day-modal-body" id="calDayModalBody">
+            <div class="cal-detail-empty"><i class="far fa-calendar"></i>Sin eventos</div>
+        </div>
+        <div class="cal-day-modal-footer">
+            <button type="button" class="cal-today-btn" onclick="downloadDayCSV()" title="Descargar eventos del día como CSV">
+                <i class="fas fa-file-csv me-1"></i> Descargar CSV
+            </button>
+            <button type="button" class="cal-today-btn" onclick="closeDayModal()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <!-- ─── Modal: Agregar Evento ─── -->
 <div class="cal-modal-backdrop" id="calModalBackdrop">
     <div class="cal-modal">
@@ -744,7 +839,10 @@
                     + ev.title + '</div>';
             }
             if (dayEvents.length > MAX_PILLS) {
-                html += '<div class="cal-more">+' + (dayEvents.length - MAX_PILLS) + ' mas</div>';
+                const hidden = dayEvents.length - MAX_PILLS;
+                html += '<div class="cal-more" data-day-more="' + dateStr + '" title="Ver los ' + dayEvents.length + ' eventos del día">'
+                     + '+' + hidden + ' más'
+                     + '</div>';
             }
 
             html += '</div>';
@@ -752,11 +850,23 @@
 
         grid.innerHTML = html;
 
-        // Bind click events on cells
+        // Bind click on cells → modal + side panel
         grid.querySelectorAll('.cal-cell').forEach(cell => {
-            cell.addEventListener('click', function() {
+            cell.addEventListener('click', function(e) {
                 const dt = this.getAttribute('data-date');
                 selectDay(dt);
+                // Si el click fue específicamente sobre "+N más", abrir modal completo
+                if (e.target && e.target.classList.contains('cal-more')) {
+                    openDayModal(dt);
+                }
+            });
+        });
+        // Bind explícito sobre "+N más" (por si stopPropagation futuro)
+        grid.querySelectorAll('.cal-more').forEach(el => {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dt = this.getAttribute('data-day-more');
+                openDayModal(dt);
             });
         });
     }
@@ -772,6 +882,73 @@
         // Show panel on mobile
         detailPanel.classList.add('active');
     }
+
+    // ── Modal de detalle del día (siempre visible, sin depender del panel lateral) ──
+    let _dayModalCurrentDate = null;
+    function openDayModal(dateStr) {
+        _dayModalCurrentDate = dateStr;
+        const d = parseISO(dateStr);
+        const dow = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][d.getDay()];
+        document.getElementById('calDayModalTitle').textContent =
+            dow + ', ' + pad(d.getDate()) + ' de ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+        const dayEvents = eventsForDate(dateStr);
+        document.getElementById('calDayModalMeta').textContent =
+            dayEvents.length + ' evento' + (dayEvents.length === 1 ? '' : 's') + ' este día';
+        const body = document.getElementById('calDayModalBody');
+        if (dayEvents.length === 0) {
+            body.innerHTML = '<div class="cal-detail-empty"><i class="far fa-calendar"></i>Sin eventos</div>';
+        } else {
+            let html = '';
+            dayEvents.forEach(ev => {
+                const c = ev.color || TYPE_COLORS[ev.type] || '#6b7280';
+                html += '<div class="cal-detail-event">';
+                html +=   '<div class="cal-detail-dot" style="background:' + c + ';"></div>';
+                html +=   '<div class="cal-detail-info">';
+                html +=     '<div class="cal-detail-title">' + (ev.title || '') + '</div>';
+                if (ev.personal_name) {
+                    html += '<div class="cal-detail-sub"><i class="fas fa-user me-1"></i>' + ev.personal_name + '</div>';
+                }
+                if (ev.type) {
+                    html += '<div class="cal-detail-sub"><span class="badge" style="background:' + c + ';font-size:.65rem;">' + ev.type + '</span></div>';
+                }
+                html +=   '</div>';
+                html += '</div>';
+            });
+            body.innerHTML = html;
+        }
+        document.getElementById('calDayModalBackdrop').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDayModal() {
+        document.getElementById('calDayModalBackdrop').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    function downloadDayCSV() {
+        if (!_dayModalCurrentDate) return;
+        const dayEvents = eventsForDate(_dayModalCurrentDate);
+        const rows = [['Fecha','Tipo','Título','Persona','Color']];
+        dayEvents.forEach(ev => {
+            rows.push([
+                _dayModalCurrentDate,
+                ev.type || '',
+                (ev.title || '').replace(/[\r\n,"]/g, ' '),
+                ev.personal_name || '',
+                ev.color || ''
+            ]);
+        });
+        const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
+        const blob = new Blob(['﻿' + csv], {type: 'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'calendario-' + _dayModalCurrentDate + '.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    // Esc cierra el modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeDayModal();
+    });
 
     // ── Show day detail ──
     function showDayDetail(dateStr) {
