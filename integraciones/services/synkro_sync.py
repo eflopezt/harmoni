@@ -654,7 +654,11 @@ def sync_picados(cursor_desde: datetime | None,
                 cambios = True
             if cambios or reg.fuente_codigo != 'RELOJ':
                 reg.fuente_codigo = 'RELOJ'
-                if reg.codigo_dia in ('FA', 'F', 'DS', 'NA', 'FER'):
+                # Códigos auto-reescribibles cuando llegan nuevos picados:
+                # FA/F/DS/NA/FER → primera vez que el sistema "vio" al trabajador
+                # SS/SE → marcación parcial previa (solo entrada o solo salida)
+                # Si ahora hay entrada+salida → debería ser 'A' (asistido).
+                if reg.codigo_dia in ('FA', 'F', 'DS', 'NA', 'FER', 'SS', 'SE'):
                     reg.codigo_dia = 'A' if salida else 'SS'
                 _recalcular_horas(reg)
                 reg.save()
