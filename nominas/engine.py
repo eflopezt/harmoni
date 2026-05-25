@@ -769,8 +769,11 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
 
     p = registro
     sueldo     = _redondear(p.sueldo_base)
-    # meses trabajados en el semestre (usamos dias_trabajados como proxy)
-    meses      = max(1, min(int(p.dias_trabajados or 6), 6))
+    # meses trabajados en el semestre (usamos dias_trabajados como proxy).
+    # Importante: 0 es un valor válido (trabajador con cero meses) → no debe
+    # caer al fallback 6 vía `or`. Solo cuando es None se asume semestre completo.
+    dias_trab  = p.dias_trabajados if p.dias_trabajados is not None else 6
+    meses      = max(1, min(int(dias_trab), 6))
     pension    = p.regimen_pension
     afp_nombre = p.afp or 'Prima'
 
@@ -882,7 +885,9 @@ def calcular_cts(registro, conceptos_activos=None) -> dict:
 
     p          = registro
     sueldo     = _redondear(p.sueldo_base)
-    meses      = max(1, min(int(p.dias_trabajados or 6), 6))
+    # 0 es un valor válido — no caer al fallback 6 vía `or`. Solo None se asume completo.
+    dias_trab  = p.dias_trabajados if p.dias_trabajados is not None else 6
+    meses      = max(1, min(int(dias_trab), 6))
 
     # Snapshot RMV del período si existe
     periodo = getattr(p, 'periodo', None)

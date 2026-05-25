@@ -545,17 +545,10 @@ class TestCalcularGratificacion:
         assert r['bonif_extra'] == Decimal('108.00')           # 9% × 1200
         assert r['meses_trabajados'] == 3
 
-    @pytest.mark.xfail(
-        reason=(
-            "BUG SUTIL: engine usa `int(p.dias_trabajados or 6)` (engine.py:773). "
-            "Como 0 es falsy en Python, dias_trabajados=0 cae al fallback 6 en vez "
-            "de hacer clamp a 1. Resultado: trabajador con 0 meses recibe gratif "
-            "completa. TODO: cambiar a `int(p.dias_trabajados if p.dias_trabajados "
-            "is not None else 6)`. Idem en calcular_cts línea 885."
-        ),
-        strict=True,
-    )
-    def test_meses_zero_clampea_a_uno_BUG(self):
+    def test_meses_zero_clampea_a_uno(self):
+        """Regresión: dias_trabajados=0 debe interpretarse como 1 mes mínimo,
+        no caer al fallback 6 vía `or`. Bug detectado por agente D y corregido
+        en engine.py:773 y :885 (commit fix: `dias_trabajados is not None`)."""
         from nominas.models import PeriodoNomina, RegistroNomina
         emp = _empresa_test()
         per, _ = PeriodoNomina.objects.get_or_create(
