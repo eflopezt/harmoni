@@ -59,28 +59,9 @@
     <link rel="stylesheet" href="{% static 'css/harmoni-global.css' %}?v=1">
 
     {% block extra_css %}{% endblock %}
-    {% if DEMO_MODE %}
-    <style>
-    .demo-banner {
-        position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
-        background: linear-gradient(90deg, #f59e0b, #ef4444);
-        color: #fff; text-align: center; font-size: .82rem;
-        font-weight: 700; padding: 6px 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.15);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    body { padding-top: 30px !important; }
-    </style>
-    {% endif %}
 </head>
 <body>
 
-{% if DEMO_MODE %}
-<div class="demo-banner">
-    🎯 MODO DEMO — Datos ficticios. Cambios se restauran cada noche a las 03:00 am. •
-    <a href="https://harmoni.pe" style="color:#fff; text-decoration:underline; margin-left:8px">harmoni.pe (sitio real)</a>
-</div>
-{% endif %}
 
 {% if user.is_authenticated %}
 <!-- ═══════════════════════════════════════════ SIDEBAR ═══ -->

@@ -16,6 +16,99 @@
 {% endblock %}
 
 {% block body %}
+
+  <!-- ════ Cómo crear un reintegro — guía rápida ════ -->
+  <div class="hm-panel" style="background:linear-gradient(135deg,#f0fdfa 0%,#ecfeff 100%);border:1px solid #99f6e4;margin-bottom:20px;">
+    <div style="padding:18px 22px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+
+      <div style="flex:1;min-width:280px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="background:#0f766e;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.4px;">CÓMO CREAR</span>
+          <span style="font-size:11px;color:#0f766e;font-weight:600;letter-spacing:.3px;text-transform:uppercase;">Vía Harmoni IA</span>
+        </div>
+        <div style="font-size:15px;font-weight:700;color:#0d2b27;margin-bottom:4px;">Los reintegros se proponen conversando con la IA</div>
+        <div style="font-size:13px;color:#475569;line-height:1.5;margin-bottom:14px;">
+          Describí qué pasó en lenguaje natural. La IA consulta normativa (D.S. 003-97-TR, D.Leg. 650, Ley 27735),
+          calcula el monto retroactivo, genera la propuesta y queda en estado <strong>PROPUESTO</strong> para tu aprobación.
+        </div>
+        <a href="{% url 'agente_nueva' %}"
+           style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:13px;font-weight:600;padding:10px 18px;background:#0f766e;color:#fff;border-radius:8px;box-shadow:0 2px 6px rgba(15,118,110,.25);">
+          <i class="fas fa-robot"></i> Abrir Harmoni IA Nóminas
+        </a>
+        <div style="font-size:11px;color:#94a3b8;margin-top:8px;">→ se abre una conversación nueva. Pegá uno de los ejemplos de la derecha.</div>
+      </div>
+
+      <div style="flex:1.4;min-width:340px;">
+        <div style="font-size:11px;color:#0f766e;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;">Ejemplos típicos (click para copiar)</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+
+          <button type="button" class="rein-ejemplo"
+            data-prompt="Olvidé subir el sueldo S/200 a todos los trabajadores del mes pasado. ¿Cómo regularizo?"
+            style="background:#fff;border:1px solid #cffafe;border-radius:8px;padding:9px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:all .15s;font-family:inherit;">
+            <span style="background:#fef3c7;color:#92400e;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.3px;">MASIVO</span>
+            <span style="font-size:12.5px;color:#0d2b27;flex:1;">Aumento retroactivo a un grupo o a todos</span>
+            <i class="fas fa-copy" style="color:#94a3b8;font-size:11px;"></i>
+          </button>
+
+          <button type="button" class="rein-ejemplo"
+            data-prompt="A Juan Pérez le pagué S/1500 en mayo pero su sueldo base es S/1700. ¿Cuánto le debo de reintegro?"
+            style="background:#fff;border:1px solid #cffafe;border-radius:8px;padding:9px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:all .15s;font-family:inherit;">
+            <span style="background:#dbeafe;color:#1e40af;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.3px;">SUELDO</span>
+            <span style="font-size:12.5px;color:#0d2b27;flex:1;">Error individual de sueldo pagado</span>
+            <i class="fas fa-copy" style="color:#94a3b8;font-size:11px;"></i>
+          </button>
+
+          <button type="button" class="rein-ejemplo"
+            data-prompt="A María le faltaba pagar asignación familiar de 3 meses. Calcúlame el reintegro."
+            style="background:#fff;border:1px solid #cffafe;border-radius:8px;padding:9px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:all .15s;font-family:inherit;">
+            <span style="background:#fce7f3;color:#9d174d;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.3px;">AS. FAM.</span>
+            <span style="font-size:12.5px;color:#0d2b27;flex:1;">Asignación familiar omitida (3 meses)</span>
+            <i class="fas fa-copy" style="color:#94a3b8;font-size:11px;"></i>
+          </button>
+
+          <button type="button" class="rein-ejemplo"
+            data-prompt="Pedro hizo 8 horas extras al 25% en abril que no le pagamos. ¿Cuánto le debo?"
+            style="background:#fff;border:1px solid #cffafe;border-radius:8px;padding:9px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:all .15s;font-family:inherit;">
+            <span style="background:#fee2e2;color:#991b1b;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.3px;">HORAS</span>
+            <span style="font-size:12.5px;color:#0d2b27;flex:1;">Horas extras no pagadas</span>
+            <i class="fas fa-copy" style="color:#94a3b8;font-size:11px;"></i>
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+
+    <div style="background:#fff;border-top:1px solid #cffafe;padding:10px 22px;font-size:11.5px;color:#64748b;line-height:1.55;">
+      <strong style="color:#0f766e;">Flujo:</strong>
+      Chateás con la IA → propone el monto con sustento legal → revisás aquí en <strong>PROPUESTO</strong> →
+      aprobás → pasa a <strong>APROBADO</strong> → aplicás en la próxima planilla → <strong>APLICADO</strong>.
+      Si te equivocaste, podés <strong>REVERSAR</strong> con motivo.
+    </div>
+  </div>
+
+  <script>
+  document.querySelectorAll('.rein-ejemplo').forEach(btn => {
+    btn.addEventListener('mouseover', e => { btn.style.borderColor = '#5eead4'; btn.style.background = '#f0fdfa'; });
+    btn.addEventListener('mouseout',  e => { btn.style.borderColor = '#cffafe'; btn.style.background = '#fff'; });
+    btn.addEventListener('click', async e => {
+      const prompt = btn.getAttribute('data-prompt');
+      try {
+        await navigator.clipboard.writeText(prompt);
+        const original = btn.querySelector('span:nth-of-type(2)').textContent;
+        btn.querySelector('span:nth-of-type(2)').textContent = '✓ Copiado al portapapeles — pegá en el chat IA';
+        btn.style.background = '#d1fae5';
+        setTimeout(() => {
+          btn.querySelector('span:nth-of-type(2)').textContent = original;
+          btn.style.background = '#fff';
+        }, 2200);
+      } catch (err) {
+        alert('No se pudo copiar. El ejemplo es:\n\n' + prompt);
+      }
+    });
+  });
+  </script>
+
   <!-- KPIs -->
   <div class="hm-kpis">
     <div class="hm-kpi">
