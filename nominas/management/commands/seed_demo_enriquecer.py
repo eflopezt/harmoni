@@ -62,6 +62,9 @@ class Command(BaseCommand):
         notifs = self._sembrar_notificaciones(hoy)
         self.stdout.write(f'  Notificaciones creadas:  {notifs}')
 
+        bandas = self._sembrar_bandas_salariales()
+        self.stdout.write(f'  Bandas salariales:       {bandas}')
+
         if self.dry:
             self.stdout.write(self.style.WARNING('\n  [DRY-RUN] Rollback — no se persistieron cambios.\n'))
             raise transaction.TransactionManagementError('rollback dry-run')
@@ -246,6 +249,50 @@ class Command(BaseCommand):
                 except Exception:
                     pass  # cálculo puede fallar si faltan datos pero LL queda creado
                 creados += 1
+            except Exception:
+                pass
+        return creados
+
+    def _sembrar_bandas_salariales(self):
+        """15 bandas salariales típicas de gastronomía."""
+        try:
+            from salarios.models import BandaSalarial
+        except ImportError:
+            return 0
+        from decimal import Decimal
+        bandas = [
+            ('Gerente General',          'EJECUTIVO',     12000, 15000, 22000),
+            ('Director Operaciones',     'EJECUTIVO',      8000, 10000, 14000),
+            ('Gerente de Local',         'GERENCIAL',      4500,  6000,  8500),
+            ('Administrador de Local',   'JEFATURA',       3500,  4500,  6000),
+            ('Chef Ejecutivo',           'JEFATURA',       4000,  5500,  7500),
+            ('Sub Chef / Cocinero Senior', 'COORDINACIÓN', 2500,  3200,  4200),
+            ('Cocinero',                 'OPERATIVO',      1600,  2000,  2600),
+            ('Cocinero Junior',          'OPERATIVO',      1200,  1500,  1900),
+            ('Ayudante de Cocina',       'OPERATIVO',      1130,  1300,  1600),
+            ('Bartender',                'OPERATIVO',      1800,  2200,  2800),
+            ('Mozo Senior',              'OPERATIVO',      1500,  1800,  2200),
+            ('Mozo',                     'OPERATIVO',      1200,  1500,  1800),
+            ('Hostess / Anfitrión',      'OPERATIVO',      1300,  1500,  1900),
+            ('Cajero',                   'OPERATIVO',      1300,  1600,  2000),
+            ('Auxiliar de Limpieza',     'OPERATIVO',      1130,  1200,  1400),
+        ]
+        creados = 0
+        for cargo, nivel, mn, md, mx in bandas:
+            try:
+                _, c = BandaSalarial.objects.get_or_create(
+                    cargo=cargo,
+                    defaults={
+                        'nivel': nivel,
+                        'minimo': Decimal(mn),
+                        'medio': Decimal(md),
+                        'maximo': Decimal(mx),
+                        'moneda': 'PEN',
+                        'activa': True,
+                    },
+                )
+                if c:
+                    creados += 1
             except Exception:
                 pass
         return creados
