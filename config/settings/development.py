@@ -6,6 +6,18 @@ from .base import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# En desarrollo y tests no usamos manifest hash de whitenoise — el
+# staticfiles.json se genera solo en prod tras collectstatic. Override
+# del STORAGES dict para que {% static %} funcione sin manifest.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
+
 ALLOWED_HOSTS = ['*']
 
 # CSRF settings for development (Codespaces, local, etc.)

@@ -72,6 +72,10 @@ def empresa_editar(request, pk):
         empresa.regimen_laboral  = request.POST.get('regimen_laboral', 'GENERAL')
         empresa.es_principal     = request.POST.get('es_principal') == '1'
         empresa.activa           = request.POST.get('activa') == '1'
+        # Portal de beneficios externo (opcional)
+        empresa.portal_beneficios_nombre   = request.POST.get('portal_beneficios_nombre', '').strip()
+        empresa.portal_beneficios_url      = request.POST.get('portal_beneficios_url', '').strip()
+        empresa.portal_beneficios_logo_url = request.POST.get('portal_beneficios_logo_url', '').strip()
         empresa.save()
         messages.success(request, f'Empresa "{empresa}" actualizada.')
         return redirect('empresas_panel')
