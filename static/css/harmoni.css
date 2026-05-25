@@ -1551,9 +1551,44 @@ a:hover {
     background-color: rgba(59, 130, 246, 0.02);
 }
 
-.table-responsive {
+/* Wrapper de tablas anchas: scroll horizontal garantizado + scrollbar visible.
+   Antes este wrapper tenia `overflow: hidden` para redondear esquinas; eso
+   bloqueaba el scroll horizontal en TODA la app (planilla, personal, asistencia,
+   etc.). Ahora redondeamos el borde sin sacrificar el scroll. */
+.table-responsive,
+.table-scroll,
+.hm-table-wrap,
+.pl-table-wrap,
+.tabla-wrap {
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+.table-responsive::-webkit-scrollbar,
+.table-scroll::-webkit-scrollbar,
+.hm-table-wrap::-webkit-scrollbar,
+.pl-table-wrap::-webkit-scrollbar,
+.tabla-wrap::-webkit-scrollbar {
+    height: 10px;
+    background: transparent;
+}
+.table-responsive::-webkit-scrollbar-thumb,
+.table-scroll::-webkit-scrollbar-thumb,
+.hm-table-wrap::-webkit-scrollbar-thumb,
+.pl-table-wrap::-webkit-scrollbar-thumb,
+.tabla-wrap::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 5px;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.table-scroll::-webkit-scrollbar-thumb:hover,
+.hm-table-wrap::-webkit-scrollbar-thumb:hover,
+.pl-table-wrap::-webkit-scrollbar-thumb:hover,
+.tabla-wrap::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 /* =============================================================================
