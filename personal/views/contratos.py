@@ -1596,9 +1596,9 @@ def plantilla_contrato_detalle(request, pk):
         'fecha_fin': '30/09/2026',
         'remuneracion': 'S/ 4,500.00',
         'dni': '72345678',
-        'empresa': 'ANDES MINING S.A.C.',
+        'empresa': 'Mi Empresa S.A.C.',
         'ruc_empresa': '20123456789',
-        'direccion_empresa': 'Av. Industrial 234, Lima',
+        'direccion_empresa': 'Av. Principal 123, Lima',
     }
 
     # Reemplazar placeholders
@@ -1728,9 +1728,9 @@ def plantilla_contrato_aplicar_ia(request, pk):
         'fecha_fin': '30/09/2026',
         'remuneracion': 'S/ 4,500.00',
         'dni': '72345678',
-        'empresa': 'ANDES MINING S.A.C.',
+        'empresa': 'Mi Empresa S.A.C.',
         'ruc_empresa': '20123456789',
-        'direccion_empresa': 'Av. Industrial 234, Lima',
+        'direccion_empresa': 'Av. Principal 123, Lima',
     }
     preview_html = html_nuevo
     for key, val in ejemplo.items():

@@ -235,9 +235,9 @@ function verSugerencia() {
     .replace(/\{\{fecha_fin\}\}/g, '30/09/2026')
     .replace(/\{\{remuneracion\}\}/g, 'S/ 4,500.00')
     .replace(/\{\{dni\}\}/g, '72345678')
-    .replace(/\{\{empresa\}\}/g, 'ANDES MINING S.A.C.')
-    .replace(/\{\{ruc_empresa\}\}/g, '20123456789')
-    .replace(/\{\{direccion_empresa\}\}/g, 'Av. Industrial 234, Lima');
+    .replace(/\{\{empresa\}\}/g, '{{ user.empresa.razon_social|default:"Mi Empresa S.A.C." }}')
+    .replace(/\{\{ruc_empresa\}\}/g, '{{ user.empresa.ruc|default:"20123456789" }}')
+    .replace(/\{\{direccion_empresa\}\}/g, '{{ user.empresa.direccion|default:"Av. Principal 123, Lima" }}');
   preview.style.border = '3px solid #ffc107';
   setTimeout(function() { preview.style.border = '1px solid #dee2e6'; }, 3000);
 }
