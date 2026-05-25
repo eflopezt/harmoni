@@ -23,6 +23,7 @@ from personal.models import Cargo, Personal
 from nominas.models_propinas import (
     ConfiguracionPropinas,
     DistribucionPropinas,
+    HorasTrabajadasPropinas,
     PoolPropinas,
     PuntosPropinas,
 )
@@ -306,3 +307,309 @@ def test_distribuir_excluye_cesados_y_otras_empresas():
     for d in distribuciones:
         assert d.personal.empresa_id == emp_a.pk
         assert d.monto == Decimal('100.00')
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Mejoras 2026-05-25 — best practices mundiales
+# Ref: docs/internal/PROPINAS_BEST_PRACTICES_2026.md
+# ════════════════════════════════════════════════════════════════════════
+
+# ── 1) cash + card → bruto autoconsistente ──────────────────────────────
+@pytest.mark.django_db
+def test_pool_recompone_bruto_desde_cash_y_card():
+    """Si se setea monto_cash y monto_card, monto_bruto = cash + card."""
+    emp = _empresa()
+    ConfiguracionPropinas.objects.create(empresa=emp, modo='POOL_PAREJO')
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_cash=Decimal('300.00'),
+        monto_card=Decimal('700.00'),
+    )
+    pool.refresh_from_db()
+    assert pool.monto_bruto == Decimal('1000.00')
+
+
+@pytest.mark.django_db
+def test_pool_bruto_legacy_solo_funciona_sin_cash_card():
+    """Compat: pools antiguos que solo seteen monto_bruto siguen sirviendo."""
+    emp = _empresa()
+    ConfiguracionPropinas.objects.create(empresa=emp, modo='POOL_PAREJO')
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('500.00'),
+    )
+    pool.refresh_from_db()
+    assert pool.monto_bruto == Decimal('500.00')
+    assert pool.monto_cash == Decimal('0')
+    assert pool.monto_card == Decimal('0')
+
+
+# ── 2) Modo POOL_HORAS ──────────────────────────────────────────────────
+@pytest.mark.django_db
+def test_distribuir_modo_pool_horas_per_hour_rate():
+    """POOL_HORAS: reparte proporcional a horas trabajadas (per-hour rate)."""
+    emp = _empresa()
+    ConfiguracionPropinas.objects.create(empresa=emp, modo='POOL_HORAS')
+    mozo = _cargo('Mozo')
+    p1 = _persona(emp, mozo)
+    p2 = _persona(emp, mozo)
+    p3 = _persona(emp, mozo)
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('1000.00'),
+    )
+    # Horas: 40 + 30 + 30 = 100 → tasa 10/h
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p1, horas=Decimal('40'))
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p2, horas=Decimal('30'))
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p3, horas=Decimal('30'))
+
+    distribuciones = pool.distribuir()
+    assert len(distribuciones) == 3
+    montos = {d.personal_id: d.monto for d in distribuciones}
+    assert montos[p1.pk] == Decimal('400.00')
+    assert montos[p2.pk] == Decimal('300.00')
+    assert montos[p3.pk] == Decimal('300.00')
+    total = sum(d.monto for d in distribuciones)
+    assert total == Decimal('1000.00')
+
+
+@pytest.mark.django_db
+def test_distribuir_pool_horas_fallback_si_no_hay_horas():
+    """POOL_HORAS sin registros de horas → fallback a reparto parejo."""
+    emp = _empresa()
+    ConfiguracionPropinas.objects.create(empresa=emp, modo='POOL_HORAS')
+    mozo = _cargo('Mozo')
+    _persona(emp, mozo)
+    _persona(emp, mozo)
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('200.00'),
+    )
+    # No hay HorasTrabajadasPropinas → todos quedan con DEFAULT 1.00h c/u → parejo
+    distribuciones = pool.distribuir()
+    assert len(distribuciones) == 2
+    for d in distribuciones:
+        assert d.monto == Decimal('100.00')
+
+
+# ── 3) Modo POOL_PUNTOS_HORAS (híbrido — best practice) ─────────────────
+@pytest.mark.django_db
+def test_distribuir_modo_pool_puntos_horas_hibrido():
+    """POOL_PUNTOS_HORAS: peso = puntos × horas.
+
+    Server (3pts) × 40h = 120
+    Server (3pts) × 20h = 60
+    Cocina (1pt)  × 40h = 40
+    Total = 220
+    Pool S/ 1100 → tasa 5/unidad
+    Resultado: 600, 300, 200
+    """
+    emp = _empresa()
+    cfg = ConfiguracionPropinas.objects.create(empresa=emp, modo='POOL_PUNTOS_HORAS')
+    mozo = _cargo('Mozo')
+    cocina = _cargo('Cocina')
+    PuntosPropinas.objects.create(configuracion=cfg, cargo=mozo, puntos=Decimal('3'))
+    PuntosPropinas.objects.create(configuracion=cfg, cargo=cocina, puntos=Decimal('1'))
+
+    p_mozo_full = _persona(emp, mozo)
+    p_mozo_half = _persona(emp, mozo)
+    p_cocina = _persona(emp, cocina)
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('1100.00'),
+    )
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p_mozo_full, horas=Decimal('40'))
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p_mozo_half, horas=Decimal('20'))
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p_cocina,    horas=Decimal('40'))
+
+    distribuciones = pool.distribuir()
+    montos = {d.personal_id: d.monto for d in distribuciones}
+    assert montos[p_mozo_full.pk] == Decimal('600.00')
+    assert montos[p_mozo_half.pk] == Decimal('300.00')
+    assert montos[p_cocina.pk]    == Decimal('200.00')
+
+
+# ── 4) Tip-out FOH → BOH ────────────────────────────────────────────────
+@pytest.mark.django_db
+def test_tipout_boh_separa_15_por_ciento_para_cocina():
+    """Si incluye_cocina=False y porcentaje_tipout_boh=15, BOH recibe 15% parejo.
+
+    Bruto 1000, cocina excluida del pool principal, tip-out 15% → S/ 150 a BOH
+    Pool FOH = 850 entre 2 mozos = 425 c/u
+    BOH = 150 entre 1 cocinero = 150
+    """
+    emp = _empresa()
+    cfg = ConfiguracionPropinas.objects.create(
+        empresa=emp, modo='POOL_PAREJO',
+        incluye_cocina=False,
+        porcentaje_tipout_boh=Decimal('15'),
+    )
+    mozo = _cargo('Mozo')
+    cocina = _cargo('Cocinero Principal')
+    _persona(emp, mozo)
+    _persona(emp, mozo)
+    cocinero = _persona(emp, cocina, cargo_str='Cocinero Principal')
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('1000.00'),
+    )
+    assert pool.monto_tipout_boh == Decimal('150.00')
+    assert pool.monto_distribuible_foh == Decimal('850.00')
+
+    distribuciones = pool.distribuir()
+    foh = [d for d in distribuciones if not d.es_tipout_boh]
+    boh = [d for d in distribuciones if d.es_tipout_boh]
+    assert len(foh) == 2
+    assert len(boh) == 1
+    assert all(d.monto == Decimal('425.00') for d in foh)
+    assert boh[0].personal_id == cocinero.pk
+    assert boh[0].monto == Decimal('150.00')
+
+
+@pytest.mark.django_db
+def test_tipout_boh_se_ignora_si_cocina_ya_incluida():
+    """Si incluye_cocina=True, el porcentaje_tipout_boh es 0 (cocina ya en pool)."""
+    emp = _empresa()
+    ConfiguracionPropinas.objects.create(
+        empresa=emp, modo='POOL_PAREJO',
+        incluye_cocina=True,
+        porcentaje_tipout_boh=Decimal('15'),  # debe ignorarse
+    )
+    mozo = _cargo('Mozo')
+    _persona(emp, mozo)
+    _persona(emp, mozo)
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('600.00'),
+    )
+    assert pool.monto_tipout_boh == Decimal('0.00')
+    assert pool.monto_distribuible_foh == Decimal('600.00')
+
+
+@pytest.mark.django_db
+def test_tipout_boh_sin_cocina_disponible_regresa_al_foh():
+    """Si tip-out activado pero no hay BOH detectable, el monto regresa al FOH."""
+    emp = _empresa()
+    ConfiguracionPropinas.objects.create(
+        empresa=emp, modo='POOL_PAREJO',
+        incluye_cocina=False,
+        porcentaje_tipout_boh=Decimal('20'),
+    )
+    mozo = _cargo('Mozo')
+    _persona(emp, mozo)
+    _persona(emp, mozo)
+    # No hay cocinero/chef en la empresa
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('500.00'),
+    )
+    distribuciones = pool.distribuir()
+    # Todo el monto debe ir al FOH (sin tip-out)
+    foh = [d for d in distribuciones if not d.es_tipout_boh]
+    boh = [d for d in distribuciones if d.es_tipout_boh]
+    assert len(foh) == 2
+    assert len(boh) == 0
+    for d in foh:
+        assert d.monto == Decimal('250.00')
+
+
+# ── 5) Detección de anomalías ───────────────────────────────────────────
+@pytest.mark.django_db
+def test_anomalia_se_marca_cuando_monto_es_menor_50pct_del_cargo():
+    """Si un mozo recibe < 50% del promedio de mozos → anomalia=True."""
+    emp = _empresa()
+    cfg = ConfiguracionPropinas.objects.create(empresa=emp, modo='POOL_PUNTOS_HORAS')
+    mozo = _cargo('Mozo')
+    PuntosPropinas.objects.create(configuracion=cfg, cargo=mozo, puntos=Decimal('3'))
+
+    p_alto1 = _persona(emp, mozo)
+    p_alto2 = _persona(emp, mozo)
+    p_bajo = _persona(emp, mozo)
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('1000.00'),
+    )
+    # 2 mozos con 40h, 1 con 2h → muy desigual
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p_alto1, horas=Decimal('40'))
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p_alto2, horas=Decimal('40'))
+    HorasTrabajadasPropinas.objects.create(pool=pool, personal=p_bajo,  horas=Decimal('2'))
+
+    pool.distribuir()
+    d_alto1 = DistribucionPropinas.objects.get(pool=pool, personal=p_alto1)
+    d_alto2 = DistribucionPropinas.objects.get(pool=pool, personal=p_alto2)
+    d_bajo = DistribucionPropinas.objects.get(pool=pool, personal=p_bajo)
+
+    assert d_alto1.anomalia is False
+    assert d_alto2.anomalia is False
+    assert d_bajo.anomalia is True  # mucho menor que los otros mozos
+
+
+@pytest.mark.django_db
+def test_anomalia_no_se_marca_si_solo_un_trabajador_en_cargo():
+    """Con un único trabajador en su cargo, no se puede calcular anomalía."""
+    emp = _empresa()
+    ConfiguracionPropinas.objects.create(empresa=emp, modo='POOL_PAREJO')
+    mozo = _cargo('Mozo')
+    _persona(emp, mozo)
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_bruto=Decimal('100.00'),
+    )
+    distribuciones = pool.distribuir()
+    assert len(distribuciones) == 1
+    assert distribuciones[0].anomalia is False
+
+
+# ── 6) PDF reporte distribución ─────────────────────────────────────────
+@pytest.mark.django_db
+def test_acta_distribucion_pdf_genera_bytes():
+    """El generador de PDF de Acta de Distribución produce bytes válidos."""
+    from nominas.pdf_propinas import generar_acta_distribucion_pdf
+
+    emp = _empresa()
+    ConfiguracionPropinas.objects.create(empresa=emp, modo='POOL_PAREJO')
+    mozo = _cargo('Mozo')
+    _persona(emp, mozo)
+    _persona(emp, mozo)
+
+    pool = PoolPropinas.objects.create(
+        empresa=emp,
+        fecha_inicio=date(2026, 5, 18),
+        fecha_fin=date(2026, 5, 24),
+        monto_cash=Decimal('200.00'),
+        monto_card=Decimal('300.00'),
+    )
+    pool.distribuir()
+
+    pdf_bytes = generar_acta_distribucion_pdf(pool)
+    assert isinstance(pdf_bytes, (bytes, bytearray))
+    assert pdf_bytes.startswith(b'%PDF')
+    assert len(pdf_bytes) > 1000  # PDF no trivial

@@ -222,4 +222,10 @@ urlpatterns = [
     path('propinas/<int:pool_id>/distribuir/',
          views_propinas.propinas_distribuir,
          name='propinas_distribuir'),
+    path('propinas/<int:pool_id>/horas/',
+         views_propinas.propinas_horas,
+         name='propinas_horas'),
+    path('propinas/<int:pool_id>/acta.pdf',
+         views_propinas.propinas_acta_pdf,
+         name='propinas_acta_pdf'),
 ]

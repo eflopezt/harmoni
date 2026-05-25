@@ -17,7 +17,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -27,6 +27,7 @@ from personal.models import Cargo, Personal
 from .models_propinas import (
     ConfiguracionPropinas,
     DistribucionPropinas,
+    HorasTrabajadasPropinas,
     PoolPropinas,
     PuntosPropinas,
 )
@@ -75,6 +76,9 @@ def propinas_config(request):
         cfg.incluye_admin = request.POST.get('incluye_admin') == 'on'
         cfg.porcentaje_casa = _parse_decimal(
             request.POST.get('porcentaje_casa'), Decimal('0'),
+        )
+        cfg.porcentaje_tipout_boh = _parse_decimal(
+            request.POST.get('porcentaje_tipout_boh'), Decimal('0'),
         )
         cfg.save()
 
@@ -194,27 +198,48 @@ def propinas_nuevo(request):
     if request.method == 'POST':
         fecha_inicio = _parse_date(request.POST.get('fecha_inicio')) or inicio_default
         fecha_fin = _parse_date(request.POST.get('fecha_fin')) or fin_default
-        monto_bruto = _parse_decimal(request.POST.get('monto_bruto'), Decimal('0'))
+        # Nuevo: cash + card separados (best practice mundial).
+        # Legacy: monto_bruto si el formulario aún lo manda.
+        monto_cash = _parse_decimal(request.POST.get('monto_cash'), Decimal('0'))
+        monto_card = _parse_decimal(request.POST.get('monto_card'), Decimal('0'))
+        monto_bruto_legacy = _parse_decimal(
+            request.POST.get('monto_bruto'), Decimal('0'),
+        )
         notas = request.POST.get('notas', '').strip()
 
-        if monto_bruto <= 0:
-            messages.error(request, 'El monto bruto debe ser mayor a 0.')
-            return redirect('propinas_nuevo')
+        total = monto_cash + monto_card
+        if total <= 0:
+            # Fallback al campo legacy
+            if monto_bruto_legacy <= 0:
+                messages.error(
+                    request,
+                    'El monto total (cash + card) debe ser mayor a 0.',
+                )
+                return redirect('propinas_nuevo')
 
         if fecha_fin < fecha_inicio:
             messages.error(request, 'La fecha fin no puede ser anterior a la fecha inicio.')
             return redirect('propinas_nuevo')
 
-        pool = PoolPropinas.objects.create(
+        pool_kwargs = dict(
             empresa=empresa,
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
-            monto_bruto=monto_bruto,
             notas=notas,
         )
+        if total > 0:
+            pool_kwargs['monto_cash'] = monto_cash
+            pool_kwargs['monto_card'] = monto_card
+        else:
+            pool_kwargs['monto_bruto'] = monto_bruto_legacy
+
+        pool = PoolPropinas.objects.create(**pool_kwargs)
+        pool.refresh_from_db()
         messages.success(
             request,
-            f'Pool de S/ {monto_bruto} creado. Revisa el preview y distribuye.',
+            f'Pool de S/ {pool.monto_bruto} creado '
+            f'(cash S/ {pool.monto_cash} + card S/ {pool.monto_card}). '
+            f'Revisa el preview y distribuye.',
         )
         return redirect('propinas_detalle', pool_id=pool.pk)
 
@@ -248,11 +273,19 @@ def propinas_distribuir(request, pool_id: int):
 
     distribuciones = pool.distribuir()
     if distribuciones:
-        messages.success(
-            request,
+        n_anomalias = sum(1 for d in distribuciones if d.anomalia)
+        msg = (
             f'Pool distribuido entre {len(distribuciones)} trabajadores. '
-            f'Total: S/ {pool.monto_distribuible}.',
+            f'Total: S/ {pool.monto_distribuible}.'
         )
+        if n_anomalias:
+            msg += (
+                f' Atención: {n_anomalias} distribución(es) marcada(s) como '
+                'anomalía (< 50% del promedio del cargo) — revisar antes de pagar.'
+            )
+            messages.warning(request, msg)
+        else:
+            messages.success(request, msg)
     else:
         messages.warning(
             request,
@@ -260,3 +293,106 @@ def propinas_distribuir(request, pool_id: int):
             '(sin participantes elegibles o modo INDIVIDUAL).',
         )
     return redirect('propinas_detalle', pool_id=pool.pk)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Acta de Distribución — PDF firmable
+# ══════════════════════════════════════════════════════════════════════════
+@login_required
+def propinas_acta_pdf(request, pool_id: int):
+    """Genera el Acta de Distribución de Propinas en PDF firmable.
+
+    Best practice mundial (Toast Tips Manager, TipHaus, tronc UK): el manager
+    imprime el acta del período y los trabajadores firman recibiendo su parte.
+    Sirve como defensa ante SUNAFIL/disputas.
+    """
+    empresa = _empresa(request)
+    pool = get_object_or_404(PoolPropinas, pk=pool_id, empresa=empresa)
+
+    from .pdf_propinas import generar_acta_distribucion_pdf
+    pdf_bytes = generar_acta_distribucion_pdf(pool)
+
+    fname = (
+        f'acta_propinas_{pool.fecha_inicio:%Y%m%d}_'
+        f'{pool.fecha_fin:%Y%m%d}.pdf'
+    )
+    resp = HttpResponse(pdf_bytes, content_type='application/pdf')
+    resp['Content-Disposition'] = f'inline; filename="{fname}"'
+    return resp
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Horas trabajadas (carga rápida para modos *_HORAS)
+# ══════════════════════════════════════════════════════════════════════════
+@login_required
+def propinas_horas(request, pool_id: int):
+    """Carga horas trabajadas por trabajador para un pool específico.
+
+    Solo aplica en modos POOL_HORAS y POOL_PUNTOS_HORAS. Para otros modos
+    redirige al detalle con mensaje.
+
+      GET   → formulario con todos los participantes activos del pool.
+      POST  → guarda HorasTrabajadasPropinas por persona.
+    """
+    empresa = _empresa(request)
+    pool = get_object_or_404(PoolPropinas, pk=pool_id, empresa=empresa)
+    cfg = ConfiguracionPropinas.objects.filter(empresa=empresa).first()
+
+    if not cfg or not cfg.usa_horas:
+        messages.info(
+            request,
+            'Las horas trabajadas solo aplican en modos POOL_HORAS o '
+            'POOL_PUNTOS_HORAS. Cambia el modo desde la configuración.',
+        )
+        return redirect('propinas_detalle', pool_id=pool.pk)
+
+    if pool.distribuido:
+        messages.info(
+            request,
+            'Este pool ya fue distribuido — las horas registradas son solo '
+            'de referencia.',
+        )
+
+    # Participantes activos en el rango del pool
+    from django.db.models import Q
+    activos = Personal.objects.filter(
+        empresa=empresa,
+        estado='Activo',
+        fecha_alta__lte=pool.fecha_fin,
+    ).filter(
+        Q(fecha_cese__isnull=True) | Q(fecha_cese__gte=pool.fecha_inicio)
+    ).order_by('cargo', 'apellidos_nombres')
+
+    if request.method == 'POST':
+        for persona in activos:
+            raw = request.POST.get(f'horas_{persona.pk}')
+            if raw is None:
+                continue
+            horas = _parse_decimal(raw, Decimal('0'))
+            if horas > 0:
+                HorasTrabajadasPropinas.objects.update_or_create(
+                    pool=pool, personal=persona,
+                    defaults={'horas': horas},
+                )
+            else:
+                HorasTrabajadasPropinas.objects.filter(
+                    pool=pool, personal=persona,
+                ).delete()
+        messages.success(request, 'Horas trabajadas guardadas.')
+        return redirect('propinas_horas', pool_id=pool.pk)
+
+    horas_map = {
+        h.personal_id: h.horas
+        for h in pool.horas.all()
+    }
+    rows = [
+        {'persona': p, 'horas': horas_map.get(p.pk, Decimal('0'))}
+        for p in activos
+    ]
+
+    return render(request, 'nominas/propinas_horas.html', {
+        'titulo': f'Horas trabajadas — Pool {pool.fecha_inicio:%d/%m/%Y}–{pool.fecha_fin:%d/%m/%Y}',
+        'pool': pool,
+        'cfg': cfg,
+        'rows': rows,
+    })

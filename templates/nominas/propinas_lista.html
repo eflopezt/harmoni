@@ -67,39 +67,70 @@
   {# ── Detalle de un pool específico ── #}
   {% if detalle %}
   <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header d-flex align-items-center justify-content-between">
+    <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
       <strong>
         <i class="fas fa-receipt me-2"></i>
         Distribución — {{ detalle.fecha_inicio|date:"d/m/Y" }} a {{ detalle.fecha_fin|date:"d/m/Y" }}
       </strong>
-      {% if not detalle.distribuido %}
-      <form method="post" action="{% url 'propinas_distribuir' detalle.pk %}" class="m-0">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-success">
-          <i class="fas fa-share-alt me-1"></i>Distribuir ahora
-        </button>
-      </form>
-      {% else %}
-      <span class="badge bg-success">
-        <i class="fas fa-check me-1"></i>Distribuido el {{ detalle.distribuido_en|date:"d/m/Y H:i" }}
-      </span>
-      {% endif %}
+      <div class="d-flex gap-2 align-items-center">
+        {% if cfg and cfg.usa_horas %}
+        <a href="{% url 'propinas_horas' detalle.pk %}" class="btn btn-sm btn-outline-info">
+          <i class="fas fa-clock me-1"></i>Horas
+        </a>
+        {% endif %}
+        <a href="{% url 'propinas_acta_pdf' detalle.pk %}" target="_blank" class="btn btn-sm btn-outline-dark">
+          <i class="fas fa-file-pdf me-1"></i>Acta PDF
+        </a>
+        {% if not detalle.distribuido %}
+        <form method="post" action="{% url 'propinas_distribuir' detalle.pk %}" class="m-0">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-success">
+            <i class="fas fa-share-alt me-1"></i>Distribuir ahora
+          </button>
+        </form>
+        {% else %}
+        <span class="badge bg-success">
+          <i class="fas fa-check me-1"></i>Distribuido el {{ detalle.distribuido_en|date:"d/m/Y H:i" }}
+        </span>
+        {% endif %}
+      </div>
     </div>
     <div class="card-body">
-      <div class="row mb-3 small">
-        <div class="col-md-4">
-          <div class="text-muted">Monto bruto recolectado</div>
-          <div class="h5">S/ {{ detalle.monto_bruto|floatformat:2|intcomma }}</div>
+      <div class="row mb-3 small g-3">
+        <div class="col-md-3">
+          <div class="text-muted">Cash</div>
+          <div class="h6 mb-0">S/ {{ detalle.monto_cash|floatformat:2|intcomma }}</div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+          <div class="text-muted">Card</div>
+          <div class="h6 mb-0">S/ {{ detalle.monto_card|floatformat:2|intcomma }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-muted">Bruto total</div>
+          <div class="h5 mb-0">S/ {{ detalle.monto_bruto|floatformat:2|intcomma }}</div>
+        </div>
+        <div class="col-md-3">
           <div class="text-muted">Retención casa ({{ cfg.porcentaje_casa|default:0 }}%)</div>
-          <div class="h5 text-warning">− S/ {{ detalle.monto_casa|floatformat:2|intcomma }}</div>
-        </div>
-        <div class="col-md-4">
-          <div class="text-muted">Distribuible</div>
-          <div class="h5 text-success">S/ {{ detalle.monto_distribuible|floatformat:2|intcomma }}</div>
+          <div class="h6 text-warning mb-0">− S/ {{ detalle.monto_casa|floatformat:2|intcomma }}</div>
         </div>
       </div>
+      {% if detalle.monto_tipout_boh > 0 %}
+      <div class="row mb-3 small g-3">
+        <div class="col-md-6">
+          <div class="text-muted">Tip-out BOH ({{ cfg.porcentaje_tipout_boh }}%)</div>
+          <div class="h6 text-info mb-0">S/ {{ detalle.monto_tipout_boh|floatformat:2|intcomma }}</div>
+        </div>
+        <div class="col-md-6">
+          <div class="text-muted">Distribuible FOH</div>
+          <div class="h5 text-success mb-0">S/ {{ detalle.monto_distribuible_foh|floatformat:2|intcomma }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="mb-3 small">
+        <span class="text-muted">Distribuible:</span>
+        <strong class="text-success h6 ms-1">S/ {{ detalle.monto_distribuible|floatformat:2|intcomma }}</strong>
+      </div>
+      {% endif %}
 
       {% if distribuciones %}
       <div class="table-responsive">

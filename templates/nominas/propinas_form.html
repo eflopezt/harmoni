@@ -48,13 +48,29 @@
             </div>
 
             <div class="mt-3">
-              <label class="form-label small fw-semibold">Monto bruto recolectado (S/)</label>
-              <input type="number" name="monto_bruto" step="0.01" min="0"
-                     class="form-control form-control-lg" required
-                     placeholder="0.00" autofocus>
+              <label class="form-label small fw-semibold">Propinas en efectivo — cash (S/)</label>
+              <input type="number" name="monto_cash" step="0.01" min="0"
+                     class="form-control form-control-lg" id="m_cash"
+                     placeholder="0.00" value="0" autofocus>
               <small class="text-muted">
-                Total de propinas + recargo al consumo del período (antes de retención casa).
+                Propinas declaradas al cierre de turno (cash).
               </small>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label small fw-semibold">Propinas vía tarjeta — card (S/)</label>
+              <input type="number" name="monto_card" step="0.01" min="0"
+                     class="form-control form-control-lg" id="m_card"
+                     placeholder="0.00" value="0">
+              <small class="text-muted">
+                Propinas capturadas por el POS (recargo al consumo en tarjetas).
+              </small>
+            </div>
+
+            <div class="mt-2 alert alert-info small mb-0" id="total_preview">
+              <i class="fas fa-calculator me-1"></i>
+              <strong>Total bruto:</strong> S/ <span id="m_total">0.00</span>
+              <small class="text-muted ms-2">Separación cash/card mejora trazabilidad fiscal (best practice mundial).</small>
             </div>
 
             <div class="mt-3">
@@ -96,6 +112,13 @@
             <span class="text-muted">Cocina incluida:</span>
             {% if cfg.incluye_cocina %}<span class="badge bg-success">Sí</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}
           </div>
+          {% if not cfg.incluye_cocina and cfg.porcentaje_tipout_boh > 0 %}
+          <div class="mb-2">
+            <span class="text-muted">Tip-out BOH:</span>
+            <strong>{{ cfg.porcentaje_tipout_boh }}%</strong>
+            <small class="text-muted d-block">(separa este % del pool para cocina)</small>
+          </div>
+          {% endif %}
           <div class="mb-2">
             <span class="text-muted">Admin incluido:</span>
             {% if cfg.incluye_admin %}<span class="badge bg-success">Sí</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}
@@ -117,4 +140,20 @@
   </div>
 
 </div>
+
+<script>
+(function () {
+  const cash = document.getElementById('m_cash');
+  const card = document.getElementById('m_card');
+  const total = document.getElementById('m_total');
+  function recalc() {
+    const c1 = parseFloat(cash && cash.value || 0) || 0;
+    const c2 = parseFloat(card && card.value || 0) || 0;
+    if (total) total.textContent = (c1 + c2).toFixed(2);
+  }
+  if (cash) cash.addEventListener('input', recalc);
+  if (card) card.addEventListener('input', recalc);
+  recalc();
+})();
+</script>
 {% endblock %}
