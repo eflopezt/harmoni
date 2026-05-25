@@ -660,12 +660,114 @@ def sync_picados(cursor_desde: datetime | None,
                 reg.save()
                 actualizados += 1
 
+    # ── Propagar HE → BancoHoras (solo STAFF) ──────────────────────────
+    # Sin este paso, los picados se sincronizan pero el banco queda desactualizado.
+    # Caso real (Stiler mayo 2026): 123 STAFF con HE pero solo 19 en BancoHoras.
+    banco_resumen = _propagar_banco_horas_desde_picados(
+        creados=creados,
+        actualizados=actualizados,
+        personal_obj_cache=personal_obj_cache,
+        fechas_procesadas=set(fecha for (_, fecha) in grupos.keys()),
+    )
+
     return {
         'creados': creados,
         'actualizados': actualizados,
         'no_encontrados': no_encontrados,
         'omitidos_cerrado': omitidos_cerrado,
         'max_cursor': max_cursor,
+        'banco_horas': banco_resumen,
+    }
+
+
+def _propagar_banco_horas_desde_picados(creados: int, actualizados: int,
+                                        personal_obj_cache: dict,
+                                        fechas_procesadas: set) -> dict:
+    """Propaga HE del tareo recién sincronizado al BancoHoras (solo STAFF).
+
+    Se llama al final de sync_picados. Recorre los meses afectados por la
+    sincronización y, para cada STAFF activo con HE en ese mes, hace
+    update_or_create del BancoHoras con los acumulados desde RegistroTareo.
+
+    NO toca registros donde periodo_cerrado=True ni reescribe meses ya
+    auditados (cerrado=True en BancoHoras).
+    """
+    from decimal import Decimal
+    from django.db.models import Sum, Q
+    from asistencia.models import BancoHoras, RegistroTareo
+
+    if not fechas_procesadas:
+        return {'meses_actualizados': 0, 'staff_actualizados': 0}
+
+    # Meses afectados
+    meses_set = {(f.year, f.month) for f in fechas_procesadas}
+
+    # Staff IDs cacheados (los que ya procesamos en sync_picados)
+    staff_ids = [pid for pid, p in personal_obj_cache.items()
+                 if p and (p.grupo_tareo or '').upper() == 'STAFF']
+
+    if not staff_ids:
+        return {'meses_actualizados': 0, 'staff_actualizados': 0}
+
+    total_actualizados = 0
+    for anio, mes in meses_set:
+        # No reescribir meses ya cerrados (auditados)
+        cerrados_ids = set(BancoHoras.objects.filter(
+            periodo_anio=anio, periodo_mes=mes, cerrado=True,
+            personal_id__in=staff_ids,
+        ).values_list('personal_id', flat=True))
+
+        candidatos_ids = [pid for pid in staff_ids if pid not in cerrados_ids]
+        if not candidatos_ids:
+            continue
+
+        # Sumar HE del mes por trabajador
+        resumen = (
+            RegistroTareo.objects.filter(
+                fecha__year=anio, fecha__month=mes,
+                personal_id__in=candidatos_ids,
+                grupo='STAFF',
+            )
+            .values('personal_id')
+            .annotate(s25=Sum('he_25'), s35=Sum('he_35'), s100=Sum('he_100'))
+        )
+
+        for r in resumen:
+            pid = r['personal_id']
+            s25 = r['s25'] or Decimal('0')
+            s35 = r['s35'] or Decimal('0')
+            s100 = r['s100'] or Decimal('0')
+            total_acum = s25 + s35 + s100
+            if total_acum == 0:
+                continue
+
+            banco, _created = BancoHoras.objects.get_or_create(
+                personal_id=pid,
+                periodo_anio=anio,
+                periodo_mes=mes,
+                defaults={'observaciones': 'Sincronizado desde Synkro (sync_picados)'},
+            )
+            # Solo actualizar si los acumulados cambiaron
+            cambio = (
+                banco.he_25_acumuladas != s25 or
+                banco.he_35_acumuladas != s35 or
+                banco.he_100_acumuladas != s100
+            )
+            if cambio:
+                banco.he_25_acumuladas = s25
+                banco.he_35_acumuladas = s35
+                banco.he_100_acumuladas = s100
+                # Saldo = acumuladas - compensadas (preserva he_compensadas existente)
+                banco.saldo_horas = total_acum - (banco.he_compensadas or Decimal('0'))
+                banco.save(update_fields=[
+                    'he_25_acumuladas', 'he_35_acumuladas', 'he_100_acumuladas',
+                    'saldo_horas', 'actualizado_en',
+                ])
+                total_actualizados += 1
+
+    return {
+        'meses_actualizados': len(meses_set),
+        'staff_actualizados': total_actualizados,
     }
 
 

@@ -17,6 +17,8 @@
 
 {% block body %}
 
+  {# Panel guía "Cómo crear" — solo modo demo (en prod los admins ya conocen el flujo) #}
+  {% if DEMO_MODE %}
   <!-- ════ Cómo crear un reintegro — guía rápida ════ -->
   <div class="hm-panel" style="background:linear-gradient(135deg,#f0fdfa 0%,#ecfeff 100%);border:1px solid #99f6e4;margin-bottom:20px;">
     <div style="padding:18px 22px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
@@ -108,6 +110,7 @@
     });
   });
   </script>
+  {% endif %}{# DEMO_MODE #}
 
   <!-- KPIs -->
   <div class="hm-kpis">
