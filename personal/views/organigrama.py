@@ -28,9 +28,16 @@ def organigrama_view(request):
 @solo_admin
 def organigrama_data(request):
     """
-    API JSON para el organigrama. Construye la jerarquía:
-    1. Si Personal.reporta_a está definido, usa esa relación
-    2. Si no, infiere: Personal → jefe de su Área → nodo raíz
+    API JSON para el organigrama. Construye la jerarquía con prioridad:
+    1. Personal.reporta_a (explícito) si está definido.
+    2. Area.jefe_area (si la persona no es ese jefe).
+    3. INFERENCIA por nivel_org/cargo:
+       - Dentro del área, cada persona reporta al nivel jerárquico inmediato superior.
+       - El "jefe de área" inferido (cargo más alto del área) reporta al GG global.
+       - El GG global (nivel 'GG') es la raíz; si no existe, todos cuelgan del _root.
+
+    Esto garantiza que SIEMPRE se renderice como árbol vertical jerárquico,
+    incluso si los campos reporta_a/jefe_area no están poblados en BD.
     """
     area_id = request.GET.get('area')  # Filtro opcional por área
 
@@ -40,19 +47,62 @@ def organigrama_data(request):
     if area_id:
         qs = qs.filter(subarea__area_id=area_id)
 
-    # Construir mapa de jefes de área
-    areas = Area.objects.filter(activa=True).select_related('jefe_area')
+    qs = list(qs)  # materializar para múltiples pasadas
+
+    # Construir mapa de jefes de área (explícitos)
+    areas_qs = Area.objects.filter(activa=True).select_related('jefe_area')
     jefe_area_map = {}  # area_id -> personal_id del jefe
-    for a in areas:
+    for a in areas_qs:
         if a.jefe_area_id:
             jefe_area_map[a.id] = a.jefe_area_id
 
+    # ── Orden de niveles jerárquicos (menor índice = más alto) ──
+    NIVEL_RANK = {
+        'GG': 0, 'CTA': 1, 'DIR': 2, 'GER': 3,
+        'JEFE_SR': 4, 'JEFE': 5, 'ESP': 6, 'ASIST': 7,
+        'LIBERTY': 6, 'EXPAT': 6,
+    }
+    def _rank(nivel):
+        return NIVEL_RANK.get(nivel, 8)
+
+    # Calcular nivel efectivo de cada persona (explícito o derivado de cargo)
+    nivel_de = {}
+    for p in qs:
+        nivel_de[p.id] = p.nivel_org or _detectar_nivel_org(p.cargo)
+
+    # ── Detectar Gerente General global (el de menor rank, prefiriendo 'GG') ──
+    candidatos_gg = [p for p in qs if nivel_de[p.id] == 'GG']
+    if candidatos_gg:
+        # Si hay varios "GG", elegir el de menor id (estable)
+        gg = sorted(candidatos_gg, key=lambda x: x.id)[0]
+    else:
+        # No hay GG explícito → tomar el de cargo más alto globalmente
+        gg = sorted(qs, key=lambda x: (_rank(nivel_de[x.id]), x.id))[0] if qs else None
+    gg_id = gg.id if gg else None
+
+    # ── Para cada área, identificar al "líder efectivo" (jefe inferido) ──
+    # Prioridad: Area.jefe_area > persona de nivel más alto del área
+    lider_de_area = {}  # area_id -> personal_id
+    personas_por_area = defaultdict(list)
+    for p in qs:
+        aid = p.subarea.area_id if p.subarea_id and p.subarea and p.subarea.area_id else None
+        if aid:
+            personas_por_area[aid].append(p)
+
+    for aid, personas in personas_por_area.items():
+        if aid in jefe_area_map and any(pp.id == jefe_area_map[aid] for pp in personas):
+            lider_de_area[aid] = jefe_area_map[aid]
+        else:
+            # Elegir persona de menor rank (más alto cargo). Empate → menor id.
+            lider = sorted(personas, key=lambda x: (_rank(nivel_de[x.id]), x.id))[0]
+            lider_de_area[aid] = lider.id
+
+    # ── Construir nodos con parentId inferido ──
     nodes = []
     ids_incluidos = set()
 
     for p in qs:
-        # Determinar nivel_org: explícito o auto-derivado del cargo
-        nivel = p.nivel_org or _detectar_nivel_org(p.cargo)
+        nivel = nivel_de[p.id]
         node = {
             'id': str(p.id),
             'parentId': '',
@@ -71,24 +121,55 @@ def organigrama_data(request):
             'personal_clave': p.personal_clave,
         }
 
-        # Determinar parentId
-        if p.reporta_a_id:
-            node['parentId'] = str(p.reporta_a_id)
-        elif p.subarea and p.subarea.area_id in jefe_area_map:
-            jefe_id = jefe_area_map[p.subarea.area_id]
-            if jefe_id != p.id:  # No auto-referencia
-                node['parentId'] = str(jefe_id)
-            # Si es el jefe del área, su parent será '' (raíz) o un nodo superior
+        aid = p.subarea.area_id if p.subarea_id and p.subarea and p.subarea.area_id else None
+        es_lider_area = (aid is not None and lider_de_area.get(aid) == p.id)
+        if es_lider_area:
+            node['es_jefe'] = True
 
-        # Marcar si es jefe de área
-        if p.subarea and p.subarea.area_id in jefe_area_map:
-            if jefe_area_map[p.subarea.area_id] == p.id:
-                node['es_jefe'] = True
+        parent_id = None
+
+        # 1) reporta_a explícito (máxima prioridad, evitando auto-referencia)
+        if p.reporta_a_id and p.reporta_a_id != p.id:
+            parent_id = p.reporta_a_id
+
+        # 2) Si es el líder del área → reporta al GG (o a quedará en raíz)
+        elif es_lider_area:
+            if gg_id and gg_id != p.id:
+                parent_id = gg_id
+            # else: queda como raíz (el GG mismo, o no hay GG)
+
+        # 3) Inferencia intra-área por nivel jerárquico
+        elif aid and aid in personas_por_area:
+            mi_rank = _rank(nivel)
+            # Buscar candidato superior: en la MISMA área con rank estrictamente menor
+            superiores = [
+                pp for pp in personas_por_area[aid]
+                if pp.id != p.id and _rank(nivel_de[pp.id]) < mi_rank
+            ]
+            if superiores:
+                # Elegir el de rank más cercano (mayor rank dentro de los superiores)
+                superiores.sort(key=lambda x: (-_rank(nivel_de[x.id]), x.id))
+                parent_id = superiores[0].id
+            else:
+                # No hay superior intra-área → reportar al líder del área
+                lider_id = lider_de_area.get(aid)
+                if lider_id and lider_id != p.id:
+                    parent_id = lider_id
+                elif gg_id and gg_id != p.id:
+                    parent_id = gg_id
+
+        # 4) Sin área → cuelga del GG (o root)
+        else:
+            if gg_id and gg_id != p.id:
+                parent_id = gg_id
+
+        if parent_id:
+            node['parentId'] = str(parent_id)
 
         nodes.append(node)
         ids_incluidos.add(p.id)
 
-    # Intentar incluir padres referenciados que faltan
+    # Incluir padres referenciados explícitamente que falten (por reporta_a a alguien fuera del filtro)
     parent_ids_faltantes = set()
     for n in nodes:
         if n['parentId']:
@@ -121,19 +202,48 @@ def organigrama_data(request):
             })
             ids_incluidos.add(p.id)
 
-    # ── Nodo raiz virtual: la empresa ──
-    # d3-org-chart requiere exactamente UN nodo raiz (parentId='')
+    # ── Nodo raíz virtual: la empresa ──
+    # d3-org-chart requiere exactamente UN nodo raíz (parentId='')
     # Sanitizar: si un parentId apunta a un nodo que NO existe en el set, limpiar
     all_ids = {n['id'] for n in nodes}
     for n in nodes:
         if n['parentId'] and n['parentId'] not in all_ids:
-            n['parentId'] = ''  # se reasignara al root abajo
+            n['parentId'] = ''  # se reasignará al root abajo
+
+    # ── Detectar y romper ciclos (defensa contra reporta_a circulares) ──
+    parent_map = {n['id']: n['parentId'] for n in nodes}
+    for n in nodes:
+        visitados = set()
+        actual = n['id']
+        while actual and actual in parent_map and parent_map[actual]:
+            siguiente = parent_map[actual]
+            if siguiente in visitados or siguiente == n['id']:
+                # Ciclo detectado: cortar a raíz
+                n['parentId'] = ''
+                parent_map[n['id']] = ''
+                break
+            visitados.add(siguiente)
+            actual = siguiente
+            if len(visitados) > 50:  # límite de seguridad
+                n['parentId'] = ''
+                parent_map[n['id']] = ''
+                break
+
+    # Nombre dinámico de la empresa (primera empresa activa)
+    empresa_nombre = 'Empresa'
+    try:
+        from empresas.models import Empresa
+        emp = Empresa.objects.filter(activa=True).first() if hasattr(Empresa, 'objects') else None
+        if emp:
+            empresa_nombre = emp.nombre_comercial or emp.razon_social or 'Empresa'
+    except Exception:
+        empresa_nombre = 'Empresa'
 
     root_id = '_root'
     root_node = {
         'id': root_id,
         'parentId': '',
-        'name': 'ANDES MINING S.A.C.',
+        'name': empresa_nombre,
         'position': 'Empresa',
         'area': '',
         'subarea': '',
