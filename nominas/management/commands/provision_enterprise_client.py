@@ -10,9 +10,9 @@ Genera:
 
 Uso:
     python manage.py provision_enterprise_client edo \\
-        --name "Grupo EDO" \\
+        --name "Grupo Sabores" \\
         --port 8001 \\
-        --custom-domain harmoni.grupoedo.pe \\
+        --custom-domain harmoni.gruposabores.pe \\
         --output ./provisioning/edo/
 
     # En el server:
@@ -53,7 +53,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('slug', help='Slug del cliente (lowercase, ej: edo, mayimbe)')
-        parser.add_argument('--name', required=True, help='Nombre del cliente (ej: "Grupo EDO")')
+        parser.add_argument('--name', required=True, help='Nombre del cliente (ej: "Grupo Sabores")')
         parser.add_argument('--port', type=int, required=True, help='Puerto único en host (8001+)')
         parser.add_argument('--custom-domain', default='', help='Dominio propio opcional')
         parser.add_argument('--smtp-host', default='smtp.gmail.com')

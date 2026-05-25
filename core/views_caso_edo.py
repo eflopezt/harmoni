@@ -1,5 +1,5 @@
 """
-Landing comercial — caso de uso Grupo EDO.
+Landing comercial — caso de uso Grupo Sabores.
 
 URL: /casos/edo/  (público, sin login)
 

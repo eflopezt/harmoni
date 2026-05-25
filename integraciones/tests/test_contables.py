@@ -46,26 +46,26 @@ class TestEmpresaLabel:
         emp = SimpleNamespace(
             subdominio="demo",
             ruc="20100100100",
-            razon_social="EDO Sushi Bar SAC",
-            nombre_comercial="EDO Sushi Bar",
+            razon_social="Sabores del Sur SAC",
+            nombre_comercial="Sabores del Sur",
             pk=1,
         )
         cod, nom = _empresa_label(emp)
         assert cod == "demo"
-        assert "EDO Sushi Bar" in nom
+        assert "Sabores del Sur" in nom
 
     def test_empresa_sin_subdominio_usa_ruc(self):
         """Sin subdominio, usa el RUC."""
         emp = SimpleNamespace(
             subdominio="",
             ruc="20100100200",
-            razon_social="EDO Premium SAC",
+            razon_social="Sabores del Sur Premium SAC",
             nombre_comercial="",
             pk=2,
         )
         cod, nom = _empresa_label(emp)
         assert cod == "20100100200"
-        assert "EDO Premium" in nom
+        assert "Sabores del Sur Premium" in nom
 
     def test_empresa_sin_subdominio_ni_ruc_usa_pk(self):
         """Sin subdominio ni ruc, usa el pk."""
@@ -255,15 +255,15 @@ class TestConcarCSV:
         emp = SimpleNamespace(
             subdominio="demo",
             ruc="20100100100",
-            razon_social="EDO Sushi Bar",
-            nombre_comercial="EDO Sushi Bar",
+            razon_social="Sabores del Sur",
+            nombre_comercial="Sabores del Sur",
             pk=1,
         )
         contenido, _ = generar_asiento_concar(_mock_periodo(), empresa=emp)
         # Numero de asiento debe contener "-demo"
         assert "-demo" in contenido
         # Glosa debe mencionar la empresa
-        assert "EDO Sushi Bar" in contenido
+        assert "Sabores del Sur" in contenido
 
     @patch("integraciones.contables._get_totales_periodo")
     def test_concar_cuadre_debe_haber(self, mock_totales):
@@ -336,8 +336,8 @@ class TestSiscontExcel:
 
         emp = SimpleNamespace(
             subdominio="demo", ruc="20100100100",
-            razon_social="EDO Sushi Bar SAC",
-            nombre_comercial="EDO Sushi Bar", pk=1,
+            razon_social="Sabores del Sur SAC",
+            nombre_comercial="Sabores del Sur", pk=1,
         )
         contenido, _ = generar_asiento_siscont(_mock_periodo(), empresa=emp)
         wb = openpyxl.load_workbook(BytesIO(contenido))
@@ -353,10 +353,10 @@ class TestSiscontExcel:
         glosa_any = False
         for row in ws.iter_rows(min_row=2, max_row=10, values_only=True):
             for cell in row:
-                if cell and "EDO Sushi Bar" in str(cell):
+                if cell and "Sabores del Sur" in str(cell):
                     glosa_any = True
                     break
-        assert glosa_any, "No se encontro 'EDO Sushi Bar' en la glosa"
+        assert glosa_any, "No se encontro 'Sabores del Sur' en la glosa"
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -528,8 +528,8 @@ class TestSigoTxt:
         }
         from integraciones.contables import generar_asiento_sigo
         emp = SimpleNamespace(
-            subdominio="demo", ruc="X", razon_social="EDO",
-            nombre_comercial="EDO", pk=1,
+            subdominio="demo", ruc="X", razon_social="Sabores del Sur",
+            nombre_comercial="Sabores del Sur", pk=1,
         )
         contenido, _ = generar_asiento_sigo(_mock_periodo(), empresa=emp)
         primera_linea = contenido.strip().split("\n")[0]

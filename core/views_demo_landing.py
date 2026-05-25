@@ -8,7 +8,7 @@ from django.shortcuts import render
 
 DEMOS = {
     'demo': {
-        'titulo':       'Grupo EDO — Gastronomía Premium',
+        'titulo':       'Grupo Sabores — Gastronomía Premium',
         'descripcion':  'Cadena gastronómica con 24 RUCs y ~800 trabajadores. Restaurantes, bares y catering.',
         'plan':         'Enterprise (multi-empresa + integraciones)',
         'trabajadores': 800,

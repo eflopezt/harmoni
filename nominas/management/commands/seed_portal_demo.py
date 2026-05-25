@@ -20,7 +20,7 @@ from django.utils import timezone
 
 
 class Command(BaseCommand):
-    help = "Pueblar datos demo para portal del trabajador (Hans + Yessica + EDO sample)"
+    help = "Pueblar datos demo para portal del trabajador (Hans + Yessica + Sabores del Sur sample)"
 
     def handle(self, *args, **kw):
         from personal.models import Personal
@@ -148,7 +148,7 @@ class Command(BaseCommand):
                 descripcion='Curso obligatorio DIGESA para personal de cocina.',
                 categoria=cat_ssoma, tipo='SSOMA',
                 instructor='Lic. Patricia Mendoza',
-                lugar='Aula Central EDO',
+                lugar='Aula Central Sabores del Sur',
                 fecha_inicio=today - timedelta(days=15),
                 fecha_fin=today - timedelta(days=15),
                 horas=Decimal('8.00'), costo=Decimal('150.00'),
@@ -257,7 +257,7 @@ class Command(BaseCommand):
                     contenido_html=(
                         f"<h3>{spec['titulo']}</h3>"
                         f"<p>{spec['descripcion']}</p>"
-                        "<p>Documento oficial - Grupo EDO 2026.</p>"
+                        "<p>Documento oficial - Grupo Sabores 2026.</p>"
                     ),
                 ),
             )
@@ -300,7 +300,7 @@ class Command(BaseCommand):
             titulo='Brindis fin de ano - Confirmar asistencia',
             defaults=dict(
                 cuerpo=(
-                    'Tenemos el agrado de invitarlos al brindis anual EDO. '
+                    'Tenemos el agrado de invitarlos al brindis anual Sabores del Sur. '
                     'Lugar: Restaurante Costanera. '
                     'Fecha: 20 diciembre 19:00 hrs.'
                 ),

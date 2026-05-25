@@ -1,5 +1,5 @@
 """
-Genera PDF profesional con el anexo de cotización EDO + Onboarding Express.
+Genera PDF profesional con el anexo de cotización Sabores del Sur + Onboarding Express.
 
 Output: docs/Anexo_Cotizacion_EDO_Onboarding_Express.pdf
 
@@ -86,7 +86,7 @@ def page_header(canvas, doc):
     canvas.drawString(2 * cm, 28 * cm, "HARMONI ERP")
     canvas.setFillColor(GRAY)
     canvas.setFont('Helvetica', 8)
-    canvas.drawString(2 * cm, 27.6 * cm, "Anexo de Cotización · EDO Grupo · 2026")
+    canvas.drawString(2 * cm, 27.6 * cm, "Anexo de Cotización · Sabores del Sur Grupo · 2026")
     # Page number bottom-right
     canvas.setFillColor(GRAY)
     canvas.setFont('Helvetica', 8)
@@ -185,7 +185,7 @@ def build_pdf(output_path):
 
     # ── Portada ──────────────────────────────────────────────────
     story.append(Spacer(1, 2*cm))
-    story.append(Paragraph("Harmoni × EDO Grupo", style_h1))
+    story.append(Paragraph("Harmoni × Sabores del Sur Grupo", style_h1))
     story.append(Spacer(1, 4))
     story.append(Paragraph(
         "Anexo de Cotización · Onboarding Express en 2 semanas",
@@ -196,7 +196,7 @@ def build_pdf(output_path):
                             spaceBefore=0, spaceAfter=14))
 
     story.append(Paragraph(
-        "Después de revisar la operación de EDO Grupo en profundidad, "
+        "Después de revisar la operación de Sabores del Sur Grupo en profundidad, "
         "simplificamos el go-live de Harmoni. La promesa es nueva: "
         "<b>no migramos 12 meses de historia</b>. Cargamos saldos al corte "
         "y arrancamos.",
@@ -212,7 +212,7 @@ def build_pdf(output_path):
         [
             ["Migrar 12 meses de planillas históricas",            "<b>NO migramos historia</b>"],
             ["4-5 semanas de implementación",                       "<b>1-2 semanas</b>"],
-            ["IT de EDO involucrado en parallel runs",              "RRHH llena un Excel"],
+            ["IT de Sabores del Sur involucrado en parallel runs",              "RRHH llena un Excel"],
             ["Validación centavo a centavo de meses pasados",       "Solo saldos al corte"],
             ["Riesgo de duplicar boletas ene-may",                  "Cero — salto en limpio"],
         ],
@@ -279,16 +279,16 @@ def build_pdf(output_path):
         ["Semana", "Trabajo", "Responsable"],
         [
             ["S1", "Setup empresa, locales, puestos. Configurar conceptos remunerativos "
-                   "de EDO (propinas pool, bono nocturno).", "Harmoni + RRHH EDO"],
+                   "de Sabores del Sur (propinas pool, bono nocturno).", "Harmoni + RRHH Sabores del Sur"],
             ["S1", "Configurar plan de cuentas para asiento contable (mapeo a Spring).",
                    "Harmoni + Contador"],
-            ["S2", "Equipo RRHH EDO llena la plantilla de apertura (saldos al 31/05/2026).",
-                   "RRHH EDO"],
+            ["S2", "Equipo RRHH Sabores del Sur llena la plantilla de apertura (saldos al 31/05/2026).",
+                   "RRHH Sabores del Sur"],
             ["S2", "Capacitación equipo RRHH (2 sesiones de 90 min).", "Harmoni"],
             ["S2", "Doble corrida paralela: planilla mayo en Spring vs Harmoni. "
                    "Validar coincidencia centavo a centavo.", "Harmoni + Contador"],
             ["Jun", "<b>Go-live</b>. Harmoni emite planilla oficial de junio 2026. "
-                    "Exporta asiento a Spring. Contador valida.", "Equipo EDO"],
+                    "Exporta asiento a Spring. Contador valida.", "Equipo Sabores del Sur"],
         ],
     ))
 
@@ -297,7 +297,7 @@ def build_pdf(output_path):
     # ── Features destacadas ────────────────────────────────────
     story.append(Paragraph("Features destacadas para Grupo Gastronómico Premium", style_h2))
     story.append(Paragraph(
-        "Harmoni incluye features específicas pensadas para grupos como EDO. "
+        "Harmoni incluye features específicas pensadas para grupos como Sabores del Sur. "
         "Algunas no las ofrece ningún competidor en el mercado peruano.",
         style_body,
     ))
@@ -373,7 +373,7 @@ def build_pdf(output_path):
         "• Eliminamos las <b>40-60 horas profesionales</b> de migración histórica<br/>"
         "• Eliminamos el <b>parallel run de 12 meses</b><br/>"
         "• Mantenemos funcionalidad completa<br/>"
-        "• <b>Time-to-value se acelera</b> — EDO opera en Harmoni el mes siguiente al contrato",
+        "• <b>Time-to-value se acelera</b> — Sabores del Sur opera en Harmoni el mes siguiente al contrato",
         style_body,
     ))
     story.append(Spacer(1, 6))
@@ -422,7 +422,7 @@ def build_pdf(output_path):
     story.append(Paragraph(
         f"Documento generado el {datetime.now().strftime('%d/%m/%Y')} · "
         f"Versión 2026-05-21. Cotización viva. Sujeta a revisión final "
-        f"tras llamada de validación con EDO.",
+        f"tras llamada de validación con Sabores del Sur.",
         ParagraphStyle('footer_doc', parent=style_small,
                        alignment=TA_LEFT, textColor=GRAY)))
 

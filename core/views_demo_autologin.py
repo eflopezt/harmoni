@@ -60,7 +60,7 @@ def _check_rate_limit(request):
 # Map slug → username del demo
 DEMO_AUTOLOGIN_USERS = {
     'starter':    'demo2',   # Pixel Motion (agencia diseño/audiovisual)
-    'enterprise': 'demo',    # Grupo EDO (gastronomía, 24 RUCs)
+    'enterprise': 'demo',    # Grupo Sabores (gastronomía, 24 RUCs)
     # Alias amigables
     's':          'demo2',
     'e':          'demo',

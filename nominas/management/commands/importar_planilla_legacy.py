@@ -2,7 +2,7 @@
 Importar planilla legacy desde Spring (u otro sistema) a Harmoni ERP.
 
 Cubre escenarios típicos de migración cuando un cliente viene con varios
-años de data histórica. Para EDO Sushi Bar: 16 años de planillas en Spring
+años de data histórica. Para Sabores del Sur: 16 años de planillas en Spring
 que necesitan migrar conservando los totales originales.
 
 USO:

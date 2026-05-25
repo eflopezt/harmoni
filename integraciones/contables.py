@@ -93,7 +93,7 @@ def _get_totales_periodo(periodo, empresa=None):
         empresa: opcional, Empresa instance o id. Si se pasa, filtra solo
                  los RegistroNomina cuyo personal pertenece a esa empresa.
                  Util para generar asientos contables desagregados en
-                 escenarios multi-RUC (ej: EDO con 24 razones sociales).
+                 escenarios multi-RUC (ej: Sabores del Sur con 24 razones sociales).
 
     Si empresa es None, agrega TODOS los registros del periodo (consolidado,
     comportamiento legacy).
@@ -783,7 +783,7 @@ def generar_asiento_excel_universal(periodo, empresa=None):
     columnas mínimas y estándar que cualquier sistema contable acepta.
 
     Pensado para clientes que NO usan Concar/Siscont/SAP específicamente
-    sino su propio ERP custom o un sistema legacy (ej. Spring de EDO,
+    sino su propio ERP custom o un sistema legacy (ej. Spring de Sabores del Sur,
     sistemas hechos a medida, hojas de cálculo del contador).
 
     Columnas (ningún campo opcional, todo simple):

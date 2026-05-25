@@ -10,7 +10,7 @@ Construye una estructura tipo Excel:
     celdas   = código de estado por día (A=asistió, F=falta, T=tardanza,
                V=vacaciones, P=permiso, X=descanso, etc.)
 
-Optimizado para Grupo EDO (24 RUCs, ~800 trabajadores):
+Optimizado para Grupo Sabores (24 RUCs, ~800 trabajadores):
 - Bulk queries sin N+1.
 - Combina RegistroTareo (estado del día) + RegistroPapeleta (V, P, etc.).
 - Resumen por trabajador + totales por día para tabla pivote completa.

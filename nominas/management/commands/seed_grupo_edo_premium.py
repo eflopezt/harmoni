@@ -1,5 +1,5 @@
 """
-Seed: 6 empresas/locales adicionales para simular Grupo EDO premium.
+Seed: 6 empresas/locales adicionales para simular Grupo Sabores premium.
 
 Crea RUCs gastronómicos de fantasía estilo Acurio Group:
   - Restaurante Insignia (fine dining)
@@ -25,7 +25,7 @@ LOCALES_EDO = [
         'nombre_comercial': 'Restaurante Insignia',
         'subdominio':       'insignia',
         'direccion':        'Av. La Mar 458, Miraflores',
-        'email_rrhh':       'rrhh.insignia@edo.com.pe',
+        'email_rrhh':       'rrhh.insignia@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000222',
@@ -33,7 +33,7 @@ LOCALES_EDO = [
         'nombre_comercial': 'Bistró Costero',
         'subdominio':       'costero',
         'direccion':        'Malecón Cisneros 245, Miraflores',
-        'email_rrhh':       'rrhh.costero@edo.com.pe',
+        'email_rrhh':       'rrhh.costero@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000333',
@@ -41,7 +41,7 @@ LOCALES_EDO = [
         'nombre_comercial': 'Nikkei House',
         'subdominio':       'nikkei',
         'direccion':        'Calle Berlín 384, Miraflores',
-        'email_rrhh':       'rrhh.nikkei@edo.com.pe',
+        'email_rrhh':       'rrhh.nikkei@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000444',
@@ -49,7 +49,7 @@ LOCALES_EDO = [
         'nombre_comercial': 'Café del Olivar',
         'subdominio':       'olivar',
         'direccion':        'Av. Pardo y Aliaga 695, San Isidro',
-        'email_rrhh':       'rrhh.cafe@edo.com.pe',
+        'email_rrhh':       'rrhh.cafe@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000555',
@@ -57,7 +57,7 @@ LOCALES_EDO = [
         'nombre_comercial': 'Anidado Wine Bar',
         'subdominio':       'anidado',
         'direccion':        'Av. La Encalada 1257, Surco',
-        'email_rrhh':       'rrhh.anidado@edo.com.pe',
+        'email_rrhh':       'rrhh.anidado@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000666',
@@ -65,13 +65,13 @@ LOCALES_EDO = [
         'nombre_comercial': 'Cocina Central',
         'subdominio':       'central',
         'direccion':        'Calle Los Tornos 198, Ate',
-        'email_rrhh':       'logistica@edo.com.pe',
+        'email_rrhh':       'logistica@saboresdelsur.com.pe',
     },
 ]
 
 
 class Command(BaseCommand):
-    help = 'Crea 6 empresas gastronómicas del Grupo EDO + asigna trabajadores rotando.'
+    help = 'Crea 6 empresas gastronómicas del Grupo Sabores + asigna trabajadores rotando.'
 
     def add_arguments(self, parser):
         parser.add_argument(

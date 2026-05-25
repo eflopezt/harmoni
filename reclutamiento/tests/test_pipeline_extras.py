@@ -345,7 +345,7 @@ class TestEmailsService:
     def test_render_postulado(self, db, candidatos):
         from reclutamiento.emails import _render
         asunto, cuerpo = _render('postulado', {
-            'nombre': 'Edwin', 'vacante': 'Chef', 'empresa': 'EDO',
+            'nombre': 'Edwin', 'vacante': 'Chef', 'empresa': 'Sabores del Sur',
         })
         assert 'Edwin' in cuerpo
         assert 'Chef' in asunto

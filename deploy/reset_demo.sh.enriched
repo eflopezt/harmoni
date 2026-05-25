@@ -137,8 +137,8 @@ docker exec $EXEC_ENV -e DJANGO_SETTINGS_MODULE=config.settings.production harmo
 import django; django.setup()
 from empresas.models import Empresa
 n = Empresa.objects.exclude(ruc='20612345678').update(plan='ENTERPRISE')
-print(f'  Empresas EDO actualizadas a ENTERPRISE: {n}')
-" >> $LOG 2>&1 || echo "  ! set EDO ENTERPRISE fallo" >> $LOG
+print(f'  Empresas Sabores del Sur actualizadas a ENTERPRISE: {n}')
+" >> $LOG 2>&1 || echo "  ! set Sabores del Sur ENTERPRISE fallo" >> $LOG
 
 # ── Crear usuarios + clave demo123 para TODOS los trabajadores ──────────
 docker exec $EXEC_ENV harmoni-demo-web python manage.py crear_usuarios_trabajadores --password=demo123 >> $LOG 2>&1 || echo "  ! crear_usuarios_trabajadores fallo" >> $LOG

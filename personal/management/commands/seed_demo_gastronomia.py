@@ -1,13 +1,13 @@
 """
-Seed de demo gastronómico — Cadena de sushi bars peruana (perfilado para Grupo EDO).
+Seed de demo gastronómico — Cadena de sushi bars peruana (perfilado para Grupo Sabores).
 
 Pensado para correr DESPUÉS de `seed_demo_presentacion` + `seed_demo_completar`,
 en el ciclo nocturno del reset_demo.sh del VPS. Suma sobre lo que ya existe — NO
 borra trabajadores ni áreas previos.
 
 Qué crea (idempotente — la 2da corrida no duplica):
-  1. 3 empresas multi-RUC ("EDO Sushi Bar SAC", "EDO Premium SAC", "EDO Express SAC")
-     - Si la empresa demo principal ya existe, la actualiza a "EDO Sushi Bar SAC"
+  1. 3 empresas multi-RUC ("Sabores del Sur SAC", "Sabores del Sur Premium SAC", "Sabores del Sur Express SAC")
+     - Si la empresa demo principal ya existe, la actualiza a "Sabores del Sur SAC"
   2. Áreas + SubÁreas típicas de restaurante (Cocina, Salón, Barra, Caja, Limpieza, Admin)
   3. Cargos normalizados (Sushi Chef, Mozo, Bartender, Cajero, etc.)
   4. ~50 trabajadores nuevos (DNI 73000001 en adelante, sin chocar con seeds previos)
@@ -127,14 +127,14 @@ DISTRIBUCION_NUEVOS = [
 EMPRESAS_EDO = [
     {
         'ruc': '20100100100',
-        'razon_social': 'EDO Sushi Bar SAC',
-        'nombre_comercial': 'EDO Sushi Bar',
+        'razon_social': 'Sabores del Sur SAC',
+        'nombre_comercial': 'Sabores del Sur',
         'subdominio': 'demo',
         'es_principal': True,
         'direccion': 'Av. José Pardo 813, Miraflores',
         'distrito': 'Miraflores', 'provincia': 'Lima', 'departamento': 'Lima',
         'ubigeo': '150122',
-        'email_rrhh': 'rrhh@edosushi.pe',
+        'email_rrhh': 'rrhh@saboresdelsur.pe',
         'telefono': '(01) 446-5555',
         'actividad_economica': '5610 - Restaurantes',
         'representante_legal': 'Hiroshi Tanaka Sato',
@@ -144,14 +144,14 @@ EMPRESAS_EDO = [
     },
     {
         'ruc': '20100100200',
-        'razon_social': 'EDO Premium SAC',
-        'nombre_comercial': 'EDO Premium Miraflores',
+        'razon_social': 'Sabores del Sur Premium SAC',
+        'nombre_comercial': 'Sabores del Sur Premium Miraflores',
         'subdominio': None,
         'es_principal': False,
         'direccion': 'Av. La Encalada 1257, Surco',
         'distrito': 'Santiago de Surco', 'provincia': 'Lima', 'departamento': 'Lima',
         'ubigeo': '150141',
-        'email_rrhh': 'rrhh@edopremium.pe',
+        'email_rrhh': 'rrhh@saboresdelsur.pe',
         'telefono': '(01) 437-8888',
         'actividad_economica': '5610 - Restaurantes',
         'representante_legal': 'Hiroshi Tanaka Sato',
@@ -161,14 +161,14 @@ EMPRESAS_EDO = [
     },
     {
         'ruc': '20100100300',
-        'razon_social': 'EDO Express SAC',
-        'nombre_comercial': 'EDO Express (Dark Kitchen)',
+        'razon_social': 'Sabores del Sur Express SAC',
+        'nombre_comercial': 'Sabores del Sur Express (Dark Kitchen)',
         'subdominio': None,
         'es_principal': False,
         'direccion': 'Calle Las Begonias 415, San Isidro',
         'distrito': 'San Isidro', 'provincia': 'Lima', 'departamento': 'Lima',
         'ubigeo': '150131',
-        'email_rrhh': 'rrhh@edoexpress.pe',
+        'email_rrhh': 'rrhh@saboresdelsur.pe',
         'telefono': '(01) 222-3333',
         'actividad_economica': '5621 - Servicio de comidas (catering/delivery)',
         'representante_legal': 'Hiroshi Tanaka Sato',
@@ -240,7 +240,7 @@ CONCEPTOS_GASTRO = [
 
 class Command(BaseCommand):
     help = (
-        'Pobla la demo con datos de cadena de sushi bars (Grupo EDO). '
+        'Pobla la demo con datos de cadena de sushi bars (Grupo Sabores). '
         'Idempotente — corre después de seed_demo_presentacion/completar.'
     )
 
@@ -255,7 +255,7 @@ class Command(BaseCommand):
         random.seed(42)  # reproducibilidad
 
         marker = ' [DRY-RUN]' if self.dry_run else ''
-        self.stdout.write(f'\n=== Harmoni Demo — Seed Gastronomía (Grupo EDO){marker} ===\n')
+        self.stdout.write(f'\n=== Harmoni Demo — Seed Gastronomía (Grupo Sabores){marker} ===\n')
 
         # Resumen para reporte final
         self.resumen = {
@@ -357,7 +357,7 @@ class Command(BaseCommand):
 
         for e_data in EMPRESAS_EDO:
             # Buscamos por RUC primero; si no existe pero hay subdominio='demo' previo,
-            # actualizamos esa empresa para que pase a ser "EDO Sushi Bar SAC".
+            # actualizamos esa empresa para que pase a ser "Sabores del Sur SAC".
             empresa = None
             if e_data['subdominio']:
                 empresa = Empresa.objects.filter(subdominio=e_data['subdominio']).first()
@@ -396,7 +396,7 @@ class Command(BaseCommand):
                     self.resumen['empresas_actualizadas'] += 1
                     self.stdout.write(f'  [~] Empresa actualizada: {empresa.razon_social} (RUC {empresa.ruc})')
             else:
-                # Existe la empresa por subdominio=demo → actualizamos a EDO Sushi Bar
+                # Existe la empresa por subdominio=demo → actualizamos a Sabores del Sur
                 empresa.ruc = e_data['ruc']  # puede cambiar el RUC ficticio previo
                 self._actualizar_empresa(empresa, defaults)
                 self.resumen['empresas_actualizadas'] += 1

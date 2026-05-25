@@ -1,5 +1,5 @@
 """
-Smoke tests para los seeds nuevos del demo EDO.
+Smoke tests para los seeds nuevos del demo Sabores del Sur.
 
 Verifica que cada management command corre sin errores y crea los
 objetos esperados.

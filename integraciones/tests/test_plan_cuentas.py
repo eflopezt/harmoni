@@ -26,11 +26,11 @@ class TestPlanCuentasPorEmpresa:
         """Empresa con plan_cuentas custom debe usar esos valores."""
         emp = SimpleNamespace(
             plan_cuentas=json.dumps({
-                "sueldos_debe": ["7211", "Sueldos custom EDO"],
+                "sueldos_debe": ["7211", "Sueldos custom Sabores del Sur"],
             }),
         )
         plan = _get_plan_cuentas(empresa=emp)
-        assert plan["sueldos_debe"] == ("7211", "Sueldos custom EDO")
+        assert plan["sueldos_debe"] == ("7211", "Sueldos custom Sabores del Sur")
         # Las cuentas NO sobrescritas mantienen el default
         assert plan["essalud_debe"] == ("6271", "EsSalud - aporte empleador")
 
@@ -53,7 +53,7 @@ class TestPlanCuentasPorEmpresa:
 
     def test_empresa_sin_atributo_plan_cuentas(self):
         """Empresa sin atributo plan_cuentas (legacy) no rompe."""
-        emp = SimpleNamespace(razon_social="EDO Legacy")
+        emp = SimpleNamespace(razon_social="Sabores del Sur Legacy")
         plan = _get_plan_cuentas(empresa=emp)
         assert plan["sueldos_debe"] == ("6211", "Sueldos y salarios")
 

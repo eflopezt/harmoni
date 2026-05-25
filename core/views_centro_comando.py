@@ -3,7 +3,7 @@ Centro de Comando — Dashboard "1 vista" para el dueño/gerente.
 
 URL: /comando/
 
-Pensado para Isabel (Grupo EDO) y dueños de grupos gastronómicos:
+Pensado para Isabel (Grupo Sabores) y dueños de grupos gastronómicos:
 - Lo más importante HOY, no historia
 - Alertas priorizadas por severidad
 - Briefings del día por local

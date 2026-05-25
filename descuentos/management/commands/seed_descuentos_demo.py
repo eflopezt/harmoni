@@ -1,4 +1,4 @@
-"""Seed 5 escenarios reales de descuentos por planilla para EDO."""
+"""Seed 5 escenarios reales de descuentos por planilla para Sabores del Sur."""
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-    help = "Crea descuentos demo para EDO (rotura vajilla, uniforme, pensión, etc.)"
+    help = "Crea descuentos demo para Sabores del Sur (rotura vajilla, uniforme, pensión, etc.)"
 
     def handle(self, *args, **kw):
         from personal.models import Personal

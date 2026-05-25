@@ -1,6 +1,6 @@
 """
 Seed extra de demo — Rellena módulos "vacíos" para presentación a cliente grande
-(Grupo EDO, 800 trab + 24 RUCs).
+(Grupo Sabores, 800 trab + 24 RUCs).
 
 Pensado para correr DESPUÉS de los seeds previos en el `reset_demo.sh` del VPS.
 No toca otros seeds: solo agrega data en módulos que de otra forma se ven vacíos
@@ -136,7 +136,7 @@ ANUNCIOS = [
     (
         'Bienvenida nuevos colaboradores - Mayo 2026', 5, 'COMUNICADO',
         '<p>Damos la más cordial bienvenida a los <strong>12 nuevos colaboradores</strong> '
-        'que se incorporaron a la familia EDO este mes. Cocina, salón y barra: estamos '
+        'que se incorporaron a la familia Sabores del Sur este mes. Cocina, salón y barra: estamos '
         'felices de tenerlos.</p><p>Los inducciones se realizarán el viernes a las 9:00 a.m.</p>',
     ),
     (

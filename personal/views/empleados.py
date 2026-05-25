@@ -25,7 +25,7 @@ def personal_list(request):
     """Lista de personal."""
     # Aplicar filtros según usuario + tenant actual (multi-tenant)
     # Audit perf 2026-05-20: filtrar por empresa reduce el scope a ~33 filas
-    # promedio en escenario EDO (24 RUCs) vs 800 sin filtro.
+    # promedio en escenario Sabores del Sur (24 RUCs) vs 800 sin filtro.
     personal = filtrar_personal_por_request(request).select_related(
         'subarea', 'subarea__area', 'empresa'
     ).order_by('apellidos_nombres')

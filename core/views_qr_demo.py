@@ -42,7 +42,7 @@ def qr_demo(request):
             'icon':       'fa-calculator',
         },
         {
-            'titulo':     'Tour Demo EDO',
+            'titulo':     'Tour Demo Sabores del Sur',
             'descripcion': '12 features estrella con CTAs',
             'url':        'https://demo.harmoni.pe/tour/edo/',
             'color':      '#a855f7',

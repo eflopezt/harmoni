@@ -1997,7 +1997,7 @@ Para presentar Harmoni a un prospecto sin que tenga que teclear credenciales:
 | URL | Plan | Caso de uso |
 |---|---|---|
 | `https://demo.harmoni.pe/d/starter/` | Starter | Demo Pixel Motion (agencia 25 personas) |
-| `https://demo.harmoni.pe/d/enterprise/` | Enterprise | Demo Grupo EDO (gastronomía, 24 RUCs) |
+| `https://demo.harmoni.pe/d/enterprise/` | Enterprise | Demo Grupo Sabores (gastronomía, 24 RUCs) |
 
 Estos links logean automáticamente al user demo correcto y redirigen al home.
 Útiles para WhatsApp / email de ventas — un solo clic.

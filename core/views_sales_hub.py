@@ -14,7 +14,7 @@ RECURSOS = [
         'categoria': '🎯 Demos en vivo',
         'items': [
             {
-                'titulo': 'Demo Enterprise (Grupo EDO)',
+                'titulo': 'Demo Enterprise (Grupo Sabores)',
                 'desc':   'Multi-empresa, gastronomía premium, 94 trabajadores',
                 'url':    '/d/enterprise/',
                 'icon':   'fa-rocket',
@@ -67,7 +67,7 @@ RECURSOS = [
         'categoria': '📖 Información',
         'items': [
             {
-                'titulo': 'Caso EDO completo',
+                'titulo': 'Caso Sabores del Sur completo',
                 'desc':   'Problema, solución, ROI 520% en grupos gastronómicos',
                 'url':    '/casos/edo/',
                 'icon':   'fa-utensils',

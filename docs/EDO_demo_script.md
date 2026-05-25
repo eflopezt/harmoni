@@ -1,8 +1,8 @@
-# Harmoni × EDO — Demo Script
+# Harmoni × Sabores del Sur — Demo Script
 
 **Versión 2026-05-21 · Duración objetivo: 25-30 minutos**
 
-> Guion para presentar Harmoni al equipo de EDO (gastronomía premium, 24 RUCs).
+> Guion para presentar Harmoni al equipo de Sabores del Sur (gastronomía premium, 24 RUCs).
 > Pensado para Edwin como presentador. Cada sección incluye qué decir, qué mostrar y la transición a la siguiente.
 
 ---
@@ -153,7 +153,7 @@
 **Ir a `/nominas/apertura/`**
 
 **Lo que dices**:
-> "Esto es nuestra propuesta diferenciadora para EDO. **Onboarding Express.**
+> "Esto es nuestra propuesta diferenciadora para Sabores del Sur. **Onboarding Express.**
 >
 > Lo típico para implementar un sistema de RRHH nuevo es migrar 12 meses de historia. Eso son 4-5 semanas de trabajo, su IT involucrado, riesgo de duplicar boletas. La industria lo hace así.
 >
@@ -237,7 +237,7 @@
 
 1. **Enviar el anexo de cotización** con Onboarding Express (`docs/EDO_onboarding_express.md`)
 2. **Pedir muestra del asiento contable que Spring importa** (para escoping del conector custom)
-3. **Agendar próxima reunión** — idealmente con el contador de EDO para validar la integración Spring
+3. **Agendar próxima reunión** — idealmente con el contador de Sabores del Sur para validar la integración Spring
 4. **Compartir credenciales demo limitadas**: Isabel podrá entrar al sandbox `https://demo.harmoni.pe` con un usuario propio para explorar a su ritmo (creamos un Personal nuevo con su nombre, password temporal)
 
 ---

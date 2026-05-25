@@ -44,8 +44,8 @@ try:
         errors.append('Empresa.plan')
     if not check('Pixel Motion = STARTER', starters >= 1, f'{starters} empresa(s) STARTER'):
         errors.append('Pixel Motion no marcado STARTER')
-    if not check('EDO = ENTERPRISE', enterprises >= 5, f'{enterprises} empresa(s) ENTERPRISE'):
-        errors.append('Empresas EDO no marcadas ENTERPRISE')
+    if not check('Sabores del Sur = ENTERPRISE', enterprises >= 5, f'{enterprises} empresa(s) ENTERPRISE'):
+        errors.append('Empresas Sabores del Sur no marcadas ENTERPRISE')
 except Exception as e:
     check('Empresa model', False, str(e))
     errors.append('Empresa model broken')

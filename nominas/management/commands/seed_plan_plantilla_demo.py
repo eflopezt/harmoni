@@ -1,5 +1,5 @@
 """
-Seed: Plan de Plantilla EDO (Apertura Sucursal Trujillo).
+Seed: Plan de Plantilla Sabores del Sur (Apertura Sucursal Trujillo).
 
 Crea un plan ejemplo con 8 cargos y 27 posiciones, vigente jul-dic 2026.
 Útil para que la página /nominas/planes/ del demo no esté vacía.
@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 fecha_inicio=date(2026, 7, 1),
                 fecha_fin=date(2026, 12, 31),
                 descripcion=(
-                    'Plan de plantilla para nueva sucursal EDO en Trujillo. '
+                    'Plan de plantilla para nueva sucursal Sabores del Sur en Trujillo. '
                     '6 meses, equipo cocina + servicio + administrativo.'
                 ),
                 estado='BORRADOR',

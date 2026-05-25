@@ -1,5 +1,5 @@
 """
-Seed de bandas salariales típicas para gastronomía (demo Grupo EDO).
+Seed de bandas salariales típicas para gastronomía (demo Grupo Sabores).
 
 10 cargos comunes de restaurante con rangos min / medio / max alineados al
 mercado peruano gastronomía (RMV S/ 1025 — RM CTS 2026).
@@ -34,7 +34,7 @@ BANDAS_DEMO = [
 
 
 class Command(BaseCommand):
-    help = 'Crea bandas salariales gastronomía típicas (demo Grupo EDO).'
+    help = 'Crea bandas salariales gastronomía típicas (demo Grupo Sabores).'
 
     def add_arguments(self, parser):
         parser.add_argument(

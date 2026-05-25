@@ -13,11 +13,11 @@ Harmoni ERP atiende clientes de tamaños muy distintos:
 
 - **Pixel Motion** (Starter, agencia audiovisual): 25 trabajadores, S/149/mes
 - **Consorcio Stiler** (Profesional, productor): ~50 trabajadores, S/399/mes
-- **EDO Premium** (Enterprise prospect): 800 trabajadores, 24 RUCs
+- **Sabores del Sur Premium** (Enterprise prospect): 800 trabajadores, 24 RUCs
 
 Hoy todos comparten **una sola instancia Docker** (`harmoni-demo-web` y `harmoni-web` en prod) con aislamiento por `empresa_id` row-level. Esto funciona ahora pero plantea preguntas:
 
-1. ¿Qué pasa cuando EDO cierre? Sus datos sensibles (planilla 800 trabajadores) compartirían DB con otros clientes.
+1. ¿Qué pasa cuando Sabores del Sur cierre? Sus datos sensibles (planilla 800 trabajadores) compartirían DB con otros clientes.
 2. ¿Cómo personalizar engine/conceptos para un cliente sin afectar otros?
 3. ¿Cómo escalar a 50+ clientes sin que el costo de infra explote?
 
@@ -58,7 +58,7 @@ Justificación:
 - Los clientes pequeños no le importa "instancia dedicada", les importa precio
 - Los clientes enterprise SÍ exigen aislamiento y lo pueden pagar (paga el costo operativo)
 - Mantenemos features cross-empresa (Centro de Comando, Audit Log, Validador Onboarding, Mi Día) para el grueso de clientes
-- Casos reales: EDO (24 RUCs, 800 trabajadores) → Docker dedicado se justifica. Pixel Motion (25 trab) → no
+- Casos reales: Sabores del Sur (24 RUCs, 800 trabajadores) → Docker dedicado se justifica. Pixel Motion (25 trab) → no
 
 ## Consecuencias
 
@@ -82,7 +82,7 @@ Justificación:
 4. ✅ Comando `provision_enterprise_client` — task #374
 5. ✅ Tests aislamiento cross-empresa — task #375
 6. ⏳ Postponer migración a `django-tenants` (schema separado) hasta tener 5+ clientes Business
-7. ⏳ Plan EDO: cuando firme → deployar Docker dedicado siguiendo este ADR
+7. ⏳ Plan Sabores del Sur: cuando firme → deployar Docker dedicado siguiendo este ADR
 
 ## Casos de uso por plan
 
@@ -92,12 +92,12 @@ Justificación:
 - Comparten Docker + DB con otros Starter
 - Backup: incluido en backup global, restaurable solo lo de su empresa
 
-### Cliente Enterprise (EDO Premium)
+### Cliente Enterprise (Sabores del Sur Premium)
 - Login en `edo.harmoni.pe` (subdominio dedicado)
 - Su propio Docker container en VPS dedicado
 - Su propio Postgres
 - Su propio cron de reset/backup
-- Branding: logo EDO en topbar via `Empresa.logo`
+- Branding: logo Sabores del Sur en topbar via `Empresa.logo`
 - Performance: no comparte CPU/RAM con otros
 
 ### Migración Profesional → Business (futura)

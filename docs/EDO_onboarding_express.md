@@ -1,4 +1,4 @@
-# Harmoni × EDO — Anexo Cotización
+# Harmoni × Sabores del Sur — Anexo Cotización
 ## Onboarding Express: 2 semanas, no 5
 
 Versión 2026-05-21 · Anexo a Cotización del 2026-05-19
@@ -7,13 +7,13 @@ Versión 2026-05-21 · Anexo a Cotización del 2026-05-19
 
 ## El cambio en el enfoque
 
-Después de revisar la operación de EDO en profundidad, **simplificamos el go-live**.
+Después de revisar la operación de Sabores del Sur en profundidad, **simplificamos el go-live**.
 
 | Enfoque clásico (lo que ofrece la industria) | Onboarding Express Harmoni |
 |---|---|
 | Migrar 12 meses de planillas históricas desde Spring | **NO migramos historia** |
 | 4-5 semanas de implementación | **1-2 semanas** |
-| IT de EDO involucrado en parallel runs | RRHH llena un Excel |
+| IT de Sabores del Sur involucrado en parallel runs | RRHH llena un Excel |
 | Validación centavo a centavo de meses pasados | Solo validamos saldos al corte |
 | Riesgo de duplicar boletas | Cero — salto en limpio |
 
@@ -47,12 +47,12 @@ Spring sigue corriendo:
 
 | Semana | Trabajo | Quién |
 |--------|---------|-------|
-| **S1** | Setup empresa, locales, puestos. Conceptos remunerativos custom de EDO (propinas pool, bono nocturno, etc.) | Harmoni + RRHH EDO |
-| **S1** | Configurar plan de cuentas para asiento contable (mapear a las cuentas que usa Spring) | Harmoni + contador EDO |
-| **S2** | Equipo RRHH EDO llena la plantilla de apertura (saldos al 31/05/2026) | RRHH EDO |
+| **S1** | Setup empresa, locales, puestos. Conceptos remunerativos custom de Sabores del Sur (propinas pool, bono nocturno, etc.) | Harmoni + RRHH Sabores del Sur |
+| **S1** | Configurar plan de cuentas para asiento contable (mapear a las cuentas que usa Spring) | Harmoni + contador Sabores del Sur |
+| **S2** | Equipo RRHH Sabores del Sur llena la plantilla de apertura (saldos al 31/05/2026) | RRHH Sabores del Sur |
 | **S2** | Capacitación al equipo de RRHH (2 sesiones de 90 min) | Harmoni |
-| **S2** | Doble corrida paralela: planilla mayo en Spring vs Harmoni. Validar coincidencia. | Harmoni + contador EDO |
-| **Jun** | **Go-live**. Harmoni emite la planilla oficial de junio 2026. Exporta asiento a Spring. | Equipo EDO |
+| **S2** | Doble corrida paralela: planilla mayo en Spring vs Harmoni. Validar coincidencia. | Harmoni + contador Sabores del Sur |
+| **Jun** | **Go-live**. Harmoni emite la planilla oficial de junio 2026. Exporta asiento a Spring. | Equipo Sabores del Sur |
 
 ---
 
@@ -63,13 +63,13 @@ Al simplificar el go-live:
 - ❌ Removemos **horas de migración histórica** (que en una propuesta clásica son ~40-60 horas profesionales)
 - ❌ Removemos **horas de parallel run histórico** de 12 meses
 - ✅ Mantenemos la promesa de funcionalidad completa
-- ✅ **Time-to-value se acelera** — EDO opera en Harmoni el mes siguiente al contrato
+- ✅ **Time-to-value se acelera** — Sabores del Sur opera en Harmoni el mes siguiente al contrato
 
 **Esto se traduce en una reducción de aproximadamente 20-30% del costo de implementación**, manteniendo intacto el valor del producto.
 
 ---
 
-## Lo que Harmoni le manda a Spring (resumen para el contador de EDO)
+## Lo que Harmoni le manda a Spring (resumen para el contador de Sabores del Sur)
 
 ```
                 ┌──────────────────────────────┐
@@ -111,13 +111,13 @@ Al simplificar el go-live:
                 └──────────────────────────────┘
 ```
 
-El contador de EDO sigue trabajando con Spring sin cambios. Solo importa el asiento mensual que Harmoni le entrega cada cierre.
+El contador de Sabores del Sur sigue trabajando con Spring sin cambios. Solo importa el asiento mensual que Harmoni le entrega cada cierre.
 
 ---
 
 ## Features destacadas para Grupo Gastronómico Premium
 
-Harmoni ahora incluye features específicas para grupos como EDO:
+Harmoni ahora incluye features específicas para grupos como Sabores del Sur:
 
 ### 🎯 Pulse del Grupo
 Dashboard ejecutivo con las 24 empresas/locales como tarjetas. Cada local muestra: headcount, asistencia hoy, planilla del mes, alertas. Código verde/amarillo/rojo según salud operativa. **La pantalla que el dueño abre cada mañana.**
@@ -157,4 +157,4 @@ Excel Universal + CONCAR + Siscont + SAP + SIRE SUNAT + Provisiones separadas. F
 **Contacto**: Edwin López — Gerente de Operaciones Harmoni
 *eflopezt@gmail.com · www.harmoni.pe*
 
-*Cotización viva. Sujeta a revisión final tras llamada de validación con EDO.*
+*Cotización viva. Sujeta a revisión final tras llamada de validación con Sabores del Sur.*

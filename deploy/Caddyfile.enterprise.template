@@ -5,7 +5,7 @@
 # Sustituir:
 #   __CLIENT_SLUG__   → ej: edo
 #   __CLIENT_PORT__   → puerto del container (ej: 8001)
-#   __CUSTOM_DOMAIN__ → ej: harmoni.grupoedo.pe (opcional, vacío = solo subdominio)
+#   __CUSTOM_DOMAIN__ → ej: harmoni.gruposabores.pe (opcional, vacío = solo subdominio)
 # =============================================================================
 
 __CLIENT_SLUG__.harmoni.pe {

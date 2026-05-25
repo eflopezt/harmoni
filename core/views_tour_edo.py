@@ -1,5 +1,5 @@
 """
-Tour interactivo del demo EDO Enterprise.
+Tour interactivo del demo Sabores del Sur Enterprise.
 
 URL: /tour/edo/
 

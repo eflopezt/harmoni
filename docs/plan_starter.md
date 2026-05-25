@@ -259,7 +259,7 @@ python manage.py seed_demo_audiovisual
 Comparte con prospectos por WhatsApp/email:
 ```
 https://demo.harmoni.pe/d/starter/    → Pixel Motion (Starter)
-https://demo.harmoni.pe/d/enterprise/ → Grupo EDO (Enterprise)
+https://demo.harmoni.pe/d/enterprise/ → Grupo Sabores (Enterprise)
 ```
 
 ---
@@ -307,7 +307,7 @@ docker exec ... python manage.py set_empresa_plan 20612345678 STARTER
 docker exec ... python -c "Empresa.objects.exclude(ruc=PM).update(plan='ENTERPRISE')"
 ```
 
-Garantiza que cada noche Pixel Motion vuelve a STARTER y las EDO a ENTERPRISE.
+Garantiza que cada noche Pixel Motion vuelve a STARTER y las Sabores del Sur a ENTERPRISE.
 
 ---
 

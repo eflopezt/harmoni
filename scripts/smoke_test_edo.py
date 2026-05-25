@@ -1,5 +1,5 @@
 """
-Smoke test del demo EDO Enterprise (Grupo gastronómico, 24 RUCs target).
+Smoke test del demo Sabores del Sur Enterprise (Grupo gastronómico, 24 RUCs target).
 
 Verifica que las features estrella del demo Enterprise están saludables
 y con datos suficientes para impresionar al cliente.
@@ -26,12 +26,12 @@ def check(label, ok, detail=''):
     return ok
 
 
-banner('SMOKE TEST — Demo EDO Enterprise')
+banner('SMOKE TEST — Demo Sabores del Sur Enterprise')
 
 errors = []
 
-# ── 1. Empresas EDO ────────────────────────────────────────────────────
-banner('1. Multi-empresa Grupo EDO')
+# ── 1. Empresas Sabores del Sur ────────────────────────────────────────────────────
+banner('1. Multi-empresa Grupo Sabores')
 try:
     from empresas.models import Empresa
     edo_empresas = Empresa.objects.exclude(ruc='20612345678')
@@ -43,11 +43,11 @@ except Exception as e:
     errors.append(f'Empresas: {e}')
 
 # ── 2. Trabajadores ────────────────────────────────────────────────────
-banner('2. Trabajadores EDO activos')
+banner('2. Trabajadores Sabores del Sur activos')
 try:
     from personal.models import Personal
     total = Personal.objects.filter(estado='Activo').exclude(empresa__ruc='20612345678').count()
-    check(f'{total} workers activos EDO', total >= 60, f'(target ≥60)')
+    check(f'{total} workers activos Sabores del Sur', total >= 60, f'(target ≥60)')
     if total < 60:
         errors.append(f'Pocos workers: {total}')
 except Exception as e:
@@ -174,7 +174,7 @@ else:
 # ── 5. Resumen ─────────────────────────────────────────────────────────
 banner('RESUMEN')
 if not errors:
-    print('  ✓ Demo EDO Enterprise SALUDABLE\n')
+    print('  ✓ Demo Sabores del Sur Enterprise SALUDABLE\n')
     sys.exit(0)
 else:
     print(f'  ⚠ {len(errors)} ALERTAS:')

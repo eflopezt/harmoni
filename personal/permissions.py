@@ -67,7 +67,7 @@ def filtrar_personal(user, empresa=None):
                  entre RUCs y mejora performance al reducir el scope.
 
     Audit perf+security 2026-05-20: antes el superuser veia todos los
-    trabajadores de todas las empresas sin filtro. Con 24 RUCs de EDO
+    trabajadores de todas las empresas sin filtro. Con 24 RUCs de Sabores del Sur
     eso es fuga de scope + queries pesadas. Pasando `empresa=request.empresa_actual`
     el resultado se acota correctamente al RUC activo.
     """

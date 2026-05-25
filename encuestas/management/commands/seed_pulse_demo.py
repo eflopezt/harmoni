@@ -1,7 +1,7 @@
 """
 Seed: Pulse Semanal demo (12 semanas, ~70% participación, gastronomía).
 
-Genera respuestas realistas para Grupo EDO y similares.
+Genera respuestas realistas para Grupo Sabores y similares.
 
 Uso:
     python manage.py seed_pulse_demo

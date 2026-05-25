@@ -85,12 +85,12 @@ def demo_landing(request, demo_slug='demo'):
     que redirige a demo.harmoni.pe con credenciales pre-completadas.
 
     Demos disponibles:
-    - demo:   Grupo EDO (gastronomía, 24 RUCs, 800 trabajadores)
+    - demo:   Grupo Sabores (gastronomía, 24 RUCs, 800 trabajadores)
     - demo2:  Pixel Motion (diseño / audiovisual, 25 trabajadores)
     """
     DEMOS = {
         'demo': {
-            'titulo':       'Grupo EDO — Gastronomía Premium',
+            'titulo':       'Grupo Sabores — Gastronomía Premium',
             'descripcion':  'Cadena gastronómica con 24 RUCs y ~800 trabajadores. Restaurantes, bares y catering.',
             'plan':         'Enterprise (multi-empresa + integraciones)',
             'trabajadores': 800,
@@ -159,7 +159,7 @@ urlpatterns = [
     path('onboarding/starter/listo/', __import__('core.views_onboarding_starter', fromlist=['onboarding_starter_step3']).onboarding_starter_step3, name='onboarding_starter_step3'),
     # Mi cuenta — dashboard del plan vigente
     path('cuenta/plan/', __import__('core.views_mi_cuenta', fromlist=['mi_cuenta_plan']).mi_cuenta_plan, name='mi_cuenta_plan'),
-    # Tour interactivo demo EDO Enterprise
+    # Tour interactivo demo Sabores del Sur Enterprise
     path('tour/edo/', __import__('core.views_tour_edo', fromlist=['tour_edo']).tour_edo, name='tour_edo'),
     # Centro de Comando — dashboard ejecutivo "1 vista"
     path('comando/', __import__('core.views_centro_comando', fromlist=['centro_comando']).centro_comando, name='centro_comando'),
@@ -171,7 +171,7 @@ urlpatterns = [
     path('reportes/grupo-ejecutivo/', __import__('core.views_reporte_ejecutivo_grupo', fromlist=['reporte_grupo_ejecutivo']).reporte_grupo_ejecutivo, name='reporte_grupo_ejecutivo'),
     # FAQ pública gastronomía
     path('faq/', __import__('core.views_faq', fromlist=['faq_publica']).faq_publica, name='faq_publica'),
-    # Caso de uso comercial — Grupo EDO (público, sin login)
+    # Caso de uso comercial — Grupo Sabores (público, sin login)
     path('casos/edo/', __import__('core.views_caso_edo', fromlist=['caso_edo']).caso_edo, name='caso_edo'),
     # Página pública de precios (los 4 planes)
     path('precios/', __import__('core.views_precios', fromlist=['precios']).precios, name='precios_publico'),
