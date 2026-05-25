@@ -6,8 +6,12 @@
 {% block extra_css %}
 <style>
 /* ══ HERO ══ */
-.hero-cal{background:linear-gradient(135deg,#0a1a16 0%,#0f766e 50%,#134e4a 100%);border-radius:.75rem;position:relative;overflow:hidden}
+.hero-cal{background:linear-gradient(135deg,#0a1a16 0%,#0f766e 50%,#134e4a 100%);border-radius:.75rem;position:relative;overflow:hidden;color:#fff}
 .hero-cal::before{content:'';position:absolute;top:-50%;right:-20%;width:400px;height:400px;background:radial-gradient(circle,rgba(20,184,166,.15),transparent 70%);pointer-events:none}
+/* Forzar legibilidad: el design system V2 pone h2/p en slate-900 por default,
+   sobre el fondo oscuro del hero queda invisible. Ganar la specificity. */
+.hero-cal h2, .hero-cal h2 *, .hero-cal p, .hero-cal .kpi-glass{color:#fff!important}
+.hero-cal .badge{color:#fff!important}
 
 /* ══ KPI CARDS ══ */
 .kpi-glass{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:.75rem;padding:1rem 1.25rem;transition:all .2s}
