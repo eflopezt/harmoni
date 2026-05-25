@@ -166,7 +166,8 @@ def is_starter_user(user):
 
     # 1. Resolver via Personal → Empresa.plan
     try:
-        personal = getattr(user, 'personal', None)
+        # Personal.usuario es OneToOneField con related_name="personal_data"
+        personal = getattr(user, 'personal_data', None) or getattr(user, 'personal', None)
         if personal and getattr(personal, 'empresa', None):
             if personal.empresa.plan == 'STARTER':
                 return True

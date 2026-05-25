@@ -430,6 +430,10 @@ class TestEnviarDesdePlantilla(_BaseTestCase):
 class TestPlantillaNotificacion(TestCase):
     """PlantillaNotificacion model behaviour."""
 
+    def setUp(self):
+        # Migration 0004_whatsapp_templates seeds 5 plantillas; clear for isolation.
+        PlantillaNotificacion.objects.all().delete()
+
     def test_create_plantilla(self):
         p = PlantillaNotificacion.objects.create(
             nombre="Bienvenida Onboarding",

@@ -23,7 +23,7 @@ URLS_ALLOWED = [
     '/prestamos/mis/',
     '/nominas/mis-recibos/',
     '/nominas/consentimiento-boleta/',
-    '/cuenta/',
+    '/cuenta/plan/',
 ]
 
 # ── URLs admin que un trabajador NO DEBE poder acceder ──

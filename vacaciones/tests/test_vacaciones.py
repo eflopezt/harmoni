@@ -486,8 +486,11 @@ class TestEdgeCases(VacacionesTestBase):
         solicitud.estado = 'ANULADA'
         solicitud.save(update_fields=['estado'])
 
-        # Manual saldo restoration (as an admin would do)
+        # Manual saldo restoration (as an admin would do).
+        # recalcular() solo persiste dias_pendientes y estado, así que
+        # dias_gozados debe guardarse explícitamente antes.
         saldo.dias_gozados -= solicitud.dias_calendario
+        saldo.save(update_fields=['dias_gozados'])
         saldo.recalcular()
         saldo.refresh_from_db()
         self.assertEqual(saldo.dias_gozados, 0)

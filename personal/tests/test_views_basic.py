@@ -48,8 +48,10 @@ def admin(db):
 
 @pytest.fixture
 def user_normal(db):
+    # is_staff=True para bypass de WorkerAccessRestrictionMiddleware (no es worker puro)
+    # is_superuser=False para que filtrar_personal aplique restricciones por Personal vinculado.
     return User.objects.create_user(
-        username="normal", password="testpass123"
+        username="normal", password="testpass123", is_staff=True,
     )
 
 

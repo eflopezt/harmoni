@@ -27,6 +27,8 @@ EXEMPT_URL_PATTERNS = [
     r'^/static/',
     r'^/media/',
     r'^/api/v1/auth/',
+    r'^/api/v1/me/',                 # endpoints "mi perfil/plan" — exentos de gate
+    r'^/d/',                         # demo autologin (/d/<slug>/)
     r'^/$',           # landing
     # Portal del trabajador — acceso siempre disponible para empleados vinculados
     r'^/mi-portal/',

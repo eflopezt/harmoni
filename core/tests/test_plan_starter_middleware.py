@@ -55,8 +55,9 @@ class TestIsStarterUser:
         u = User.objects.create_user(username='admin_starter', password='x')
         Personal.objects.create(
             usuario=u, empresa=emp,
-            primer_nombre='Test', primer_apellido='Starter',
-            documento_identidad='99999999',
+            nro_doc='99999999',
+            apellidos_nombres='Starter, Test',
+            cargo='Admin', tipo_trab='Empleado',
         )
         assert is_starter_user(u) is True
 
@@ -70,8 +71,9 @@ class TestIsStarterUser:
         u = User.objects.create_user(username='admin_prof', password='x')
         Personal.objects.create(
             usuario=u, empresa=emp,
-            primer_nombre='Test', primer_apellido='Profesional',
-            documento_identidad='88888888',
+            nro_doc='88888888',
+            apellidos_nombres='Profesional, Test',
+            cargo='Admin', tipo_trab='Empleado',
         )
         assert is_starter_user(u) is False
 
