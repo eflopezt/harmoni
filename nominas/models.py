@@ -1126,3 +1126,9 @@ class AuditAgenteIA(models.Model):
 
     def __str__(self):
         return f'[{self.fecha:%Y-%m-%d %H:%M}] {self.get_accion_display()}'
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Pool de Propinas (gastronomía) — modelos en módulo dedicado
+# ══════════════════════════════════════════════════════════════════════
+from .models_propinas import *  # noqa: E402,F401,F403
