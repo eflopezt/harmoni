@@ -4,23 +4,29 @@
 {% block hero %}
 <section class="hm-hero">
   <div class="greet">
-    <span class="hex"></span>Cierre mensual guiado · 10 pasos
+    <span class="hex"></span>Cierre mensual guiado · <span id="wfm-total-label" class="hm-mono">{{ n_total }}</span> pasos
   </div>
   <h1>
     Workflow <span class="accent">del mes</span>
     {% if periodo %}<span style="font-size:18px;color:var(--hm-slate-500);font-weight:500;">{{ periodo.mes }}/{{ periodo.anio }}</span>{% endif %}
   </h1>
   <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
-    Sigue los 10 pasos en orden para cerrar tu planilla mensual sin errores. Cada paso desbloquea el siguiente.
+    Sigue los pasos en orden para cerrar tu planilla mensual sin errores. Cada paso desbloquea el siguiente.
   </p>
   <div class="meta-row">
     <div class="it">
       <span class="pip" style="background:var(--hm-brand-500);"></span>
-      <span>Progreso</span> <b class="hm-mono">{{ progreso_pct }}%</b>
+      <span>Progreso</span> <b class="hm-mono" id="wfm-pct-label">{{ progreso_pct }}%</b>
     </div>
     <div class="it">
       <span class="pip" style="background:var(--hm-success);"></span>
-      <span>Completados</span> <b class="hm-mono">{{ n_done }}/{{ n_total }}</b>
+      <span>Completados</span> <b class="hm-mono"><span id="wfm-done-label">{{ n_done }}</span>/<span id="wfm-total-label2">{{ n_total }}</span></b>
+    </div>
+    <div class="it">
+      <button type="button" id="wfm-personalizar-btn"
+              style="background:#fff;border:1px solid var(--hm-slate-200);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--hm-slate-700);cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+        <i class="fas fa-sliders-h"></i> Personalizar pasos
+      </button>
     </div>
   </div>
 </section>
@@ -51,7 +57,8 @@
     <div style="position:absolute;left:22px;top:30px;bottom:30px;width:2px;background:linear-gradient(to bottom,var(--hm-success) 0%,var(--hm-brand-500) 50%,var(--hm-slate-200) 100%);"></div>
 
     {% for step in steps %}
-      <div style="display:flex;gap:18px;margin-bottom:12px;align-items:flex-start;">
+      <div class="wfm-step-row" data-step-key="{{ step.key }}" data-step-done="{{ step.done|yesno:'1,0' }}"
+           style="display:flex;gap:18px;margin-bottom:12px;align-items:flex-start;">
         <div style="flex-shrink:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:1;
           {% if step.done %}background:var(--hm-success);color:#fff;
           {% elif step.bloqueado %}background:var(--hm-slate-100);color:var(--hm-slate-400);
@@ -83,4 +90,130 @@
       </div>
     {% endfor %}
   </div>
+
+  {# ───── Modal de personalización (oculta steps no aplicables a la empresa) ───── #}
+  <div id="wfm-modal-backdrop"
+       style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:100200;"
+       onclick="if(event.target===this) wfmCloseModal();">
+    <div role="dialog" aria-modal="true" aria-labelledby="wfm-modal-title"
+         style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;width:min(540px,90vw);max-height:85vh;overflow:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);">
+      <header style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--hm-slate-200);">
+        <div>
+          <h3 id="wfm-modal-title" style="margin:0;font-size:17px;font-weight:700;color:var(--hm-slate-900);">
+            <i class="fas fa-sliders-h" style="color:var(--hm-brand-600);margin-right:6px;"></i>
+            Personalizar workflow
+          </h3>
+          <p style="margin:4px 0 0;font-size:12.5px;color:var(--hm-slate-500);">
+            Marca solo los pasos que aplican a tu empresa. Se guarda en este navegador.
+          </p>
+        </div>
+        <button type="button" onclick="wfmCloseModal()"
+                style="background:none;border:0;font-size:22px;color:var(--hm-slate-400);cursor:pointer;line-height:1;">×</button>
+      </header>
+
+      <div id="wfm-modal-body" style="padding:8px 22px 18px;">
+        {% for step in steps %}
+          <label class="wfm-step-toggle"
+                 style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .15s;">
+            <input type="checkbox" class="wfm-toggle-check" data-step-key="{{ step.key }}" checked
+                   style="width:18px;height:18px;cursor:pointer;accent-color:var(--hm-brand-600);">
+            <i class="{{ step.icon }}" style="color:var(--hm-brand-600);font-size:14px;width:18px;text-align:center;"></i>
+            <div style="flex:1;">
+              <strong style="font-size:13.5px;color:var(--hm-slate-900);">{{ step.titulo }}</strong>
+              <div style="font-size:11.5px;color:var(--hm-slate-500);margin-top:2px;">{{ step.descripcion|truncatechars:70 }}</div>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+
+      <footer style="display:flex;justify-content:space-between;gap:10px;padding:14px 22px;border-top:1px solid var(--hm-slate-200);background:var(--hm-canvas);border-radius:0 0 14px 14px;">
+        <button type="button" onclick="wfmRestoreAll()" class="hm-btn-ghost" style="font-size:12.5px;">
+          <i class="fas fa-undo"></i> Mostrar todos
+        </button>
+        <div style="display:flex;gap:8px;">
+          <button type="button" onclick="wfmCloseModal()" class="hm-btn-ghost">Cancelar</button>
+          <button type="button" onclick="wfmApplyHidden()" class="hm-btn-primary">Aplicar</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <style>
+    .wfm-step-toggle:hover { background: var(--hm-canvas); }
+    .wfm-step-row.wfm-hidden { display: none !important; }
+  </style>
+
+  <script>
+    (function() {
+      const LS_KEY = 'workflow_mes_hidden_steps';
+
+      function getHidden() {
+        try { return new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]')); }
+        catch (e) { return new Set(); }
+      }
+      function setHidden(set) {
+        localStorage.setItem(LS_KEY, JSON.stringify([...set]));
+      }
+      function recalcProgress() {
+        const visibleRows = document.querySelectorAll('.wfm-step-row:not(.wfm-hidden)');
+        const done = [...visibleRows].filter(r => r.dataset.stepDone === '1').length;
+        const total = visibleRows.length;
+        const pct = total ? Math.round(done / total * 100) : 0;
+        const elDone = document.getElementById('wfm-done-label');
+        const elTot1 = document.getElementById('wfm-total-label');
+        const elTot2 = document.getElementById('wfm-total-label2');
+        const elPct = document.getElementById('wfm-pct-label');
+        if (elDone) elDone.textContent = done;
+        if (elTot1) elTot1.textContent = total;
+        if (elTot2) elTot2.textContent = total;
+        if (elPct)  elPct.textContent = pct + '%';
+      }
+      function applyHidden() {
+        const hidden = getHidden();
+        document.querySelectorAll('.wfm-step-row').forEach(row => {
+          row.classList.toggle('wfm-hidden', hidden.has(row.dataset.stepKey));
+        });
+        recalcProgress();
+      }
+      function syncChecks() {
+        const hidden = getHidden();
+        document.querySelectorAll('.wfm-toggle-check').forEach(chk => {
+          chk.checked = !hidden.has(chk.dataset.stepKey);
+        });
+      }
+
+      window.wfmCloseModal = function() {
+        document.getElementById('wfm-modal-backdrop').style.display = 'none';
+        document.body.style.overflow = '';
+      };
+      window.wfmOpenModal = function() {
+        syncChecks();
+        document.getElementById('wfm-modal-backdrop').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      };
+      window.wfmApplyHidden = function() {
+        const newHidden = new Set();
+        document.querySelectorAll('.wfm-toggle-check').forEach(chk => {
+          if (!chk.checked) newHidden.add(chk.dataset.stepKey);
+        });
+        setHidden(newHidden);
+        applyHidden();
+        wfmCloseModal();
+      };
+      window.wfmRestoreAll = function() {
+        setHidden(new Set());
+        applyHidden();
+        syncChecks();
+      };
+
+      document.addEventListener('DOMContentLoaded', function() {
+        applyHidden();
+        const btn = document.getElementById('wfm-personalizar-btn');
+        if (btn) btn.addEventListener('click', wfmOpenModal);
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') wfmCloseModal();
+        });
+      });
+    })();
+  </script>
 {% endblock %}
