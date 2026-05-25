@@ -157,11 +157,27 @@ urlpatterns = [
     path('gratificaciones/', views.gratificacion_panel, name='nominas_gratificaciones'),
     path('periodos/especial/crear/', views.crear_periodo_especial, name='nominas_crear_especial'),
 
-    # Liquidación al Cese
+    # Liquidación al Cese (vistas legacy sobre RegistroNomina)
     path('liquidaciones/', views_liquidacion.liquidaciones_panel, name='nominas_liquidaciones'),
     path('liquidaciones/<int:pk>/', views_liquidacion.liquidacion_detalle, name='nominas_liquidacion_detalle'),
     path('liquidaciones/<int:pk>/generar/', views_liquidacion.liquidacion_generar, name='nominas_liquidacion_generar'),
     path('liquidaciones/<int:pk>/pdf/', views_liquidacion.liquidacion_pdf, name='nominas_liquidacion_pdf'),
+
+    # Sprint 1 — LiquidacionLaboral (modelo header con motivo, totales, workflow)
+    path('liquidacion/<int:liquidacion_id>/',
+         views_liquidacion.liquidacion_laboral_detalle,
+         name='nominas_liquidacion_laboral_detalle'),
+    path('liquidacion/<int:liquidacion_id>/aprobar/',
+         views_liquidacion.liquidacion_laboral_aprobar,
+         name='nominas_liquidacion_laboral_aprobar'),
+    path('liquidacion/<int:liquidacion_id>/pdf/',
+         views_liquidacion.liquidacion_laboral_pdf,
+         name='nominas_liquidacion_laboral_pdf'),
+
+    # Sprint 1 — API liquidacion (JSON) accesible bajo /nominas/api/liquidacion/<personal_id>/
+    path('api/liquidacion/<int:personal_id>/',
+         views_liquidacion.api_liquidacion,
+         name='nominas_api_liquidacion'),
 
     # IR 5ta Categoría
     path('ir5ta/', views.ir5ta_panel, name='nominas_ir5ta'),

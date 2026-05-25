@@ -374,3 +374,141 @@ def liquidacion_pdf(request, pk):
     except ImportError:
         # Fallback: renderizar HTML para imprimir
         return render(request, 'nominas/liquidacion_pdf.html', ctx)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sprint 1 — LiquidacionLaboral (modelo header)
+# ══════════════════════════════════════════════════════════════════════════════
+# Estas vistas operan sobre el nuevo modelo LiquidacionLaboral (no sobre
+# RegistroNomina como las vistas legacy de arriba). Implementan la API y
+# las pantallas de detalle/aprobación que pide el Sprint 1.
+# ══════════════════════════════════════════════════════════════════════════════
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.http import JsonResponse
+
+
+@staff_member_required
+def api_liquidacion(request, personal_id):
+    """
+    GET /nominas/api/liquidacion/<personal_id>/
+
+    Retorna la liquidación calculada del trabajador en JSON. Si el
+    trabajador no está cesado, retorna {error: 'no_cesado'} con 400.
+    Solo accesible para staff (admin).
+    """
+    from .models import LiquidacionLaboral
+
+    personal = get_object_or_404(Personal, pk=personal_id)
+    if personal.estado != 'Cesado':
+        return JsonResponse({'error': 'no_cesado'}, status=400)
+
+    # Buscar liquidación existente; si no existe, intentar crearla/calcularla.
+    liq = LiquidacionLaboral.objects.filter(personal=personal).first()
+    if liq is None:
+        liq, _ = LiquidacionLaboral.objects.get_or_create(
+            personal=personal,
+            defaults={
+                'fecha_cese':  personal.fecha_cese or timezone.localdate(),
+                'motivo_cese': 'RENUNCIA',
+            },
+        )
+        liq.calcular()
+
+    return JsonResponse({
+        'id':                 liq.pk,
+        'personal_id':        personal.pk,
+        'personal_nombre':    personal.apellidos_nombres,
+        'fecha_cese':         liq.fecha_cese.isoformat(),
+        'motivo_cese':        liq.motivo_cese,
+        'estado':             liq.estado,
+        # Haberes
+        'vacaciones_truncas': str(liq.vacaciones_truncas),
+        'gratif_trunca':      str(liq.gratif_trunca),
+        'cts_trunca':         str(liq.cts_trunca),
+        'sueldo_mes_curso':   str(liq.sueldo_mes_curso),
+        'he_no_compensadas':  str(liq.he_no_compensadas),
+        'indemnizacion':      str(liq.indemnizacion),
+        'otros_pagos':        str(liq.otros_pagos),
+        # Descuentos
+        'prestamos_pendientes': str(liq.prestamos_pendientes),
+        'adelantos_pendientes': str(liq.adelantos_pendientes),
+        'embargo':              str(liq.embargo),
+        'otros_descuentos':     str(liq.otros_descuentos),
+        # Totales
+        'total_bruto': str(liq.total_bruto),
+        'total_neto':  str(liq.total_neto),
+    })
+
+
+@login_required
+def liquidacion_laboral_detalle(request, liquidacion_id):
+    """
+    GET /nominas/liquidacion/<liquidacion_id>/
+
+    Muestra la liquidación con tabla de conceptos, tabla de descuentos,
+    total, botón "Aprobar" (cambia estado a APROBADA) y botón "Imprimir PDF".
+    """
+    from .models import LiquidacionLaboral
+
+    liq = get_object_or_404(
+        LiquidacionLaboral.objects.select_related('personal', 'aprobada_por'),
+        pk=liquidacion_id,
+    )
+
+    conceptos = [
+        ('Sueldo del mes en curso',     liq.sueldo_mes_curso),
+        ('Gratificación trunca',        liq.gratif_trunca),
+        ('CTS trunca',                  liq.cts_trunca),
+        ('Vacaciones truncas',          liq.vacaciones_truncas),
+        ('Horas extra no compensadas',  liq.he_no_compensadas),
+        ('Indemnización (despido arb.)', liq.indemnizacion),
+        ('Otros pagos',                 liq.otros_pagos),
+    ]
+    descuentos = [
+        ('Préstamos pendientes',  liq.prestamos_pendientes),
+        ('Adelantos pendientes',  liq.adelantos_pendientes),
+        ('Embargo judicial',      liq.embargo),
+        ('Otros descuentos',      liq.otros_descuentos),
+    ]
+    total_descuentos = sum(v for _, v in descuentos)
+
+    return render(request, 'nominas/liquidacion_laboral_detalle.html', {
+        'titulo':           f'Liquidación — {liq.personal.apellidos_nombres}',
+        'liq':              liq,
+        'personal':         liq.personal,
+        'conceptos':        conceptos,
+        'descuentos':       descuentos,
+        'total_descuentos': total_descuentos,
+    })
+
+
+@login_required
+@require_POST
+def liquidacion_laboral_aprobar(request, liquidacion_id):
+    """POST /nominas/liquidacion/<id>/aprobar/ → estado APROBADA + aprobada_por."""
+    from .models import LiquidacionLaboral
+
+    liq = get_object_or_404(LiquidacionLaboral, pk=liquidacion_id)
+    if liq.estado in ('APROBADA', 'FIRMADA', 'PAGADA', 'CERRADA'):
+        messages.info(request, 'La liquidación ya fue aprobada.')
+    else:
+        liq.estado       = 'APROBADA'
+        liq.aprobada_por = request.user
+        liq.save(update_fields=['estado', 'aprobada_por', 'actualizado_en'])
+        messages.success(
+            request,
+            f'Liquidación de {liq.personal.apellidos_nombres} aprobada por {request.user}.',
+        )
+    return redirect('nominas_liquidacion_laboral_detalle', liquidacion_id=liq.pk)
+
+
+@login_required
+def liquidacion_laboral_pdf(request, liquidacion_id):
+    """Reutiliza el generador PDF de boleta de liquidación legacy."""
+    from .models import LiquidacionLaboral
+
+    liq = get_object_or_404(LiquidacionLaboral.objects.select_related('personal'),
+                            pk=liquidacion_id)
+    # Delegamos a la vista legacy con el personal.
+    return liquidacion_pdf(request, pk=liq.personal_id)

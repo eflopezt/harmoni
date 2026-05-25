@@ -1129,6 +1129,350 @@ class AuditAgenteIA(models.Model):
 
 
 # ══════════════════════════════════════════════════════════════════════
+# LIQUIDACIÓN LABORAL — proceso unificado al cese
+# ══════════════════════════════════════════════════════════════════════
+# Modelo header que centraliza TODOS los conceptos que se le pagan a un
+# trabajador cuando deja la empresa (vacaciones truncas, gratif trunca,
+# CTS trunca, sueldo del mes en curso, HE no compensadas, indemnización
+# por despido arbitrario, etc.) menos descuentos (préstamos, embargos).
+#
+# Reutiliza `engine.calcular_gratificacion` y `engine.calcular_cts` —
+# NO duplica lógica. Sprint 1 según docs/internal/DISEÑO_LIQUIDACIONES_…
+# ══════════════════════════════════════════════════════════════════════
+
+class LiquidacionLaboral(models.Model):
+    """
+    Liquidación final al cese del trabajador.
+
+    Se crea (a) manualmente desde la ficha del empleado o (b) automáticamente
+    vía signal `post_save` en Personal cuando el estado cambia a 'Cesado'.
+
+    Flujo de estados:
+        BORRADOR → CALCULADA → APROBADA → FIRMADA → PAGADA → CERRADA
+    """
+
+    MOTIVO_CESE_CHOICES = [
+        ('RENUNCIA',        'Renuncia voluntaria'),
+        ('DESPIDO',         'Despido (causa justa)'),
+        ('DESPIDO_ARB',     'Despido arbitrario (indemnización)'),
+        ('MUTUO',           'Mutuo disenso'),
+        ('CADUCIDAD',       'Caducidad de contrato'),
+        ('JUBILACION',      'Jubilación'),
+        ('FALLECIMIENTO',   'Fallecimiento'),
+        ('PERIODO_PRUEBA',  'No supera período de prueba'),
+    ]
+
+    ESTADO_CHOICES = [
+        ('BORRADOR',  'Borrador'),
+        ('CALCULADA', 'Calculada'),
+        ('APROBADA',  'Aprobada por RRHH'),
+        ('FIRMADA',   'Firmada por trabajador'),
+        ('PAGADA',    'Pagada'),
+        ('CERRADA',   'Cerrada'),
+    ]
+
+    personal      = models.OneToOneField(
+        Personal,
+        on_delete=models.PROTECT,
+        related_name='liquidacion',
+        verbose_name='Trabajador cesado',
+    )
+    fecha_cese    = models.DateField(verbose_name='Fecha de cese')
+    motivo_cese   = models.CharField(
+        max_length=20,
+        choices=MOTIVO_CESE_CHOICES,
+        default='RENUNCIA',
+        verbose_name='Motivo del cese',
+    )
+    observaciones = models.TextField(blank=True, verbose_name='Observaciones')
+
+    # ── Conceptos calculados (haberes) ───────────────────────────────────
+    vacaciones_truncas = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                             verbose_name='Vacaciones truncas')
+    gratif_trunca      = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                             verbose_name='Gratificación trunca')
+    cts_trunca         = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                             verbose_name='CTS trunca')
+    sueldo_mes_curso   = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                             verbose_name='Sueldo del mes en curso')
+    he_no_compensadas  = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                             verbose_name='Horas extra no compensadas')
+    indemnizacion      = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name='Indemnización por despido arbitrario',
+        help_text='1.5 sueldos × año (máx 12 sueldos) — solo motivo DESPIDO_ARB. Art. 38 DS 003-97-TR.',
+    )
+    otros_pagos        = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                             verbose_name='Otros pagos')
+
+    # ── Descuentos ───────────────────────────────────────────────────────
+    prestamos_pendientes = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                               verbose_name='Préstamos pendientes')
+    adelantos_pendientes = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                               verbose_name='Adelantos pendientes')
+    embargo              = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                               verbose_name='Embargo judicial')
+    otros_descuentos     = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                               verbose_name='Otros descuentos')
+
+    # ── Totales ──────────────────────────────────────────────────────────
+    total_bruto = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                      verbose_name='Total bruto (haberes)')
+    total_neto  = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
+                                      verbose_name='Total neto (bruto − descuentos)')
+
+    # ── Workflow ─────────────────────────────────────────────────────────
+    estado       = models.CharField(
+        max_length=20, choices=ESTADO_CHOICES, default='BORRADOR',
+        verbose_name='Estado', db_index=True,
+    )
+    aprobada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='liquidaciones_aprobadas',
+        verbose_name='Aprobada por',
+    )
+    firmada_en   = models.DateTimeField(null=True, blank=True, verbose_name='Firmada el')
+    pagada_en    = models.DateTimeField(null=True, blank=True, verbose_name='Pagada el')
+
+    # ── Vínculos con boleta y workflow offboarding ───────────────────────
+    registro_nomina = models.OneToOneField(
+        'nominas.RegistroNomina',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='liquidacion_origen',
+        verbose_name='Registro de nómina (boleta unificada)',
+    )
+    instancia_flujo = models.OneToOneField(
+        'workflows.InstanciaFlujo',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='liquidacion_origen',
+        verbose_name='Instancia de flujo offboarding',
+    )
+
+    # ── Audit ────────────────────────────────────────────────────────────
+    creado_en      = models.DateTimeField(auto_now_add=True, db_index=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = 'Liquidación Laboral'
+        verbose_name_plural = 'Liquidaciones Laborales'
+        ordering            = ['-fecha_cese', '-creado_en']
+        indexes = [
+            models.Index(fields=['estado', '-fecha_cese']),
+            models.Index(fields=['motivo_cese', '-fecha_cese']),
+        ]
+
+    def __str__(self):
+        return f'Liquidación {self.personal} — {self.fecha_cese:%d/%m/%Y} ({self.get_estado_display()})'
+
+    # ── Cálculo ──────────────────────────────────────────────────────────
+    def calcular(self, persist=True):
+        """
+        Calcula todos los conceptos truncos reutilizando engine.
+
+        Reusa:
+          - `engine.calcular_gratificacion` con dias_trabajados = meses
+             completos en el semestre actual de gratificación.
+          - `engine.calcular_cts` con dias_trabajados = meses cumplidos
+             en el semestre actual de CTS.
+          - `engine.calcular_renta` indirectamente vía descuentos (no aplica
+             a CTS ni vacaciones — solo a sueldo del mes).
+
+        Calcula además:
+          - Vacaciones truncas = días pendientes + truncos × (sueldo/30).
+          - Sueldo del mes en curso = sueldo/30 × días trabajados del mes.
+          - Indemnización (DS 003-97-TR Art. 38) si motivo = DESPIDO_ARB.
+
+        Suma haberes, resta descuentos, persiste y cambia estado a CALCULADA.
+        """
+        from decimal import ROUND_HALF_UP
+        from .engine import calcular_gratificacion, calcular_cts
+
+        personal   = self.personal
+        fecha_cese = self.fecha_cese
+        sueldo     = Decimal(str(personal.sueldo_base or 0))
+        valor_dia  = (sueldo / Decimal('30')).quantize(Decimal('0.01'), ROUND_HALF_UP)
+
+        # ── 1. Sueldo del mes en curso ────────────────────────────────────
+        # Días del 1 al día del cese, ambos inclusive.
+        dias_mes = fecha_cese.day
+        self.sueldo_mes_curso = (valor_dia * Decimal(dias_mes)).quantize(
+            Decimal('0.01'), ROUND_HALF_UP,
+        )
+
+        # ── 2. Gratificación trunca (reusa engine) ────────────────────────
+        meses_gratif = _meses_semestre_gratif(fecha_cese)
+        if meses_gratif > 0:
+            shim_grat = _LiquidacionShimRegistro(personal, dias_trabajados=meses_gratif)
+            res_grat  = calcular_gratificacion(shim_grat)
+            self.gratif_trunca = Decimal(str(res_grat.get('gratif_bruto', 0))).quantize(
+                Decimal('0.01'), ROUND_HALF_UP,
+            )
+        else:
+            self.gratif_trunca = Decimal('0.00')
+
+        # ── 3. CTS trunca (reusa engine) ──────────────────────────────────
+        meses_cts = _meses_semestre_cts(fecha_cese)
+        if meses_cts > 0:
+            shim_cts = _LiquidacionShimRegistro(personal, dias_trabajados=meses_cts)
+            res_cts  = calcular_cts(shim_cts)
+            self.cts_trunca = Decimal(str(res_cts.get('total_ingresos', 0))).quantize(
+                Decimal('0.01'), ROUND_HALF_UP,
+            )
+        else:
+            self.cts_trunca = Decimal('0.00')
+
+        # ── 4. Vacaciones truncas (pendientes + truncos) ──────────────────
+        dias_vac = Decimal('0')
+        try:
+            from vacaciones.models import SaldoVacacional
+            sv = SaldoVacacional.objects.filter(personal=personal)\
+                .order_by('-periodo_inicio').first()
+            if sv:
+                dias_vac = (
+                    Decimal(str(sv.dias_pendientes or 0))
+                    + Decimal(str(sv.dias_truncos or 0))
+                )
+        except Exception:
+            dias_vac = Decimal('0')
+        self.vacaciones_truncas = (valor_dia * dias_vac).quantize(
+            Decimal('0.01'), ROUND_HALF_UP,
+        )
+
+        # ── 5. Indemnización (Art. 38 DS 003-97-TR) ───────────────────────
+        if self.motivo_cese == 'DESPIDO_ARB':
+            self.indemnizacion = self._calcular_indemnizacion(personal, sueldo, fecha_cese)
+        else:
+            self.indemnizacion = Decimal('0.00')
+
+        # ── 6. Préstamos pendientes (descuento automático) ────────────────
+        try:
+            from prestamos.models import Prestamo
+            saldo = Decimal('0')
+            for p in Prestamo.objects.filter(personal=personal, estado='EN_CURSO'):
+                saldo += Decimal(str(p.saldo_pendiente or 0))
+            # Solo sobrescribimos si no estaba ya seteado a mano.
+            if self.prestamos_pendientes == Decimal('0'):
+                self.prestamos_pendientes = saldo.quantize(Decimal('0.01'), ROUND_HALF_UP)
+        except Exception:
+            pass
+
+        # ── 7. Totales ────────────────────────────────────────────────────
+        self.total_bruto = (
+            self.vacaciones_truncas + self.gratif_trunca + self.cts_trunca
+            + self.sueldo_mes_curso + self.he_no_compensadas
+            + self.indemnizacion + self.otros_pagos
+        ).quantize(Decimal('0.01'), ROUND_HALF_UP)
+
+        total_desc = (
+            self.prestamos_pendientes + self.adelantos_pendientes
+            + self.embargo + self.otros_descuentos
+        ).quantize(Decimal('0.01'), ROUND_HALF_UP)
+
+        self.total_neto = (self.total_bruto - total_desc).quantize(
+            Decimal('0.01'), ROUND_HALF_UP,
+        )
+
+        if self.estado == 'BORRADOR':
+            self.estado = 'CALCULADA'
+
+        if persist:
+            self.save()
+
+        return self
+
+    @staticmethod
+    def _calcular_indemnizacion(personal, sueldo: Decimal, fecha_cese=None) -> Decimal:
+        """
+        Indemnización por despido arbitrario — Art. 38 DS 003-97-TR.
+
+        Fórmula: 1.5 sueldos × año completo de servicios, con tope de
+        12 sueldos (18 meses de remuneración). Fracciones de año se
+        pagan en treintavos por mes y dozavos por día.
+
+        `fecha_cese` se prefiere desde la liquidación (puede no estar en
+        Personal si se calcula antes de marcar el cese formalmente).
+        """
+        from decimal import ROUND_HALF_UP
+
+        fecha_alta = personal.fecha_alta
+        if fecha_cese is None:
+            fecha_cese = personal.fecha_cese
+        if not (fecha_alta and fecha_cese):
+            return Decimal('0.00')
+
+        delta_dias = (fecha_cese - fecha_alta).days
+        if delta_dias <= 0:
+            return Decimal('0.00')
+
+        # Años completos
+        anios = delta_dias // 365
+        dias_restantes = delta_dias % 365
+
+        # 1.5 sueldos por año
+        indem = sueldo * Decimal('1.5') * Decimal(anios)
+        # Treintavos por días restantes (1.5 sueldos / 12 meses / 30 días)
+        indem += (sueldo * Decimal('1.5') / Decimal('360')) * Decimal(dias_restantes)
+
+        # Tope: 12 sueldos
+        tope = sueldo * Decimal('12')
+        if indem > tope:
+            indem = tope
+
+        return indem.quantize(Decimal('0.01'), ROUND_HALF_UP)
+
+
+def _meses_semestre_gratif(fecha_cese):
+    """
+    Meses completos en el semestre de gratificación vigente a fecha_cese.
+    Ley 27735: solo meses íntegros trabajados.
+    Semestre 1: ene–jun (pago julio).  Semestre 2: jul–dic (pago diciembre).
+    """
+    import calendar
+    m = fecha_cese.month
+    inicio = 1 if m <= 6 else 7
+    meses = max(0, m - inicio)
+    ultimo_dia = calendar.monthrange(fecha_cese.year, fecha_cese.month)[1]
+    if fecha_cese.day >= ultimo_dia:
+        meses += 1
+    return min(meses, 6)
+
+
+def _meses_semestre_cts(fecha_cese):
+    """
+    Meses cumplidos en el semestre de CTS vigente a fecha_cese.
+    Período 1: nov–abr (depósito mayo).  Período 2: may–oct (depósito nov).
+    """
+    m = fecha_cese.month
+    if m <= 4:
+        return m + 2          # ene=3, feb=4, mar=5, abr=6
+    elif m <= 10:
+        return m - 4          # may=1, … oct=6
+    else:
+        return m - 10         # nov=1, dic=2
+
+
+class _LiquidacionShimRegistro:
+    """
+    Shim que imita la interfaz de RegistroNomina que necesitan
+    `engine.calcular_gratificacion` y `engine.calcular_cts`.
+
+    Evita persistir un RegistroNomina fantasma solo para cálculos.
+    """
+    def __init__(self, personal, dias_trabajados):
+        self.personal            = personal
+        self.sueldo_base         = Decimal(str(personal.sueldo_base or 0))
+        self.dias_trabajados     = dias_trabajados
+        self.regimen_pension     = getattr(personal, 'regimen_pension', 'AFP')
+        self.afp                 = getattr(personal, 'afp', 'Prima') or 'Prima'
+        self.asignacion_familiar = bool(getattr(personal, 'asignacion_familiar', False))
+        self.periodo             = None   # no hay PeriodoNomina → usa RMV live
+
+
+# ══════════════════════════════════════════════════════════════════════
 # Pool de Propinas (gastronomía) — modelos en módulo dedicado
 # ══════════════════════════════════════════════════════════════════════
 from .models_propinas import *  # noqa: E402,F401,F403

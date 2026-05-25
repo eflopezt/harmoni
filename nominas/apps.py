@@ -9,3 +9,5 @@ class NominasConfig(AppConfig):
     def ready(self):
         # Registrar signal handlers para audit log de conceptos
         from . import signals_audit  # noqa: F401
+        # Signal post_save Personal → genera LiquidacionLaboral automáticamente
+        from . import signals  # noqa: F401
