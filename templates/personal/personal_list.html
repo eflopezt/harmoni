@@ -28,7 +28,8 @@
 .pl-views {
   display: flex; gap: 2px; margin: 14px 0 0;
   border-bottom: 1px solid #E2E8F0;
-  position: sticky; top: 0; z-index: 10;
+  /* Compensar altura del topbar V2 (60px) y mantenerse por debajo (z-index < topbar z:5) */
+  position: sticky; top: 60px; z-index: 4;
   background: var(--hm-canvas, #F4FAF7);
   overflow-x: auto; overflow-y: hidden;
   scrollbar-width: thin;
@@ -144,7 +145,8 @@ tr.row-cesado td { opacity: 0.65; }
   position: fixed; inset: 0;
   background: rgba(13, 43, 39, 0.30);
   backdrop-filter: blur(2px);
-  z-index: 99980;
+  /* Por encima del demo-banner (99999) y al nivel del notif-backdrop (100100) */
+  z-index: 100080;
   opacity: 0; pointer-events: none;
   transition: opacity 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
 }
@@ -153,7 +155,9 @@ tr.row-cesado td { opacity: 0.65; }
 .pl-drawer {
   position: fixed; top: 0; right: 0; bottom: 0;
   width: 540px; max-width: 100vw;
-  background: #fff; z-index: 99990;
+  background: #fff;
+  /* Por encima del backdrop y del demo-banner. Notif-drawer queda en 100110 (más alto). */
+  z-index: 100090;
   box-shadow: 0 24px 60px -12px rgba(13, 43, 39, 0.25);
   transform: translateX(100%);
   transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
@@ -433,8 +437,8 @@ tr.row-cesado td { opacity: 0.65; }
 }
 .pl-empty i { display: block; font-size: 2rem; margin-bottom: 10px; opacity: 0.4; }
 
-/* Mobile responsive */
-@media (max-width: 600px) {
+/* Mobile responsive — 540px fijo no cabe bajo 768px (tablet portrait), pasa a fullscreen */
+@media (max-width: 768px) {
   .pl-drawer { width: 100vw; }
   .pl-panel-dl { grid-template-columns: 1fr; }
   .pl-ia-metrics { grid-template-columns: 1fr 1fr; }
@@ -625,7 +629,8 @@ tr.pl-row.is-selected td { color: #064E3B; }
   position: fixed; inset: 0;
   background: rgba(13, 43, 39, 0.45);
   backdrop-filter: blur(2px);
-  z-index: 99995;
+  /* Por encima del drawer (100090) — el modal de cese aparece sobre el drawer */
+  z-index: 100095;
   animation: plFadeIn 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 @keyframes plFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -635,7 +640,7 @@ tr.pl-row.is-selected td { color: #064E3B; }
   background: #fff; border-radius: 14px;
   width: 92%; max-width: 440px;
   padding: 24px 26px 18px;
-  z-index: 99996;
+  z-index: 100096;
   box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.4);
   animation: plPopIn 0.2s cubic-bezier(0.2, 0.7, 0.3, 1);
   font-family: 'Inter', system-ui, sans-serif;
@@ -1581,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             {% endif %}
                         </td>
                         {% if user.is_superuser %}
-                        <td class="d-none d-xl-table-cell text-end">
+                        <td class="d-none d-xl-table-cell text-end mono">
                             <small class="text-muted">
                                 {% if p.sueldo_base %}S/ {{ p.sueldo_base|floatformat:0 }}{% else %}—{% endif %}
                             </small>
