@@ -78,7 +78,7 @@
         <div class="report-card">
             <div class="report-icon" style="background:#dbeafe;color:#2563eb"><i class="fas fa-file-export"></i></div>
             <div class="report-title">Carga S10</div>
-            <div class="report-desc">Excel para importar en S10: horas extras (25%, 35%, 100%), faltas, DM, LSG, vacaciones. Solo personal RCO.</div>
+            <div class="report-desc">Excel para importar en S10: horas extras (25%, 35%, 100%), faltas, DM, LSG, vacaciones. Solo personal Operativo.</div>
             <a href="#" onclick="descargar('{% url 'asistencia_exportar_s10' %}')" class="btn btn-sm btn-primary"><i class="fas fa-download me-1"></i>Descargar Excel</a>
         </div>
     </div>
@@ -98,7 +98,7 @@
         <div class="report-card">
             <div class="report-icon" style="background:#fee2e2;color:#dc2626"><i class="fas fa-file-pdf"></i></div>
             <div class="report-title">Reportes PDF Individuales</div>
-            <div class="report-desc">Genera PDF de asistencia por empleado (STAFF o RCO) con calendario semanal, horas, papeletas y firma.</div>
+            <div class="report-desc">Genera PDF de asistencia por empleado (STAFF u Operativo) con calendario semanal, horas, papeletas y firma.</div>
             <a href="#" onclick="irA('{% url 'asistencia_reportes' %}')" class="btn btn-sm btn-danger"><i class="fas fa-arrow-right me-1"></i>Ir a Reportes PDF</a>
         </div>
     </div>
@@ -123,12 +123,12 @@
         </div>
     </div>
 
-    <!-- Reporte Horas RCO -->
+    <!-- Reporte Horas Operativos -->
     <div class="col-12 col-md-6 col-lg-4">
         <div class="report-card">
             <div class="report-icon" style="background:#fff7ed;color:#ea580c"><i class="fas fa-clock"></i></div>
-            <div class="report-title">Horas RCO</div>
-            <div class="report-desc">Resumen de horas marcadas, normales y HE (25%, 35%, 100%) por trabajador RCO. DNI como texto.</div>
+            <div class="report-title">Horas Operativos</div>
+            <div class="report-desc">Resumen de horas marcadas, normales y HE (25%, 35%, 100%) por trabajador Operativo. DNI como texto.</div>
             <a href="#" onclick="descargar('{% url 'asistencia_exportar_horas_rco' %}')" class="btn btn-sm btn-warning text-dark"><i class="fas fa-download me-1"></i>Descargar Excel</a>
         </div>
     </div>

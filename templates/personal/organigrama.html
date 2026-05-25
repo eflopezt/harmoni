@@ -486,8 +486,10 @@ function buildNodeContent(d) {
         html += '<div style="font-size:' + detailFz + ';color:#94a3b8;margin-top:1px">&#128241; ' + esc(nd.celular) + '</div>';
     }
     if (fieldPrefs.grupo && nd.grupo) {
-        var gpColor = nd.grupo.toUpperCase() === 'RCO' ? '#ea580c' : '#3b82f6';
-        html += '<div style="margin-top:3px"><span style="font-size:.55rem;font-weight:700;background:' + gpColor + ';color:#fff;border-radius:3px;padding:1px 4px">' + esc(nd.grupo) + '</span></div>';
+        var gpUpper = nd.grupo.toUpperCase();
+        var gpColor = gpUpper === 'RCO' ? '#ea580c' : '#3b82f6';
+        var gpLabel = gpUpper === 'RCO' ? 'OPERATIVO' : nd.grupo;
+        html += '<div style="margin-top:3px"><span style="font-size:.55rem;font-weight:700;background:' + gpColor + ';color:#fff;border-radius:3px;padding:1px 4px">' + esc(gpLabel) + '</span></div>';
     }
 
     html += '</div></div>';

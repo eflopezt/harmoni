@@ -222,11 +222,11 @@
               {% endif %}
             </div>
           </div>
-          <!-- RCO -->
+          <!-- OPERATIVO -->
           <div class="col-md-6">
             <div class="group-panel group-panel--rco">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="fw-bold text-info"><i class="fas fa-hard-hat me-1"></i>RCO</span>
+                <span class="fw-bold text-info"><i class="fas fa-hard-hat me-1"></i>OPERATIVO</span>
                 <span class="badge bg-info text-white" style="font-size:.68rem">HE pagadas</span>
               </div>
               <div class="row text-center g-1">
@@ -343,7 +343,7 @@
 
 </div>
 
-<!-- ── Row 5: Top faltas por área + STAFF vs RCO ─────────── -->
+<!-- ── Row 5: Top faltas por área + STAFF vs OPERATIVO ─────────── -->
 <div class="row g-3 mb-4">
 
   <!-- Top 5 áreas con más faltas -->
@@ -381,7 +381,7 @@
     </div>
   </div>
 
-  <!-- Tasa de asistencia STAFF vs RCO -->
+  <!-- Tasa de asistencia STAFF vs OPERATIVO -->
   <div class="col-md-6">
     <div class="dash-card h-100">
       <div class="dash-card-header">
@@ -398,7 +398,7 @@
             </div>
             <div class="badge-label {% if grp.grupo == 'STAFF' %}text-teal{% else %}text-info{% endif %}"
                  style="color:{% if grp.grupo == 'STAFF' %}var(--teal){% else %}#0ea5e9{% endif %}">
-              {{ grp.grupo }}
+              {% if grp.grupo == 'RCO' %}OPERATIVO{% else %}{{ grp.grupo }}{% endif %}
             </div>
             <div class="badge-sub">
               <i class="fas fa-user-check me-1"></i>{{ grp.presentes }} presentes
@@ -747,9 +747,9 @@ if (heSemanalData.length > 0) {
   }
 }
 
-// ── Barras: comparativa tasa de asistencia STAFF vs RCO ────
+// ── Barras: comparativa tasa de asistencia STAFF vs OPERATIVO ────
 if (grupoData.length > 0) {
-  const grupoLabels = grupoData.map(g => g.grupo);
+  const grupoLabels = grupoData.map(g => g.grupo === 'RCO' ? 'OPERATIVO' : g.grupo);
   const grupoTasas  = grupoData.map(g => g.tasa);
   const grupoColors = grupoData.map(g => g.grupo === 'STAFF' ? TEAL : BLUE);
   const grupoBg     = grupoData.map(g => g.grupo === 'STAFF' ? TEAL_LIGHT : BLUE_LIGHT);

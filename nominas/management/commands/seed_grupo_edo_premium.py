@@ -1,13 +1,13 @@
 """
 Seed: 6 empresas/locales adicionales para simular Grupo Sabores premium.
 
-Crea RUCs gastronómicos de fantasía estilo Acurio Group:
-  - Restaurante Insignia (fine dining)
-  - Bistró Costero (mar y leña)
-  - Cocina Nikkei (fusión peruana-japonesa)
-  - Cafetería Boutique (desayunos)
-  - Wine Bar Anidado (cava)
-  - Cocina de Producción (catering / dark kitchen)
+Crea RUCs gastronómicos de fantasía — grupo de restaurantes peruanos diversos:
+  - Sabores del Sur Premium (matriz / fine dining criollo)
+  - Sabores del Sur Marino (cevichería)
+  - Sabores del Sur Express (delivery / dark kitchen)
+  - Sabores del Sur Asado (parrilla)
+  - Sabores del Sur Café (boutique de desayunos)
+  - Sabores del Sur Central (cocina de producción / catering)
 
 Asigna trabajadores de Personal entre las nuevas empresas (rota).
 """
@@ -21,48 +21,48 @@ from personal.models import Personal
 LOCALES_EDO = [
     {
         'ruc':              '20100000111',
-        'razon_social':     'Inversiones Gastronómicas del Sur S.A.C.',
-        'nombre_comercial': 'Restaurante Insignia',
-        'subdominio':       'insignia',
+        'razon_social':     'Sabores del Sur Premium S.A.C.',
+        'nombre_comercial': 'Sabores del Sur Premium',
+        'subdominio':       'premium',
         'direccion':        'Av. La Mar 458, Miraflores',
-        'email_rrhh':       'rrhh.insignia@saboresdelsur.com.pe',
+        'email_rrhh':       'rrhh.premium@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000222',
-        'razon_social':     'Operadora Costera S.A.C.',
-        'nombre_comercial': 'Bistró Costero',
-        'subdominio':       'costero',
+        'razon_social':     'Sabores del Sur Marino S.A.C.',
+        'nombre_comercial': 'Sabores del Sur Marino',
+        'subdominio':       'marino',
         'direccion':        'Malecón Cisneros 245, Miraflores',
-        'email_rrhh':       'rrhh.costero@saboresdelsur.com.pe',
+        'email_rrhh':       'rrhh.marino@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000333',
-        'razon_social':     'Cocina Nikkei Premium S.A.C.',
-        'nombre_comercial': 'Nikkei House',
-        'subdominio':       'nikkei',
+        'razon_social':     'Sabores del Sur Asado S.A.C.',
+        'nombre_comercial': 'Sabores del Sur Asado',
+        'subdominio':       'asado',
         'direccion':        'Calle Berlín 384, Miraflores',
-        'email_rrhh':       'rrhh.nikkei@saboresdelsur.com.pe',
+        'email_rrhh':       'rrhh.asado@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000444',
-        'razon_social':     'Café Boutique del Olivar S.A.C.',
-        'nombre_comercial': 'Café del Olivar',
-        'subdominio':       'olivar',
+        'razon_social':     'Sabores del Sur Café S.A.C.',
+        'nombre_comercial': 'Sabores del Sur Café',
+        'subdominio':       'cafe',
         'direccion':        'Av. Pardo y Aliaga 695, San Isidro',
         'email_rrhh':       'rrhh.cafe@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000555',
-        'razon_social':     'Vinos y Sabores del Pacífico S.A.C.',
-        'nombre_comercial': 'Anidado Wine Bar',
-        'subdominio':       'anidado',
+        'razon_social':     'Sabores del Sur Express S.A.C.',
+        'nombre_comercial': 'Sabores del Sur Express',
+        'subdominio':       'express',
         'direccion':        'Av. La Encalada 1257, Surco',
-        'email_rrhh':       'rrhh.anidado@saboresdelsur.com.pe',
+        'email_rrhh':       'rrhh.express@saboresdelsur.com.pe',
     },
     {
         'ruc':              '20100000666',
-        'razon_social':     'Cocina Central de Producción S.A.C.',
-        'nombre_comercial': 'Cocina Central',
+        'razon_social':     'Sabores del Sur Central S.A.C.',
+        'nombre_comercial': 'Sabores del Sur Central',
         'subdominio':       'central',
         'direccion':        'Calle Los Tornos 198, Ate',
         'email_rrhh':       'logistica@saboresdelsur.com.pe',

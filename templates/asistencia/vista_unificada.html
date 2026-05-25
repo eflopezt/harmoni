@@ -39,7 +39,7 @@
                 </a>
                 <a href="?grupo=RCO&mes={{ mes_sel }}&anio={{ anio_sel }}{% if buscar %}&buscar={{ buscar }}{% endif %}"
                    class="btn btn-sm {% if grupo_sel == 'RCO' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-                    <i class="fas fa-hard-hat me-1"></i>RCO
+                    <i class="fas fa-hard-hat me-1"></i>OPERATIVO
                 </a>
             </div>
 
@@ -111,7 +111,7 @@
     <div class="dash-card-header">
         <span>
             <i class="fas fa-list me-2 text-primary"></i>
-            {% if grupo_sel == 'TODOS' %}STAFF + RCO{% else %}{{ grupo_sel }}{% endif %}
+            {% if grupo_sel == 'TODOS' %}STAFF + OPERATIVO{% elif grupo_sel == 'RCO' %}OPERATIVO{% else %}{{ grupo_sel }}{% endif %}
             — {{ mes_ini|date:"d/m" }} al {{ mes_fin|date:"d/m/Y" }}
             <span class="text-muted ms-2" style="font-size:.82rem">{{ totales.personas }} personas</span>
         </span>

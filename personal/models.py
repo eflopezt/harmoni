@@ -482,9 +482,12 @@ class Personal(models.Model):
     )
 
     # --- Clasificación de tareo ---
+    # Nota: el valor interno 'RCO' se conserva por compatibilidad de datos.
+    # En UI el label visible es "Operativo" (aplica a gastronomía/servicios
+    # tanto como a construcción civil).
     GRUPO_TAREO_CHOICES = [
-        ('STAFF', 'RC Staff (HE compensatorias — banco de horas)'),
-        ('RCO', 'RC Operativos (HE pagadas 25/35/100%)'),
+        ('STAFF', 'Staff (HE compensatorias — banco de horas)'),
+        ('RCO', 'Operativo (HE pagadas 25/35/100%)'),
         ('OTRO', 'Otro / No aplica'),
     ]
     CONDICION_CHOICES = [
@@ -497,7 +500,7 @@ class Personal(models.Model):
         choices=GRUPO_TAREO_CHOICES,
         default='STAFF',
         verbose_name="Grupo Tareo",
-        help_text="Determina cómo se tratan las HE: banco (STAFF) o pago (RCO)"
+        help_text="Determina cómo se tratan las HE: banco (Staff) o pago (Operativo)"
     )
     condicion = models.CharField(
         max_length=10,

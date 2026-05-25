@@ -215,7 +215,7 @@
                 <span style="display:inline-block;width:10px;height:10px;background:#0f766e;border-radius:2px;margin-right:.3rem"></span>STAFF
             </span>
             <span>
-                <span style="display:inline-block;width:10px;height:10px;background:#5eead4;border-radius:2px;margin-right:.3rem"></span>RCO
+                <span style="display:inline-block;width:10px;height:10px;background:#5eead4;border-radius:2px;margin-right:.3rem"></span>OPERATIVO
             </span>
         </div>
     </div>
@@ -228,7 +228,7 @@
                 <div class="bar-staff" style="width:{% widthratio a.staff total 100 %}%" title="STAFF: {{ a.staff }}"></div>
                 {% endif %}
                 {% if a.rco %}
-                <div class="bar-rco" style="width:{% widthratio a.rco total 100 %}%" title="RCO: {{ a.rco }}"></div>
+                <div class="bar-rco" style="width:{% widthratio a.rco total 100 %}%" title="Operativo: {{ a.rco }}"></div>
                 {% endif %}
             </div>
             <div class="count">{{ a.total }}</div>
@@ -287,7 +287,7 @@
                         borderWidth: 1.5,
                     },
                     {
-                        label: 'RCO',
+                        label: 'OPERATIVO',
                         data: monthRco,
                         borderColor: '#3b82f6',
                         backgroundColor: 'transparent',

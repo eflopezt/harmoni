@@ -411,11 +411,11 @@
         </div>
     </div>
 
-    <!-- RCO -->
+    <!-- OPERATIVO -->
     <div class="kpi-card kpi-rco">
         <div class="d-flex justify-content-between align-items-start">
             <div>
-                <div class="kpi-label">RCO</div>
+                <div class="kpi-label">OPERATIVO</div>
                 <div class="kpi-value">{{ empleados_rco }}</div>
                 <div class="kpi-sub">
                     {% if total_empleados > 0 %}
@@ -615,7 +615,7 @@
             <div style="position:relative;height:150px"><canvas id="chartTipo"></canvas></div>
             <div class="d-flex justify-content-center gap-3 mt-2" style="font-size:.72rem">
                 <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0f766e;margin-right:.25rem"></span>STAFF: {{ empleados_staff }}</span>
-                <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5eead4;margin-right:.25rem"></span>RCO: {{ empleados_rco }}</span>
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5eead4;margin-right:.25rem"></span>OPERATIVO: {{ empleados_rco }}</span>
             </div>
         </div>
     </div>
@@ -880,7 +880,7 @@
         new Chart(document.getElementById('chartTipo'), {
             type: 'doughnut',
             data: {
-                labels: ['STAFF', 'RCO', 'Otro'],
+                labels: ['STAFF', 'OPERATIVO', 'Otro'],
                 datasets: [{
                     data: [staffCount, rcoCount, otroCount > 0 ? otroCount : null],
                     backgroundColor: ['#0f766ecc', '#5eead4cc', '#f59e0bcc'],
@@ -988,7 +988,7 @@
                 pointBackgroundColor: '#0f766e',
             });
             hcDatasets.push({
-                label: 'RCO',
+                label: 'OPERATIVO',
                 data: trendRco,
                 borderColor: '#3b82f6',
                 backgroundColor: 'transparent',

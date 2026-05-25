@@ -1,6 +1,6 @@
 {% extends "base_v2.html" %}
 
-{% block title %}RCO — Horas Extra {{ mes_nombre }} {{ anio_sel }}{% endblock %}
+{% block title %}OPERATIVO — Horas Extra {{ mes_nombre }} {{ anio_sel }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -33,7 +33,7 @@
         <div>
             <h2 class="mb-1 fw-bold">
                 <i class="fas fa-hard-hat me-2 opacity-75"></i>
-                RCO — Horas Extra
+                OPERATIVO — Horas Extra
                 <span class="ms-2 badge bg-white text-dark fw-semibold" style="font-size:.75rem">
                     {{ mes_nombre }} {{ anio_sel }}
                 </span>
@@ -102,7 +102,7 @@
                 <div>
                     <div class="kpi-label">Personas</div>
                     <div class="kpi-value mt-1">{{ kpi.personas|default:"0" }}</div>
-                    <div class="small mt-1 opacity-75">RCO en el período</div>
+                    <div class="small mt-1 opacity-75">Operativos en el período</div>
                 </div>
                 <i class="fas fa-users kpi-icon"></i>
             </div>
@@ -163,7 +163,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body text-center py-5 text-muted">
         <i class="fas fa-hard-hat fs-1 d-block mb-3 opacity-25"></i>
-        <h5>Sin registros RCO para {{ mes_nombre }} {{ anio_sel }}</h5>
+        <h5>Sin registros Operativos para {{ mes_nombre }} {{ anio_sel }}</h5>
         <p class="small mb-4">No hay datos de horas extra en el período
             <strong>{{ mes_ini|date:"d/m/Y" }} – {{ mes_fin|date:"d/m/Y" }}</strong>.</p>
         <a href="{% url 'asistencia_importar_synkro' %}" class="btn btn-primary btn-sm">

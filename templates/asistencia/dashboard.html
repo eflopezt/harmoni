@@ -466,7 +466,7 @@
     </a>
     <a href="{% url 'asistencia_rco' %}?mes={{ mes_sel }}&anio={{ anio_sel }}"
        class="ats-view-tab">
-      <span class="ats-view-hex"></span>RCO
+      <span class="ats-view-hex"></span>OPERATIVO
       {% if stats.rco_personas %}<span class="ats-view-pill">{{ stats.rco_personas }}</span>{% endif %}
     </a>
     <a href="{% url 'asistencia_papeletas' %}"
@@ -547,7 +547,7 @@
     <div class="ats-kpi-icon ats-kpi-icon--info"><i class="fas fa-hard-hat"></i></div>
     <div class="ats-kpi-body">
       <span class="ats-kpi-val">{{ stats.total_rco_bd }}</span>
-      <span class="ats-kpi-lbl">Personal RCO</span>
+      <span class="ats-kpi-lbl">Personal Operativo</span>
       {% if stats.rco_personas %}
         <span class="ats-kpi-hint ok">{{ stats.rco_personas }} en el período</span>
       {% else %}
@@ -772,7 +772,7 @@
       <i class="fas fa-table"></i>STAFF mensual
     </a>
     <a href="{% url 'asistencia_rco' %}" class="ats-link ats-link--info">
-      <i class="fas fa-hard-hat"></i>Detalle RCO
+      <i class="fas fa-hard-hat"></i>Detalle Operativos
     </a>
     <a href="{% url 'asistencia_banco_horas' %}?anio={{ anio_sel }}&mes={{ mes_sel }}" class="ats-link ats-link--brand">
       <i class="fas fa-piggy-bank"></i>Banco de horas

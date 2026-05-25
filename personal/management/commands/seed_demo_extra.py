@@ -42,11 +42,11 @@ from django.utils import timezone
 # ─────────────────────────────────────────────────────────────────────────────
 
 POSTULANTES = {
-    'Sushi Chef Senior': [
-        ('Hiroshi Sato Kondo',        'hiroshi.sato@email.com',  '+51 987654321', 8),
-        ('Akira Yamamoto Pérez',      'a.yamamoto@email.com',    '+51 987111222', 10),
-        ('Ken Tanabe Quispe',         'ken.tanabe@email.com',    '+51 987333444', 6),
-        ('Ricardo Aoyama Flores',     'r.aoyama@email.com',      '+51 987555666', 7),
+    'Chef Ejecutivo Senior': [
+        ('Carlos Mendoza Aguirre',    'cmendoza@email.com',      '+51 987654321', 8),
+        ('Andrés Salas Pérez',        'a.salas@email.com',       '+51 987111222', 10),
+        ('Manuel Vargas Quispe',      'm.vargas@email.com',      '+51 987333444', 6),
+        ('Ricardo Loayza Flores',     'r.loayza@email.com',      '+51 987555666', 7),
     ],
     'Mozo - Salón Miraflores': [
         ('Carlos Vargas Rojas',       'cvargas@email.com',       '+51 998111222', 2),
@@ -77,8 +77,8 @@ POSTULANTES = {
 # Estado de cada vacante. Usamos el código ESTADO_CHOICES del modelo.
 VACANTES = [
     # (titulo, estado, prioridad, salario_min, salario_max, descripcion_corta)
-    ('Sushi Chef Senior',          'PUBLICADA',  'ALTA',     3500, 4500,
-        'Liderar la barra de sushi en sede Miraflores. Experiencia mínima 5 años en cocina japonesa.'),
+    ('Chef Ejecutivo Senior',      'PUBLICADA',  'ALTA',     3500, 4500,
+        'Liderar la cocina en sede Miraflores. Experiencia mínima 5 años en alta cocina peruana.'),
     ('Mozo - Salón Miraflores',    'EN_PROCESO', 'MEDIA',    1300, 1600,
         'Atención de salón en sede Miraflores. Turno tarde-noche.'),
     ('Bartender',                  'PUBLICADA',  'MEDIA',    1800, 2200,
@@ -335,7 +335,7 @@ class Command(BaseCommand):
                 area = self._get_area_by_name_contains('Salón') or self._get_area_by_name_contains('Salon')
             elif 'Bartender' in titulo or 'Barra' in titulo:
                 area = self._get_area_by_name_contains('Barra')
-            elif 'Sushi' in titulo or 'Cocina' in titulo or 'Ayudante de Cocina' in titulo:
+            elif 'Chef' in titulo or 'Cocina' in titulo or 'Ayudante de Cocina' in titulo:
                 area = self._get_area_by_name_contains('Cocina')
             elif 'Cajero' in titulo:
                 area = self._get_area_by_name_contains('Caja')

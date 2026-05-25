@@ -117,7 +117,7 @@
             <td class="text-center">
               <span class="badge bg-info text-dark">{{ area.total_subareas }}</span>
             </td>
-            {# Headcount con mini-breakdown STAFF/RCO #}
+            {# Headcount con mini-breakdown STAFF/OPERATIVO #}
             <td class="text-center">
               {% if area.total_personal > 0 %}
               <div class="fw-bold">{{ area.total_personal }}</div>
@@ -126,7 +126,7 @@
                 <span class="badge bg-primary" style="font-size:.65rem" title="STAFF">S {{ area.total_staff }}</span>
                 {% endif %}
                 {% if area.total_rco > 0 %}
-                <span class="badge bg-warning text-dark" style="font-size:.65rem" title="RCO">R {{ area.total_rco }}</span>
+                <span class="badge bg-warning text-dark" style="font-size:.65rem" title="Operativo">O {{ area.total_rco }}</span>
                 {% endif %}
               </div>
               {% else %}

@@ -79,7 +79,7 @@
     <div class="card text-center border-0 shadow-sm h-100">
       <div class="card-body py-3">
         <div class="fs-2 fw-bold text-warning">{{ total_rco }}</div>
-        <div class="text-muted small">RCO</div>
+        <div class="text-muted small">Operativo</div>
       </div>
     </div>
   </div>
@@ -185,7 +185,7 @@
               {% if emp.grupo_tareo == 'STAFF' %}
               <span class="badge bg-info text-dark">STAFF</span>
               {% elif emp.grupo_tareo == 'RCO' %}
-              <span class="badge bg-warning text-dark">RCO</span>
+              <span class="badge bg-warning text-dark">OPERATIVO</span>
               {% else %}
               <span class="badge bg-secondary">{{ emp.grupo_tareo|default:"—" }}</span>
               {% endif %}

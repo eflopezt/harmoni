@@ -42,10 +42,10 @@ class TestSeedGrupoEdo:
         empresas = Empresa.objects.filter(activa=True)
         # Al menos las 6 nuevas
         assert empresas.count() >= 6
-        # Y nombres específicos
-        assert empresas.filter(nombre_comercial='Restaurante Insignia').exists()
-        assert empresas.filter(nombre_comercial='Bistró Costero').exists()
-        assert empresas.filter(nombre_comercial='Nikkei House').exists()
+        # Y nombres específicos (diversificados — no solo japonés)
+        assert empresas.filter(nombre_comercial='Sabores del Sur Premium').exists()
+        assert empresas.filter(nombre_comercial='Sabores del Sur Marino').exists()
+        assert empresas.filter(nombre_comercial='Sabores del Sur Asado').exists()
 
     def test_seed_idempotente(self, db):
         call_command('seed_grupo_edo_premium')

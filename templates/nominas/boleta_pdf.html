@@ -203,7 +203,7 @@
         {% if personal.grupo_tareo == 'STAFF' %}
           <span class="badge-staff">STAFF</span>
         {% elif personal.grupo_tareo == 'RCO' %}
-          <span class="badge-rco">RCO</span>
+          <span class="badge-rco">OPERATIVO</span>
         {% else %}
           {{ registro.grupo|default:personal.grupo_tareo }}
         {% endif %}

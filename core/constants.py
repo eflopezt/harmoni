@@ -60,7 +60,9 @@ GRUPO_OTRO = "OTRO"
 
 GRUPO_CHOICES = [
     (GRUPO_STAFF, "Staff"),
-    (GRUPO_RCO, "RCO - Régimen Construcción"),
+    # Valor interno 'RCO' preservado por compat datos; label visible "Operativo"
+    # cubre tanto gastronomía/servicios como construcción civil.
+    (GRUPO_RCO, "Operativo (Recibo de Honorarios)"),
     (GRUPO_OTRO, "Otro"),
 ]
 

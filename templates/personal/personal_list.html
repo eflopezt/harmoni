@@ -1380,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </a>
     <a href="{% url 'personal_list' %}?estado=Activo&grupo_tareo=RCO"
        class="pl-view-tab {% if grupo_tareo == 'RCO' %}is-active{% endif %}">
-      <span class="pl-view-hex"></span>RCO
+      <span class="pl-view-hex"></span>OPERATIVO
       <span class="pl-view-pill">{{ total_rco }}</span>
     </a>
     <a href="{% url 'personal_list' %}?estado=Cesado"
@@ -1398,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="pl-toolbar">
   {% if estado or grupo_tareo or area_id or buscar %}
     {% if estado %}<span class="pl-filter-chip">Estado: {{ estado }}<a href="?{% if grupo_tareo %}grupo_tareo={{ grupo_tareo }}&{% endif %}{% if area_id %}area={{ area_id }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
-    {% if grupo_tareo %}<span class="pl-filter-chip">Grupo: {{ grupo_tareo }}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if area_id %}area={{ area_id }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
+    {% if grupo_tareo %}<span class="pl-filter-chip">Grupo: {% if grupo_tareo == 'RCO' %}OPERATIVO{% else %}{{ grupo_tareo }}{% endif %}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if area_id %}area={{ area_id }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
     {% if area_id %}<span class="pl-filter-chip">Área #{{ area_id }}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if grupo_tareo %}grupo_tareo={{ grupo_tareo }}&{% endif %}{% if buscar %}buscar={{ buscar }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
     {% if buscar %}<span class="pl-filter-chip"><i class="fas fa-search" style="font-size:.65rem;"></i> {{ buscar }}<a href="?{% if estado %}estado={{ estado }}&{% endif %}{% if grupo_tareo %}grupo_tareo={{ grupo_tareo }}&{% endif %}{% if area_id %}area={{ area_id }}{% endif %}"><i class="fas fa-times-circle"></i></a></span>{% endif %}
     <a href="{% url 'personal_list' %}" style="font-size:.72rem;color:#64748b;text-decoration:none;font-weight:500;">
@@ -1462,9 +1462,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="col-12 col-sm-6 col-md-2">
                     <select name="grupo_tareo" class="form-select form-select-sm">
-                        <option value="">STAFF y RCO</option>
+                        <option value="">STAFF y OPERATIVO</option>
                         <option value="STAFF" {% if grupo_tareo == 'STAFF' %}selected{% endif %}>Solo STAFF</option>
-                        <option value="RCO"   {% if grupo_tareo == 'RCO' %}selected{% endif %}>Solo RCO</option>
+                        <option value="RCO"   {% if grupo_tareo == 'RCO' %}selected{% endif %}>Solo OPERATIVO</option>
                     </select>
                 </div>
                 <div class="col-12 col-sm-6 col-md-3">
@@ -1563,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             {% if p.grupo_tareo == 'STAFF' %}
                                 <span class="badge bg-primary" style="font-size:.68rem;">STAFF</span>
                             {% elif p.grupo_tareo == 'RCO' %}
-                                <span class="badge bg-info text-dark" style="font-size:.68rem;">RCO</span>
+                                <span class="badge bg-info text-dark" style="font-size:.68rem;">OPERATIVO</span>
                             {% else %}
                                 <span class="text-muted" style="font-size:.78rem;">{{ p.grupo_tareo|default:"—" }}</span>
                             {% endif %}

@@ -34,7 +34,7 @@ class Command(BaseCommand):
         from empresas.models import Empresa
 
         empresa = Empresa.objects.filter(
-            razon_social__icontains='Sabores del Sur Sushi',
+            razon_social__icontains='Sabores del Sur',
         ).first() or Empresa.objects.first()
         if not empresa:
             self.stdout.write(self.style.ERROR(

@@ -1,5 +1,5 @@
 """
-Seed de demo gastronómico — Cadena de sushi bars peruana (perfilado para Grupo Sabores).
+Seed de demo gastronómico — Cadena de restaurantes peruanos (perfilado para Grupo Sabores).
 
 Pensado para correr DESPUÉS de `seed_demo_presentacion` + `seed_demo_completar`,
 en el ciclo nocturno del reset_demo.sh del VPS. Suma sobre lo que ya existe — NO
@@ -9,7 +9,7 @@ Qué crea (idempotente — la 2da corrida no duplica):
   1. 3 empresas multi-RUC ("Sabores del Sur SAC", "Sabores del Sur Premium SAC", "Sabores del Sur Express SAC")
      - Si la empresa demo principal ya existe, la actualiza a "Sabores del Sur SAC"
   2. Áreas + SubÁreas típicas de restaurante (Cocina, Salón, Barra, Caja, Limpieza, Admin)
-  3. Cargos normalizados (Sushi Chef, Mozo, Bartender, Cajero, etc.)
+  3. Cargos normalizados (Chef Ejecutivo, Mozo, Bartender, Cajero, etc.)
   4. ~50 trabajadores nuevos (DNI 73000001 en adelante, sin chocar con seeds previos)
      - Nombres peruanos realistas, sueldos coherentes con mercado gastronomía Perú
      - AFP/ONP, asignación familiar, fechas de ingreso distribuidas
@@ -63,7 +63,7 @@ APELLIDOS = [
 # Catálogo de cargos por área. Tupla: (cargo, nivel_cargo, sueldo_min, sueldo_max, es_confianza)
 CARGOS_POR_AREA = {
     'COC': [
-        ('Sushi Chef',           3, 3500, 4000, False),
+        ('Chef Ejecutivo',       3, 3500, 4000, False),
         ('Cocinero Senior',      4, 2500, 3200, False),
         ('Cocinero',             5, 1600, 2000, False),
         ('Cocinero Junior',      6, 1200, 1400, False),
@@ -94,7 +94,7 @@ CARGOS_POR_AREA = {
 
 # SubÁreas por área. Mapeo nombre del área → lista de subáreas + código de área
 AREAS_RESTAURANTE = [
-    ('Cocina',          'COC', ['Sushi Bar', 'Cocina Caliente', 'Cocina Fría']),
+    ('Cocina',          'COC', ['Cocina Especialidad', 'Cocina Caliente', 'Cocina Fría']),
     ('Salón',           'SAL', ['Salón Principal', 'Terraza']),
     ('Barra',           'BAR', ['Barra']),
     ('Caja',            'CAJ', ['Caja']),
@@ -112,7 +112,7 @@ DISTRIBUCION_NUEVOS = [
     ('COC', 'Cocinero',               6),
     ('COC', 'Cocinero Junior',        4),
     ('COC', 'Cocinero Senior',        3),
-    ('COC', 'Sushi Chef',             2),
+    ('COC', 'Chef Ejecutivo',         2),
     ('COC', 'Ayudante de Cocina',     4),
     ('BAR', 'Bartender',              2),
     ('BAR', 'Ayudante de Barra',      1),
@@ -128,7 +128,7 @@ EMPRESAS_EDO = [
     {
         'ruc': '20100100100',
         'razon_social': 'Sabores del Sur SAC',
-        'nombre_comercial': 'Sabores del Sur',
+        'nombre_comercial': 'Sabores del Sur (Criollo)',
         'subdominio': 'demo',
         'es_principal': True,
         'direccion': 'Av. José Pardo 813, Miraflores',
@@ -137,15 +137,15 @@ EMPRESAS_EDO = [
         'email_rrhh': 'rrhh@saboresdelsur.pe',
         'telefono': '(01) 446-5555',
         'actividad_economica': '5610 - Restaurantes',
-        'representante_legal': 'Hiroshi Tanaka Sato',
+        'representante_legal': 'Manuel Salazar Aguirre',
         'cargo_representante': 'Gerente General',
         'nro_doc_representante': '09876543',
         'porcentaje_personal': 40,  # % de los 50 nuevos
     },
     {
         'ruc': '20100100200',
-        'razon_social': 'Sabores del Sur Premium SAC',
-        'nombre_comercial': 'Sabores del Sur Premium Miraflores',
+        'razon_social': 'Sabores del Sur Marino SAC',
+        'nombre_comercial': 'Sabores del Sur Marino (Cevichería)',
         'subdominio': None,
         'es_principal': False,
         'direccion': 'Av. La Encalada 1257, Surco',
@@ -154,7 +154,7 @@ EMPRESAS_EDO = [
         'email_rrhh': 'rrhh@saboresdelsur.pe',
         'telefono': '(01) 437-8888',
         'actividad_economica': '5610 - Restaurantes',
-        'representante_legal': 'Hiroshi Tanaka Sato',
+        'representante_legal': 'Manuel Salazar Aguirre',
         'cargo_representante': 'Gerente General',
         'nro_doc_representante': '09876543',
         'porcentaje_personal': 35,
@@ -171,7 +171,7 @@ EMPRESAS_EDO = [
         'email_rrhh': 'rrhh@saboresdelsur.pe',
         'telefono': '(01) 222-3333',
         'actividad_economica': '5621 - Servicio de comidas (catering/delivery)',
-        'representante_legal': 'Hiroshi Tanaka Sato',
+        'representante_legal': 'Manuel Salazar Aguirre',
         'cargo_representante': 'Gerente General',
         'nro_doc_representante': '09876543',
         'porcentaje_personal': 25,
@@ -240,7 +240,7 @@ CONCEPTOS_GASTRO = [
 
 class Command(BaseCommand):
     help = (
-        'Pobla la demo con datos de cadena de sushi bars (Grupo Sabores). '
+        'Pobla la demo con datos de cadena de restaurantes peruanos (Grupo Sabores). '
         'Idempotente — corre después de seed_demo_presentacion/completar.'
     )
 
@@ -524,7 +524,7 @@ class Command(BaseCommand):
             # Sexo random — bias por cargo
             if nombre_cargo in ('Hostess',):
                 sexo = 'F'
-            elif nombre_cargo in ('Sushi Chef', 'Cocinero Senior'):
+            elif nombre_cargo in ('Chef Ejecutivo', 'Cocinero Senior'):
                 sexo = random.choices(['M', 'F'], weights=[8, 2])[0]
             else:
                 sexo = random.choice(['M', 'F'])

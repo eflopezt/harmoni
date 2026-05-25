@@ -114,7 +114,7 @@
             <select name="grupo" class="form-select form-select-sm">
                 <option value="TODOS" {% if grupo_sel == 'TODOS' %}selected{% endif %}>Todos</option>
                 <option value="STAFF" {% if grupo_sel == 'STAFF' %}selected{% endif %}>STAFF</option>
-                <option value="RCO" {% if grupo_sel == 'RCO' %}selected{% endif %}>RCO</option>
+                <option value="RCO" {% if grupo_sel == 'RCO' %}selected{% endif %}>OPERATIVO</option>
             </select>
         </div>
 
@@ -156,7 +156,7 @@
         </a>
         <a href="{% url 'asistencia_exportar_horas_rco' %}?anio={{ anio }}&mes={{ mes }}&tipo_periodo=corte"
            class="btn btn-outline-success">
-            <i class="fas fa-file-excel me-1"></i>Excel — Horas RCO
+            <i class="fas fa-file-excel me-1"></i>Excel — Horas Operativos
         </a>
         <a href="{% url 'asistencia_exportar_faltas' %}?anio={{ anio }}&mes={{ mes }}&tipo_periodo=corte"
            class="btn btn-outline-warning">
@@ -173,7 +173,7 @@
         </a>
         <a href="{% url 'asistencia_exportar_horas_rco' %}?anio={{ anio }}&mes={{ mes }}&tipo_periodo=calendario"
            class="btn btn-outline-success">
-            <i class="fas fa-file-excel me-1"></i>Excel — Horas RCO
+            <i class="fas fa-file-excel me-1"></i>Excel — Horas Operativos
         </a>
         <a href="{% url 'asistencia_papeletas_reporte' %}?anio={{ anio }}&mes={{ mes }}"
            class="btn btn-outline-info">
