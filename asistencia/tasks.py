@@ -334,3 +334,23 @@ def procesar_importacion_s10(self, importacion_id: int, ruta_archivo: str,
         except Exception:
             pass
         raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=1, time_limit=1800)
+def sweep_codigo_dia_y_banco_horas(self):
+    """Sweep nocturno automático:
+       - Corrige RegistroTareo con codigo_dia=SS/SE que tienen entrada+salida
+       - Recalcula HE y propaga al BancoHoras
+
+    Idempotente. Respeta períodos cerrados y banco cerrado.
+    Schedule: cada noche 02:30 (después del backup pg_dump 03:30 no, antes).
+    """
+    from django.core.management import call_command
+    from io import StringIO
+    out = StringIO()
+    try:
+        call_command('sweep_codigo_dia_y_banco', stdout=out)
+        return out.getvalue()[:2000]
+    except Exception as exc:
+        logger.exception('sweep_codigo_dia_y_banco_horas falló')
+        raise self.retry(exc=exc)

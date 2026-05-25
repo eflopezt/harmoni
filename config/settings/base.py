@@ -373,6 +373,17 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute='*/15'),  # cada 15 minutos
     },
 
+    # ── Sweep nocturno de asistencia ───────────────────────────
+    # Limpia RegistroTareo donde codigo_dia=SS/SE con entrada+salida válidas
+    # (debería ser 'A'), recalcula HE y propaga al BancoHoras.
+    # Defensiva: el sync ya hace esto en vivo (línea 657 synkro_sync.py),
+    # pero el sweep nocturno asegura que datos legacy o casos edge se
+    # corrijan diariamente sin acción manual.
+    'sweep-codigo-dia-banco-nocturno': {
+        'task': 'asistencia.tasks.sweep_codigo_dia_y_banco_horas',
+        'schedule': crontab(hour=2, minute=30),  # diario 02:30
+    },
+
     # ── Infra — Backup PostgreSQL ──────────────────────────────
     # pg_dump diario de harmoni_db a /opt/harmoni/backups + rotación 30 días.
     # Si BACKUP_S3_BUCKET o BACKUP_B2_BUCKET están seteados en el entorno
