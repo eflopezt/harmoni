@@ -38,7 +38,8 @@
 
 ### 2. Login y entrada al ERP (1 min)
 - **URL**: `https://demo.harmoni.pe/login/`
-- **Credenciales**: `demo` / `demo123` (admin) — verificadas al deploy de hoy.
+- **Credenciales admin (RRHH)**: `demo` / `demo123` — verificadas
+- **Credenciales trabajador (portal)**: `73000043` / `demo123` → Estefani Aguirre Ccama (Mozo). Cualquier DNI de la lista de trabajadores con `demo123`.
 - **Di**: "Multi-tenant por subdominio — cada cliente tiene su propio entorno aislado. Aquí entran al Grupo Sabores."
 
 ### 3. Dashboard "Centro de Comando" (2 min)
@@ -86,7 +87,13 @@
 - **Di**: "El jefe aprueba desde su móvil. El trabajador ve sus días disponibles en tiempo real."
 
 ### 10. Portal del Empleado (2 min) ⭐ Diferenciador
-- Cierra sesión, entra como trabajador (`demo123`).
+- Cierra sesión, entra como **trabajador**: usuario `73000043`, password `demo123`.
+- URL: `/mi-portal/`
+- **Recorrido portal**:
+  - `/mi-portal/` — home con tarjetas: Mi asistencia · Mis recibos · Mi calendario · Solicitar vacaciones · Banco de horas · Capacitaciones · Mi perfil · Documentos
+  - `/mi-portal/asistencia/` — tabla del mes con KPIs (días trabajados, faltas, HE 25%, % asistencia)
+  - `/mi-portal/papeletas/` — solicitar permisos
+  - `/mi-portal/timeline/` — historial completo
 - **Di**: "Cada trabajador ve sus recibos, su asistencia, solicita vacaciones, descarga sus boletas — sin pasar por RRHH."
 - **Frase gancho**: "RRHH deja de ser el cuello de botella."
 
