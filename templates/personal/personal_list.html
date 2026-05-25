@@ -1335,7 +1335,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <h1 class="pl-h-title">
         <i class="fas fa-users" style="color:#0F766E;font-size:1.15rem;"></i>Empleados
         <span class="pl-h-count">
-          <strong>{{ personal.paginator.count|default:0 }}</strong> / {{ total_activos }}
+          <strong>{{ page_obj.paginator.count|default:0 }}</strong> / {{ total_activos }}
         </span>
       </h1>
       <p class="pl-h-sub">Gestiona, filtra y actúa sobre tu equipo completo · <kbd style="font-size:.66rem;background:#f1f5f9;border:1px solid #e2e8f0;padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;">/</kbd> para buscar</p>

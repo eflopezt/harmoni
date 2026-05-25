@@ -16,7 +16,7 @@
         <small style="font-size:.55em;color:#94a3b8;font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-left:6px;">pendiente{{ pendientes_total|pluralize:"s" }}</small>
         {% endif %}
       </h1>
-      <p class="text-muted small mb-0">Solicitudes pendientes de tu aprobacion</p>
+      <p class="text-muted small mb-0">Solicitudes pendientes de tu aprobación</p>
     </div>
     {% if user.is_superuser %}
     <a href="{% url 'workflow_config' %}" class="btn btn-outline-secondary btn-sm">
@@ -85,7 +85,7 @@
         {% if filtro_activo == 'resueltos_hoy' %}Resueltos hoy
         {% elif filtro_activo == 'urgentes' %}Urgentes (vencen &lt; 24 h)
         {% elif filtro_activo == 'vencidos' %}Vencidos
-        {% else %}Pendientes de mi aprobacion{% endif %}
+        {% else %}Pendientes de mi aprobación{% endif %}
       </strong>
       <span class="badge bg-warning text-dark ms-2">{{ page_obj.paginator.count }}</span>
     </div>
@@ -200,7 +200,7 @@
           <tr>
             <td colspan="6" class="text-center py-5 text-muted">
               <i class="fas fa-check-circle fa-2x mb-2 d-block text-success opacity-50"></i>
-              Sin solicitudes en esta categoria
+              Sin solicitudes en esta categoría
             </td>
           </tr>
           {% endfor %}

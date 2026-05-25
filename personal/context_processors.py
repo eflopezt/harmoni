@@ -101,14 +101,21 @@ def _get_tiene_empleado(user) -> bool:
 
 
 def _get_empresas_disponibles() -> list:
-    """Retorna lista de empresas activas para el selector del sidebar. Cached 5 min."""
-    cache_key = 'harmoni_ctx_empresas_v1'
+    """Retorna lista de empresas activas para el selector del sidebar. Cached 5 min.
+
+    Solo incluye empresas con al menos 1 trabajador (Personal) registrado: evita
+    mostrar empresas-fantasma o residuos de seeds antiguos en el selector.
+    """
+    cache_key = 'harmoni_ctx_empresas_v2'  # v2: filtra empresas sin personal
     data = cache.get(cache_key)
     if data is None:
         try:
+            from django.db.models import Count
             from empresas.models import Empresa
             data = list(
                 Empresa.objects.filter(activa=True)
+                .annotate(_n=Count('personal'))
+                .filter(_n__gt=0)
                 .values('pk', 'razon_social', 'nombre_comercial', 'ruc')
                 .order_by('razon_social')
             )
