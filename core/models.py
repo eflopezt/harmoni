@@ -1,13 +1,17 @@
 """
 Modelos transversales del sistema Harmoni.
 
-AuditLog: registro automático de cambios en modelos críticos.
+AuditLog: registro automático de cambios en modelos críticos (legacy v1).
+AuditEntry: audit log v2 con signals automáticos (core/audit_models.py).
 PreferenciaUsuario: configuración personalizada por usuario.
 """
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+
+# Re-exportar AuditEntry para que Django lo descubra en core app.
+from core.audit_models import AuditEntry  # noqa: F401
 
 
 class AuditLog(models.Model):

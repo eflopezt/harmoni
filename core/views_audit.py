@@ -16,6 +16,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 
+from core.audit_models import AuditEntry
 from core.models import AuditLog
 
 User = get_user_model()
@@ -256,3 +257,34 @@ def audit_log_export(request):
     )
     response['Content-Disposition'] = f'attachment; filename="auditoria_{now_str}.xlsx"'
     return response
+
+
+# ════════════════════════════════════════════════════════════════════
+#  AuditEntry (v2) — sistema de auditoría con signals automáticos
+#  Modelo en core.audit_models.AuditEntry — usa entity_type como string
+#  (no ContentType) para sobrevivir DELETEs y ser más liviano.
+# ════════════════════════════════════════════════════════════════════
+
+@login_required
+@solo_admin
+def audit_timeline(request, entity_type, entity_id):
+    """Timeline de cambios para una entidad concreta (AuditEntry v2).
+
+    URL: /sistema/audit/<entity_type>/<entity_id>/
+    Solo admins. Renderiza un timeline tipo Notion ordenado fecha desc.
+    """
+    entries = (
+        AuditEntry.objects
+        .filter(entity_type=entity_type, entity_id=entity_id)
+        .select_related('usuario', 'empresa')
+        .order_by('-fecha')
+    )
+
+    context = {
+        'titulo': f'Auditoría — {entity_type} #{entity_id}',
+        'entity_type': entity_type,
+        'entity_id': entity_id,
+        'entries': entries,
+        'total': entries.count(),
+    }
+    return render(request, 'core/audit_log_v2.html', context)

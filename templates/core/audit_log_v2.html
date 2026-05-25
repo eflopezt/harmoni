@@ -1,0 +1,162 @@
+{% extends "base_v2.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Timeline tipo Notion ── */
+.audit-timeline { position: relative; padding-left: 2.25rem; margin-top: 1.25rem; }
+.audit-timeline::before {
+    content: '';
+    position: absolute;
+    left: .625rem;
+    top: .25rem;
+    bottom: .25rem;
+    width: 2px;
+    background: #e5e7eb;
+}
+.audit-event { position: relative; margin-bottom: 1.5rem; }
+.audit-event:last-child { margin-bottom: 0; }
+.audit-dot {
+    position: absolute;
+    left: -1.875rem;
+    top: .35rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px currentColor;
+}
+.audit-dot.dot-CREATE { background: #22c55e; color: #22c55e; }
+.audit-dot.dot-UPDATE { background: #3b82f6; color: #3b82f6; }
+.audit-dot.dot-DELETE { background: #ef4444; color: #ef4444; }
+
+.audit-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+}
+.audit-meta {
+    color: #6b7280;
+    font-size: .78rem;
+    display: flex;
+    gap: .65rem;
+    flex-wrap: wrap;
+    margin-bottom: .4rem;
+}
+.audit-action {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: .7rem;
+    letter-spacing: .04em;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+.audit-action.act-CREATE { background: #dcfce7; color: #166534; }
+.audit-action.act-UPDATE { background: #dbeafe; color: #1e40af; }
+.audit-action.act-DELETE { background: #fee2e2; color: #991b1b; }
+
+.diff-table { width: 100%; font-size: .85rem; border-collapse: collapse; margin-top: .35rem; }
+.diff-table th, .diff-table td { padding: .3rem .55rem; text-align: left; }
+.diff-table th {
+    font-weight: 600;
+    color: #374151;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+.diff-table td.old { color: #9ca3af; text-decoration: line-through; }
+.diff-table td.new { color: #047857; font-weight: 500; }
+.diff-table td.field { font-family: ui-monospace, SFMono-Regular, monospace; color: #4b5563; }
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+    border: 2px dashed #e5e7eb;
+    border-radius: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'audit_list' %}">Auditoría</a></li>
+            <li class="breadcrumb-item active">{{ entity_type }} #{{ entity_id }}</li>
+        </ol>
+    </nav>
+
+    <h1 class="h4 mb-1">{{ titulo }}</h1>
+    <p class="text-muted small mb-4">
+        Timeline de cambios capturados automáticamente por signals
+        ({{ total }} evento{{ total|pluralize }}).
+    </p>
+
+    {% if entries %}
+        <div class="audit-timeline">
+            {% for entry in entries %}
+                <div class="audit-event">
+                    <div class="audit-dot dot-{{ entry.accion }}"></div>
+                    <div class="audit-card">
+                        <div class="audit-meta">
+                            <span class="audit-action act-{{ entry.accion }}">
+                                {{ entry.get_accion_display }}
+                            </span>
+                            <span>{{ entry.fecha|date:"d/m/Y H:i:s" }}</span>
+                            <span>·</span>
+                            <span>
+                                {% if entry.usuario %}
+                                    <i class="fa-solid fa-user me-1"></i>{{ entry.usuario.get_full_name|default:entry.usuario.username }}
+                                {% else %}
+                                    <i class="fa-solid fa-robot me-1"></i>sistema
+                                {% endif %}
+                            </span>
+                            {% if entry.metadata.source %}
+                                <span>·</span>
+                                <span>{{ entry.metadata.source }}</span>
+                            {% endif %}
+                            {% if entry.metadata.request_ip %}
+                                <span>·</span>
+                                <span>{{ entry.metadata.request_ip }}</span>
+                            {% endif %}
+                            {% if entry.empresa %}
+                                <span>·</span>
+                                <span>{{ entry.empresa }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if entry.cambios %}
+                            <table class="diff-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 30%">Campo</th>
+                                        <th style="width: 35%">Antes</th>
+                                        <th style="width: 35%">Después</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for campo, vals in entry.cambios.items %}
+                                    <tr>
+                                        <td class="field">{{ campo }}</td>
+                                        <td class="old">{{ vals.old|default:"—" }}</td>
+                                        <td class="new">{{ vals.new|default:"—" }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <p class="text-muted small mb-0">Sin detalle de cambios.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fa-regular fa-clock fa-2x mb-2"></i>
+            <p class="mb-0">No hay eventos de auditoría para esta entidad todavía.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

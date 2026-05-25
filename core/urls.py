@@ -21,6 +21,9 @@ urlpatterns = [
     path('auditoria/detalle/<int:pk>/', views_audit.audit_log_detail, name='audit_detail'),
     path('auditoria/timeline/<int:content_type_id>/<int:object_id>/', views_audit.audit_log_timeline, name='audit_timeline'),
     path('auditoria/exportar/', views_audit.audit_log_export, name='audit_export'),
+    # Timeline v2 con AuditEntry (signals automáticos) — usa entity_type/id en URL
+    path('audit/<str:entity_type>/<int:entity_id>/',
+         views_audit.audit_timeline, name='audit_entry_timeline'),
     # Legacy redirect (keep old name working)
     path('auditoria/legacy/', views.audit_log_view, name='audit_log'),
     path('buscar/', views.global_search, name='global_search'),
