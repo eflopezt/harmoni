@@ -356,6 +356,12 @@ class Postulacion(models.Model):
             models.Index(fields=['vacante', 'estado']),
             models.Index(fields=['etapa']),
             models.Index(fields=['-fecha_postulacion']),
+            # Audit perf 2026-05-24: pipeline_panel filtra Postulacion.objects.filter(estado='ACTIVA')
+            # como punto de entrada del kanban. Sin índice estado-leading, PG hace seq scan
+            # cuando hay >5K candidatos históricos. Este índice (estado, etapa) cubre el
+            # filtro principal + el GROUP BY por etapa.
+            models.Index(fields=['estado', 'etapa'],
+                         name='postulacion_estado_etapa_idx'),
         ]
 
     def __str__(self):
