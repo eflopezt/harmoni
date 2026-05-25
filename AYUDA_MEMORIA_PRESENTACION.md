@@ -101,11 +101,17 @@
 ### 13. Comunicaciones (1 min)
 - Campañas segmentadas, plantillas, WhatsApp marketing.
 
-### 13.bis 💰 Liquidaciones — flujo de cese unificado (1 min) ⭐ NUEVO
-- **URL**: `/nominas/liquidaciones/` o `/nominas/liquidacion/<id>/`
-- **Di**: "Cuando RRHH marca a alguien como cesado, se dispara automáticamente: calculamos vacaciones truncas, gratificación trunca, CTS trunca, descontamos préstamos pendientes — todo en una sola pantalla con su PDF."
-- **Demo en vivo**: muestra una LL ya creada (LL #1 en demo) → tabla con conceptos + descuentos + total neto.
-- **Frase gancho**: "Lo que en SAP requiere 4 horas y un Excel paralelo, acá es 1 botón."
+### 13.bis 💰 Liquidaciones — wizard de cese end-to-end (2 min) ⭐ ESTRELLA
+- **URL**: `/nominas/liquidaciones/` (lista de 8 LL ya creadas en demo, con distintos motivos)
+- **Demo en vivo paso a paso**:
+  1. Lista de liquidaciones → click en LL #2 ("Despido arbitrario" con indemnización **S/15,360**) → muestra tabla.
+  2. Volver a Personal → click en un empleado activo → botón rojo **"Iniciar cese"**.
+  3. **Wizard 3 pasos**:
+     - Paso 1: fecha + motivo (8 opciones) + observaciones.
+     - Paso 2: **preview en vivo** — vacaciones truncas + gratif + CTS + descuentos = total neto, sin persistir.
+     - Paso 3: confirmar → cese + LL + workflow offboarding se disparan automáticamente.
+  4. Workflow `/workflows/bandeja/` muestra la **InstanciaFlujo** con 5 etapas: encuesta salida → devolución activos → liquidación pagada → carta no adeudo → cierre.
+- **Frase gancho**: "Lo que en SAP requiere 4 horas y un Excel paralelo, acá son 3 clicks. Todo queda firmado, auditado y trazado."
 
 ### 13.ter 🍤 Pool de propinas — distribución por puntos (1 min) ⭐ NUEVO PARA GASTRONOMÍA
 - **URL**: `/nominas/propinas/` o `/nominas/propinas/config/`
