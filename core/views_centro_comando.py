@@ -32,7 +32,14 @@ def centro_comando(request):
     user = request.user
 
     # ── Empresas activas del grupo ──
-    empresas = Empresa.objects.filter(activa=True).exclude(ruc='20612345678')
+    # Filtra empresas activas con al menos 1 trabajador activo (evita
+    # contar empresas duplicadas vacías o RUCs legacy).
+    from django.db.models import Count
+    empresas = (
+        Empresa.objects.filter(activa=True)
+        .annotate(_n_activos=Count('personal', filter=Q(personal__estado='Activo')))
+        .filter(_n_activos__gt=0)
+    )
 
     # ── KPIs globales ──
     total_workers     = Personal.objects.filter(estado='Activo', empresa__in=empresas).count()
