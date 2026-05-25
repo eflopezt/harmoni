@@ -18,10 +18,10 @@
     </button>
     <div class="dropdown">
       <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-        <i class="fas fa-paper-plane me-1"></i>Envio Masivo
+        <i class="fas fa-paper-plane me-1"></i>Envío Masivo
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
-        <li><h6 class="dropdown-header">Enviar contratos por area</h6></li>
+        <li><h6 class="dropdown-header">Enviar contratos por área</h6></li>
         {% for a in areas %}
         <li>
           <button class="dropdown-item" type="button" onclick="enviarPorArea({{ a.pk }}, '{{ a.nombre }}')">
@@ -72,9 +72,9 @@
         </select>
       </div>
       <div class="col-md-2">
-        <label class="form-label small mb-1">Area</label>
+        <label class="form-label small mb-1">Área</label>
         <select name="area" class="form-select form-select-sm">
-          <option value="">Todas las areas</option>
+          <option value="">Todas las áreas</option>
           {% for a in areas %}
           <option value="{{ a.pk }}" {% if area_f == a.pk|stringformat:"d" %}selected{% endif %}>{{ a.nombre }}</option>
           {% endfor %}
@@ -128,7 +128,7 @@
               <input type="checkbox" class="form-check-input" id="selectAll" title="Seleccionar todos">
             </th>
             <th class="ps-2">Trabajador</th>
-            <th>Area</th>
+            <th>Área</th>
             <th>Modalidad</th>
             <th class="text-center">Inicio contrato</th>
             <th class="text-center">Vencimiento</th>
