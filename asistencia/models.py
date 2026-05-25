@@ -37,6 +37,20 @@ class RegimenTurno(models.Model):
         ('ESPECIAL', 'Régimen Especial (configuración manual)'),
     ]
 
+    # Día de la semana de descanso fijo (para regímenes semanales).
+    # Convención: misma numeración que Python date.weekday() (0=Lun..6=Dom).
+    # En regímenes acumulativos / rotativos (FORÁNEO 21×7, turnos rotativos)
+    # NO aplica: el día de descanso se determina por el ciclo, no por el día.
+    DIA_DESCANSO_CHOICES = [
+        (0, 'Lunes'),
+        (1, 'Martes'),
+        (2, 'Miércoles'),
+        (3, 'Jueves'),
+        (4, 'Viernes'),
+        (5, 'Sábado'),
+        (6, 'Domingo'),
+    ]
+
     nombre = models.CharField(max_length=60, unique=True,
                                verbose_name="Nombre del Régimen",
                                help_text="Ej: '21x7 Foráneo', '5x2 Local', 'Turno Noche'")
@@ -54,6 +68,18 @@ class RegimenTurno(models.Model):
     dias_descanso_ciclo = models.PositiveSmallIntegerField(
         verbose_name="Días de Descanso por Ciclo",
         help_text="Ej: 7 para régimen 21×7")
+
+    # Día de descanso semanal (solo aplica a regímenes SEMANAL/NOCTURNA con
+    # descanso fijo, ej. 6×1 gastronomía, 5×2 oficina). Para ACUMULATIVA y
+    # ROTATIVA este campo no se usa — el día libre lo determina el ciclo.
+    dia_descanso = models.PositiveSmallIntegerField(
+        choices=DIA_DESCANSO_CHOICES,
+        default=6,
+        verbose_name="Día de Descanso Semanal",
+        help_text="Domingo por defecto. Solo aplica a regímenes semanales "
+                  "con descanso fijo (gastronomía 6×1, oficina 5×2). En "
+                  "regímenes acumulativos/rotativos no se usa."
+    )
 
     # Almuerzo
     minutos_almuerzo = models.PositiveSmallIntegerField(
@@ -101,6 +127,16 @@ class RegimenTurno(models.Model):
         21x7 → 28 días / 7 = 4 semanas × 48 h = 192 h
         """
         return Decimal('48') * Decimal(str(self.semanas_por_ciclo))
+
+    @property
+    def es_semanal_descanso_fijo(self):
+        """True para regímenes con día libre fijo (6×1, 5×2, etc.).
+
+        Estos regímenes nunca generan "DL" (día libre ganado del ciclo
+        acumulativo) — su día libre es DS (descanso semanal). Aplica a
+        gastronomía, oficina, comercio y régimen general semanal.
+        """
+        return self.jornada_tipo in ('SEMANAL', 'NOCTURNA') and self.dias_descanso_ciclo <= 1
 
     def clean(self):
         if self.dias_trabajo_ciclo < 1:

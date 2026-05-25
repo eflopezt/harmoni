@@ -577,6 +577,38 @@ class Personal(models.Model):
         help_text="Ej: 14x7, 21x7, etc."
     )
 
+    # ── Día de descanso semanal (gastronomía / oficina / comercio) ──
+    # Para regímenes semanales con descanso rotativo (típico de gastronomía
+    # y servicios) el día libre puede caer cualquier día de la semana
+    # (no necesariamente domingo). Este campo permite registrar el día
+    # específico de descanso de este trabajador.
+    #
+    # NULL/blank = no configurado → se asume domingo para LOCAL/LIMA
+    # (compatibilidad con datos existentes).
+    #
+    # En regímenes acumulativos/foráneos (21×7, 14×7) NO aplica: el día
+    # libre se determina por el ciclo del roster, no por la semana.
+    DIA_DESCANSO_CHOICES = [
+        ('', 'Domingo (por defecto)'),
+        ('0', 'Lunes'),
+        ('1', 'Martes'),
+        ('2', 'Miércoles'),
+        ('3', 'Jueves'),
+        ('4', 'Viernes'),
+        ('5', 'Sábado'),
+        ('6', 'Domingo'),
+    ]
+    dia_descanso_semanal = models.CharField(
+        max_length=2,
+        choices=DIA_DESCANSO_CHOICES,
+        blank=True,
+        default='',
+        verbose_name="Día de Descanso Semanal",
+        help_text="Solo aplica a regímenes con descanso fijo (gastronomía 6×1, "
+                  "oficina 5×2). En blanco = domingo. Para roster acumulativo "
+                  "21×7/14×7 este campo no se usa."
+    )
+
     # --- Contrato laboral (D.Leg. 728) ---
     TIPO_CONTRATO_CHOICES = [
         ('INDEFINIDO', 'Contrato Indefinido'),

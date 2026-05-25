@@ -100,6 +100,7 @@ class PersonalAdmin(admin.ModelAdmin):
         }),
         ('Tareo / Régimen', {
             'fields': ('grupo_tareo', 'condicion', 'regimen_laboral', 'regimen_turno',
+                      'dia_descanso_semanal',
                       'codigo_sap', 'codigo_s10', 'partida_control')
         }),
         ('Roster', {

@@ -74,6 +74,7 @@ class PersonalForm(forms.ModelForm):
             'cond_trabajo_mensual', 'alimentacion_mensual', 'viaticos_mensual',
             'tiene_eps', 'eps_descuento_mensual',
             'grupo_tareo', 'condicion', 'regimen_laboral', 'regimen_turno',
+            'dia_descanso_semanal',
             'codigo_sap', 'codigo_s10', 'partida_control',
             # jornada_horas ocultado — calculado automáticamente por importer
             'dias_libres_corte_2025', 'observaciones',

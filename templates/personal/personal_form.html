@@ -252,6 +252,12 @@
               {% if form.regimen_turno.errors %}<div class="text-danger small">{{ form.regimen_turno.errors.0 }}</div>{% endif %}
             </div>
             <div class="col-md-3">
+              <label class="form-label">{{ form.dia_descanso_semanal.label }}</label>
+              {{ form.dia_descanso_semanal }}
+              <small class="text-muted d-block" style="font-size:.7rem">Gastronomía/oficina: día libre semanal. Vacío = domingo.</small>
+              {% if form.dia_descanso_semanal.errors %}<div class="text-danger small">{{ form.dia_descanso_semanal.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
               <label class="form-label">{{ form.codigo_sap.label }}</label>
               {{ form.codigo_sap }}
               {% if form.codigo_sap.errors %}<div class="text-danger small">{{ form.codigo_sap.errors.0 }}</div>{% endif %}

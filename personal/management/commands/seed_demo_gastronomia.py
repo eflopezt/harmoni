@@ -570,6 +570,15 @@ class Command(BaseCommand):
             else:
                 regimen_turno = '5x2'
 
+            # Día de descanso semanal (rotativo en gastronomía).
+            # Admin (5x2) descansa sábado+domingo → guardamos domingo por
+            # convención (sábado se gestiona como FA salvo edición manual).
+            # Operativo gastronomía rota cualquier día de la semana.
+            if codigo_area == 'ADM':
+                dia_descanso_semanal = ''  # default domingo
+            else:
+                dia_descanso_semanal = random.choice(['0', '1', '2', '3', '4', '5', '6'])
+
             defaults = {
                 'apellidos_nombres': apellidos_nombres,
                 'tipo_doc': 'DNI',
@@ -590,6 +599,7 @@ class Command(BaseCommand):
                 'grupo_tareo': 'STAFF' if codigo_area == 'ADM' else 'RCO',
                 'condicion': 'LOCAL',
                 'regimen_turno': regimen_turno,
+                'dia_descanso_semanal': dia_descanso_semanal,
                 'regimen_laboral': 'D.Leg. 728 — Régimen General',
                 'tipo_contrato': 'PLAZO_FIJO' if (date.today() - fecha_alta).days < 365 else 'INDEFINIDO',
                 'jornada_horas': Decimal('8.0'),

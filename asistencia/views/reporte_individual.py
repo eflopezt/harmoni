@@ -123,19 +123,92 @@ def _fuera_de_periodo(fecha, personal):
     return False
 
 
-def _auto_ds(fecha, codigo, condicion):
-    """Asignar DS automaticamente si LOCAL + Domingo sin trabajo real.
+def _dia_descanso_semanal(personal):
+    """Día de descanso semanal del trabajador (0=Lun..6=Dom).
 
-    Regla: LOCAL en domingo:
-    - Sin registro o FA/F → DS (no trabajó, es su descanso obligatorio)
-    - Con NOR/A/T → se mantiene (realmente trabajó ese domingo)
-    - Con otro código (VAC, DM, etc.) → se mantiene
+    Lógica:
+      1. Si tiene `dia_descanso_semanal` configurado → ese día.
+      2. Default → domingo (6).
+
+    Solo aplica a regímenes semanales con descanso fijo (gastronomía 6×1,
+    oficina 5×2, comercio). Para roster acumulativo (21×7, 14×7) el caller
+    debe NO usar esta función — su día libre lo da el roster.
     """
-    es_domingo = fecha.weekday() == 6
-    es_local = condicion.upper() in ('LOCAL', 'LIMA', '')
-    if es_domingo and es_local:
+    if personal and getattr(personal, 'dia_descanso_semanal', ''):
+        try:
+            return int(personal.dia_descanso_semanal)
+        except (ValueError, TypeError):
+            pass
+    return 6  # Domingo por defecto
+
+
+def _es_regimen_acumulativo(personal):
+    """True si el trabajador está en régimen acumulativo (roster 21×7, 14×7).
+
+    Solo estos regímenes SÍ usan DL ("Día Libre" ganado del ciclo acumulativo).
+    En semanal fijo (gastronomía 6×1, oficina 5×2, comercio) el día libre es
+    DS (Descanso Semanal), no DL.
+
+    Heurística (en orden de prioridad):
+      1. condicion = FORANEO → siempre acumulativo (21×7 minería/construcción).
+      2. STAFF LOCAL/LIMA → asumimos acumulativo por convención histórica
+         (Minera Andes: staff en Lima con DL ganado en rotaciones foráneas).
+      3. RCO LOCAL/LIMA → NO acumulativo (gastronomía, comercio, operativo).
+         Estos trabajadores no acumulan DL: su día libre es DS.
+      4. regimen_turno tipo "NxM" con N≥10 y M≥3 → acumulativo de roster
+         (14×7, 21×7, 28×14, etc.). 5×2 y 6×1 NO califican.
+    """
+    if not personal:
+        return False
+    cond = (personal.condicion or '').upper().replace('Á', 'A')
+    # 1. FORÁNEO siempre es acumulativo
+    if cond == 'FORANEO':
+        return True
+    grupo = (personal.grupo_tareo or '').upper()
+    # 4. Régimen explícito tipo roster (14×7, 21×7…)
+    rt = (personal.regimen_turno or '').strip().lower()
+    if 'x' in rt:
+        try:
+            partes = rt.split('x')
+            dias_trabajo = int(partes[0])
+            dias_descanso = int(partes[1])
+            if dias_trabajo >= 10 and dias_descanso >= 3:
+                return True
+        except (ValueError, IndexError):
+            pass
+    # 2. STAFF LOCAL/LIMA → mantener tratamiento histórico (DL legítimo)
+    if grupo == 'STAFF' and cond in ('LOCAL', 'LIMA', ''):
+        return True
+    # 3. RCO LOCAL/LIMA o LIMA-only → semanal, no acumulativo
+    return False
+
+
+def _auto_ds(fecha, codigo, condicion, personal=None):
+    """Asignar DS automáticamente en el día de descanso semanal del trabajador.
+
+    Reglas:
+    - Trabajador LOCAL/LIMA en su día de descanso (configurado o domingo por
+      default) sin trabajo real → DS.
+    - DL/DLA en trabajador NO acumulativo (gastronomía/oficina): el código
+      "Día Libre" no corresponde — se normaliza a DS. DL solo es válido
+      cuando el trabajador tiene roster real (FORÁNEO o ciclo NxM con M≥2).
+    - Asistencias reales (NOR/A/T/etc.) → se mantienen.
+    """
+    cond_norm = (condicion or '').upper().replace('Á', 'A')
+    es_local = cond_norm in ('LOCAL', 'LIMA', '')
+    dia_descanso = _dia_descanso_semanal(personal) if es_local else 6
+    es_dia_descanso = fecha.weekday() == dia_descanso
+
+    # 1. DL/DLA sin roster real → normalizar a DS (no existe "día libre
+    #    ganado" en régimen semanal: el día libre es DS, no DL).
+    if codigo in ('DL', 'DLA') and not _es_regimen_acumulativo(personal):
+        return 'DS'
+
+    # 2. Día de descanso semanal sin trabajo → DS.
+    if es_dia_descanso and es_local:
         if not codigo or codigo in ('FA', 'F'):
             return 'DS'
+
     return codigo
 
 
@@ -178,7 +251,7 @@ def _build_staff_data(personal, inicio, fin):
                 codigo = 'A'
             else:
                 codigo = 'FA'
-        codigo = _auto_ds(d, codigo, condicion)
+        codigo = _auto_ds(d, codigo, condicion, personal)
         if codigo in PRESENCIA:
             display = 'A'
         elif codigo in DESCANSO:
@@ -224,7 +297,7 @@ def _build_rco_data(personal, inicio, fin):
             continue
         reg = tareo_map.get(d)
         if reg:
-            codigo = _auto_ds(d, reg['codigo_dia'], condicion)
+            codigo = _auto_ds(d, reg['codigo_dia'], condicion, personal)
             dias.append({'fecha': d, 'dow_s': DIAS_CORTO[d.weekday()], 'codigo': codigo,
                          'n': float(reg['horas_normales'] or 0), 'h25': float(reg['he_25'] or 0),
                          'h35': float(reg['he_35'] or 0), 'h100': float(reg['he_100'] or 0)})
@@ -240,7 +313,7 @@ def _build_rco_data(personal, inicio, fin):
                     fallback = 'A'
                 else:
                     fallback = 'FA'
-            auto_cod = _auto_ds(d, fallback, condicion)
+            auto_cod = _auto_ds(d, fallback, condicion, personal)
             # Ausencias pagadas o LIMA presente → 8h jornada legal
             n_fallback = JORNADA_AUSENCIA if (auto_cod in AUSENCIA_PAGADA or (auto_cod == 'A' and condicion.upper() == 'LIMA')) else 0
             dias.append({'fecha': d, 'dow_s': DIAS_CORTO[d.weekday()], 'codigo': auto_cod, 'n': n_fallback, 'h25': 0, 'h35': 0, 'h100': 0})

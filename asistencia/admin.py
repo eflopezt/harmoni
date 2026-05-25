@@ -47,8 +47,9 @@ class TipoHorarioInline(admin.TabularInline):
 class RegimenTurnoAdmin(AdminSoloSuperusuario):
     list_display = ('nombre', 'codigo', 'jornada_tipo',
                     'dias_trabajo_ciclo', 'dias_descanso_ciclo',
-                    'minutos_almuerzo', 'horas_max_ciclo_display', 'activo')
-    list_filter = ('jornada_tipo', 'activo', 'es_nocturno')
+                    'dia_descanso', 'minutos_almuerzo',
+                    'horas_max_ciclo_display', 'activo')
+    list_filter = ('jornada_tipo', 'dia_descanso', 'activo', 'es_nocturno')
     search_fields = ('nombre', 'codigo')
     inlines = [TipoHorarioInline]
 
