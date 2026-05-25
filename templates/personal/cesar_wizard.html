@@ -1,0 +1,388 @@
+{% extends 'base_v2.html' %}
+
+{% block title %}Cesar trabajador — {{ personal.apellidos_nombres }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Stepper ──────────────────────────────────────────────────────── */
+.wizard-stepper { display:flex; align-items:center; gap:0; margin:0 0 28px 0; padding:18px 22px;
+                  background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+                  box-shadow:0 1px 2px rgba(0,0,0,.04); }
+.wizard-step { display:flex; align-items:center; gap:10px; flex:1; }
+.wizard-step:not(:last-child)::after { content:""; flex:1; height:2px; background:#e5e7eb; margin:0 14px; border-radius:1px; }
+.wizard-step.done::after { background:#0f766e; }
+.wizard-step .bullet { width:32px; height:32px; border-radius:50%; display:inline-flex; align-items:center;
+                       justify-content:center; font-weight:700; font-size:.85rem; flex-shrink:0;
+                       background:#f3f4f6; color:#9ca3af; border:2px solid #e5e7eb; transition:all .2s; }
+.wizard-step.active .bullet { background:#0f766e; color:#fff; border-color:#0f766e;
+                              box-shadow:0 0 0 4px rgba(15,118,110,.15); }
+.wizard-step.done .bullet { background:#0f766e; color:#fff; border-color:#0f766e; }
+.wizard-step.done .bullet i { font-size:.78rem; }
+.wizard-step .label { font-size:.82rem; font-weight:600; color:#6b7280; letter-spacing:.01em; }
+.wizard-step.active .label, .wizard-step.done .label { color:#0f172a; }
+
+/* ── Cards ────────────────────────────────────────────────────────── */
+.wizard-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;
+               box-shadow:0 1px 2px rgba(0,0,0,.04); margin-bottom:18px; }
+.wizard-card h5 { font-size:1.02rem; font-weight:700; color:#0f172a; margin:0 0 4px 0; }
+.wizard-card .sub { font-size:.85rem; color:#6b7280; margin-bottom:18px; }
+
+.worker-banner { background:linear-gradient(135deg,#0f766e 0%,#134e4a 100%); color:#fff;
+                 border-radius:10px; padding:14px 18px; margin-bottom:18px;
+                 display:flex; align-items:center; gap:12px; }
+.worker-banner .who { font-weight:700; font-size:1rem; }
+.worker-banner .meta { font-size:.78rem; opacity:.85; font-family:'JetBrains Mono',ui-monospace,monospace; }
+
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.form-grid .full { grid-column:1 / -1; }
+.form-label-sm { font-size:.78rem; font-weight:700; color:#374151; text-transform:uppercase;
+                 letter-spacing:.04em; margin-bottom:6px; display:block; }
+
+/* ── Preview tables ───────────────────────────────────────────────── */
+.preview-table { width:100%; border-collapse:collapse; }
+.preview-table th { text-align:left; font-size:.72rem; text-transform:uppercase; color:#6b7280;
+                    letter-spacing:.05em; padding:8px 10px; border-bottom:2px solid #e5e7eb; }
+.preview-table td { padding:9px 10px; border-bottom:1px solid #f3f4f6; font-size:.88rem; }
+.preview-table td.concepto { color:#0f172a; }
+.preview-table td.monto { text-align:right; font-family:'JetBrains Mono',ui-monospace,monospace;
+                          font-variant-numeric:tabular-nums; font-weight:600; color:#0f766e; }
+.preview-table tr.descuento td.monto { color:#dc2626; }
+.preview-table tr.subtotal { background:#f9fafb; }
+.preview-table tr.subtotal td { font-weight:700; }
+.preview-table tr.total td { background:#0f766e; color:#fff; font-weight:800; font-size:1rem; padding:12px 10px; }
+.preview-table tr.total td.monto { color:#fff; }
+
+.summary-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:18px; }
+.summary-card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:12px 14px; }
+.summary-card .label { font-size:.72rem; color:#6b7280; text-transform:uppercase; letter-spacing:.04em; }
+.summary-card .value { font-size:1.1rem; font-weight:700; color:#0f172a;
+                       font-family:'JetBrains Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+
+.btn-wizard { padding:9px 18px; font-size:.88rem; font-weight:600; border-radius:8px; }
+.action-row { display:flex; justify-content:space-between; gap:10px; padding-top:16px;
+              border-top:1px solid #e5e7eb; margin-top:18px; }
+.action-row .right { display:flex; gap:8px; }
+
+.loading-spinner { display:none; text-align:center; padding:40px 20px; color:#6b7280; }
+.loading-spinner.show { display:block; }
+.error-banner { display:none; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c;
+                padding:10px 14px; border-radius:8px; font-size:.85rem; margin-bottom:14px; }
+.error-banner.show { display:block; }
+
+@media (max-width: 720px) {
+    .form-grid { grid-template-columns:1fr; }
+    .summary-grid { grid-template-columns:1fr; }
+    .wizard-step .label { display:none; }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+
+<div style="max-width:920px; margin:0 auto;">
+
+  <!-- Worker banner -->
+  <div class="worker-banner">
+    <i class="fas fa-user-times" style="font-size:1.4rem; color:#fca5a5;"></i>
+    <div style="flex:1;">
+      <div class="who">{{ personal.apellidos_nombres }}</div>
+      <div class="meta">
+        DNI {{ personal.nro_doc }}
+        {% if personal.cargo %} · {{ personal.cargo }}{% endif %}
+        {% if personal.fecha_alta %} · Alta {{ personal.fecha_alta|date:"d/m/Y" }}{% endif %}
+        {% if personal.sueldo_base %} · Sueldo S/ {{ personal.sueldo_base|floatformat:2 }}{% endif %}
+      </div>
+    </div>
+    <a href="{% url 'personal_detail' personal.pk %}" class="btn btn-sm btn-outline-light">
+      <i class="fas fa-times me-1"></i>Cancelar
+    </a>
+  </div>
+
+  <!-- Stepper -->
+  <div class="wizard-stepper" id="stepper">
+    <div class="wizard-step active" data-step="1">
+      <span class="bullet">1</span>
+      <span class="label">Datos del cese</span>
+    </div>
+    <div class="wizard-step" data-step="2">
+      <span class="bullet">2</span>
+      <span class="label">Preview liquidación</span>
+    </div>
+    <div class="wizard-step" data-step="3">
+      <span class="bullet">3</span>
+      <span class="label">Confirmar</span>
+    </div>
+  </div>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- ── Paso 1: Form ─────────────────────────────────────────────── -->
+  <div class="wizard-card" id="cardPaso1">
+    <h5><i class="fas fa-edit me-2 text-teal" style="color:#0f766e"></i>Datos del cese</h5>
+    <div class="sub">Completa los datos básicos. La liquidación se calculará en el siguiente paso.</div>
+
+    <form id="formCesar">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div>
+          <label class="form-label-sm" for="id_fecha_cese">Fecha de cese <span class="text-danger">*</span></label>
+          <input type="date" id="id_fecha_cese" name="fecha_cese" class="form-control"
+                 value="{{ today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" required>
+          <small class="text-muted">No puede ser una fecha futura.</small>
+        </div>
+        <div>
+          <label class="form-label-sm" for="id_motivo_cese">Motivo del cese <span class="text-danger">*</span></label>
+          <select id="id_motivo_cese" name="motivo_cese" class="form-select" required>
+            {% for val, label in motivos_wizard %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="full">
+          <label class="form-label-sm" for="id_observaciones">Observaciones (opcional)</label>
+          <textarea id="id_observaciones" name="observaciones" class="form-control" rows="3"
+                    placeholder="Ej: Renuncia presentada el 20/05/2026 con preaviso de 30 días..."></textarea>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <a href="{% url 'personal_detail' personal.pk %}" class="btn btn-link text-muted btn-wizard">
+          <i class="fas fa-times me-1"></i>Cancelar
+        </a>
+        <div class="right">
+          <button type="button" class="btn btn-primary btn-wizard" id="btnGoPaso2"
+                  style="background:#0f766e; border-color:#0f766e;">
+            Calcular preview <i class="fas fa-arrow-right ms-1"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Paso 2: Preview ──────────────────────────────────────────── -->
+  <div class="wizard-card" id="cardPaso2" style="display:none;">
+    <h5><i class="fas fa-calculator me-2" style="color:#0f766e"></i>Preview de liquidación</h5>
+    <div class="sub">Revisa los conceptos calculados. Aún no se ha registrado el cese.</div>
+
+    <div class="loading-spinner" id="spinnerPreview">
+      <div class="spinner-border text-teal" style="color:#0f766e!important" role="status"></div>
+      <div class="mt-2">Calculando conceptos...</div>
+    </div>
+
+    <div id="previewContent" style="display:none;">
+      <div class="summary-grid" id="summaryGrid">
+        <!-- llenado por JS -->
+      </div>
+
+      <table class="preview-table" id="tablaPreview">
+        <!-- llenado por JS -->
+      </table>
+    </div>
+
+    <div class="action-row">
+      <button type="button" class="btn btn-outline-secondary btn-wizard" id="btnGoPaso1">
+        <i class="fas fa-arrow-left me-1"></i>Volver
+      </button>
+      <div class="right">
+        <a href="{% url 'personal_detail' personal.pk %}" class="btn btn-link text-muted btn-wizard">Cancelar</a>
+        <button type="button" class="btn btn-danger btn-wizard" id="btnGoPaso3">
+          Confirmar cese <i class="fas fa-arrow-right ms-1"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Paso 3: Confirmación final ───────────────────────────────── -->
+  <div class="wizard-card" id="cardPaso3" style="display:none; border-color:#fecaca;">
+    <h5 style="color:#dc2626;"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar cese</h5>
+    <div class="sub">
+      Esta acción es <strong>irreversible</strong> sin permisos de superusuario.
+      Se cambiará el estado del trabajador a <strong>Cesado</strong> y se generará
+      automáticamente la <strong>Liquidación Laboral</strong>.
+    </div>
+
+    <div class="alert alert-warning small py-2">
+      <i class="fas fa-info-circle me-1"></i>
+      Al confirmar serás redirigido a la liquidación generada para revisarla
+      antes de aprobarla y pagarla.
+    </div>
+
+    <form method="post" action="{% url 'personal_cesar_confirmar' personal.pk %}" id="formConfirmar">
+      {% csrf_token %}
+      <input type="hidden" name="fecha_cese"    id="hid_fecha">
+      <input type="hidden" name="motivo_cese"   id="hid_motivo">
+      <input type="hidden" name="observaciones" id="hid_obs">
+
+      <div class="action-row">
+        <button type="button" class="btn btn-outline-secondary btn-wizard" id="btnBackToPaso2">
+          <i class="fas fa-arrow-left me-1"></i>Volver al preview
+        </button>
+        <div class="right">
+          <a href="{% url 'personal_detail' personal.pk %}" class="btn btn-link text-muted btn-wizard">Cancelar</a>
+          <button type="submit" class="btn btn-danger btn-wizard" id="btnConfirmFinal">
+            <i class="fas fa-user-times me-1"></i>Sí, cesar trabajador
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+(function(){
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const PREVIEW_URL = "{% url 'personal_cesar_preview' personal.pk %}";
+
+    const $stepper       = document.getElementById('stepper');
+    const $cardPaso1     = document.getElementById('cardPaso1');
+    const $cardPaso2     = document.getElementById('cardPaso2');
+    const $cardPaso3     = document.getElementById('cardPaso3');
+    const $errorBanner   = document.getElementById('errorBanner');
+    const $spinner       = document.getElementById('spinnerPreview');
+    const $previewBody   = document.getElementById('previewContent');
+    const $summary       = document.getElementById('summaryGrid');
+    const $tabla         = document.getElementById('tablaPreview');
+
+    const $fecha   = document.getElementById('id_fecha_cese');
+    const $motivo  = document.getElementById('id_motivo_cese');
+    const $obs     = document.getElementById('id_observaciones');
+
+    function setStep(n) {
+        $stepper.querySelectorAll('.wizard-step').forEach((s) => {
+            const step = parseInt(s.dataset.step, 10);
+            s.classList.remove('active', 'done');
+            if (step < n) {
+                s.classList.add('done');
+                s.querySelector('.bullet').innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                s.querySelector('.bullet').textContent = step;
+                if (step === n) s.classList.add('active');
+            }
+        });
+        $cardPaso1.style.display = (n === 1 ? 'block' : 'none');
+        $cardPaso2.style.display = (n === 2 ? 'block' : 'none');
+        $cardPaso3.style.display = (n === 3 ? 'block' : 'none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showError(msg) {
+        $errorBanner.textContent = msg;
+        $errorBanner.classList.add('show');
+        setTimeout(() => $errorBanner.classList.remove('show'), 6000);
+    }
+
+    function fmtSoles(v) { return 'S/ ' + v; }
+
+    function renderPreview(data) {
+        // Summary cards
+        $summary.innerHTML = `
+            <div class="summary-card">
+                <div class="label">Fecha de cese</div>
+                <div class="value" style="font-size:.95rem;">${data.fecha_cese}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Motivo</div>
+                <div class="value" style="font-size:.85rem; font-family:inherit;">${data.motivo_label}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Total neto a pagar</div>
+                <div class="value" style="color:#0f766e;">${fmtSoles(data.totales.total_neto)}</div>
+            </div>
+        `;
+
+        // Tabla detallada
+        const h = data.haberes;
+        const d = data.descuentos;
+        $tabla.innerHTML = `
+            <thead>
+                <tr><th>Concepto</th><th style="text-align:right;">Monto</th></tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="2" style="padding-top:14px; font-weight:700; color:#0f766e; text-transform:uppercase; font-size:.72rem; letter-spacing:.05em;">Haberes</td></tr>
+                <tr><td class="concepto">Vacaciones truncas</td>             <td class="monto">${fmtSoles(h.vacaciones_truncas)}</td></tr>
+                <tr><td class="concepto">Gratificación trunca</td>           <td class="monto">${fmtSoles(h.gratif_trunca)}</td></tr>
+                <tr><td class="concepto">CTS trunca</td>                     <td class="monto">${fmtSoles(h.cts_trunca)}</td></tr>
+                <tr><td class="concepto">Sueldo del mes en curso</td>        <td class="monto">${fmtSoles(h.sueldo_mes_curso)}</td></tr>
+                <tr><td class="concepto">Horas extra no compensadas</td>     <td class="monto">${fmtSoles(h.he_no_compensadas)}</td></tr>
+                <tr><td class="concepto">Indemnización (despido arbitrario)</td> <td class="monto">${fmtSoles(h.indemnizacion)}</td></tr>
+                <tr><td class="concepto">Otros pagos</td>                    <td class="monto">${fmtSoles(h.otros_pagos)}</td></tr>
+                <tr class="subtotal"><td>Total haberes (bruto)</td>          <td class="monto">${fmtSoles(data.totales.total_bruto)}</td></tr>
+
+                <tr><td colspan="2" style="padding-top:14px; font-weight:700; color:#dc2626; text-transform:uppercase; font-size:.72rem; letter-spacing:.05em;">Descuentos</td></tr>
+                <tr class="descuento"><td class="concepto">Préstamos pendientes</td> <td class="monto">${fmtSoles(d.prestamos_pendientes)}</td></tr>
+                <tr class="descuento"><td class="concepto">Adelantos pendientes</td> <td class="monto">${fmtSoles(d.adelantos_pendientes)}</td></tr>
+                <tr class="descuento"><td class="concepto">Embargo judicial</td>     <td class="monto">${fmtSoles(d.embargo)}</td></tr>
+                <tr class="descuento"><td class="concepto">Otros descuentos</td>     <td class="monto">${fmtSoles(d.otros_descuentos)}</td></tr>
+
+                <tr class="total"><td>TOTAL NETO A PAGAR</td>                <td class="monto">${fmtSoles(data.totales.total_neto)}</td></tr>
+            </tbody>
+        `;
+    }
+
+    async function fetchPreview() {
+        const fd = new FormData();
+        fd.append('fecha_cese',    $fecha.value);
+        fd.append('motivo_cese',   $motivo.value);
+        fd.append('observaciones', $obs.value);
+        fd.append('csrfmiddlewaretoken', csrftoken);
+
+        $spinner.classList.add('show');
+        $previewBody.style.display = 'none';
+
+        try {
+            const resp = await fetch(PREVIEW_URL, {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await resp.json();
+            $spinner.classList.remove('show');
+
+            if (!resp.ok || data.error) {
+                showError(data.error || 'Error al calcular preview.');
+                setStep(1);
+                return;
+            }
+            renderPreview(data);
+            $previewBody.style.display = 'block';
+        } catch (e) {
+            $spinner.classList.remove('show');
+            showError('Error de red: ' + e.message);
+            setStep(1);
+        }
+    }
+
+    // ── Eventos ──────────────────────────────────────────────────────
+    document.getElementById('btnGoPaso2').addEventListener('click', () => {
+        // Validación cliente
+        if (!$fecha.value) { showError('La fecha de cese es obligatoria.'); return; }
+        const fechaCese = new Date($fecha.value);
+        const hoy = new Date(); hoy.setHours(23,59,59,999);
+        if (fechaCese > hoy) { showError('La fecha de cese no puede ser futura.'); return; }
+
+        setStep(2);
+        fetchPreview();
+    });
+
+    document.getElementById('btnGoPaso1').addEventListener('click', () => setStep(1));
+
+    document.getElementById('btnGoPaso3').addEventListener('click', () => {
+        // Copiar valores al form de confirmación
+        document.getElementById('hid_fecha').value  = $fecha.value;
+        document.getElementById('hid_motivo').value = $motivo.value;
+        document.getElementById('hid_obs').value    = $obs.value;
+        setStep(3);
+    });
+
+    document.getElementById('btnBackToPaso2').addEventListener('click', () => setStep(2));
+
+    document.getElementById('formConfirmar').addEventListener('submit', (e) => {
+        const btn = document.getElementById('btnConfirmFinal');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando...';
+    });
+})();
+</script>
+
+{% endblock %}

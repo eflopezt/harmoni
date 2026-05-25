@@ -76,6 +76,10 @@ from .reportes import (
 
 from .cese import personal_dar_baja, personal_reactivar
 
+from .cesar import (
+    cesar_wizard_paso1, cesar_wizard_preview, cesar_wizard_confirmar,
+)
+
 from .import_views import (
     import_upload, import_confirm, import_template_download, import_validate_ajax,
 )

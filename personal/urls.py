@@ -184,6 +184,14 @@ urlpatterns = [
     path('personal/<int:pk>/dar-baja/', views.personal_dar_baja, name='personal_dar_baja'),
     path('personal/<int:pk>/reactivar/', views.personal_reactivar, name='personal_reactivar'),
 
+    # Wizard "Cesar trabajador" (Sprint 2 Liquidaciones — 3 pasos)
+    path('personal/<int:personal_id>/cesar/',           views.cesar_wizard_paso1,
+         name='personal_cesar_paso1'),
+    path('personal/<int:personal_id>/cesar/preview/',   views.cesar_wizard_preview,
+         name='personal_cesar_preview'),
+    path('personal/<int:personal_id>/cesar/confirmar/', views.cesar_wizard_confirmar,
+         name='personal_cesar_confirmar'),
+
     # Organigrama
     path('organigrama/', views.organigrama_view, name='organigrama_erp'),
     path('organigrama/gestion/', views.organigrama_gestion, name='organigrama_gestion'),

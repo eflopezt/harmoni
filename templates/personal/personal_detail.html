@@ -89,10 +89,15 @@
             <i class="fas fa-edit me-1"></i>Editar
         </a>
         {% if personal.estado == 'Activo' %}
-        <button type="button" class="btn btn-sm btn-danger"
+        <a href="{% url 'personal_cesar_paso1' personal.pk %}" class="btn btn-sm btn-danger"
+           title="Iniciar wizard de cese (3 pasos + liquidación)"
+           onclick="return confirm('Iniciar el proceso de cese de {{ personal.apellidos_nombres|escapejs }}?\n\nSe calculará la liquidación laboral antes de confirmar.');">
+            <i class="fas fa-user-times me-1"></i>Iniciar cese
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-danger"
                 data-bs-toggle="modal" data-bs-target="#modalDarBaja"
-                title="Registrar cese del trabajador">
-            <i class="fas fa-user-slash me-1"></i>Dar de Baja
+                title="Cese rápido (sin liquidación)">
+            <i class="fas fa-user-slash me-1"></i>Cese rápido
         </button>
         {% elif personal.estado == 'Cesado' and request.user.is_superuser %}
         <form method="post" action="{% url 'personal_reactivar' personal.pk %}" class="d-inline"
