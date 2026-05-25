@@ -1,5 +1,5 @@
-{# Tour guiado interactivo — solo cuando DEMO_MODE o ?tour=1
-   Usa Driver.js desde CDN. Incluir en base.html justo antes de </body>. #}
+{% comment %} Tour guiado interactivo — solo cuando DEMO_MODE o ?tour=1
+   Usa Driver.js desde CDN. Incluir en base.html justo antes de </body>. {% endcomment %}
 
 {% if DEMO_MODE or request.GET.tour %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">

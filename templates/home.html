@@ -957,10 +957,10 @@
 
 {% if user.is_superuser or user.is_staff %}
 {% if not es_plan_starter %}
-{# ───────────────────────────────────────────────────────
+{% comment %} ───────────────────────────────────────────────────────
    FEATURES 2026 — Tiles a herramientas avanzadas
    (oculto para usuarios del Plan Starter)
-   ─────────────────────────────────────────────────────── #}
+   ─────────────────────────────────────────────────────── {% endcomment %}
 <div style="margin-top:1.5rem;">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:.85rem;">
     <i class="fas fa-rocket" style="color:#0f766e;font-size:1.05rem;"></i>

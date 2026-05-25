@@ -89,10 +89,10 @@
     <div class="sidebar-header">
         <a href="{% url 'home' %}" class="sidebar-brand-link d-flex align-items-center text-decoration-none">
             <div class="sidebar-logo" style="background:transparent !important;width:42px;height:42px;padding:0;">
-                {# Brand pack: favicon CUADRADO con fondo teal redondeado nativo
+                {% comment %} Brand pack: favicon CUADRADO con fondo teal redondeado nativo
                    (180x180 isotipo H+wave ya correctamente proporcionado).
                    Los harmoni-mark-*.png son rectangulares (128x87) — al usarlos
-                   en container cuadrado se aplastan, por eso usamos favicon. #}
+                   en container cuadrado se aplastan, por eso usamos favicon. {% endcomment %}
                 <img src="{% static 'images/brand/png/harmoni-favicon-180.png' %}"
                      alt="Harmoni"
                      width="42" height="42"

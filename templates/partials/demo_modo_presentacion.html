@@ -1,5 +1,5 @@
-{# Modo presentación — oculta sidebar y topbar para pantalla limpia.
-   Activación: Ctrl+Shift+P o ?present=1 #}
+{% comment %} Modo presentación — oculta sidebar y topbar para pantalla limpia.
+   Activación: Ctrl+Shift+P o ?present=1 {% endcomment %}
 {% if DEMO_MODE and user.is_authenticated %}
 <style>
 body.demo-presentation .harmoni-sidebar { display: none !important; }

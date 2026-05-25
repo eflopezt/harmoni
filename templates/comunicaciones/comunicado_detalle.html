@@ -87,10 +87,10 @@
         <div class="card shadow-sm">
             <div class="card-header bg-light"><strong>Contenido</strong></div>
             <div class="card-body" style="font-size:.85rem;">
-                {# Security audit fix: |safe permitia XSS si un admin malicioso
+                {% comment %} Security audit fix: |safe permitia XSS si un admin malicioso
                    inyectaba JS. Reemplazado por |linebreaks que escapa HTML
                    y convierte saltos de linea en <br>/<p>. Si en el futuro
-                   se necesita HTML real, instalar bleach y sanitizar al guardar. #}
+                   se necesita HTML real, instalar bleach y sanitizar al guardar. {% endcomment %}
                 {{ comunicado.cuerpo|linebreaks }}
             </div>
         </div>
