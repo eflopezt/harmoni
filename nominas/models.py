@@ -282,6 +282,11 @@ class RegistroNomina(models.Model):
     otros_ingresos       = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     otros_descuentos     = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
 
+    # Conceptos manuales por código → monto. Se aplican como líneas en el cálculo.
+    # Permite importar desde Excel propinas, bonificaciones, comisiones específicas por trabajador.
+    # Formato: {"PROPINAS": "150.00", "BONIF_PROD": "200.00", "DESC_TARDANZA": "30.00"}
+    conceptos_manuales = models.JSONField(default=dict, blank=True)
+
     # Totales calculados
     total_ingresos        = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     total_descuentos      = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))

@@ -14,6 +14,7 @@ from . import views_calc_especializadas
 from . import views_interanual
 from . import views_agente_ia
 from . import views_propinas
+from . import views_conceptos_masivos
 
 urlpatterns = [
     # Panel y portal
@@ -95,6 +96,14 @@ urlpatterns = [
     path('periodos/<int:pk>/aprobar/', views.periodo_aprobar, name='nominas_periodo_aprobar'),
     path('periodos/<int:pk>/cerrar/', views.periodo_cerrar, name='nominas_periodo_cerrar'),
     path('periodos/<int:pk>/exportar/', views.periodo_exportar, name='nominas_periodo_exportar'),
+
+    # Conceptos manuales masivos (Excel) — propinas, bonificaciones, comisiones por trabajador
+    path('periodos/<int:pk>/conceptos/exportar/',
+         views_conceptos_masivos.periodo_conceptos_exportar,
+         name='nominas_periodo_conceptos_exportar'),
+    path('periodos/<int:pk>/conceptos/importar/',
+         views_conceptos_masivos.periodo_conceptos_importar,
+         name='nominas_periodo_conceptos_importar'),
     path('periodos/<int:pk>/resumen/', views.periodo_resumen_ajax, name='nominas_periodo_resumen'),
     path('periodos/<int:pk>/boletas.zip', views.periodo_boletas_zip, name='nominas_periodo_boletas_zip'),
     path('periodos/<int:pk>/plame/', views.periodo_exportar_plame, name='nominas_periodo_plame'),

@@ -603,11 +603,37 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     # ── 4. Otros ingresos manuales ──
     otros_ing = _redondear(p.otros_ingresos)
 
+    # ── 4b. Conceptos manuales importados (Excel masivo o edición individual) ──
+    # Estructura: {"CODIGO": "monto_str", ...} en p.conceptos_manuales
+    # Cada par (codigo, monto) genera una LineaNomina propia preservando el detalle.
+    conceptos_manuales_data = {}  # codigo -> (concepto_obj, monto, es_ingreso)
+    cm_ing_total  = Decimal('0')
+    cm_desc_total = Decimal('0')
+    raw_cm = getattr(p, 'conceptos_manuales', None) or {}
+    if isinstance(raw_cm, dict) and raw_cm:
+        for cod, monto_raw in raw_cm.items():
+            try:
+                monto = _redondear(Decimal(str(monto_raw or '0')))
+            except (ValueError, ArithmeticError):
+                continue
+            if monto == 0:
+                continue
+            try:
+                c_obj = conceptos_activos.get(codigo=cod)
+            except ConceptoRemunerativo.DoesNotExist:
+                continue
+            es_ingreso = c_obj.tipo == 'INGRESO'
+            conceptos_manuales_data[cod] = (c_obj, monto, es_ingreso)
+            if es_ingreso:
+                cm_ing_total += monto
+            else:
+                cm_desc_total += monto
+
     # ── 5. Remuneración computable (base para AFP/ONP/IR) ──
     rem_computable = sueldo_prop + asig_fam + monto_he_25 + monto_he_35 + monto_he_100
 
-    # Total ingresos (incluyendo no remunerativos)
-    total_ingresos_bruto = rem_computable + otros_ing
+    # Total ingresos (incluyendo no remunerativos + conceptos manuales)
+    total_ingresos_bruto = rem_computable + otros_ing + cm_ing_total
 
     # ── 6. Descuentos pensionarios ──
     afp_aporte   = Decimal('0')
@@ -660,7 +686,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     otros_descuentos = _redondear(p.otros_descuentos)
 
     # ── 9. Totales ──
-    total_desc_trabajador = afp_aporte + afp_comision + afp_seguro + onp + ir_5ta + descto_prestamo + otros_descuentos
+    total_desc_trabajador = afp_aporte + afp_comision + afp_seguro + onp + ir_5ta + descto_prestamo + otros_descuentos + cm_desc_total
     neto                  = _redondear(total_ingresos_bruto - total_desc_trabajador)
 
     # ── 10. Aportes empleador (costo empresa) ──
@@ -707,6 +733,15 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     if otros_ing > 0:
         _agregar('otros-ingresos',  Decimal('0'),  Decimal('0'), otros_ing)
 
+    # Conceptos manuales tipo INGRESO (importados Excel o edición individual)
+    for cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():
+        if es_ing:
+            lineas.append({
+                'concepto': c_obj, 'base_calculo': Decimal('0'),
+                'porcentaje_aplicado': Decimal('0'), 'monto': monto,
+                'observacion': 'Importado / edición manual',
+            })
+
     # Descuentos trabajador
     if afp_aporte > 0:
         _agregar('afp-aporte',      rem_computable, AFP_APORTE,   afp_aporte,    f'AFP {afp_nombre}')
@@ -723,6 +758,15 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         _agregar('descto-prestamo', Decimal('0'),   Decimal('0'), descto_prestamo)
     if otros_descuentos > 0:
         _agregar('otros-descuentos',Decimal('0'),   Decimal('0'), otros_descuentos)
+
+    # Conceptos manuales tipo DESCUENTO
+    for cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():
+        if not es_ing:
+            lineas.append({
+                'concepto': c_obj, 'base_calculo': Decimal('0'),
+                'porcentaje_aplicado': Decimal('0'), 'monto': monto,
+                'observacion': 'Importado / edición manual',
+            })
 
     # Aportes empleador
     _agregar('essalud',             rem_computable, ESSALUD_TASA, essalud)

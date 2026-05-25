@@ -256,8 +256,38 @@
 
 /* ── Scroll wrapper for wide table ─────────────────────────── */
 .table-scroll {
-  overflow-x: auto;
+  overflow-x: scroll;  /* SIEMPRE visible para que el usuario sepa que puede scrollear */
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  scrollbar-color: #0f766e #e2e8f0;   /* Firefox: teal pulgar, gris track */
+  scrollbar-width: thin;
+}
+/* Webkit (Chrome, Edge, Safari): scrollbar custom visible y bien marcada */
+.table-scroll::-webkit-scrollbar {
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 6px;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #0f766e, #14b8a6);
+  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+}
+.table-scroll::-webkit-scrollbar-thumb:hover { background: #0d5e58; }
+.table-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 6px; }
+/* Hint visual: gradient fade en el lado derecho cuando hay overflow */
+.table-scroll-wrap {
+  position: relative;
+}
+.table-scroll-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 32px;
+  height: calc(100% - 14px);
+  background: linear-gradient(90deg, transparent, rgba(248, 250, 252, .85));
+  pointer-events: none;
+  border-radius: 0 12px 12px 0;
 }
 
 /* ── Alert legal ─────────────────────────────────────────────── */
@@ -499,6 +529,79 @@
      title="Reporte ejecutivo PDF — 1 página, gerencia">
     <i class="fas fa-file-pdf me-1"></i>Reporte Ejecutivo
   </a>
+
+  {# Conceptos manuales masivos (Excel) — propinas, bonificaciones, comisiones #}
+  {% if periodo.estado != 'APROBADO' and periodo.estado != 'CERRADO' and periodo.estado != 'ANULADO' %}
+  <div class="dropdown d-inline-block" id="importar-conceptos">
+    <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button"
+            data-bs-toggle="dropdown" aria-expanded="false"
+            title="Asignar propinas, bonificaciones, comisiones u otros conceptos manuales por Excel">
+      <i class="fas fa-file-excel me-1"></i>Conceptos masivos
+    </button>
+    <ul class="dropdown-menu shadow-sm" style="font-size:.85rem;min-width:280px;">
+      <li class="px-3 py-2" style="font-size:.72rem;color:#64748b;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">
+        Carga masiva por Excel
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-start gap-2 py-2"
+           href="{% url 'nominas_periodo_conceptos_exportar' periodo.pk %}">
+          <i class="fas fa-download mt-1 text-success"></i>
+          <span>
+            <strong>1. Descargar plantilla Excel</strong>
+            <div style="font-size:.72rem;color:#64748b;">Una fila por trabajador, una columna por concepto manual configurado (propinas, bonifs, etc.)</div>
+          </span>
+        </a>
+      </li>
+      <li><hr class="dropdown-divider"></li>
+      <li>
+        <a class="dropdown-item d-flex align-items-start gap-2 py-2"
+           href="#" data-bs-toggle="modal" data-bs-target="#modalImportarConceptos">
+          <i class="fas fa-upload mt-1 text-primary"></i>
+          <span>
+            <strong>2. Subir Excel con montos</strong>
+            <div style="font-size:.72rem;color:#64748b;">Aplica los montos y recalcula los registros del período</div>
+          </span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  {# Modal upload Excel conceptos #}
+  <div class="modal fade" id="modalImportarConceptos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:14px;border:1px solid #cbd5e1;">
+        <form method="post" action="{% url 'nominas_periodo_conceptos_importar' periodo.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header" style="background:linear-gradient(135deg,#0f766e,#0d2b27);color:#fff;border-radius:14px 14px 0 0;border:none;">
+            <h5 class="modal-title" style="font-weight:700;">
+              <i class="fas fa-file-excel me-2"></i>Importar conceptos masivos
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size:13.5px;color:#475569;line-height:1.55;margin-bottom:12px;">
+              Subí el Excel <strong>previamente descargado</strong> con los montos completados por trabajador.
+              El sistema lee la fila 2 (códigos), aplica los montos como líneas de la planilla y <strong>recalcula
+              automáticamente</strong> los totales (ingresos, AFP/ONP, neto a pagar).
+            </p>
+            <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#78350f;margin-bottom:14px;">
+              <i class="fas fa-info-circle me-1"></i>
+              <strong>Importante:</strong> usá la plantilla descargada del paso 1. No modifiques la fila 2 (códigos de conceptos).
+            </div>
+            <input type="file" class="form-control" name="archivo" accept=".xlsx" required>
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Solo archivos .xlsx (Excel 2007 o superior).</div>
+          </div>
+          <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success btn-sm">
+              <i class="fas fa-upload me-1"></i>Subir y aplicar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
   {% endif %}
   <a href="{% url 'nominas_comparativo_mensual' %}"
      class="btn btn-outline-info btn-sm"
@@ -602,6 +705,7 @@
 {# ── Data Table ───────────────────────────────────────────────────────────────── #}
 <div class="det-card">
   {% if registros %}
+  <div class="table-scroll-wrap">
   <div class="table-scroll">
     <table class="nom-det-table" id="tabla-nomina">
       <thead>
@@ -767,6 +871,7 @@
       </tfoot>
     </table>
   </div>
+  </div>{# .table-scroll-wrap #}
 
   {# Mensaje sin resultados de filtro #}
   <div id="sin-resultados" class="det-empty" style="display:none;">
