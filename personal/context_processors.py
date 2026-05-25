@@ -105,7 +105,7 @@ def _get_empresas_disponibles() -> list:
 
     Filtra empresas que (a) tengan al menos 1 trabajador Y (b) cuyo nombre/razón
     no coincida con el patrón de seeds-residuo (configurable vía
-    settings.HIDE_EMPRESAS_NAMES, default incluye 'Pixel Motion').
+    settings.HIDE_EMPRESAS_NAMES).
     """
     cache_key = 'harmoni_ctx_empresas_v3'  # v3: filtra por nombre residuo
     data = cache.get(cache_key)
@@ -114,7 +114,10 @@ def _get_empresas_disponibles() -> list:
             from django.conf import settings
             from django.db.models import Count, Q
             from empresas.models import Empresa
-            hide_names = getattr(settings, 'HIDE_EMPRESAS_NAMES', ['Pixel Motion'])
+            # Default vacío: empresas se filtran solo por _n__gt=0 (sin trabajadores).
+            # Si una instalación quiere ocultar empresas específicas (residuos seed,
+            # divisiones legacy, etc.), define HIDE_EMPRESAS_NAMES en settings.
+            hide_names = getattr(settings, 'HIDE_EMPRESAS_NAMES', [])
             qs = (
                 Empresa.objects.filter(activa=True)
                 .annotate(_n=Count('personal'))
