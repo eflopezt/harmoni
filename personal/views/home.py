@@ -733,14 +733,18 @@ from django.core.cache import cache as _login_cache
 class RateLimitedLoginView(DjangoLoginView):
     """LoginView con rate limiting basico para mitigar brute-force.
 
-    Estrategia: trackeo por IP + por username separadamente. Tras 5 intentos
-    fallidos en 5 minutos, bloquea con HTTP 429 durante 15 minutos.
+    Estrategia: trackeo por IP + por username separadamente. Tras N intentos
+    fallidos en una ventana, bloquea con HTTP 429 durante un tiempo de penalty.
     Login exitoso resetea el contador. Usa el cache de Django (Redis en prod).
+
+    En MODO DEMO (settings.DEMO_MODE=True) los límites son más permisivos
+    para evitar bloquear durante presentaciones — el riesgo de brute-force
+    en demo es bajo porque los datos se resetean cada noche.
     """
 
-    MAX_FALLOS = 5
+    MAX_FALLOS = 20 if getattr(__import__('django.conf', fromlist=['settings']).settings, 'DEMO_MODE', False) else 5
     VENTANA_INTENTOS = 5 * 60      # 5 min
-    BLOQUEO_SEGUNDOS = 15 * 60     # 15 min
+    BLOQUEO_SEGUNDOS = 60 if getattr(__import__('django.conf', fromlist=['settings']).settings, 'DEMO_MODE', False) else 15 * 60
 
     @staticmethod
     def _client_ip(request):
