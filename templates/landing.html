@@ -13,7 +13,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://harmoni.pe">
     <meta property="og:image" content="{% static 'images/brand/png/harmoni-logo-1200.png' %}">
-    <link rel="apple-touch-icon" sizes="192x192" href="{% static 'images/brand/png/harmoni-mark-256.png' %}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{% static 'images/brand/png/harmoni-favicon-256.png' %}">
     <meta name="theme-color" content="#0d9488">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -585,10 +585,10 @@ body{
 <div class="ctr ft-i">
     <div class="ft-brand">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        {# Footer landing: fondo oscuro → mark transparent (sin lockup, ya hay span con texto) #}
-        <img src="{% static 'images/brand/png/harmoni-mark-128.png' %}"
+        {% comment %}Footer landing: favicon CUADRADO 180x180 con border-radius (los harmoni-mark-*.png son 128x87 rectangulares → distorsionan).{% endcomment %}
+        <img src="{% static 'images/brand/png/harmoni-favicon-180.png' %}"
              alt="Harmoni" width="32" height="32"
-             style="display:block;">
+             style="display:block;border-radius:8px;">
         <span>Harmoni</span>
       </div>
       <small>ERP de RRHH y Planillas</small>
