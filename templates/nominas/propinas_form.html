@@ -1,0 +1,120 @@
+{% extends "base_v2.html" %}
+{% load humanize %}
+
+{% block title %}Nuevo Pool de Propinas — Nóminas{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h2><i class="fas fa-plus-circle"></i> Nuevo Pool de Propinas</h2>
+      <p class="page-subtitle">
+        Carga el monto bruto recolectado en el período. Al guardar verás un
+        preview y podrás ejecutar la distribución.
+      </p>
+    </div>
+    <a href="{% url 'propinas_lista' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Fecha inicio</label>
+                <input type="date" name="fecha_inicio"
+                       class="form-control" required
+                       value="{{ fecha_inicio_default }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Fecha fin</label>
+                <input type="date" name="fecha_fin"
+                       class="form-control" required
+                       value="{{ fecha_fin_default }}">
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label small fw-semibold">Monto bruto recolectado (S/)</label>
+              <input type="number" name="monto_bruto" step="0.01" min="0"
+                     class="form-control form-control-lg" required
+                     placeholder="0.00" autofocus>
+              <small class="text-muted">
+                Total de propinas + recargo al consumo del período (antes de retención casa).
+              </small>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label small fw-semibold">Notas (opcional)</label>
+              <textarea name="notas" class="form-control" rows="2"
+                        placeholder="Ej: Semana fiestas, evento corporativo, etc."></textarea>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i>Crear Pool
+              </button>
+              <a href="{% url 'propinas_lista' %}" class="btn btn-outline-secondary">
+                Cancelar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header">
+          <small class="fw-semibold text-muted text-uppercase">
+            <i class="fas fa-info-circle me-1"></i>Reglas de distribución
+          </small>
+        </div>
+        <div class="card-body small">
+          <div class="mb-2">
+            <span class="text-muted">Modo:</span>
+            <strong>{{ cfg.get_modo_display }}</strong>
+          </div>
+          <div class="mb-2">
+            <span class="text-muted">% Casa retiene:</span>
+            <strong>{{ cfg.porcentaje_casa }}%</strong>
+          </div>
+          <div class="mb-2">
+            <span class="text-muted">Cocina incluida:</span>
+            {% if cfg.incluye_cocina %}<span class="badge bg-success">Sí</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}
+          </div>
+          <div class="mb-2">
+            <span class="text-muted">Admin incluido:</span>
+            {% if cfg.incluye_admin %}<span class="badge bg-success">Sí</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}
+          </div>
+          <hr>
+          <div class="text-muted">
+            <i class="fas fa-users me-1"></i>
+            Personal activo en empresa: <strong>{{ n_activos }}</strong>
+            <br>
+            <small>(Filtros de cocina/admin se aplican al distribuir.)</small>
+          </div>
+          <hr>
+          <a href="{% url 'propinas_config' %}" class="btn btn-sm btn-outline-secondary w-100">
+            <i class="fas fa-cogs me-1"></i>Editar configuración
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

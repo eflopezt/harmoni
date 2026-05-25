@@ -13,6 +13,7 @@ from . import views_reporte_mes
 from . import views_calc_especializadas
 from . import views_interanual
 from . import views_agente_ia
+from . import views_propinas
 
 urlpatterns = [
     # Panel y portal
@@ -190,4 +191,13 @@ urlpatterns = [
     path('alimentacion/generar/', views.alimentacion_generar, name='alimentacion_generar'),
     path('alimentacion/exportar/', views.alimentacion_exportar, name='alimentacion_exportar'),
     path('alimentacion/procesar/', views.alimentacion_procesar, name='alimentacion_procesar'),
+
+    # Pool de Propinas (gastronomía)
+    path('propinas/',                       views_propinas.propinas_lista,      name='propinas_lista'),
+    path('propinas/config/',                views_propinas.propinas_config,     name='propinas_config'),
+    path('propinas/nuevo/',                 views_propinas.propinas_nuevo,      name='propinas_nuevo'),
+    path('propinas/<int:pool_id>/',         views_propinas.propinas_detalle,    name='propinas_detalle'),
+    path('propinas/<int:pool_id>/distribuir/',
+         views_propinas.propinas_distribuir,
+         name='propinas_distribuir'),
 ]

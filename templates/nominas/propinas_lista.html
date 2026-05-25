@@ -1,0 +1,206 @@
+{% extends "base_v2.html" %}
+{% load humanize %}
+
+{% block title %}Pools de Propinas — Nóminas{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+
+  {# ── Header ── #}
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h2><i class="fas fa-coins"></i> Pools de Propinas</h2>
+      <p class="page-subtitle">
+        Recolección y distribución de propinas por turno o período (gastronomía).
+        Concepto NO REMUNERATIVO — no afecta AFP/ONP/CTS/Gratificaciones.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'propinas_config' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-cogs me-1"></i>Configurar
+      </a>
+      <a href="{% url 'propinas_nuevo' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus-circle me-1"></i>Nuevo Pool
+      </a>
+    </div>
+  </div>
+
+  {# ── Mensajes ── #}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  {# ── Resumen config ── #}
+  {% if cfg %}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+      <div class="row align-items-center small">
+        <div class="col-md-3">
+          <span class="text-muted">Modo:</span>
+          <strong>{{ cfg.get_modo_display }}</strong>
+        </div>
+        <div class="col-md-3">
+          <span class="text-muted">% Casa:</span>
+          <strong>{{ cfg.porcentaje_casa }}%</strong>
+        </div>
+        <div class="col-md-3">
+          <span class="text-muted">Incluye cocina:</span>
+          {% if cfg.incluye_cocina %}<i class="fas fa-check text-success"></i>{% else %}<i class="fas fa-times text-danger"></i>{% endif %}
+        </div>
+        <div class="col-md-3">
+          <span class="text-muted">Incluye admin:</span>
+          {% if cfg.incluye_admin %}<i class="fas fa-check text-success"></i>{% else %}<i class="fas fa-times text-danger"></i>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    No hay configuración de pool para esta empresa.
+    <a href="{% url 'propinas_config' %}" class="alert-link">Configurar ahora →</a>
+  </div>
+  {% endif %}
+
+  {# ── Detalle de un pool específico ── #}
+  {% if detalle %}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <strong>
+        <i class="fas fa-receipt me-2"></i>
+        Distribución — {{ detalle.fecha_inicio|date:"d/m/Y" }} a {{ detalle.fecha_fin|date:"d/m/Y" }}
+      </strong>
+      {% if not detalle.distribuido %}
+      <form method="post" action="{% url 'propinas_distribuir' detalle.pk %}" class="m-0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-success">
+          <i class="fas fa-share-alt me-1"></i>Distribuir ahora
+        </button>
+      </form>
+      {% else %}
+      <span class="badge bg-success">
+        <i class="fas fa-check me-1"></i>Distribuido el {{ detalle.distribuido_en|date:"d/m/Y H:i" }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div class="row mb-3 small">
+        <div class="col-md-4">
+          <div class="text-muted">Monto bruto recolectado</div>
+          <div class="h5">S/ {{ detalle.monto_bruto|floatformat:2|intcomma }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted">Retención casa ({{ cfg.porcentaje_casa|default:0 }}%)</div>
+          <div class="h5 text-warning">− S/ {{ detalle.monto_casa|floatformat:2|intcomma }}</div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted">Distribuible</div>
+          <div class="h5 text-success">S/ {{ detalle.monto_distribuible|floatformat:2|intcomma }}</div>
+        </div>
+      </div>
+
+      {% if distribuciones %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover small mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Trabajador</th>
+              <th>Cargo</th>
+              <th class="text-end">Puntos</th>
+              <th class="text-end">Monto S/</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for d in distribuciones %}
+            <tr>
+              <td>{{ d.personal.apellidos_nombres }}</td>
+              <td><small class="text-muted">{{ d.personal.cargo|default:"—" }}</small></td>
+              <td class="text-end">{{ d.puntos|floatformat:2 }}</td>
+              <td class="text-end fw-semibold">{{ d.monto|floatformat:2|intcomma }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="fw-bold">
+              <td colspan="3" class="text-end">Total distribuido:</td>
+              <td class="text-end">S/ {{ detalle.monto_distribuible|floatformat:2|intcomma }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% elif detalle.distribuido %}
+      <div class="text-muted text-center py-3">
+        <i class="fas fa-info-circle me-1"></i>
+        Pool distribuido sin entradas (sin participantes elegibles o modo INDIVIDUAL).
+      </div>
+      {% else %}
+      <div class="text-muted text-center py-3">
+        Pendiente de distribuir. Presiona "Distribuir ahora".
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Lista general ── #}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header">
+      <strong><i class="fas fa-list me-2"></i>Pools registrados</strong>
+    </div>
+    <div class="card-body p-0">
+      {% if pools %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th>Período</th>
+              <th class="text-end">Bruto S/</th>
+              <th class="text-end">Distribuible S/</th>
+              <th>Estado</th>
+              <th class="text-end">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for pool in pools %}
+            <tr>
+              <td>
+                <a href="{% url 'propinas_detalle' pool.pk %}" class="fw-semibold text-decoration-none">
+                  {{ pool.fecha_inicio|date:"d/m/Y" }} → {{ pool.fecha_fin|date:"d/m/Y" }}
+                </a>
+                {% if pool.notas %}<br><small class="text-muted">{{ pool.notas|truncatechars:60 }}</small>{% endif %}
+              </td>
+              <td class="text-end">{{ pool.monto_bruto|floatformat:2|intcomma }}</td>
+              <td class="text-end">{{ pool.monto_distribuible|floatformat:2|intcomma }}</td>
+              <td>
+                {% if pool.distribuido %}
+                  <span class="badge bg-success">Distribuido</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Pendiente</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <a href="{% url 'propinas_detalle' pool.pk %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="fas fa-eye"></i>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="p-5 text-center text-muted">
+        <i class="fas fa-coins fa-2x mb-2"></i>
+        <p class="mb-2">No hay pools registrados aún.</p>
+        <a href="{% url 'propinas_nuevo' %}" class="btn btn-sm btn-primary">
+          <i class="fas fa-plus-circle me-1"></i>Crear primer pool
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

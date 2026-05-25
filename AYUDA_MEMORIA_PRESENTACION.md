@@ -37,7 +37,8 @@
 - Punto a destacar: **diseño Cockpit** (Linear/Notion-style), tipografía Inter + JetBrains Mono para números.
 
 ### 2. Login y entrada al ERP (1 min)
-- Ingresa con la cuenta demo.
+- **URL**: `https://demo.harmoni.pe/login/`
+- **Credenciales**: `demo` / `demo123` (admin) — verificadas al deploy de hoy.
 - **Di**: "Multi-tenant por subdominio — cada cliente tiene su propio entorno aislado. Aquí entran al Grupo Sabores."
 
 ### 3. Dashboard "Centro de Comando" (2 min)
