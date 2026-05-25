@@ -372,4 +372,13 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'integraciones.tasks.sync_synkro_auto',
         'schedule': crontab(minute='*/15'),  # cada 15 minutos
     },
+
+    # ── Infra — Backup PostgreSQL ──────────────────────────────
+    # pg_dump diario de harmoni_db a /opt/harmoni/backups + rotación 30 días.
+    # Si BACKUP_S3_BUCKET o BACKUP_B2_BUCKET están seteados en el entorno
+    # del beat/worker, también sube offsite. Ver deploy/backup-db.sh.
+    'backup-db-diario': {
+        'task': 'core.tasks_backup.backup_db_diario',
+        'schedule': crontab(hour=3, minute=30),  # Diario 03:30
+    },
 }
