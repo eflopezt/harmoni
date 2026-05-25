@@ -179,6 +179,12 @@ urlpatterns = [
          views_liquidacion.api_liquidacion,
          name='nominas_api_liquidacion'),
 
+    # Sprint 3 — Documentos al cese: carta de no adeudo (certificado de trabajo
+    # se monta en personal/urls.py para que quede en /personal/<id>/certificado-trabajo/).
+    path('liquidacion/<int:liquidacion_id>/carta-no-adeudo/',
+         views_liquidacion.carta_no_adeudo_pdf,
+         name='nominas_carta_no_adeudo_pdf'),
+
     # IR 5ta Categoría
     path('ir5ta/', views.ir5ta_panel, name='nominas_ir5ta'),
     path('registros/<int:pk>/ir5ta/', views.registro_ir5ta_ajax, name='nominas_registro_ir5ta'),

@@ -473,6 +473,30 @@ def liquidacion_laboral_detalle(request, liquidacion_id):
     ]
     total_descuentos = sum(v for _, v in descuentos)
 
+    # Sprint 3 — Determinar si la etapa 1 del workflow offboarding
+    # (Encuesta de salida) está activa para esta liquidación. En ese caso
+    # mostramos el botón "Enviar encuesta exit" en el template.
+    encuesta_exit_etapa_activa = False
+    encuesta_exit_url = ''
+    try:
+        if liq.instancia_flujo and liq.instancia_flujo.estado == 'EN_PROCESO':
+            etapa = liq.instancia_flujo.etapa_actual
+            if etapa and etapa.orden == 1 and 'salida' in etapa.nombre.lower():
+                encuesta_exit_etapa_activa = True
+                # Resolver Encuesta SALIDA — sin crashear si no fue sembrada.
+                try:
+                    from encuestas.models import Encuesta
+                    enc = (
+                        Encuesta.objects.filter(tipo='SALIDA', estado='ACTIVA')
+                        .order_by('-fecha_inicio').first()
+                    )
+                    if enc:
+                        encuesta_exit_url = f'/encuestas/responder/{enc.pk}/'
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
     return render(request, 'nominas/liquidacion_laboral_detalle.html', {
         'titulo':           f'Liquidación — {liq.personal.apellidos_nombres}',
         'liq':              liq,
@@ -480,6 +504,9 @@ def liquidacion_laboral_detalle(request, liquidacion_id):
         'conceptos':        conceptos,
         'descuentos':       descuentos,
         'total_descuentos': total_descuentos,
+        # Sprint 3 — botones nuevos
+        'encuesta_exit_etapa_activa': encuesta_exit_etapa_activa,
+        'encuesta_exit_url':          encuesta_exit_url,
     })
 
 
@@ -512,3 +539,60 @@ def liquidacion_laboral_pdf(request, liquidacion_id):
                             pk=liquidacion_id)
     # Delegamos a la vista legacy con el personal.
     return liquidacion_pdf(request, pk=liq.personal_id)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sprint 3 — Documentos al cese (Carta de no adeudo + Certificado de trabajo)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@staff_member_required
+def carta_no_adeudo_pdf(request, liquidacion_id):
+    """
+    GET /nominas/liquidacion/<liquidacion_id>/carta-no-adeudo/
+
+    Descarga el PDF "Carta de no adeudo y liberación mutua" para la
+    liquidación. Solo accesible a staff (RRHH).
+    """
+    from .models import LiquidacionLaboral
+    from .cartas import generar_carta_no_adeudo
+
+    liq = get_object_or_404(
+        LiquidacionLaboral.objects.select_related('personal'),
+        pk=liquidacion_id,
+    )
+    pdf_bytes = generar_carta_no_adeudo(liq)
+    filename = (
+        f"carta_no_adeudo_{liq.personal.nro_doc}_"
+        f"{liq.fecha_cese:%Y%m%d}.pdf"
+    )
+    resp = HttpResponse(pdf_bytes, content_type='application/pdf')
+    resp['Content-Disposition'] = f'inline; filename="{filename}"'
+    return resp
+
+
+@staff_member_required
+def certificado_trabajo_pdf(request, personal_id):
+    """
+    GET /personal/<personal_id>/certificado-trabajo/
+
+    Descarga el PDF "Certificado de Trabajo" del trabajador cesado.
+    Devuelve 400 si el trabajador no está cesado.
+    """
+    from .cartas import generar_certificado_trabajo
+
+    personal = get_object_or_404(Personal, pk=personal_id)
+    try:
+        pdf_bytes = generar_certificado_trabajo(personal)
+    except ValueError as exc:
+        return HttpResponse(
+            f'Error: {exc}',
+            status=400,
+            content_type='text/plain; charset=utf-8',
+        )
+    filename = (
+        f"certificado_trabajo_{personal.nro_doc}_"
+        f"{personal.fecha_cese:%Y%m%d}.pdf"
+    )
+    resp = HttpResponse(pdf_bytes, content_type='application/pdf')
+    resp['Content-Disposition'] = f'inline; filename="{filename}"'
+    return resp

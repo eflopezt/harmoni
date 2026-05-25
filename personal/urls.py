@@ -4,6 +4,7 @@ URLs para vistas del módulo personal.
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from nominas import views_liquidacion as _nominas_liq_views
 
 urlpatterns = [
     # Home
@@ -191,6 +192,13 @@ urlpatterns = [
          name='personal_cesar_preview'),
     path('personal/<int:personal_id>/cesar/confirmar/', views.cesar_wizard_confirmar,
          name='personal_cesar_confirmar'),
+
+    # Sprint 3 Liquidaciones — Certificado de Trabajo (PDF) para trabajador cesado.
+    # La vista vive en nominas.views_liquidacion para mantener juntas las
+    # herramientas de documentos al cese; aquí la montamos en /personal/.
+    path('personal/<int:personal_id>/certificado-trabajo/',
+         _nominas_liq_views.certificado_trabajo_pdf,
+         name='personal_certificado_trabajo_pdf'),
 
     # Organigrama
     path('organigrama/', views.organigrama_view, name='organigrama_erp'),

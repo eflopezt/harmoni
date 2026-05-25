@@ -137,14 +137,69 @@ class LiquidacionLaboral(models.Model):
 
 ### 1.6 Ruta de implementación priorizada (post-demo)
 
-| Sprint | Entregable |
-|--------|------------|
-| Sprint 1 (2 sem) | Modelo `LiquidacionLaboral` + migración + signal `post_cese_personal` + cálculo de truncas reutilizando `engine` |
-| Sprint 2 (2 sem) | PDF boleta unificada (sueldo + liquidación) + Workflow offboarding pre-armado |
-| Sprint 3 (1 sem) | Carta no adeudo + encuesta exit + UI ficha cese |
-| Sprint 4 (1 sem) | Tests + docs + onboarding al cliente |
+| Sprint | Entregable | Estado |
+|--------|------------|--------|
+| Sprint 1 (2 sem) | Modelo `LiquidacionLaboral` + migración + signal `post_cese_personal` + cálculo de truncas reutilizando `engine` | ✅ implementado |
+| Sprint 2 (2 sem) | PDF boleta unificada (sueldo + liquidación) + Workflow offboarding pre-armado + wizard `/personal/<id>/cesar/` 3 pasos | ✅ implementado |
+| Sprint 3 (1 sem) | Carta no adeudo + certificado de trabajo + encuesta exit + UI botones en detalle de liquidación | ✅ implementado |
+| Sprint 4 (1 sem) | Tests E2E + docs cliente + capacitación RRHH | ⏳ pendiente |
 
 **Total: ~6 semanas**.
+
+### 1.7 Sprint 3 — Documentos al cese (✅ implementado 2026-05-25)
+
+Tres entregables, todos visibles en `/nominas/liquidacion/<id>/` para
+trabajadores cesados:
+
+**a) Carta de no adeudo y liberación mutua**
+
+- Generador: `nominas/cartas.py::generar_carta_no_adeudo(liquidacion)`
+- Endpoint: `GET /nominas/liquidacion/<liquidacion_id>/carta-no-adeudo/`
+- Nombre URL: `nominas_carta_no_adeudo_pdf`
+- Acceso: `@staff_member_required`
+- Estructura: header con logo + razón social + RUC + dirección, título
+  "CARTA DE NO ADEUDO Y LIBERACIÓN MUTUA", cuerpo formal peruano con
+  detalle de conceptos pagados y monto total, doble firma (empleador /
+  trabajador), footer con N° doc, hash de integridad SHA-256 y QR de
+  verificación. Tamaño A4.
+
+**b) Certificado de trabajo**
+
+- Generador: `nominas/cartas.py::generar_certificado_trabajo(personal)`
+- Endpoint: `GET /personal/<personal_id>/certificado-trabajo/`
+- Nombre URL: `personal_certificado_trabajo_pdf`
+- Acceso: `@staff_member_required`. Devuelve 400 si el trabajador no
+  está cesado.
+- Estructura: header de empresa, título "CERTIFICADO DE TRABAJO",
+  cuerpo con período laborado (alta/cese), cargo y desempeño
+  (omitido si motivo de cese fue despido por causa justa), firma
+  RRHH centrada, footer con N° doc + hash + QR.
+
+**c) Encuesta exit interview**
+
+- Seed idempotente: `python manage.py seed_exit_interview`
+- Crea `Encuesta(tipo='SALIDA', estado='ACTIVA')` con **10 preguntas**
+  estándar cubriendo motivo de salida, satisfacción general, eNPS,
+  evaluación de jefe directo y compensación, reconocimiento y
+  comentarios libres.
+- Mix de tipos: `TEXTO` (libre), `ESCALA_10` (0-10), `ESCALA_5`
+  (1-5), `OPCION` (sí/no/tal vez, sí/no/a veces).
+- Match idempotente por `(titulo, tipo='SALIDA')`; preguntas se
+  agregan solo si falta su `orden`.
+- Integración con workflow: cuando la etapa 1 ("Encuesta de salida")
+  del flujo offboarding está activa, la vista de detalle expone el
+  botón "Enviar encuesta exit" enlazando a
+  `/encuestas/responder/<encuesta_id>/`.
+
+**Reutilizaciones clave**:
+- Logo: mismo `harmoni-favicon-512.png` usado en `nominas/pdf.py`.
+- Empresa: misma prioridad `Personal.empresa` → `ConfiguracionSistema`.
+- Tokens y hashes: estructura sha256+SECRET_KEY como en `pdf.py`.
+
+**Tests**: `nominas/tests/test_cartas.py` (12 tests) y
+`encuestas/tests/test_exit_interview.py` (8 tests). Validan signature
+PDF, extracción de texto con `pypdf`, autorización staff e
+idempotencia del seed.
 
 ---
 

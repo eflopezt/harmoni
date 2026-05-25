@@ -36,6 +36,24 @@
          class="btn btn-sm btn-outline-danger" target="_blank">
         <i class="fas fa-file-pdf me-1"></i>Imprimir PDF
       </a>
+      {# Sprint 3 — Documentos al cese #}
+      <a href="{% url 'nominas_carta_no_adeudo_pdf' liq.pk %}"
+         class="btn btn-sm btn-outline-primary" target="_blank"
+         title="Carta de no adeudo y liberación mutua (PDF)">
+        <i class="fas fa-file-contract me-1"></i>Carta de no adeudo
+      </a>
+      <a href="{% url 'personal_certificado_trabajo_pdf' personal.pk %}"
+         class="btn btn-sm btn-outline-primary" target="_blank"
+         title="Certificado de Trabajo (PDF)">
+        <i class="fas fa-file-signature me-1"></i>Certificado de trabajo
+      </a>
+      {% if encuesta_exit_etapa_activa and encuesta_exit_url %}
+      <a href="{{ encuesta_exit_url }}"
+         class="btn btn-sm btn-outline-info" target="_blank"
+         title="Enviar enlace al trabajador para responder la encuesta de salida">
+        <i class="fas fa-paper-plane me-1"></i>Enviar encuesta exit
+      </a>
+      {% endif %}
       <a href="{% url 'nominas_liquidaciones' %}" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-arrow-left me-1"></i>Volver
       </a>
