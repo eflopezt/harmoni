@@ -559,104 +559,31 @@ class TareoProcessor:
                         fuente_codigo: str = '',
                         ) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal]:
         """
-        Retorna (horas_efectivas, horas_normales, he_25, he_35, he_100).
+        Thin wrapper sobre `asistencia.services.he_calculator.calcular_he_componentes`.
 
-        Reglas HE (D.S. 007-2002-TR, art. 10):
-          - 1ra y 2da HE → tasa 25%
-          - 3ra HE en adelante → tasa 35%
-          - Feriado laborado → tasa 100% (D.Leg. 713, Art. 9)
-          - Descanso semanal trabajado → tasa 100% (D.Leg. 713, Art. 3-4)
-            Incluye: domingos y cualquier día de descanso según régimen
+        Retorna (horas_efectivas, horas_normales, he_25, he_35, he_100) SIN
+        redondear (el wrapper público `_calcular_horas` redondea con
+        `redondear_media_hora`).
 
-        Regla SS:
-          - El día SS se paga como jornada completa (horas_efectivas = jornada)
-          - NO genera HE de ningún tipo
-          - NO va al banco de horas
+        El parámetro `grupo` no afecta el cálculo (STAFF vs RCO sólo difiere
+        en el destino: banco de horas vs nómina). Se mantiene en la firma
+        por compatibilidad con los callers.
 
-        Regla STAFF vs RCO:
-          - STAFF: HE van al banco (he_al_banco=True, se guardan igual)
-          - RCO: HE se pagan en nómina (se exportan a CargaS10)
-          - El cálculo de HE es idéntico; solo difiere el destino.
+        Reglas HE: ver docstring del módulo `he_calculator`.
         """
-        # ── SS (Sin Salida): paga jornada, sin HE adicional ──
-        if es_ss:
-            j = jornada_h if jornada_h > CERO else Decimal('8.5')
-            # LOCAL domingo o feriado: SS también se paga al 100%
-            # D.Leg. 713: trabajar en descanso semanal o feriado → 100%
-            es_descanso = (dia_semana == 6) if dia_semana is not None else False
-            if (es_feriado or es_descanso) and (es_feriado or jornada_h == CERO):
-                return j, CERO, CERO, CERO, j
-            return j, j, CERO, CERO, CERO
-
-        # ── Marcación incompleta: horas < mitad de jornada → SS implícito
-        # Si marcó entrada pero no salida (o solo salida a refrigerio),
-        # el biométrico calcula pocas horas. Se reconoce jornada completa, sin HE.
-        if (horas_marcadas and horas_marcadas > CERO
-                and horas_marcadas < jornada_h / 2
-                and codigo not in CODIGOS_SIN_HE):
-            return jornada_h, jornada_h, CERO, CERO, CERO
-
-        # ── Códigos sin horas ni HE ────────────────────────────
-        if codigo in CODIGOS_SIN_HE or not horas_marcadas or horas_marcadas <= CERO:
-            return CERO, CERO, CERO, CERO, CERO
-
-        # ── Descontar almuerzo ─────────────────────────────────
-        # Lógica unificada con _recalcular_horas (UI) via helper compartido.
-        from asistencia.services._helpers import calcular_almuerzo_h
-        almuerzo_h = calcular_almuerzo_h(horas_marcadas, jornada_h, almuerzo_manual)
-        horas_ef = max(CERO, horas_marcadas - almuerzo_h)
-
-        # ── Feriado laborado o Descanso Semanal trabajado: todo al 100%
-        # D.Leg. 713, Art. 3-4: Descanso semanal obligatorio (domingo por defecto)
-        # D.Leg. 713, Art. 9: Feriados no laborables
-        # Si el trabajador asiste en estos días, TODAS las horas son al 100%
-        # Excepción: si hay papeleta de compensación APROBADA, se trata como día normal
-        # (D.Leg. 713 Art. 6 — compensación en lugar de pago HE 100%)
-        # Códigos LABORADOS (DSL/FL) indican descanso/feriado trabajado aunque
-        # el día calendario no lo sea (descanso rotativo en miércoles).
-        es_descanso_semanal = (
-            ((dia_semana == 6) if dia_semana is not None else False)
-            or codigo == 'DSL'
+        from asistencia.services.he_calculator import calcular_he_componentes
+        return calcular_he_componentes(
+            codigo=codigo,
+            horas_marcadas=horas_marcadas,
+            jornada_h=jornada_h,
+            es_feriado=es_feriado,
+            es_ss=es_ss,
+            dia_semana=dia_semana,
+            tiene_papeleta_comp=tiene_papeleta_comp,
+            he_bloqueado=he_bloqueado,
+            almuerzo_manual=almuerzo_manual,
+            fuente_codigo=fuente_codigo,
         )
-        codigo_es_feriado = codigo == 'FL'
-        # Si el CÓDIGO dice laborado en descanso/feriado, todas las horas al 100%
-        # (no aplica la jornada reducida de FORÁNEO domingo).
-        codigo_fuerza_100 = codigo in ('DSL', 'FL')
-        # #4 fix: si el admin cambió manualmente a NOR/T/A, calcular como día normal
-        # (el trabajador tiene descanso semanal en otro día, no el domingo)
-        codigo_fuerza_normal = (
-            codigo in ('NOR', 'T', 'A') and fuente_codigo == 'MANUAL'
-        )
-        if ((es_feriado or codigo_es_feriado or es_descanso_semanal)
-                and not tiene_papeleta_comp and not codigo_fuerza_normal):
-            jornada = Decimal(str(jornada_h))
-            if es_feriado or codigo_fuerza_100 or jornada == CERO:
-                # Feriado (toda condición) o LOCAL domingo: TODAS las horas al 100%
-                # D.Leg. 713, Art. 3-4 (descanso semanal) y Art. 9 (feriados)
-                return horas_ef, CERO, CERO, CERO, horas_ef
-            else:
-                # FORÁNEO domingo (4h jornada): normal hasta jornada, exceso HE 100%
-                h_norm = min(horas_ef, jornada)
-                he100 = max(CERO, horas_ef - jornada)
-                return horas_ef, h_norm, CERO, CERO, he100
-
-        # ── Día normal ─────────────────────────────────────────
-        jornada = Decimal(str(jornada_h))
-        if horas_ef <= jornada:
-            return horas_ef, horas_ef, CERO, CERO, CERO
-
-        # ── Control HE: sin solicitud aprobada → se capan en jornada ──
-        # DL 728: HE son voluntarias; el empleador puede exigir autorización previa.
-        # Si he_bloqueado=True, el exceso no se registra como HE.
-        if he_bloqueado:
-            return jornada, jornada, CERO, CERO, CERO
-
-        # Exceso sobre la jornada normal → HE
-        exceso = horas_ef - jornada
-        he25 = min(exceso, Decimal('2'))            # primeras 2 HE al 25%
-        he35 = max(CERO, exceso - Decimal('2'))     # 3ra HE en adelante al 35%
-
-        return horas_ef, jornada, he25, he35, CERO
 
     @transaction.atomic
     def _actualizar_banco_horas(self, personal_map: dict) -> dict:
