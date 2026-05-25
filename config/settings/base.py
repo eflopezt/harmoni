@@ -164,7 +164,20 @@ DECIMAL_SEPARATOR = '.'
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Django 5+: usa STORAGES dict en lugar de STATICFILES_STORAGE (deprecated).
+# CompressedManifestStaticFilesStorage genera hash en el nombre del archivo
+# (ej: harmoni.abc123.css) para invalidar caché del browser automáticamente
+# cuando cambia el contenido. Sin esto, el browser cachea CSS viejos por días
+# y el cliente debe hacer Ctrl+Shift+R para ver cambios.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # Media files
 MEDIA_URL = 'media/'
