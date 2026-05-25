@@ -71,6 +71,9 @@ sleep 5
 
 # ── Re-seed base ─────────────────────────────────────────────────────────
 docker exec $EXEC_ENV harmoni-demo-web python manage.py migrate --no-input >> $LOG 2>&1
+# Workflow Offboarding (5 etapas) — debe correr ANTES de los seeds de datos
+# para que las LiquidacionLaboral creadas por seed_demo_nominas disparen el flujo.
+docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_offboarding_flow >> $LOG 2>&1 || echo "  ! seed_offboarding_flow fallo (no critico)" >> $LOG
 docker exec $EXEC_ENV harmoni-demo-web python manage.py shell -c "
 from django.contrib.auth import get_user_model
 U = get_user_model()
