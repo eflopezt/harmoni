@@ -151,12 +151,13 @@ USE_TZ = True
 
 # Override del formato es_PE (Django default usa coma decimal — ambiguo S/X,XX).
 # Custom formats en /formats/es_PE/formats.py forzan punto decimal + coma miles
-# (estándar peruano financiero: S/ 1,458.00).
+# para DECIMALES (estándar peruano financiero: S/ 1,458.00).
+# IMPORTANTE: USE_THOUSAND_SEPARATOR=False evita que años (2026) se formateen
+# como "2,026". El separador de miles se aplica solo en filtros explícitos
+# como |intcomma sobre DecimalFields.
 FORMAT_MODULE_PATH = ['formats']
-USE_THOUSAND_SEPARATOR = True
-THOUSAND_SEPARATOR = ','
+USE_THOUSAND_SEPARATOR = False
 DECIMAL_SEPARATOR = '.'
-NUMBER_GROUPING = 3
 
 
 # Static files (CSS, JavaScript, Images)

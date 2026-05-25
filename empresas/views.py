@@ -97,11 +97,19 @@ def seleccionar_empresa(request):
     if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
         next_url = '/'
 
-    if empresa_id:
+    if empresa_id == 'all':
+        # Vista consolidada — mostrar trabajadores/asistencia de TODAS las empresas.
+        # Las planillas siguen siendo independientes por empresa.
+        request.session['modo_consolidado'] = True
+        request.session.pop('empresa_actual_id', None)
+        request.session.pop('empresa_actual_nombre', None)
+        messages.success(request, '🌐 Vista consolidada — Todas las empresas')
+    elif empresa_id:
         try:
             emp = Empresa.objects.get(pk=empresa_id, activa=True)
             request.session['empresa_actual_id']     = emp.pk
             request.session['empresa_actual_nombre'] = emp.nombre_display
+            request.session.pop('modo_consolidado', None)
             messages.success(request, f'Empresa activa: {emp.nombre_display}')
         except Empresa.DoesNotExist:
             messages.error(request, 'Empresa no encontrada.')
@@ -109,6 +117,7 @@ def seleccionar_empresa(request):
         # Limpiar selección (vuelve a la empresa principal)
         request.session.pop('empresa_actual_id', None)
         request.session.pop('empresa_actual_nombre', None)
+        request.session.pop('modo_consolidado', None)
         messages.info(request, 'Empresa activa restablecida.')
 
     return redirect(next_url)

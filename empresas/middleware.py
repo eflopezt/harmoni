@@ -20,33 +20,42 @@ class EmpresaMiddleware:
 
     def __call__(self, request):
         request.empresa_actual = None
+        # Modo "Vista consolidada" — el usuario eligió ver TODAS las empresas.
+        # Querysets de Personal/Asistencia/Reclutamiento/etc. NO filtran por
+        # empresa. Las planillas siguen siendo INDEPENDIENTES por empresa.
+        request.modo_consolidado = False
 
         # 1. Subdomain takes priority (already resolved by SubdomainMiddleware)
         empresa_from_subdomain = getattr(request, 'empresa_subdomain', None)
         if empresa_from_subdomain:
             request.empresa_actual = empresa_from_subdomain
         elif request.user.is_authenticated:
-            # 2. Session-based lookup
-            empresa_id = request.session.get('empresa_actual_id')
-            if empresa_id:
-                try:
-                    from empresas.models import Empresa
-                    request.empresa_actual = Empresa.objects.get(pk=empresa_id, activa=True)
-                except Exception:
-                    pass
+            # 2a. Modo consolidado explícito?
+            if request.session.get('modo_consolidado') is True:
+                request.modo_consolidado = True
+                request.empresa_actual = None  # explícito: sin filtro de empresa
+            else:
+                # 2b. Session-based lookup
+                empresa_id = request.session.get('empresa_actual_id')
+                if empresa_id:
+                    try:
+                        from empresas.models import Empresa
+                        request.empresa_actual = Empresa.objects.get(pk=empresa_id, activa=True)
+                    except Exception:
+                        pass
 
-            # 3. Fallback to principal empresa
-            if not request.empresa_actual:
-                try:
-                    from empresas.models import Empresa
-                    request.empresa_actual = Empresa.objects.filter(
-                        activa=True, es_principal=True
-                    ).first()
-                    if request.empresa_actual:
-                        request.session['empresa_actual_id']     = request.empresa_actual.pk
-                        request.session['empresa_actual_nombre'] = request.empresa_actual.nombre_display
-                except Exception:
-                    pass
+                # 3. Fallback to principal empresa
+                if not request.empresa_actual:
+                    try:
+                        from empresas.models import Empresa
+                        request.empresa_actual = Empresa.objects.filter(
+                            activa=True, es_principal=True
+                        ).first()
+                        if request.empresa_actual:
+                            request.session['empresa_actual_id']     = request.empresa_actual.pk
+                            request.session['empresa_actual_nombre'] = request.empresa_actual.nombre_display
+                    except Exception:
+                        pass
 
         # Setear empresa en thread-local para el email backend
         if request.empresa_actual:

@@ -71,6 +71,7 @@ def harmoni_context(request):
     # Multi-empresa
     base['empresa_actual'] = getattr(request, 'empresa_actual', None)
     base['empresas_disponibles'] = _get_empresas_disponibles()
+    base['modo_consolidado'] = getattr(request, 'modo_consolidado', False)
 
     # Workflows — badge de pendientes
     base['pendientes_workflow'] = _get_workflow_pendientes(user)
