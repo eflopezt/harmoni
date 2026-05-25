@@ -134,9 +134,15 @@ class TestNotificacionModel(_BaseTestCase):
         self.assertIn("ext@test.com", str(notif))
 
     def test_ordering_is_newest_first(self):
+        import time
         n1 = Notificacion.objects.create(
             destinatario=self.personal, asunto="First", cuerpo="a",
         )
+        # Sleep mínimo para garantizar creado_en distinto (el campo es
+        # auto_now_add con resolución de microsegundos, pero en SQLite
+        # los 2 creates consecutivos pueden devolver mismo timestamp →
+        # orden indefinido. Sleep 5ms basta).
+        time.sleep(0.005)
         n2 = Notificacion.objects.create(
             destinatario=self.personal, asunto="Second", cuerpo="b",
         )

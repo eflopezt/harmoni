@@ -433,11 +433,59 @@ tr.row-cesado td { opacity: 0.65; }
 }
 .pl-empty i { display: block; font-size: 2rem; margin-bottom: 10px; opacity: 0.4; }
 
-/* Mobile */
+/* Mobile responsive */
 @media (max-width: 600px) {
   .pl-drawer { width: 100vw; }
   .pl-panel-dl { grid-template-columns: 1fr; }
   .pl-ia-metrics { grid-template-columns: 1fr 1fr; }
+
+  /* Header mobile más compacto */
+  .pl-drawer-header { padding: 16px 18px 14px; }
+  .pl-drawer-avatar { width: 44px; height: 44px; font-size: 0.95rem; }
+  .pl-drawer-name { font-size: 0.98rem; }
+  .pl-drawer-cargo { font-size: 0.76rem; }
+  .pl-drawer-pills { gap: 4px; }
+  .pl-drawer-pill { font-size: 0.62rem; padding: 2px 7px; }
+
+  /* Action bar: hide labels en muy chico, solo iconos */
+  .pl-drawer-actions { padding: 10px 16px; gap: 6px; }
+  .pl-da { padding: 8px 11px; font-size: 0.72rem; }
+
+  /* Tabs más chicos */
+  .pl-drawer-tabs { padding: 0 10px; }
+  .pl-drawer-tab { padding: 9px 9px; font-size: 0.78rem; }
+  .pl-drawer-tab-count { font-size: 0.58rem; padding: 0 6px; }
+
+  /* Panels padding reducido */
+  .pl-drawer-panels { padding: 16px 18px; }
+
+  /* IA card metrics: 2x2 en mobile (en lugar de 1x4) */
+  .pl-ia-m-val { font-size: 1.1rem; }
+
+  /* Page header */
+  .pl-h-top { gap: 8px; }
+  .pl-h-title { font-size: 1.3rem; }
+  .pl-h-actions .btn { padding: 6px 10px; font-size: 0.78rem; }
+
+  /* Saved views tabs: scroll horizontal con padding extra para tocar bien */
+  .pl-views { padding: 0 4px; }
+  .pl-view-tab { padding: 8px 11px; font-size: 0.78rem; }
+
+  /* Toolbar wrap mejor */
+  .pl-toolbar { padding: 10px 0; gap: 8px; }
+  .pl-density button { padding: 4px 9px; font-size: 0.68rem; }
+  .pl-density button:not(.is-active) span { display: none; }
+}
+
+@media (max-width: 420px) {
+  /* Pantalla muy chica: action bar más colapsado, ocultar texto, solo icons */
+  .pl-da span { display: none; }
+  .pl-da { padding: 9px 12px; }
+  .pl-da i { margin: 0; }
+  /* Bulk bar más vertical */
+  .pl-bulk-bar { flex-wrap: wrap; padding: 10px 14px 10px 18px; }
+  .pl-bulk-bar__actions { width: 100%; margin-left: 0; justify-content: flex-end; }
+  .pl-bba span { display: none; }
 }
 
 /* ────────────────────────────────────────────────────────────
