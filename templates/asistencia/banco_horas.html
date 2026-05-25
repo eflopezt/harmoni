@@ -9,6 +9,12 @@
 .saldo-negativo { color: #dc3545; font-weight: 700; }
 .mes-header     { background: #0f766e; color: #fff; font-weight: 600;
                   padding: 6px 12px; border-radius: 6px; font-size: .85rem; }
+/* Numéricos de horas extra deben alinearse — tabular-nums + mono para columnas .text-end */
+#tablaBanco td.text-end,
+#tablaBanco tfoot td.text-end {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+}
 </style>
 {% endblock %}
 

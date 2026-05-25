@@ -83,7 +83,8 @@ table.fdc-table th {
   background: #0d2b27; color: #fff;
   padding: 9px 12px; white-space: nowrap;
   font-weight: 600; letter-spacing: .03em;
-  position: sticky; top: 0; z-index: 1;
+  /* Compensar altura del topbar V2 (60px) — sin esto la cabecera se esconde tras el topbar al hacer scroll */
+  position: sticky; top: 60px; z-index: 1;
 }
 table.fdc-table th.col-mes { text-align: left; min-width: 72px; }
 table.fdc-table td {

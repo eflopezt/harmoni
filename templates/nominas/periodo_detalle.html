@@ -120,7 +120,8 @@
   border-bottom: 1px solid #f0f0f0;
   white-space: nowrap;
   position: sticky;
-  top: 0;
+  /* Compensar altura del topbar V2 (60px) para que la cabecera no se esconda al hacer scroll */
+  top: 60px;
   z-index: 2;
 }
 .nom-det-table thead th.text-end    { text-align: right; }

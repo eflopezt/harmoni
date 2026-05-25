@@ -24,7 +24,8 @@
 .origen-SISTEMA     { background:#dbeafe; color:#1e40af; }
 .origen-PORTAL      { background:#fef3c7; color:#92400e; }
 
-.info-banner { background:#f0fdf9; border-left:4px solid var(--secondary-color); padding:10px 14px; border-radius:0 6px 6px 0; font-size:.85rem; }
+/* fix: --secondary-color no está definido en el design system → border invisible. Usar token teal directo */
+.info-banner { background:#f0fdf9; border-left:4px solid #0f766e; padding:10px 14px; border-radius:0 6px 6px 0; font-size:.85rem; }
 .badge-pendiente { background:#fff3cd; color:#856404; border-radius:12px; font-size:.72rem; padding:2px 8px; }
 </style>
 {% endblock %}

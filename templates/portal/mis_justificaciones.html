@@ -11,7 +11,8 @@
 .estado-APROBADA  { background:#d1e7dd; color:#0f5132; }
 .estado-RECHAZADA { background:#f8d7da; color:#842029; }
 .tipo-pill { font-size:.72rem; background:#e9ecef; padding:2px 8px; border-radius:4px; }
-.info-banner { background:#f0fdf9; border-left:4px solid var(--secondary-color); padding:10px 14px; border-radius:0 6px 6px 0; font-size:.85rem; }
+/* fix: --secondary-color no está definido en el design system → border invisible. Usar token teal directo */
+.info-banner { background:#f0fdf9; border-left:4px solid #0f766e; padding:10px 14px; border-radius:0 6px 6px 0; font-size:.85rem; }
 </style>
 {% endblock %}
 

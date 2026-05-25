@@ -2,6 +2,20 @@
 
 {% block title %}Vista Asistencia{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Tabular-nums + mono para las columnas numéricas (días, HE, banco) — alineación derecha consistente */
+#tablaUnificada td.text-end,
+#tablaUnificada tfoot td.text-end,
+#tablaUnificada td.text-center {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+}
+/* DNI también — mono para que se alinee */
+#tablaUnificada td:nth-child(2) { font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
+
 {% block page_title %}
 <h1 class="topbar-h1"><i class="fas fa-table me-2 text-primary"></i>Asistencia — {{ mes_nombre }} {{ anio_sel }}</h1>
 {% endblock %}

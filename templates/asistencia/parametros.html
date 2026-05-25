@@ -4,7 +4,8 @@
 
 {% block extra_css %}
 <style>
-.param-section { border-left: 4px solid var(--secondary-color); padding-left: 12px; }
+/* fix: --secondary-color no está definido en el design system → border invisible. Usar token teal directo */
+.param-section { border-left: 4px solid #0f766e; padding-left: 12px; }
 .codigo-pill   { font-family: monospace; font-size: .82rem; background: #e9ecef;
                  padding: 2px 8px; border-radius: 4px; }
 .tipo-HE  { color: #856404; }

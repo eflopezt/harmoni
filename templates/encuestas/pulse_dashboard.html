@@ -43,7 +43,8 @@
   .pulse-heatmap .cell.c-empty { background: #f1f5f9; color: #94a3b8; text-shadow: none; }
   .pulse-heatmap .cell.c-red    { background: #dc2626; }
   .pulse-heatmap .cell.c-orange { background: #f97316; }
-  .pulse-heatmap .cell.c-yellow { background: #eab308; }
+  /* c-yellow: fondo amarillo + texto oscuro (blanco no pasa WCAG AA sobre amarillo) */
+  .pulse-heatmap .cell.c-yellow { background: #eab308; color: #1e293b; text-shadow: none; }
   .pulse-heatmap .cell.c-green  { background: #16a34a; }
   .pulse-heatmap .col-label {
     font-size: .68rem;

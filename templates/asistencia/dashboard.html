@@ -40,7 +40,8 @@
 .ats-views {
   display: flex; gap: 2px; margin: 14px 0 0;
   border-bottom: 1px solid #E2E8F0;
-  position: sticky; top: 0; z-index: 10;
+  /* Compensar altura del topbar V2 (60px) y mantenerse por debajo (z-index < topbar z:5) */
+  position: sticky; top: 60px; z-index: 4;
   background: var(--hm-canvas, #F4FAF7);
   overflow-x: auto; overflow-y: hidden;
   scrollbar-width: thin;
