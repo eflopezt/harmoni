@@ -76,7 +76,7 @@
 - **Frase gancho**: "Las gratificaciones, CTS, AFP, ONP, IR 5ta, asignación familiar — todo calculado con la norma peruana. No traducimos un sistema yanqui."
 
 ### 8. Agente IA Harmoni (3 min) ⭐ El "wow"
-- Abre el widget de IA (esquina inferior derecha).
+- Abre el widget de IA (esquina inferior derecha) o ve a `/nominas/agente/`.
 - **Pregunta de demo**: *"El mes pasado olvidé subir el sueldo S/200 a todos los trabajadores"*.
 - **Di**: "El agente consulta primero el RAG de normativa peruana, verifica qué hay que hacer (reintegro + proporcional de gratificación + CTS), te propone el asiento y lo ejecuta cuando apruebas."
 - **Frase gancho**: "No es un chatbot que conversa. Es un asistente que **actúa**."
