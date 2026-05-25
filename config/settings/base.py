@@ -149,8 +149,10 @@ TIME_ZONE = 'America/Lima'
 USE_I18N = True
 USE_TZ = True
 
-# Formato monetario peruano estándar: punto decimal + coma miles
-# Sin esto, locale es-PE de Django mezcla comas (S/ 1,458,00) — ilegible para finanzas
+# Override del formato es_PE (Django default usa coma decimal — ambiguo S/X,XX).
+# Custom formats en /formats/es_PE/formats.py forzan punto decimal + coma miles
+# (estándar peruano financiero: S/ 1,458.00).
+FORMAT_MODULE_PATH = ['formats']
 USE_THOUSAND_SEPARATOR = True
 THOUSAND_SEPARATOR = ','
 DECIMAL_SEPARATOR = '.'
