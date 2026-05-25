@@ -178,7 +178,8 @@ def _build_procesos_calendar(hoy, ultimo_regular):
 @solo_admin
 def nominas_panel(request):
     """Lista de períodos + estadísticas + KPIs comparativos."""
-    periodos = PeriodoNomina.objects.select_related('generado_por').order_by('-anio', '-mes')
+    # Nota: el template no accede a p.generado_por, no se necesita JOIN.
+    periodos = PeriodoNomina.objects.order_by('-anio', '-mes')
 
     # Filtros
     anio = request.GET.get('anio', '')
