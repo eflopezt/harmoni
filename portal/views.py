@@ -367,6 +367,17 @@ def mi_asistencia(request):
             fecha__lte=fecha_fin,
         ).order_by('fecha'))
 
+        # ── Normalizar DL → DS para regímenes NO acumulativos (gastronomía 6×1, oficina 5×2)
+        # En gastronomía el día libre semanal rota — NO es Día Libre del Roster Acumulativo.
+        try:
+            from asistencia.views.reporte_individual import _es_regimen_acumulativo
+            if not _es_regimen_acumulativo(empleado):
+                for r in registros:
+                    if r.codigo_dia in ('DL', 'DLA'):
+                        r.codigo_dia = 'DS'
+        except Exception:
+            pass
+
         # ── Estadísticas del mes ──────────────────────────────
         dias_trab = sum(1 for r in registros if r.codigo_dia in (
             'T', 'NOR', 'TR', 'A', 'SS', 'CDT', 'CPF', 'LCG', 'ATM', 'CHE', 'LIM'
