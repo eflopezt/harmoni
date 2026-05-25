@@ -3,54 +3,104 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block body %}
-<div class="container py-4" style="max-width:600px">
-  <h1 class="h3 fw-bold mb-4"><i class="fas fa-code-branch me-2"></i>{{ titulo }}</h1>
+<div class="container py-4" style="max-width:680px">
+  <h1 class="h3 fw-bold mb-2"><i class="fas fa-code-branch me-2"></i>{{ titulo }}</h1>
+  <p class="text-muted mb-4" style="font-size:14px;">
+    Define una regla de aprobación que se dispara automáticamente cuando un campo
+    de un modelo toma cierto valor (ej: cuando una Solicitud de Vacaciones pasa a "Pendiente",
+    se inicia el flujo y notifica al jefe).
+  </p>
+
   <div class="card">
     <div class="card-body">
       <form method="post">
         {% csrf_token %}
+
+        {# ───── Nombre ───── #}
         <div class="mb-3">
           <label class="form-label fw-semibold">
-            Nombre <span class="text-danger">*</span>
+            Nombre del flujo <span class="text-danger">*</span>
           </label>
           <input type="text" name="nombre" class="form-control" required
-            placeholder="Ej: Aprobacion de Vacaciones">
+            placeholder="Ej: Aprobación de Vacaciones">
+          <div class="form-text">Descriptivo, único. Aparecerá en el listado de flujos.</div>
         </div>
+
+        {# ───── Descripción ───── #}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Descripción <span class="text-muted small">(opcional)</span></label>
+          <textarea name="descripcion" class="form-control" rows="2"
+                    placeholder="Para qué sirve este flujo, quién lo usa…"></textarea>
+        </div>
+
+        {# ───── Modelo trigger ───── #}
         <div class="mb-3">
           <label class="form-label fw-semibold">
-            Modelo (que entidad activa el flujo) <span class="text-danger">*</span>
+            ¿Qué dispara el flujo? <span class="text-danger">*</span>
           </label>
-          <select name="content_type" class="form-select" required>
-            <option value="">Seleccionar modelo...</option>
-            {% for ct in content_types %}
-            <option value="{{ ct.pk }}">{{ ct.app_label }}.{{ ct.model }}</option>
-            {% endfor %}
+          <select name="content_type" id="ct-select" class="form-select" required onchange="onModelChange()">
+            <option value="">Seleccionar modelo del ERP…</option>
+            {% if content_types_recomendados %}
+              <optgroup label="🔹 Recomendados">
+                {% for item in content_types_recomendados %}
+                <option value="{{ item.ct.pk }}" data-trigger="{{ item.valor_trigger }}">{{ item.label }}</option>
+                {% endfor %}
+              </optgroup>
+            {% endif %}
+            {% if content_types_otros %}
+              <optgroup label="Otros modelos del ERP">
+                {% for ct in content_types_otros %}
+                <option value="{{ ct.pk }}">{{ ct.app_label }}.{{ ct.model }}</option>
+                {% endfor %}
+              </optgroup>
+            {% endif %}
           </select>
+          <div class="form-text">El flujo se activará cuando una instancia de este modelo cumpla la condición de abajo.</div>
         </div>
-        <div class="row g-3 mb-3">
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Campo trigger</label>
-            <input type="text" name="campo_trigger" class="form-control" value="estado" required>
+
+        {# ───── Trigger ───── #}
+        <fieldset class="border rounded p-3 mb-3" style="background:#f8fafc;">
+          <legend class="float-none w-auto px-2" style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:700;">Cuándo se dispara</legend>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Campo a observar</label>
+              <input type="text" name="campo_trigger" class="form-control" value="estado" required>
+              <div class="form-text">Atributo del modelo (default: <code>estado</code>).</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Valor que dispara</label>
+              <input type="text" name="valor_trigger" id="trigger-input" class="form-control" placeholder="Pendiente" required>
+              <div class="form-text">Cuando el campo tome ese valor, arranca el flujo.</div>
+            </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Valor trigger</label>
-            <input type="text" name="valor_trigger" class="form-control" placeholder="Pendiente" required>
+        </fieldset>
+
+        {# ───── Resultado ───── #}
+        <fieldset class="border rounded p-3 mb-3" style="background:#f8fafc;">
+          <legend class="float-none w-auto px-2" style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:700;">Qué pasa al terminar</legend>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">Campo a actualizar</label>
+              <input type="text" name="campo_resultado" class="form-control" value="estado">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">Valor si aprobado</label>
+              <input type="text" name="valor_aprobado" class="form-control" value="Aprobado">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">Valor si rechazado</label>
+              <input type="text" name="valor_rechazado" class="form-control" value="Rechazado">
+            </div>
           </div>
+        </fieldset>
+
+        {# ───── Tip pedagógico ───── #}
+        <div class="alert alert-info py-2 px-3 small mb-3" style="background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a;">
+          <i class="fas fa-lightbulb me-1"></i>
+          <strong>Después de crear el flujo</strong> agregarás <em>etapas</em> (uno o más aprobadores en orden).
+          Cada etapa puede vencer y auto-aprobar/rechazar/escalar.
         </div>
-        <div class="row g-3 mb-3">
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Campo resultado</label>
-            <input type="text" name="campo_resultado" class="form-control" value="estado">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Valor si aprobado</label>
-            <input type="text" name="valor_aprobado" class="form-control" value="Aprobado">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Valor si rechazado</label>
-            <input type="text" name="valor_rechazado" class="form-control" value="Rechazado">
-          </div>
-        </div>
+
         <div class="d-flex gap-2">
           <button type="submit" class="btn btn-primary">
             <i class="fas fa-save me-1"></i>Crear flujo
@@ -61,4 +111,17 @@
     </div>
   </div>
 </div>
+
+<script>
+  // Pre-rellena el "Valor trigger" cuando el usuario elige un modelo recomendado.
+  function onModelChange() {
+    const sel = document.getElementById('ct-select');
+    const opt = sel.options[sel.selectedIndex];
+    const trig = opt && opt.dataset.trigger;
+    const triggerInput = document.getElementById('trigger-input');
+    if (trig && triggerInput && !triggerInput.value) {
+      triggerInput.value = trig;
+    }
+  }
+</script>
 {% endblock %}

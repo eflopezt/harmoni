@@ -430,10 +430,36 @@ def flujo_crear(request):
         )
         messages.success(request, f'Flujo "{nombre}" creado. Ahora agrega las etapas.')
         return redirect('workflow_config')
-    content_types = ContentType.objects.all().order_by('app_label', 'model')
+    # Solo modelos del dominio del ERP — ocultamos los internos de Django.
+    APPS_OCULTAS = {'admin', 'contenttypes', 'sessions', 'auth', 'sites',
+                    'messages', 'staticfiles', 'django_celery_beat',
+                    'django_celery_results', 'rest_framework', 'core'}
+    MODELOS_RECOMENDADOS = [
+        # (app_label, model, etiqueta amigable, valor_trigger sugerido)
+        ('vacaciones',    'solicitudvacacion',    'Solicitud de Vacaciones',           'Pendiente'),
+        ('vacaciones',    'solicitudpermiso',     'Solicitud de Permiso',              'Pendiente'),
+        ('prestamos',     'prestamo',             'Préstamo a Trabajador',             'Solicitado'),
+        ('asistencia',    'solicitudhe',          'Autorización de Horas Extra',       'Pendiente'),
+        ('asistencia',    'registropapeleta',     'Papeleta de Salida',                'Pendiente'),
+        ('disciplinaria', 'medidadisciplinaria',  'Medida Disciplinaria',              'Borrador'),
+        ('reclutamiento', 'oferta',               'Oferta Laboral',                    'Pendiente'),
+        ('personal',      'contrato',             'Contrato (renovación/cese)',        'Borrador'),
+    ]
+    cts_all = ContentType.objects.exclude(
+        app_label__in=APPS_OCULTAS
+    ).order_by('app_label', 'model')
+    # Marca recomendados primero
+    cts_dict = {(ct.app_label, ct.model): ct for ct in cts_all}
+    recomendados = []
+    for app, model, label, trigger in MODELOS_RECOMENDADOS:
+        ct = cts_dict.pop((app, model), None)
+        if ct:
+            recomendados.append({'ct': ct, 'label': label, 'valor_trigger': trigger})
+    otros = list(cts_dict.values())
     return render(request, 'workflows/flujo_form.html', {
         'titulo': 'Nuevo Flujo',
-        'content_types': content_types,
+        'content_types_recomendados': recomendados,
+        'content_types_otros': otros,
     })
 
 

@@ -408,13 +408,17 @@ def generar_boleta_pdf(registro):
         t.setStyle(TableStyle(cmds))
         return t
 
-    # Logo Harmoni (brand pack oficial) — solo elemento a color
-    # Preferimos harmoni-mark-256 (transparent, 256x256) que se renderiza nítido
-    # a cualquier tamaño en ReportLab. Fallback al legacy logo-mark-120 por compat.
+    # Logo Harmoni (brand pack oficial) — solo elemento a color.
+    # Preferimos harmoni-favicon-512 (isotipo cuadrado sólido 512×512) que se
+    # renderiza nítido en ReportLab a 14mm. El mark-256 mostraba "efecto ghost"
+    # porque la curva teal en delgado se difumina por antialiasing al renderizar
+    # PDF; el favicon usa el isotipo H sólido sobre fondo cuadrado y queda limpio.
     logo_path = None
     try:
         import os
         for candidate in [
+            os.path.join(settings.BASE_DIR, 'static', 'images', 'brand', 'png', 'harmoni-favicon-512.png'),
+            os.path.join(settings.BASE_DIR, 'static', 'images', 'brand', 'png', 'harmoni-favicon-256.png'),
             os.path.join(settings.BASE_DIR, 'static', 'images', 'brand', 'png', 'harmoni-mark-256.png'),
             os.path.join(settings.BASE_DIR, 'static', 'images', 'logo-mark-120.png'),
         ]:

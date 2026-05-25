@@ -93,8 +93,12 @@ def generar_constancia_recepcion_pdf(registro):
     periodo = registro.periodo
 
     # ── Header con logo (brand pack oficial — fallback al legacy) ─
+    # Usamos favicon-512 (isotipo cuadrado sólido) para evitar el efecto
+    # ghost que produce mark-256 cuando se renderiza chico en PDF.
     import os as _os
-    logo_path = _os.path.join(settings.BASE_DIR, 'static', 'images', 'brand', 'png', 'harmoni-mark-256.png')
+    logo_path = _os.path.join(settings.BASE_DIR, 'static', 'images', 'brand', 'png', 'harmoni-favicon-512.png')
+    if not _os.path.exists(logo_path):
+        logo_path = _os.path.join(settings.BASE_DIR, 'static', 'images', 'brand', 'png', 'harmoni-mark-256.png')
     if not _os.path.exists(logo_path):
         logo_path = _os.path.join(settings.BASE_DIR, 'static', 'images', 'logo-mark-120.png')
     if _os.path.exists(logo_path):
