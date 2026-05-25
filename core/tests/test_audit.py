@@ -12,6 +12,7 @@ auto_register_default_models(). Estos tests verifican:
 - Cambios fuera de fields_to_track NO crean entries (UPDATE)
 - La vista timeline solo es accesible para admin
 """
+import time
 from datetime import date
 from decimal import Decimal
 
@@ -162,6 +163,10 @@ class TestAuditEntrySignals(TestCase):
 
         p.cargo = 'Jefe'
         p.save()
+        # Sleep mínimo: SQLite/Postgres pueden registrar dos saves consecutivos
+        # con timestamps idénticos (resolución ms o menos), provocando que
+        # order_by('fecha') sea no determinístico. 5 ms basta y no enlentece.
+        time.sleep(0.005)
         p.cargo = 'Gerente'
         p.save()
 
