@@ -56,6 +56,12 @@ class Command(BaseCommand):
         capacitaciones = self._sembrar_capacitaciones(hoy)
         self.stdout.write(f'  Capacitaciones creadas:  {capacitaciones}')
 
+        liquidaciones = self._sembrar_liquidaciones(hoy)
+        self.stdout.write(f'  Liquidaciones creadas:   {liquidaciones}')
+
+        notifs = self._sembrar_notificaciones(hoy)
+        self.stdout.write(f'  Notificaciones creadas:  {notifs}')
+
         if self.dry:
             self.stdout.write(self.style.WARNING('\n  [DRY-RUN] Rollback — no se persistieron cambios.\n'))
             raise transaction.TransactionManagementError('rollback dry-run')
@@ -213,6 +219,70 @@ class Command(BaseCommand):
                 )
                 if created:
                     creados += 1
+            except Exception:
+                pass
+        return creados
+
+    def _sembrar_liquidaciones(self, hoy):
+        """Crea LiquidacionLaboral para los cesados (con cálculo automático)."""
+        from personal.models import Personal
+        try:
+            from nominas.models import LiquidacionLaboral
+        except ImportError:
+            return 0
+        motivos = ['RENUNCIA', 'DESPIDO_ARB', 'MUTUO', 'CADUCIDAD', 'JUBILACION']
+        creados = 0
+        for i, p in enumerate(Personal.objects.filter(estado='Cesado', fecha_cese__isnull=False)[:8]):
+            if LiquidacionLaboral.objects.filter(personal=p).exists():
+                continue
+            try:
+                ll = LiquidacionLaboral.objects.create(
+                    personal=p,
+                    fecha_cese=p.fecha_cese,
+                    motivo_cese=motivos[i % len(motivos)],
+                )
+                try:
+                    ll.calcular()
+                except Exception:
+                    pass  # cálculo puede fallar si faltan datos pero LL queda creado
+                creados += 1
+            except Exception:
+                pass
+        return creados
+
+    def _sembrar_notificaciones(self, hoy):
+        """8 notificaciones realistas para usuario demo."""
+        from personal.models import Personal
+        try:
+            from comunicaciones.models import Notificacion
+        except ImportError:
+            return 0
+        # Personal demo (admin tiene Personal asociado via primer activo)
+        p_demo = Personal.objects.filter(estado='Activo').first()
+        if not p_demo:
+            return 0
+        if Notificacion.objects.filter(destinatario=p_demo).count() >= 5:
+            return 0  # idempotente
+        notifs_data = [
+            ('Contratos por vencer', '6 contratos vencen en próximos 30 días — revisar renovaciones'),
+            ('Vacaciones pendientes', '8 solicitudes de vacaciones esperan tu aprobación'),
+            ('Liquidación calculada', 'Liquidación lista para revisar — S/ 4,215.97'),
+            ('Cierre planilla Mayo', 'Falta aprobar período REGULAR — 11 pasos restantes'),
+            ('DIGESA vence', '12 trabajadores requieren renovar capacitación en 15 días'),
+            ('Postulantes top', '3 nuevos candidatos para Chef Ejecutivo Senior'),
+            ('Alerta Pulse', 'Sabores del Sur Vinos: pulse bajó a 6.2/10'),
+            ('Workflow Offboarding', '3 procesos de cese activos esperan tu acción'),
+        ]
+        creados = 0
+        for asunto, cuerpo in notifs_data:
+            try:
+                Notificacion.objects.create(
+                    destinatario=p_demo,
+                    destinatario_email='demo@demo.com',
+                    asunto=asunto, cuerpo=cuerpo,
+                    tipo='SYSTEM', estado='ENVIADA',
+                )
+                creados += 1
             except Exception:
                 pass
         return creados
