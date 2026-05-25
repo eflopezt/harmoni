@@ -1,6 +1,6 @@
 # MANUAL DE USUARIO — HARMONI ERP
 ### Sistema de Gestión de Recursos Humanos
-**Versión 1.0 · Marzo 2026**
+**Versión 1.2 · Mayo 2026** · [Ver Novedades v1.2](#23-novedades-v12--mayo-2026)
 
 ---
 
@@ -32,6 +32,7 @@
 20. [Configuración del Sistema](#20-configuración-del-sistema)
 21. [Atajos de Teclado y Tips](#21-atajos-de-teclado-y-tips)
 22. [Preguntas Frecuentes](#22-preguntas-frecuentes)
+23. [Novedades v1.2 — Mayo 2026](#23-novedades-v12--mayo-2026)
 
 ---
 
@@ -2167,6 +2168,154 @@ Para soporte técnico, capacitación adicional o consultas sobre el sistema, con
 
 ---
 
-*Manual de Usuario — Harmoni ERP v1.0*
-*Fecha de publicación: Marzo 2026*
+*Manual de Usuario — Harmoni ERP v1.2*
+*Fecha de publicación: Mayo 2026*
+
+---
+
+## 23. Novedades v1.2 — Mayo 2026
+
+Esta sección documenta todas las mejoras incorporadas entre Marzo y Mayo 2026. El objetivo de v1.2 fue elevar la experiencia visual a estándares Linear/Notion ("Cockpit"), endurecer la trazabilidad y resiliencia operacional, y completar la integración real con LLMs para el Agente Harmoni AI.
+
+### 23.1 UX renovada — Design System V2 "Cockpit"
+
+Harmoni adopta un sistema de diseño inspirado en herramientas modernas tipo Linear y Notion. Cambios visibles:
+
+- **Tipografía dual**: Inter para todos los textos de UI, JetBrains Mono con `tabular-nums` para columnas numéricas (sueldos, montos, fechas). Las cifras quedan alineadas a la perfección en columnas.
+- **Sidebar más limpio**: ancho fijo de 240 px en desktop, paleta cromática reducida, separadores sutiles, hover suave.
+- **Logo unificado**: el isotipo Harmoni se renderiza desde el favicon-180 (cuadrado nativo) con `border-radius` 10 px y `box-shadow` discreto. Sin distorsiones en sidebar ni en login.
+- **Contraste WCAG AA**: textos, badges y estados de hover/focus revisados para asegurar legibilidad en fondos claros y oscuros.
+- **Densidad de información ajustada**: tablas con padding compacto pero respirable, separadores horizontales en lugar de bordes completos.
+
+> El cambio aplica tanto a la versión Mayimbe (demo.harmoni.pe) como al Consorcio Stiler (harmoni.pe).
+
+### 23.2 Pantalla "Empleados" rediseñada
+
+`Personal > Empleados` recibe un rediseño completo enfocado en productividad:
+
+- **Tabla densa**: una sola línea por empleado, columnas alineadas, datos numéricos en JetBrains Mono.
+- **Filtros chip**: estado, grupo (STAFF/RCO), sede, área y régimen como pills clicables — sin recargar la página.
+- **Drawer lateral**: al hacer clic sobre cualquier fila se abre un panel lateral con el detalle completo del empleado, sin perder el contexto de la lista. Esc o clic fuera lo cierra.
+- **Bulk action bar**: al seleccionar varias filas aparece una barra inferior con acciones masivas (cambiar estado, asignar área, exportar, enviar comunicación).
+- **Inline edit**: campos editables directamente desde la fila (sueldo base, sede, jefatura). Confirma con Enter, cancela con Esc.
+
+### 23.3 Sistema global de notificaciones
+
+- **Centro de notificaciones** en la barra superior con badge de no leídas.
+- **Snooze**: cualquier notificación puede posponerse 1 hora, 4 horas, 1 día o "hasta mañana 9 a. m.".
+- **Marcado como leída automático** cuando se hace clic en el enlace asociado.
+- **Ordenamiento determinístico**: las más recientes arriba, sin "saltos" entre cargas (bug que se solucionó en esta versión).
+
+### 23.4 ⌘K Command Palette mejorado
+
+- **Búsqueda global**: empleados, módulos, acciones, reportes, registros recientes.
+- **Resultados ordenados por relevancia y frecuencia de uso**.
+- **Atajos directos**: cada resultado muestra su atajo de teclado si existe.
+- **Acción "Ir a…"**: navegación instantánea a cualquier vista del sistema.
+
+### 23.5 Dashboard "Centro de Comando"
+
+El Dashboard principal se transforma en un cockpit con widgets accionables:
+
+- **KPIs en vivo**: headcount, ausentismo del mes, planilla del periodo, vacaciones pendientes.
+- **Alertas inteligentes**: contratos próximos a vencer, vacaciones acumuladas en riesgo (>30 días), papeletas pendientes de aprobación, asistencias en SS (Sin Salida).
+- **Atajos a "lo que falta hacer hoy"**: aprobar permisos, revisar tareo, cerrar nómina.
+- **Gráficos compactos**: tendencia de planilla y ausentismo en los últimos 6 meses.
+
+### 23.6 Agente IA Nóminas con LLM real
+
+Harmoni AI deja de ser un asistente genérico. Ahora:
+
+- **Consulta primero el RAG de normativa peruana** (D.S. 003-97-TR, D.Leg. 713, D.Leg. 650, Ley 27735, Ley 26790, entre otros) antes de responder.
+- **Conecta a un LLM real** (compatibilidad multi-proveedor: Gemini, DeepSeek, OpenAI, Anthropic).
+- **Tool-use**: el agente puede ejecutar acciones — por ejemplo, generar un reintegro de sueldo para todos los trabajadores de un periodo anterior, no sólo describir cómo hacerlo.
+- **Razonamiento explícito**: indica qué documento normativo consultó y cómo aplica al caso del cliente.
+
+Ejemplo:
+> *"El mes pasado olvidé aumentar el sueldo a todos los trabajadores 200 soles"*
+> El agente identifica el periodo afectado, calcula el reintegro por trabajador (incluyendo proporcionales de gratificación y CTS si corresponde), y propone el asiento de reintegro listo para aprobación.
+
+### 23.7 Operaciones — Backup automatizado
+
+- **`backup-db.sh`**: `pg_dump` en formato custom con rotación de 30 días.
+- **Subida opcional a S3 / B2** controlada por variables de entorno.
+- **Celery task `backup_db_diario`** programada para ejecutarse cada día a las 03:30 hora Lima.
+- **Restauración probada**: documentación interna con el procedimiento `pg_restore` paso a paso.
+
+### 23.8 Audit log v2 — Trazabilidad completa
+
+Nuevo modelo `AuditEntry` con registro automático vía signals para los modelos críticos:
+
+| Modelo | Eventos registrados |
+|--------|---------------------|
+| `Personal` | alta, baja, cambios de sueldo, cambios de sede/jefatura |
+| `SolicitudVacacion` | creación, aprobación, rechazo, anulación |
+| `Prestamo` | otorgamiento, cuotas pagadas, refinanciación |
+| `RegistroPapeleta` | creación, aprobación, anulación |
+| `PeriodoNomina` | apertura, cierre, reapertura |
+
+Cada entrada guarda usuario, IP, timestamp, y diff campo a campo. Disponible en `Configuración > Audit log` para administradores.
+
+### 23.9 Observabilidad — Sentry envoltura nueva API
+
+- Migración a Sentry SDK 2.53.
+- Reemplazo de `push_scope` (deprecado) por `new_scope`.
+- Tags por tenant (`subdominio`), por usuario, y por módulo automáticos.
+- Breadcrumbs de queries lentas y warnings de N+1 incorporados.
+
+### 23.10 Calidad — Tests automatizados
+
+- **Suite pytest-django** ampliada: actualmente 144 tests del módulo Asistencia con **94 % de cobertura** sobre el motor de cálculo de horas extras.
+- **Factory Boy** para fabricación de fixtures reutilizables.
+- **conftest.py raíz** con fixture autouse que asegura la existencia de la Empresa demo cuando los tests usan `HTTP_HOST=demo.harmoni.pe` — elimina contaminación entre tests.
+
+### 23.11 Refactor — `he_calculator` único
+
+Se eliminó la duplicación de cálculo de horas extras entre `processor.py` y `calendario.py`. Toda la lógica está ahora centralizada en `asistencia/services/he_calculator.py` (317 LOC, 94 % cobertura), con reglas:
+
+- HE 25 % en las primeras 2 horas posteriores a la jornada ordinaria.
+- HE 35 % a partir de la 3.ª hora extra.
+- HE 100 % en domingo, feriado o descanso semanal.
+- Bonificación nocturna (35 % del valor hora) entre 22:00 y 06:00 según D.S. 004-2006-TR.
+
+### 23.12 Mobile UX
+
+- Sidebar colapsable como off-canvas en pantallas <768 px.
+- Tablas con scroll horizontal sticky en columnas clave (nombre).
+- Tap targets ≥44 px en toda la UI.
+- Drawer y bulk bar adaptados al ancho del viewport móvil.
+
+### 23.13 Atajos nuevos
+
+| Atajo | Acción |
+|-------|--------|
+| `⌘K` / `Ctrl+K` | Abrir Command Palette |
+| `g` luego `e` | Ir a Empleados |
+| `g` luego `n` | Ir a Nóminas |
+| `g` luego `t` | Ir a Tareo / Asistencia |
+| `g` luego `v` | Ir a Vacaciones |
+| `g` luego `d` | Ir a Dashboard |
+| `?` | Mostrar ayuda de atajos |
+| `Esc` | Cerrar drawer / modal activo |
+
+### 23.14 Reconciliación de migraciones
+
+Se aplicaron migraciones de merge en producción para reconciliar leaf nodes detectados al desplegar:
+
+- `nominas/0019_merge_20260524_1258`, `nominas/0020_merge_20260524_2057`
+- `personal/0035_merge_0029_activoasignado_0034_add_roster_gastro`, `personal/0036_merge_20260524_2057`
+
+Ambas apuntan a las versiones canónicas del repo (`0007_recargaalimentacion` y `0030_activoasignado`).
+
+### 23.15 Correcciones destacadas
+
+- **Logo distorsionado en sidebar**: se usaba `harmoni-mark-128.png` (128×87, rectangular) forzado a 36×36. Sustituido por `harmoni-favicon-180.png` (180×180 cuadrado nativo) renderizado a 42×42.
+- **Comentarios `{# #}` multilínea**: Django sólo soporta `{# #}` en una línea; los multilínea aparecían como texto fantasma. Migrados 11 templates a `{% comment %} … {% endcomment %}`.
+- **Middleware `/api/v1/me/` y `/d/`** quedaban fuera de `EXEMPT_URL_PATTERNS` y bloqueaban requests durante onboarding sin plan.
+- **`user.personal` → `user.personal_data`** corregido en `core/middleware_plan_starter.py` (related_name real).
+- **`vacaciones.recalcular()`** ahora persiste `dias_gozados`.
+
+---
+
+*Para sugerencias o reporte de bugs sobre v1.2: equipo de soporte interno.*
 *Este documento describe las funcionalidades del sistema a la fecha de publicación. Las funcionalidades pueden actualizarse en versiones posteriores.*
