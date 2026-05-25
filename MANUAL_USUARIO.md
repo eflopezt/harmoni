@@ -1,6 +1,6 @@
 # MANUAL DE USUARIO — HARMONI ERP
 ### Sistema de Gestión de Recursos Humanos
-**Versión 1.2 · Mayo 2026** · [Ver Novedades v1.2](#23-novedades-v12--mayo-2026)
+**Versión 1.2.1 · Mayo 2026** · [Ver Novedades v1.2](#23-novedades-v12--mayo-2026) · [Liquidaciones §24](#24-liquidaciones-laborales--flujo-de-cese-v121) · [Propinas §25](#25-pool-de-propinas--gastronomía-v121)
 
 ---
 
@@ -33,6 +33,8 @@
 21. [Atajos de Teclado y Tips](#21-atajos-de-teclado-y-tips)
 22. [Preguntas Frecuentes](#22-preguntas-frecuentes)
 23. [Novedades v1.2 — Mayo 2026](#23-novedades-v12--mayo-2026)
+24. [Liquidaciones laborales — flujo de cese (v1.2.1)](#24-liquidaciones-laborales--flujo-de-cese-v121)
+25. [Pool de propinas — gastronomía (v1.2.1)](#25-pool-de-propinas--gastronomía-v121)
 
 ---
 
@@ -2314,6 +2316,107 @@ Ambas apuntan a las versiones canónicas del repo (`0007_recargaalimentacion` y 
 - **Middleware `/api/v1/me/` y `/d/`** quedaban fuera de `EXEMPT_URL_PATTERNS` y bloqueaban requests durante onboarding sin plan.
 - **`user.personal` → `user.personal_data`** corregido en `core/middleware_plan_starter.py` (related_name real).
 - **`vacaciones.recalcular()`** ahora persiste `dias_gozados`.
+
+---
+
+## 24. Liquidaciones laborales — flujo de cese (v1.2.1)
+
+### 24.1 Qué resuelve
+
+Cuando un trabajador termina la relación laboral (renuncia, despido, fin de contrato, jubilación, fallecimiento), la planilla debe cerrarle con todos sus beneficios truncos calculados: vacaciones, gratificación proporcional, CTS proporcional, sueldo del mes en curso, horas extras no compensadas, menos préstamos pendientes, embargos y descuentos. En muchos ERPs esto se hace a mano en Excel y se demora días. En Harmoni es **un solo flujo automático**.
+
+### 24.2 Cómo funciona
+
+1. **RRHH marca el cese** desde la ficha del trabajador → botón `Iniciar cese`.
+2. **Wizard de 3 pasos**:
+   - Paso 1: fecha de cese + motivo (8 opciones) + observaciones.
+   - Paso 2: **preview en tiempo real** — el sistema calcula y muestra tabla con todos los conceptos truncos + descuentos + total neto. NO persiste todavía.
+   - Paso 3: confirmar → cambia `Personal.estado='Cesado'` + `fecha_cese`.
+3. **Signal automático** crea la `LiquidacionLaboral` con todos los cálculos persistidos.
+4. **PDF unificado** de boleta + liquidación se genera al instante.
+5. **Workflow offboarding** se dispara (5 etapas configurables, ver §24.4).
+
+### 24.3 Motivos de cese soportados
+
+| Motivo | Trato especial |
+|--------|----------------|
+| `RENUNCIA` | Estándar |
+| `DESPIDO` (causa justa) | Estándar |
+| `DESPIDO_ARB` (despido arbitrario) | **Calcula indemnización** 1.5 sueldos × año, tope 12 sueldos (Art. 38 DS 003-97-TR) |
+| `MUTUO` (mutuo disenso) | Estándar |
+| `CADUCIDAD` (fin de contrato) | Estándar |
+| `JUBILACION` | Estándar |
+| `FALLECIMIENTO` | El sistema genera carta + permite registrar herederos |
+| `PERIODO_PRUEBA` (no supera prueba) | Sin beneficios truncos (excepto sueldo del mes) |
+
+### 24.4 Workflow offboarding (5 etapas)
+
+Al crear la liquidación se inicia automáticamente un flujo de 5 etapas:
+
+1. **Encuesta de salida** — el trabajador recibe link al portal con encuesta exit-interview.
+2. **Devolución de activos** — jefe inmediato confirma devolución (laptop, uniforme, equipos).
+3. **Liquidación pagada** — tesorería confirma transferencia bancaria.
+4. **Carta de no adeudo** — RRHH emite carta firmada.
+5. **Cierre administrativo** — superusuario revoca accesos y archiva expediente.
+
+Cada etapa tiene tiempo límite configurable y acción de vencimiento (auto-aprobar, escalar, esperar).
+
+### 24.5 URLs
+
+- `/personal/<id>/cesar/` — wizard de cese
+- `/nominas/liquidaciones/` — lista de todas las liquidaciones
+- `/nominas/liquidacion/<id>/` — detalle con tabla + botones Aprobar/PDF
+- `/nominas/liquidacion/<id>/pdf/` — PDF unificado
+
+### 24.6 Audit log
+
+Cada cambio en `LiquidacionLaboral` (creación, edición de monto, aprobación, firma del trabajador, pago) queda registrado en `AuditEntry` con usuario, IP y diff campo a campo — listo para SUNAFIL.
+
+---
+
+## 25. Pool de propinas — gastronomía (v1.2.1)
+
+### 25.1 Qué resuelve
+
+En restaurantes las propinas se reparten entre el equipo. Tradicionalmente se hace en Excel con discusiones interminables sobre cuánto le toca a cada uno. Harmoni implementa un **pool por puntos configurable por local**.
+
+### 25.2 Modos de distribución
+
+| Modo | Descripción |
+|------|-------------|
+| `POOL_PUNTOS` | Pool dividido proporcional a puntos por cargo (recomendado) |
+| `POOL_PAREJO` | Pool dividido en partes iguales entre todos |
+| `INDIVIDUAL` | Cada uno recibe lo suyo (no aplica pool) |
+
+### 25.3 Puntos sugeridos por cargo
+
+| Cargo | Puntos típicos |
+|-------|----------------|
+| Mozo | 3.0 |
+| Mozo Senior | 3.5 |
+| Bartender | 2.5 |
+| Hostess / Anfitrión | 1.5 |
+| Cocinero | 1.0 |
+| Ayudante de cocina | 0.5 |
+| Lavaplatos | 0.5 |
+
+### 25.4 Cómo funciona
+
+1. **Configurar** una sola vez por local: `Nóminas > Propinas > Configurar` → modo + flags (incluye cocina / admin) + % retención casa + tabla de puntos por cargo.
+2. **Cargar pool**: `Nóminas > Propinas > Nuevo` → fecha inicio, fecha fin, monto bruto recolectado, notas.
+3. **Distribuir** → el sistema calcula y crea una `DistribucionPropinas` por cada trabajador activo en el rango.
+4. **La distribución aparece como concepto no remunerativo** en la siguiente boleta del trabajador — **no afecta AFP/CTS/gratificación**.
+
+### 25.5 URLs
+
+- `/nominas/propinas/` — lista de pools históricos
+- `/nominas/propinas/config/` — configuración por empresa
+- `/nominas/propinas/nuevo/` — cargar nuevo pool
+- `/nominas/propinas/<pool_id>/` — detalle con distribución por persona
+
+### 25.6 Trazabilidad
+
+Cada `DistribucionPropinas` queda vinculada al `RegistroNomina` donde se aplicó como concepto. Audit log registra quién creó el pool y quién aprobó la distribución.
 
 ---
 
