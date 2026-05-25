@@ -164,8 +164,51 @@ Marcamos Harmoni como **estable** cuando:
 
 ### Próximo Q3 (sugerido)
 
-1. Performance: aplicar fixes N+1 reportados por agente E (cuando termine)
-2. Coverage nominas/engine.py (en curso, agente D)
+1. ~~Performance: aplicar fixes N+1 reportados por agente E~~ ✅
+2. ~~Coverage nominas/engine.py~~ ✅ (91% — agente D)
 3. Limpieza legacy en períodos cerrados (item 4 pendiente)
 4. Roles finos por módulo (item 10 pendiente)
-5. Push v1.2 manual a PR + merge en main remoto
+5. ~~Push v1.2 manual a PR + merge en main remoto~~ ✅ deployed
+
+---
+
+## Adendum v1.2.1 — Mayo 25 2026 (post-demo)
+
+### Liquidaciones laborales — flujo completo
+
+✅ **Sprint 1 Liquidaciones**: Modelo `LiquidacionLaboral` + 8 motivos cese + 11 conceptos/descuentos + 6 estados workflow + signal `post_save` Personal + UI detalle + 18 tests passing.
+
+✅ **Sprint 2 Wizard "Cesar trabajador"**: UI 3 pasos (datos → preview AJAX → confirmar) con cálculo de truncas en vivo sin persistir. Botón en ficha empleado. 16 tests passing.
+
+✅ **Workflow Offboarding Trabajador (5 etapas)**: management command `seed_offboarding_flow` crea flujo idempotente con etapas Encuesta salida (USUARIO) → Devolución activos (JEFE_AREA) → Liquidación pagada (GRUPO Tesorería) → Carta no adeudo (SUPERUSER) → Cierre administrativo (SUPERUSER). Signal post_save LL dispara automáticamente al pasar a CALCULADA. 9 tests passing.
+
+🟡 **Sprint 3 (en curso)**: Carta no adeudo PDF + Certificado trabajo PDF + Encuesta exit interview templates.
+
+⏸ **Sprint 4 (pendiente)**: Tests E2E + onboarding cliente + docs operativas SUNAFIL.
+
+### Gastronomía — Pool de propinas
+
+✅ **Pool de propinas**: 4 modelos (`ConfiguracionPropinas`, `PuntosPropinas`, `PoolPropinas`, `DistribucionPropinas`) + 3 modos (POOL_PUNTOS, POOL_PAREJO, INDIVIDUAL) + UI completa + heurística cocina/admin + 10 tests passing.
+
+### Datos demo enriquecidos
+
+✅ **Seed histórico 17 meses** (`seed_demo_historico`): 1,749 RegistroNomina + 17 PeriodoNomina REGULAR + 2 GRATIFICACION + 2 CTS + 614 BancoHoras + 3,647 PulseSemanal + 86 activos + 9 cesados con motivos variados. Agregado al cron `reset_demo.sh` para que se mantenga.
+
+### Bugs visibles corregidos pre-demo
+
+- Calendario `+N más` no clickeable → modal overlay con descarga CSV
+- Logo PDF efecto ghost → cambiado a favicon-512 cuadrado sólido
+- Hero "Asistencia Matricial" texto invisible → forzado `color:#fff!important`
+- Organigrama lista vertical → inferencia jerárquica por `nivel_org`/`cargo` (87 nodos, 4 niveles)
+- Scroll horizontal tablas bloqueado por CSS global → corregido
+- Workflow-mes sin AFPNet + sin gestión → step #9 nuevo + modal "Personalizar pasos"
+- ANDES MINING placeholder → "Mi Empresa S.A.C." dinámico
+- RCO label confuso → "Operativo (Recibo de Honorarios)" en UI (valor BD intacto)
+- Residuos EDO/Nikkei/Sushi → diversificación nombres (Premium, Marino, Express, Asado, Café, Central)
+- Password demo era `demo`, faltaba reset → corregido a `demo123` consistente
+
+### Estado producción
+
+- `harmoni.pe` (Stiler) y `demo.harmoni.pe` deployed con todos los cambios.
+- Cron nocturno `reset_demo.sh` actualizado con `seed_offboarding_flow` + `seed_demo_historico` + password `demo123`.
+- Suite tests: **1,722 passing** + 1 skipped + 5 xfailed esperados.
