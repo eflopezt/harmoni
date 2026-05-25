@@ -101,6 +101,17 @@
 ### 13. Comunicaciones (1 min)
 - Campañas segmentadas, plantillas, WhatsApp marketing.
 
+### 13.bis 💰 Liquidaciones — flujo de cese unificado (1 min) ⭐ NUEVO
+- **URL**: `/nominas/liquidaciones/` o `/nominas/liquidacion/<id>/`
+- **Di**: "Cuando RRHH marca a alguien como cesado, se dispara automáticamente: calculamos vacaciones truncas, gratificación trunca, CTS trunca, descontamos préstamos pendientes — todo en una sola pantalla con su PDF."
+- **Demo en vivo**: muestra una LL ya creada (LL #1 en demo) → tabla con conceptos + descuentos + total neto.
+- **Frase gancho**: "Lo que en SAP requiere 4 horas y un Excel paralelo, acá es 1 botón."
+
+### 13.ter 🍤 Pool de propinas — distribución por puntos (1 min) ⭐ NUEVO PARA GASTRONOMÍA
+- **URL**: `/nominas/propinas/` o `/nominas/propinas/config/`
+- **Di**: "Para restaurantes — define cuántos puntos vale cada cargo (mozo=3, bartender=2.5, cocina=1), cargás el pool del mes, el sistema reparte proporcional. Aparece en la boleta como concepto no remunerativo."
+- **Frase gancho**: "Sin Excel, sin discusión entre mozos."
+
 ### 14. Cierre — Compliance & Confiabilidad (2 min)
 - **Di**:
   - "1,669 tests automatizados, 94 % de cobertura en el motor de horas extras, 91 % en el cálculo de planilla."
