@@ -257,7 +257,17 @@ class TestDashboardWidget(TestCase):
         assert str(widget) == 'Rotacion Mensual (dashboard_user)'
 
     def test_ordering_by_position(self):
-        """Widgets are ordered by posicion then by creado_en desc."""
+        """Widgets are ordered by posicion then by creado_en desc.
+
+        Nota: tres `create()` consecutivos pueden caer en el mismo timestamp
+        (resolución de SQLite/Postgres varía); para que el orden secundario
+        por `-creado_en` sea verificable hay que forzar timestamps distintos
+        explícitamente vía `update()` (no podemos pasarlos a `create()` porque
+        son `auto_now_add`).
+        """
+        from datetime import timedelta
+        from django.utils import timezone
+
         w1 = DashboardWidget.objects.create(
             user=self.user, titulo='W1', chart_type='bar',
             data_source='a', posicion=2,
@@ -270,6 +280,12 @@ class TestDashboardWidget(TestCase):
             user=self.user, titulo='W3', chart_type='bar',
             data_source='c', posicion=1,
         )
+        # Forzar timestamps deterministas: W2 antes que W3 (W3 es "más reciente")
+        base = timezone.now()
+        DashboardWidget.objects.filter(pk=w1.pk).update(creado_en=base - timedelta(minutes=2))
+        DashboardWidget.objects.filter(pk=w2.pk).update(creado_en=base - timedelta(minutes=1))
+        DashboardWidget.objects.filter(pk=w3.pk).update(creado_en=base)
+
         titulos = list(
             DashboardWidget.objects.values_list('titulo', flat=True)
         )

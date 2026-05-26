@@ -139,7 +139,11 @@ class TestChecklistGastronomiaModel:
         assert c.en_riesgo is True
 
     def test_en_riesgo_false(self, checklist):
-        # Recién ingresado, todo en proceso
+        # Día 10 desde ingreso. La única alerta posible a esa altura es el
+        # contrato (umbral día 7); si está firmado a tiempo, no hay alertas
+        # vencidas → en_riesgo == False. Refleja el caso "todo en tiempo".
+        checklist.contrato_firmado = True
+        checklist.save()
         assert checklist.en_riesgo is False
 
     def test_proximo_hito(self, checklist):
