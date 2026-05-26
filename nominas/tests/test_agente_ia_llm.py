@@ -28,8 +28,9 @@ def _crear_personal_simple(dni, nombre, sueldo, grupo='STAFF', condicion='LOCAL'
     """Helper compacto para tests de reintegro masivo."""
     from empresas.models import Empresa
     from personal.models import Personal
-    import time
-    ruc = f'20{int(time.time() * 1000) % 999999999:09d}'
+    from nominas.tests._helpers import unique_ruc
+    # RUC vía counter atómico, no timestamp — evita colisión por ms en suite.
+    ruc = unique_ruc()
     emp, _ = Empresa.objects.get_or_create(
         ruc=ruc, defaults={'razon_social': 'Test SAC', 'plan': 'PROFESIONAL'},
     )

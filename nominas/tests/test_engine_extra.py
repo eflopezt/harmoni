@@ -312,7 +312,11 @@ class TestIR5taSunat:
 # ════════════════════════════════════════════════════════════════════
 
 def _unique_dni() -> str:
-    return f'8{int(time() * 1000) % 9999999:07d}'
+    # Delega al helper compartido (counter atómico, no timestamp). Razón:
+    # int(time()*1000) % 9999999 colisiona si dos llamadas ocurren en el
+    # mismo ms → UNIQUE constraint failed intermitente en suite completa.
+    from nominas.tests._helpers import unique_dni
+    return unique_dni()
 
 
 def _crear_personal(empresa, sueldo=Decimal('3000'), regimen='ONP',

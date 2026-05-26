@@ -37,10 +37,11 @@ def _crear_personal(dni='40000001', nombre='Test Worker', sueldo=Decimal('3000')
     """Helper para crear trabajador con datos requeridos."""
     from empresas.models import Empresa
     from personal.models import Personal
-    import time
+    from nominas.tests._helpers import unique_ruc
 
     if empresa_ruc is None:
-        empresa_ruc = f'20{int(time.time()*1000) % 999999999:09d}'
+        # RUC vía counter atómico, no timestamp — evita colisión por ms en suite.
+        empresa_ruc = unique_ruc()
 
     emp, _ = Empresa.objects.get_or_create(
         ruc=empresa_ruc,

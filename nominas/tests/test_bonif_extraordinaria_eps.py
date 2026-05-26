@@ -8,9 +8,16 @@ Verifica que el engine de gratificaciones aplica correctamente:
 Y simétricamente:
 - ESSALUD efectivo del empleador = 6.75% si trabajador con EPS
 """
+import itertools
 from decimal import Decimal
 
 import pytest
+
+from nominas.tests._helpers import unique_dni
+
+# Counter local para diversificar `mes` en PeriodoNomina y evitar choque con
+# otros tests del mismo run que también usen (GRATIFICACION, 2026, mes=X).
+_mes_counter = itertools.count(1)
 
 
 @pytest.mark.django_db
@@ -25,9 +32,8 @@ class TestBonifExtraordinariaEPS:
         emp, _ = Empresa.objects.get_or_create(
             ruc='20999111222', defaults={'razon_social': 'Test Bonif EPS SAC', 'plan': 'PROFESIONAL'},
         )
-        # DNI único por test (timestamp para evitar colisiones)
-        from time import time
-        dni = f'8{int(time()*1000) % 9999999:07d}'
+        # DNI único determinístico (ver nominas/tests/_helpers.py)
+        dni = unique_dni()
         p = Personal.objects.create(
             tipo_doc='DNI', nro_doc=dni,
             apellidos_nombres=f'Test Worker {"EPS" if tiene_eps else "No-EPS"}',
@@ -40,14 +46,17 @@ class TestBonifExtraordinariaEPS:
             tiene_eps=tiene_eps,
             asignacion_familiar=False,
         )
-        # Use get_or_create + unique mes per worker dni-hash to avoid UNIQUE conflict
-        # when same test creates multiple registros
-        mes_unique = 7 + (int(dni) % 5)  # 7-11
+        # Período único por registro: evita choques con otros tests que también
+        # crean PeriodoNomina(GRATIFICACION, 2026, mes=X). Incluimos `empresa`
+        # en el lookup del get_or_create — sin esto, si otro test creó un
+        # período con misma (tipo, anio, mes) pero otra empresa, recuperaríamos
+        # el equivocado y todo el cálculo de gratificación usaría empresa errada.
+        mes_unique = 1 + (next(_mes_counter) % 12)  # 1-12 rotando
         periodo, _ = PeriodoNomina.objects.get_or_create(
-            tipo='GRATIFICACION', anio=2026, mes=mes_unique,
+            tipo='GRATIFICACION', anio=2026, mes=mes_unique, empresa=emp,
             defaults={
                 'fecha_inicio': date(2026, 1, 1), 'fecha_fin': date(2026, 6, 30),
-                'estado': 'BORRADOR', 'empresa': emp,
+                'estado': 'BORRADOR',
             },
         )
         # 6 meses completos

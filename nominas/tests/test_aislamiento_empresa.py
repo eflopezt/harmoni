@@ -28,9 +28,10 @@ User = get_user_model()
 def _get_or_create_empresa(razon='Empresa Test', ruc=None):
     """Helper que crea empresa con campos requeridos."""
     from empresas.models import Empresa
-    import time
+    from nominas.tests._helpers import unique_ruc
     if ruc is None:
-        ruc = f'20{int(time.time()*1000) % 999999999:09d}'
+        # RUC vía counter atómico, no timestamp — evita colisión por ms en suite.
+        ruc = unique_ruc()
     e, _ = Empresa.objects.get_or_create(
         ruc=ruc,
         defaults={'razon_social': razon, 'plan': 'PROFESIONAL'},
