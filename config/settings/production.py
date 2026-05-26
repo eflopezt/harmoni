@@ -69,7 +69,17 @@ SESSION_SAVE_EVERY_REQUEST = True  # extiende la sesión en cada request activo
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src":     ["'self'"],
-        "script-src":      ["'self'", "'unsafe-inline'", "'unsafe-eval'",
+        # 'unsafe-eval' removido 2026-05-26 tras audit: no se usa eval(),
+        # new Function() ni setTimeout("string") en ningún template ni JS
+        # del proyecto, y las CDNs activas (Chart.js 4, Bootstrap 5, htmx) no
+        # lo requieren. Si alguna lib futura lo necesita, browser logea
+        # violación CSP en consola pero solo bloquea ese script específico.
+        #
+        # Pendiente Q3 2026: migrar 'unsafe-inline' a nonces vía
+        # CSP_INCLUDE_NONCE_IN. Bloqueado por ~135 templates con <script>
+        # inline. style-src debe mantener 'unsafe-inline' por 4k+ atributos
+        # style="..." que no son cubribles por nonce.
+        "script-src":      ["'self'", "'unsafe-inline'",
                              "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
         "style-src":       ["'self'", "'unsafe-inline'",
                              "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com",
