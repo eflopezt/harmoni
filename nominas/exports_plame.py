@@ -68,63 +68,120 @@ CATEGORIA_SUNAT = {
     'DIRECCION': '03',
 }
 
-# Codigos de concepto PLAME (Tabla 22 SUNAT - conceptos remunerativos)
-# Mapea codigos internos del sistema a codigos PLAME.
+# Códigos de concepto PLAME — Tabla 22 SUNAT (Anexo 2, Tablas paramétricas)
+# Fuente oficial: https://orientacion.sunat.gob.pe/sites/default/files/inline-files/
+#                 Tabla%20N22%20Definici%C3%B3n%20Conceptos%20Plame_181124.pdf
 #
-# Donde el código exacto no fue verificable, dejamos TODO con la nota
-# 'verificar con Tabla 22 SUNAT'. No inventamos códigos: si no estamos
-# seguros, no exportamos esa línea (el caller debe filtrar None).
+# AUDIT 2026-05-26: muchos códigos previos estaban equivocados (ej. 'sueldo':'0100'
+# pero 0100 no existe; '0121' lo asignamos a 3 conceptos cuando 0121 es solo "Jornal
+# Básico"). Reescrito contra el PDF oficial de Tabla 22 (versión 18/11/2024).
+# Mapeos con referencia de página entre paréntesis.
+#
+# Si el código exacto no es verificable, dejamos `None`: el caller debe filtrar
+# y NO exportar esa línea — no inventamos códigos para SUNAT.
+#
+# IMPORTANTE: el formato actual de `generar_plame_remuneraciones()` NO es el PDT
+# PLAME oficial — es un formato resumido posicional. Este dict queda como
+# infraestructura para una eventual implementación del archivo plano PDT 601 real,
+# que sí requiere registros por concepto con código de Tabla 22.
 CONCEPTO_PLAME = {
-    # ── Alias legados (no remover, los usa generar_plame_remuneraciones) ──
-    'sueldo':              '0100',   # Remuneracion basica (alias legado)
-    'asig-familiar':       '0201',   # Asignacion familiar
-    'he-25':               '0301',   # Horas extra 25%
-    'he-35':               '0302',   # Horas extra 35%
-    'he-100':              '0303',   # Horas extra 100%
-    'bonificacion':        '0400',   # Bonificaciones (genérico)
-    'gratif':              '0600',   # Gratificaciones Ley 27735 (alias)
-    'bon-ext-9':           '0604',   # Bonificacion extraordinaria 9%
-    'vacaciones':          '0800',   # Vacaciones
-    'cts':                 '0900',   # CTS (alias)
+    # ════════════════════════════════════════════════════════════
+    # INGRESOS — Trabajador (rango 01xx)
+    # ════════════════════════════════════════════════════════════
+    'sueldo':              '0121',   # Remuneración o jornal básico (pág 3)
+    'sueldo-basico':       '0121',   # idem
+    'comisiones':          '0103',   # Comisiones o destajo — remuneración principal imprecisa (pág 1)
+    'comisiones-eventual': '0104',   # Comisiones eventuales (no regulares) (pág 1)
+    'he-25':               '0105',   # Trabajo en sobretiempo 25% (pág 1)
+    'he-35':               '0106',   # Trabajo en sobretiempo 35% (pág 1)
+    'he-100':              '0107',   # Trabajo en día feriado/descanso (pág 1) — 100% es coloquial
+    'premio-ventas':       '0111',   # Premios por ventas / cumplimiento objetivos comerciales (pág 1)
+    'vacaciones':          '0118',   # Remuneración vacacional (pág 3)
+    'vacaciones-truncas':  '0114',   # Vacaciones truncas (pág 2)
+    'rem-devengada':       '0119',   # Remuneraciones devengadas de períodos anteriores (pág 3)
 
-    # ── Códigos internos seedeados (mapping completo) ──
-    'sueldo-basico':       '0100',   # Remuneracion basica
-    'bono-productividad':  '0121',   # Bonificación habitual - productividad
-    'bono-puntualidad':    '0123',   # Bonificación habitual - puntualidad
-    'comisiones':          '0121',   # Comisiones (rem. variable habitual)
-    # TODO: verificar código PLAME exacto para 'bono-resultados' con Tabla 22 SUNAT
-    'bono-resultados':     None,     # Bono por resultados — pendiente verificar
-    'gratificacion':       '0600',   # Gratificación semestral
-    'bonif-extraordinaria':'0604',   # Bonificación extraordinaria 9% Ley 29351
-    'cts-semestral':       '0904',   # Depósito semestral CTS
+    # ════════════════════════════════════════════════════════════
+    # ASIGNACIONES — Trabajador (rango 02xx)
+    # ════════════════════════════════════════════════════════════
+    'asig-familiar':       '0201',   # Asignación familiar Ley 25129 (pág 4)
+    'asig-educacion':      '0202',   # Asignación o bonificación por educación (pág 4)
+    'asig-cumpleanos':     '0203',   # Asignación por cumpleaños (pág 4)
+    'asig-matrimonio':     '0204',   # Asignación por matrimonio (pág 4)
+    'asig-nacimiento':     '0205',   # Asignación por nacimiento de hijos (pág 5)
+    'asig-fallecimiento':  '0206',   # Asignación por fallecimiento de familiares (pág 5)
+    'asig-vacacional':     '0210',   # Asignación vacacional (adicional, por convenio) (pág 5)
 
-    # Conceptos no remunerativos (no van en remuneraciones, pero referenciados)
-    'movilidad':           None,     # No remunerativo
-    'refrigerio':          None,     # No remunerativo
-    'viaticos-cdt':        None,     # No remunerativo
-    'otros-ingresos':      None,     # Categoría genérica — depende del caso
+    # ════════════════════════════════════════════════════════════
+    # BONIFICACIONES — Trabajador (rango 03xx)
+    # ════════════════════════════════════════════════════════════
+    'bono-produccion':     '0303',   # Bonificación por producción/altura/turno (pág 6)
+    'bono-riesgo-caja':    '0304',   # Bonificación por riesgo de caja (pág 6)
+    'bono-antiguedad':     '0305',   # Bonificaciones por tiempo de servicios (pág 6)
+    'bonificacion':        '0306',   # Bonificaciones regulares — genérico (pág 6)
+    'bono-puntualidad':    '0306',   # Bonificación regular → cae en "Bonificaciones regulares"
+    'bono-nocturno':       '0309',   # Bonificación por turno nocturno 20% (pág 6)
 
-    # ── DESCUENTOS — pensión y renta ──
-    'afp-aporte':          '0605',   # Aporte obligatorio AFP (en archivo de aportes)
-    'afp-comision':        '0606',   # Comisión flujo AFP
-    'afp-seguro':          '0607',   # Prima seguro AFP
-    'onp':                 '0608',   # Aporte ONP
-    'ir-5ta':              '0610',   # Retención IR 5ta categoría
+    # ════════════════════════════════════════════════════════════
+    # GRATIFICACIONES (rango 04xx)
+    # ════════════════════════════════════════════════════════════
+    'gratificacion':       '0408',   # Gratificaciones Fiestas Patrias y Navidad (post 29351) (pág 8)
+    'gratif':              '0408',   # alias
+    'gratif-truncas':      '0407',   # Gratificaciones proporcionales/truncas Ley 29351 (pág 8)
+    'gratif-extraord':     '0403',   # Gratificaciones extraordinarias por liberalidad (pág 8)
+    # Bonificación Extraordinaria 9% Ley 29351 NO tiene código aislado en Tabla 22 —
+    # se considera parte del concepto 0408 pero exenta de aportes. Marcar None y
+    # documentar en el caller.
+    'bon-ext-9':           None,     # ← no existe código separado en T22 (ver doc Ley 29351)
+    'bonif-extraordinaria': None,    # idem
 
-    # ── DESCUENTOS — otros ──
-    # Códigos según Tabla 22 SUNAT — sección descuentos.
-    'descto-prestamo':     '0802',   # Adelantos y préstamos
-    'descto-adelanto':     '0802',   # Adelantos al trabajador (mismo código)
-    'descto-falta':        '0810',   # Descuento por faltas e inasistencias
-    'cuota-sindical':      '0805',   # Cuota sindical (autorizada)
-    'retencion-judicial':  '0807',   # Retenciones por mandato judicial
-    'embargo-judicial':    '0809',   # Embargos judiciales / otros descuentos
-    'otros-descuentos':    '0809',   # Otros descuentos al trabajador
+    # ════════════════════════════════════════════════════════════
+    # INDEMNIZACIONES (rango 05xx)
+    # ════════════════════════════════════════════════════════════
+    'indem-despido':       '0501',   # Indemnización por despido injustificado (pág 9)
+    'indem-vac-no-goz':    '0504',   # Indemnización por vacaciones no gozadas (pág 9)
 
-    # ── APORTES EMPLEADOR ──
-    'essalud':             '2001',   # EsSalud 9% empleador
-    'sctr-pension':        '2009',   # SCTR pensión (empleador)
-    'sctr-salud':          '2010',   # SCTR salud (empleador)
+    # ════════════════════════════════════════════════════════════
+    # TRIBUTOS Y APORTES — Trabajador (rango 06xx)
+    # ════════════════════════════════════════════════════════════
+    'ir-5ta':              '0605',   # Renta 5ta categoría — retenciones (pág 27)
+    'afp-seguro':          '0606',   # Prima de seguro AFP (pág 28)
+    'onp':                 '0607',   # SNP — Sistema Nacional de Pensiones DL 19990 (pág 28)
+    'afp-aporte':          '0608',   # SPP — Aportación obligatoria 10% (pág 28)
+    'afp-aporte-voluntario': '0609', # SPP aportación voluntaria (pág 28)
+    # Comisión por flujo AFP: la T22 no le asigna un código aislado del aporte
+    # obligatorio. En el archivo PLAME va en el mismo campo del aporte.
+    'afp-comision':        None,     # ← sin código separado (era 0606 incorrecto)
+
+    # ════════════════════════════════════════════════════════════
+    # DESCUENTOS — Trabajador (rango 07xx) [pág 26]
+    # ════════════════════════════════════════════════════════════
+    'descto-adelanto':     '0701',   # Adelantos
+    'descto-prestamo':     '0701',   # Préstamo → mismo código que adelanto en T22
+    'cuota-sindical':      '0702',   # Cuota sindical autorizada
+    'retencion-judicial':  '0703',   # Descuento por mandato judicial
+    'embargo-judicial':    '0703',   # idem
+    'descto-tardanza':     '0704',   # Tardanzas
+    'descto-falta':        '0705',   # Inasistencias / licencias sin goce
+    'otros-descuentos':    '0706',   # Otros descuentos no deducibles de base imponible
+    'descto-deducible':    '0707',   # Otros descuentos deducibles de base imponible
+
+    # ════════════════════════════════════════════════════════════
+    # CONCEPTOS VARIOS (rango 09xx) [pág 10-11]
+    # ════════════════════════════════════════════════════════════
+    'bono-productividad':  '0902',   # Bono de productividad — estímulo por resultados (pág 10)
+    'bono-resultados':     '0902',   # idem (resuelve TODO previo — descripción T22 menciona "los resultados")
+    'cts':                 '0904',   # Compensación por tiempo de servicios (pág 10)
+    'cts-semestral':       '0904',   # idem
+    'incentivo-cese':      '0906',   # Incentivo por cese del trabajador (pág 10)
+    'utilidades':          '0911',   # Participación en utilidades post-declaración anual IR (pág 11)
+
+    # ════════════════════════════════════════════════════════════
+    # NO REMUNERATIVOS — no se exportan en archivo de remuneraciones
+    # ════════════════════════════════════════════════════════════
+    'movilidad':           None,     # Condición de trabajo (Inc. j Art. 19 D.Leg. 650)
+    'refrigerio':          None,     # No alimentación principal (0914 si aplica)
+    'viaticos-cdt':        None,     # Viáticos — condición de trabajo
+    'otros-ingresos':      None,     # Categoría genérica — depende del caso específico
 }
 
 
