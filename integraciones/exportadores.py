@@ -46,35 +46,52 @@ def _monto(value):
 # T-REGISTRO (SUNAT)
 # ──────────────────────────────────────────────────────────────────────
 
-# Mapeo de tipo_trab → código T-Registro
+# Mapeos T-Registro / PLAME — códigos SUNAT
+# AUDIT 2026-05-27: códigos previos estaban en 1 dígito ('1','2','3') pero
+# T-Registro y PLAME requieren formato de 2 dígitos zero-padded ('01','02','03'),
+# confirmado por SUNAT (https://orientacion.sunat.gob.pe/3225-09-carga-masiva-del-t-registro
+# y Anexo 1 RS 112-2021). Mapeos corregidos.
+#
+# Tabla SUNAT 02 — Tipo Documento Identidad (en PLAME, formato 2 dígitos):
+TIPO_DOC_TREG = {
+    'DNI':       '01',
+    'CE':        '04',
+    'Pasaporte': '07',
+    'RUC':       '06',
+    'PAS':       '07',  # alias
+}
+
+# Tabla SUNAT 05 — Tipo Trabajador (empleado/obrero, formato 2 dígitos):
 TIPO_TRAB_TREG = {
-    'Empleado': '1',
-    'Obrero': '2',
+    'Empleado': '01',
+    'Obrero':   '02',
+    'EMPLEADO': '01',  # alias mayúsculas
+    'OBRERO':   '02',
 }
 
-# Mapeo de tipo_contrato → código T-Registro (modalidad formativa / contrato)
+# Tabla SUNAT 09 — Tipo Contrato/Modalidad (formato 2 dígitos):
 MODALIDAD_TREG = {
-    'INDEFINIDO': '1',
-    'PLAZO_FIJO': '2',
-    'INICIO_ACTIVIDAD': '3',
-    'NECESIDAD_MERCADO': '4',
-    'RECONVERSION_EMPRESARIAL': '5',
-    'OBRA_SERVICIO': '6',
-    'DISCONTINUO': '7',
-    'TEMPORADA': '8',
-    'SUPLENCIA': '9',
-    'EMERGENCIA': '10',
-    'SNP': '20',
-    'PRACTICANTE': '30',
-    'OTRO': '99',
-    '': '99',
+    'INDEFINIDO':               '01',
+    'PLAZO_FIJO':               '02',
+    'INICIO_ACTIVIDAD':         '03',
+    'NECESIDAD_MERCADO':        '04',
+    'RECONVERSION_EMPRESARIAL': '05',
+    'OBRA_SERVICIO':            '06',
+    'DISCONTINUO':              '07',
+    'TEMPORADA':                '08',
+    'SUPLENCIA':                '09',
+    'EMERGENCIA':               '10',
+    'SNP':                      '20',
+    'PRACTICANTE':              '30',
+    'OTRO':                     '99',
+    '':                         '99',
 }
 
-# Mapeo régimen pensionario → código T-Registro
+# Tabla SUNAT 03 — Régimen Pensionario (formato 2 dígitos):
 PENSION_TREG = {
-    'AFP': '1',
-    'ONP': '2',
-    'SIN_PENSION': '3',
+    'AFP':          '01',
+    'ONP':          '02',
+    'SIN_PENSION':  '03',
 }
 
 
@@ -84,29 +101,27 @@ def generar_t_registro_altas(queryset):
     Formato: pipe (|) delimitado, sin encabezado.
 
     Campos requeridos (simplificados):
-    1. Tipo doc trabajador (1=DNI, 4=CE, 7=PAS)
+    1. Tipo doc trabajador (01=DNI, 04=CE, 07=PAS) — Tabla SUNAT 02
     2. Nro doc
-    3. Tipo trab (1=Empleado, 2=Obrero)
+    3. Tipo trab (01=Empleado, 02=Obrero) — Tabla SUNAT 05
     4. Fecha ingreso (DD/MM/YYYY)
-    5. Régimen pensionario (1=AFP, 2=ONP, 3=Sin)
-    6. Modalidad contrato
+    5. Régimen pensionario (01=AFP, 02=ONP, 03=Sin) — Tabla SUNAT 03
+    6. Modalidad contrato — Tabla SUNAT 09 (2 dígitos)
     7. Remuneración básica
     8. Periodo (YYYY-MM)
     """
     from io import StringIO
     output = StringIO()
 
-    TIPO_DOC_MAP = {'DNI': '1', 'CE': '4', 'Pasaporte': '7'}
-
     hoy = date.today()
 
     for p in queryset:
         row = [
-            TIPO_DOC_MAP.get(p.tipo_doc, '1'),
+            TIPO_DOC_TREG.get(p.tipo_doc, '01'),
             _safe(p.nro_doc),
-            TIPO_TRAB_TREG.get(p.tipo_trab, '1'),
+            TIPO_TRAB_TREG.get(p.tipo_trab, '01'),
             _fecha(p.fecha_alta),
-            PENSION_TREG.get(p.regimen_pension, '3'),
+            PENSION_TREG.get(p.regimen_pension, '03'),
             _safe(p.afp) if p.regimen_pension == 'AFP' else '',
             _safe(p.cuspp),
             MODALIDAD_TREG.get(p.tipo_contrato, '99'),
@@ -121,18 +136,24 @@ def generar_t_registro_altas(queryset):
 
 
 def generar_t_registro_bajas(queryset):
-    """Genera archivo T-Registro de bajas (ceses) para SUNAT."""
+    """Genera archivo T-Registro de bajas (ceses) para SUNAT.
+
+    Campos:
+    1. Tipo doc (Tabla 02 SUNAT, 2 dígitos)
+    2. Nro doc
+    3. Fecha cese (DD/MM/YYYY)
+    4. Motivo cese (Tabla SUNAT - 2 dígitos)
+    5. Periodo (YYYYMM)
+    """
     from io import StringIO
     output = StringIO()
 
-    TIPO_DOC_MAP = {'DNI': '1', 'CE': '4', 'Pasaporte': '7'}
-
     for p in queryset:
         row = [
-            TIPO_DOC_MAP.get(p.tipo_doc, '1'),
+            TIPO_DOC_TREG.get(p.tipo_doc, '01'),
             _safe(p.nro_doc),
             _fecha(p.fecha_cese),
-            '1',  # motivo cese: 01 = despido/renuncia (simplificado)
+            '01',  # motivo cese: 01 = despido/renuncia (simplificado, Tabla 24 SUNAT)
             hoy_str := date.today().strftime('%Y%m'),
         ]
         output.write('|'.join(row) + '\n')
@@ -472,13 +493,8 @@ def generar_plame(queryset_personal, queryset_nomina=None, periodo_str=''):
     hoy = date.today()
     periodo = periodo_str or hoy.strftime('%Y%m')
 
-    TIPO_DOC_MAP = {'DNI': '1', 'CE': '4', 'Pasaporte': '7'}
-    PENSION_MAP  = {'AFP': '1', 'ONP': '2', 'SIN_PENSION': '3'}
-    MODALIDAD_MAP = {
-        'INDEFINIDO': '1', 'PLAZO_FIJO': '2', 'INICIO_ACTIVIDAD': '3',
-        'NECESIDAD_MERCADO': '4', 'OBRA_SERVICIO': '6', 'SNP': '20',
-        'PRACTICANTE': '30', '': '1',
-    }
+    # Usa los mapeos del módulo (Tabla 02/03/09 SUNAT, todos en formato 2 dígitos
+    # según especificación T-Registro/PLAME).
 
     AFP_RATE     = Decimal('0.10')
     ESSALUD_RATE = Decimal('0.09')
@@ -533,21 +549,21 @@ def generar_plame(queryset_personal, queryset_nomina=None, periodo_str=''):
 
         row = [
             '06',
-            TIPO_DOC_MAP.get(p.tipo_doc, '1'),
+            TIPO_DOC_TREG.get(p.tipo_doc, '01'),
             _safe(p.nro_doc),
             ap_paterno[:40],
             ap_materno[:40],
             nombres[:60],
             _fecha(p.fecha_nacimiento, '%d%m%Y') if hasattr(p, 'fecha_nacimiento') else '',
             _safe(getattr(p, 'sexo', 'M')),
-            MODALIDAD_MAP.get(p.tipo_contrato or '', '1'),
+            MODALIDAD_TREG.get(p.tipo_contrato or '', '99'),
             _fecha(p.fecha_alta, '%d%m%Y'),
             _monto(rem_comp),
             _monto(rem_comp),
             _monto(essalud),
-            '30',
-            '48',
-            PENSION_MAP.get(p.regimen_pension, '3'),
+            '30',  # días laborados (TODO: leer de RegistroNomina si está disponible)
+            '48',  # horas semanales jornada (TODO: leer de Personal.jornada)
+            PENSION_TREG.get(p.regimen_pension, '03'),
             _safe(p.cuspp) if p.regimen_pension == 'AFP' else '',
             _safe(p.afp) if p.regimen_pension == 'AFP' else '',
             _monto(aporte_afp),
