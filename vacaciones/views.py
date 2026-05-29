@@ -144,10 +144,18 @@ def vacacion_crear(request):
     """Registrar solicitud de vacaciones (admin)."""
     if request.method == 'POST':
         try:
+            from django.utils.dateparse import parse_date
             personal = get_object_or_404(Personal, pk=request.POST['personal_id'])
-            fecha_inicio = request.POST['fecha_inicio']
-            fecha_fin = request.POST['fecha_fin']
+            fecha_inicio = parse_date(request.POST.get('fecha_inicio', ''))
+            fecha_fin = parse_date(request.POST.get('fecha_fin', ''))
             motivo = request.POST.get('motivo', '')
+
+            if not fecha_inicio or not fecha_fin:
+                messages.error(request, 'Debe indicar fecha de inicio y fin válidas.')
+                return redirect('vacacion_crear')
+            if fecha_fin < fecha_inicio:
+                messages.error(request, 'La fecha de fin no puede ser anterior a la de inicio.')
+                return redirect('vacacion_crear')
 
             # Validación: D.Leg. 713 Art. 10 — derecho tras 1 año de servicio
             if personal.fecha_alta:
@@ -873,9 +881,17 @@ def vacacion_solicitar(request):
 
     if request.method == 'POST':
         try:
-            fecha_inicio = request.POST['fecha_inicio']
-            fecha_fin = request.POST['fecha_fin']
+            from django.utils.dateparse import parse_date
+            fecha_inicio = parse_date(request.POST.get('fecha_inicio', ''))
+            fecha_fin = parse_date(request.POST.get('fecha_fin', ''))
             motivo = request.POST.get('motivo', '')
+
+            if not fecha_inicio or not fecha_fin:
+                messages.error(request, 'Debe indicar fecha de inicio y fin válidas.')
+                return redirect('mis_vacaciones')
+            if fecha_fin < fecha_inicio:
+                messages.error(request, 'La fecha de fin no puede ser anterior a la de inicio.')
+                return redirect('mis_vacaciones')
 
             saldo = SaldoVacacional.objects.filter(
                 personal=empleado,
@@ -945,12 +961,21 @@ def permiso_solicitar(request):
 
     if request.method == 'POST':
         try:
+            from django.utils.dateparse import parse_date
             tipo = get_object_or_404(TipoPermiso, pk=request.POST['tipo_id'])
+            fecha_inicio = parse_date(request.POST.get('fecha_inicio', ''))
+            fecha_fin = parse_date(request.POST.get('fecha_fin', ''))
+            if not fecha_inicio or not fecha_fin:
+                messages.error(request, 'Debe indicar fecha de inicio y fin válidas.')
+                return redirect('mis_permisos')
+            if fecha_fin < fecha_inicio:
+                messages.error(request, 'La fecha de fin no puede ser anterior a la de inicio.')
+                return redirect('mis_permisos')
             solicitud = SolicitudPermiso(
                 personal=empleado,
                 tipo=tipo,
-                fecha_inicio=request.POST['fecha_inicio'],
-                fecha_fin=request.POST['fecha_fin'],
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
                 dias=0,  # Se calcula en save()
                 motivo=request.POST.get('motivo', ''),
                 estado='PENDIENTE',
