@@ -747,3 +747,22 @@ def campana_enviar(request, pk):
         return JsonResponse({'ok': True, **result})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def campana_reenviar_fallidos(request, pk):
+    """Reintenta el envío de los destinatarios que quedaron fallidos."""
+    from comunicaciones.models import CampanaComunicacion
+    from comunicaciones.campana_service import reenviar_fallidos
+    campana = get_object_or_404(CampanaComunicacion, pk=pk)
+    try:
+        result = reenviar_fallidos(campana, request.user)
+        messages.success(
+            request,
+            f"Reintento: {result['ok']} enviados, {result['fallidos']} fallidos "
+            f"({result['reintentadas']} reintentadas)."
+        )
+    except Exception as e:
+        messages.error(request, f"Error al reenviar: {e}")
+    return redirect('com_campana_detalle', pk=campana.pk)

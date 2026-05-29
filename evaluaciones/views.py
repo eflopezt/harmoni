@@ -1122,7 +1122,7 @@ def comparativa_competencias(request):
 
             # Áreas que tienen respuestas en este ciclo
             areas_en_ciclo = Area.objects.filter(
-                subareas__personal__evaluaciones_recibidas__ciclo=ciclo_sel,
+                subareas__personal_asignado__evaluaciones_recibidas__ciclo=ciclo_sel,
             ).distinct().order_by('nombre')[:5]
 
             for idx, area in enumerate(areas_en_ciclo):

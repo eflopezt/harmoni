@@ -535,7 +535,7 @@ def exportar_viaticos_excel(request):
     # ── Workbook ──────────────────────────────────────────────────────────────
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f'Viáticos {mes:02d}/{anio}'
+    ws.title = f'Viáticos {mes:02d}-{anio}'
 
     # Colores marca Harmoni
     COLOR_HEADER_BG = '0D2B27'   # teal oscuro sidebar

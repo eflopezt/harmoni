@@ -109,7 +109,7 @@
                             </span>
                         </td>
                         <td style="font-size:.78rem; color:#64748b;">
-                            {{ h.generado_por.get_full_name|default:h.generado_por.username|default:"—" }}
+                            {% if h.generado_por %}{{ h.generado_por.get_full_name|default:h.generado_por.username }}{% else %}—{% endif %}
                         </td>
                         <td>
                             <a href="{% url 'constancia_generar' h.plantilla.pk %}?personal_id={{ h.personal.pk }}"

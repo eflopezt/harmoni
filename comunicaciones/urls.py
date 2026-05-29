@@ -61,4 +61,6 @@ urlpatterns = [
     path('campanas/<int:pk>/enviar/', views.campana_enviar, name='campana_enviar'),
     path('campanas/<int:pk>/enviar/', views.campana_enviar, name='com_campana_enviar'),
     path('campanas/preview-destinatarios/', views.campana_preview_destinatarios, name='campana_preview_destinatarios'),
+    path('campanas/preview-destinatarios/', views.campana_preview_destinatarios, name='com_campana_preview'),
+    path('campanas/<int:pk>/reenviar-fallidos/', views.campana_reenviar_fallidos, name='com_campana_reenviar_fallidos'),
 ]
