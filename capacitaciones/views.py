@@ -355,7 +355,10 @@ def capacitacion_detalle(request, pk):
 def participante_agregar(request, cap_pk):
     """Agregar participante a capacitación."""
     cap = get_object_or_404(Capacitacion, pk=cap_pk)
-    personal = get_object_or_404(Personal, pk=request.POST['personal_id'])
+    personal_id = request.POST.get('personal_id')
+    if not personal_id:
+        return JsonResponse({'ok': False, 'error': 'Falta seleccionar el trabajador.'}, status=400)
+    personal = get_object_or_404(Personal, pk=personal_id)
 
     obj, created = AsistenciaCapacitacion.objects.get_or_create(
         capacitacion=cap, personal=personal,

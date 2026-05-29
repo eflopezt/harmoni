@@ -363,13 +363,17 @@ def paso_plantilla_agregar(request, tipo, pk):
     except (ValueError, TypeError):
         return JsonResponse({'ok': False, 'error': 'Días plazo debe ser un número válido.'}, status=400)
 
+    titulo = (request.POST.get('titulo') or '').strip()
+    if not titulo:
+        return JsonResponse({'ok': False, 'error': 'El título del paso es obligatorio.'}, status=400)
+
     if tipo == 'offboarding':
         plantilla = get_object_or_404(PlantillaOffboarding, pk=pk)
         ultimo_orden = plantilla.pasos.count()
         paso = PasoPlantillaOff.objects.create(
             plantilla=plantilla,
             orden=ultimo_orden + 1,
-            titulo=request.POST['titulo'],
+            titulo=titulo,
             descripcion=request.POST.get('descripcion', ''),
             tipo=request.POST.get('tipo', 'TAREA'),
             responsable_tipo=request.POST.get('responsable_tipo', 'RRHH'),
@@ -382,7 +386,7 @@ def paso_plantilla_agregar(request, tipo, pk):
         paso = PasoPlantilla.objects.create(
             plantilla=plantilla,
             orden=ultimo_orden + 1,
-            titulo=request.POST['titulo'],
+            titulo=titulo,
             descripcion=request.POST.get('descripcion', ''),
             tipo=request.POST.get('tipo', 'TAREA'),
             responsable_tipo=request.POST.get('responsable_tipo', 'RRHH'),
