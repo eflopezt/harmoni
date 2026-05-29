@@ -73,6 +73,28 @@ def offline_view(request):
     return render(request, 'offline.html')
 
 
+def service_worker(request):
+    """Sirve el Service Worker desde la raíz para que su scope sea '/'.
+
+    Servirlo desde /static/js/ limita el scope a /static/js/ y el registro
+    con scope '/' falla con SecurityError. Servirlo en /sw.js + el header
+    Service-Worker-Allowed resuelve el registro PWA en dev y prod.
+    """
+    import os
+    from django.conf import settings
+    path_sw = os.path.join(settings.BASE_DIR, 'static', 'js', 'sw.js')
+    try:
+        with open(path_sw, encoding='utf-8') as fh:
+            contenido = fh.read()
+    except FileNotFoundError:
+        return HttpResponse('// sw.js no encontrado', status=404,
+                            content_type='application/javascript')
+    resp = HttpResponse(contenido, content_type='application/javascript')
+    resp['Service-Worker-Allowed'] = '/'
+    resp['Cache-Control'] = 'no-cache'
+    return resp
+
+
 def portal_alias(request):
     """Alias /portal/ → /mi-portal/. Útil cuando el cliente teclea la URL corta."""
     from django.shortcuts import redirect
@@ -138,6 +160,7 @@ def demo_landing(request, demo_slug='demo'):
 
 urlpatterns = [
     path('offline/', offline_view, name='offline'),
+    path('sw.js', service_worker, name='service_worker'),
     path('health/', health_check, name='health_check'),
     path('robots.txt', robots_txt, name='robots_txt'),
     # Status page público (sin prefijo /sistema/)
