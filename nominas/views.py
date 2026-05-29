@@ -457,8 +457,9 @@ def periodo_aprobar(request, pk):
 
     msg = f'Período {periodo} aprobado correctamente.'
     if notif_count:
-        plural = '' if notif_count == 1 else 's'
-        msg += f' {notif_count} trabajador{plural} notificado{plural}.'
+        trab = 'trabajador' if notif_count == 1 else 'trabajadores'
+        notif = 'notificado' if notif_count == 1 else 'notificados'
+        msg += f' {notif_count} {trab} {notif}.'
     messages.success(request, msg)
     return redirect('nominas_periodo_detalle', pk=pk)
 
@@ -2854,10 +2855,11 @@ def notificar_periodo_boletas(request, pk):
     notif_count = _notificar_boletas_disponibles(periodo)
 
     if notif_count:
-        plural = '' if notif_count == 1 else 'es'
+        trab = 'trabajador' if notif_count == 1 else 'trabajadores'
+        notif = 'notificado' if notif_count == 1 else 'notificados'
         messages.success(
             request,
-            f'{notif_count} trabajador{plural} notificado{plural} del período '
+            f'{notif_count} {trab} {notif} del período '
             f'{periodo.mes_nombre} {periodo.anio}.'
         )
     else:

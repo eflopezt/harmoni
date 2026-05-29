@@ -180,7 +180,7 @@
         <div>
             <div class="eb-title">
                 <i class="fas fa-calendar-alt me-1" style="color:#0f766e"></i>
-                {{ item.p }} · Planilla {{ item.p.get_tipo_display }}
+                {{ item.p }} · {{ item.p.get_tipo_display }}
             </div>
             <div class="eb-subtitle">
                 {{ item.p.fecha_inicio|date:"d/m/Y" }} — {{ item.p.fecha_fin|date:"d/m/Y" }}
