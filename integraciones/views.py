@@ -216,6 +216,32 @@ def exportar_afp_net(request):
     if afp_filtro:
         qs = qs.filter(afp=afp_filtro)
 
+    # Declarar el aporte REAL del período (suma de las líneas AFP de planilla) y
+    # la remuneración asegurable real, no una tasa plana sobre el sueldo base.
+    try:
+        from django.db.models import OuterRef, Subquery, Sum, DecimalField
+        from nominas.models import RegistroNomina, LineaNomina, PeriodoNomina
+        anio, mes = int(periodo[:4]), int(periodo[5:])
+        periodo_obj = PeriodoNomina.objects.filter(anio=anio, mes=mes, tipo='REGULAR').first()
+        if periodo_obj:
+            aporte_sq = (
+                LineaNomina.objects
+                .filter(registro__periodo=periodo_obj, registro__personal=OuterRef('pk'),
+                        concepto__codigo__startswith='afp')
+                .values('registro__personal')
+                .annotate(t=Sum('monto')).values('t')[:1]
+            )
+            base_sq = RegistroNomina.objects.filter(
+                periodo=periodo_obj, personal=OuterRef('pk'),
+            ).values('total_ingresos')[:1]
+            dec = DecimalField(max_digits=12, decimal_places=2)
+            qs = qs.annotate(
+                afp_aporte_real=Subquery(aporte_sq, output_field=dec),
+                afp_base_real=Subquery(base_sq, output_field=dec),
+            )
+    except Exception:
+        pass
+
     contenido, count = generar_afp_net(qs, periodo.replace('-', ''))
 
     LogExportacion.objects.create(

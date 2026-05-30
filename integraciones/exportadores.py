@@ -238,11 +238,18 @@ def generar_afp_net(queryset, periodo_str=''):
     """
     output = io.StringIO()
 
-    AFP_RATE = Decimal('0.13')
+    AFP_RATE = Decimal('0.13')  # fallback aproximado si no hay datos del período
 
     for p in queryset.filter(regimen_pension='AFP'):
-        sueldo = p.sueldo_base or Decimal('0')
-        aporte = (sueldo * AFP_RATE).quantize(Decimal('0.01'))
+        # Preferir los valores REALES del período (anotados desde la planilla);
+        # caer al aproximado solo si no hay registro de nómina.
+        base_real   = getattr(p, 'afp_base_real', None)
+        aporte_real = getattr(p, 'afp_aporte_real', None)
+        sueldo = base_real if base_real is not None else (p.sueldo_base or Decimal('0'))
+        if aporte_real is not None:
+            aporte = aporte_real.quantize(Decimal('0.01'))
+        else:
+            aporte = (sueldo * AFP_RATE).quantize(Decimal('0.01'))
 
         # Separar apellidos y nombres del campo unificado
         nombre_full = p.apellidos_nombres
