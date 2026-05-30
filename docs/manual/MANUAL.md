@@ -33,6 +33,7 @@ Versión del manual: 2026-05-29 · Capturas reales sobre datos de demostración.
 14. [Comunicaciones](#14-comunicaciones)
 15. [Estructura Salarial](#15-estructura-salarial)
 16. [Analytics y Dashboard Ejecutivo](#16-analytics-y-dashboard-ejecutivo)
+17. [Portal del Trabajador](#17-portal-del-trabajador)
 
 ---
 
@@ -449,7 +450,86 @@ Indicadores de clima/operación a nivel multi-empresa.
 
 ---
 
-> **Regenerar este manual.** Las capturas se generan con
-> `scripts/capture_manual.py <SESSION_KEY>` (requiere el dev server activo y
-> Playwright con el Chrome del sistema). Útil para refrescar el manual tras
-> cambios de interfaz.
+## 17. Portal del Trabajador
+
+Vista de **autoservicio del colaborador** (URL `/mi-portal/`). Cada trabajador
+ingresa con su usuario y solo ve **sus propios datos**. Es una sección distinta
+del panel administrativo de los capítulos anteriores.
+
+### Mi Resumen
+Pantalla de inicio del trabajador: saludo, encuestas/pulse pendientes y KPIs
+personales (días trabajados, saldo de banco de horas, vacaciones disponibles,
+HE del mes, último neto, préstamo activo), con accesos rápidos.
+
+![Portal — Mi Resumen](img/17_portal/01_home.png)
+
+### Mi Perfil
+Datos personales y laborales del trabajador (solo lectura / edición de contacto).
+
+![Portal — Mi Perfil](img/17_portal/02_perfil.png)
+
+### Mi Asistencia
+Marcas, tardanzas, faltas y resumen del ciclo del propio trabajador.
+
+![Portal — Mi Asistencia](img/17_portal/03_asistencia.png)
+
+### Mis Recibos de Sueldo
+Boletas de pago del trabajador: ingresos, descuentos y neto, con **descargar
+boleta (PDF)**, **confirmar recepción** (firma electrónica, DS 008-2011-TR) y
+**explicar mi boleta (IA)**.
+
+![Portal — Mis Recibos](img/17_portal/04_nomina.png)
+
+### Mis Vacaciones
+Saldo vacacional y solicitudes del trabajador, con opción de **solicitar**.
+
+![Portal — Mis Vacaciones](img/17_portal/05_vacaciones.png)
+
+### Mis Papeletas
+Papeletas del trabajador (crear, ver estado, anular).
+
+![Portal — Mis Papeletas](img/17_portal/06_papeletas.png)
+
+### Mi Roster
+Turnos programados del trabajador.
+
+![Portal — Mi Roster](img/17_portal/07_roster.png)
+
+### Mis Documentos
+Documentos del legajo del trabajador disponibles para descarga.
+
+![Portal — Mis Documentos](img/17_portal/08_documentos.png)
+
+### Mis Evaluaciones
+Resultados de las evaluaciones de desempeño del trabajador.
+
+![Portal — Mis Evaluaciones](img/17_portal/09_evaluaciones.png)
+
+### Mis Capacitaciones
+Capacitaciones y certificaciones del trabajador, con su estado.
+
+![Portal — Mis Capacitaciones](img/17_portal/10_capacitaciones.png)
+
+### Mi Historia (Timeline)
+Línea de tiempo de hitos del trabajador (ingreso, contratos, evaluaciones, etc.).
+
+![Portal — Mi Historia](img/17_portal/11_timeline.png)
+
+### Directorio
+Directorio de colaboradores de la empresa.
+
+![Portal — Directorio](img/17_portal/12_directorio.png)
+
+### Mi Calendario y Banco de Horas
+Calendario personal de ausencias/eventos y acumulado del banco de horas.
+
+![Portal — Mi Calendario](img/17_portal/13_calendario.png)
+![Portal — Banco de Horas](img/17_portal/14_banco_horas.png)
+
+---
+
+> **Regenerar este manual.** Las capturas administrativas se generan con
+> `scripts/capture_manual.py <SESSION_KEY>` y las del portal con
+> `scripts/capture_portal.py <SESSION_KEY_DE_TRABAJADOR>` (requieren el dev
+> server activo y Playwright con el Chrome del sistema). Útil para refrescar el
+> manual tras cambios de interfaz.
