@@ -404,6 +404,24 @@ def exportar_banco_especifico(request, banco):
         estado='Activo', cuenta_ahorros__gt=''
     ).order_by('apellidos_nombres')
 
+    # Anotar el NETO del período: al banco se transfiere el neto a pagar, no el
+    # sueldo bruto. La anotación (Subquery) sobrevive al .filter(banco=...) que
+    # hace cada generador. Sin esto, el generador caía a sueldo_base (bruto).
+    try:
+        from django.db.models import OuterRef, Subquery, DecimalField
+        from nominas.models import RegistroNomina, PeriodoNomina
+        anio, mes = int(periodo[:4]), int(periodo[5:])
+        periodo_obj = PeriodoNomina.objects.filter(anio=anio, mes=mes, tipo='REGULAR').first()
+        if periodo_obj:
+            neto_sq = RegistroNomina.objects.filter(
+                periodo=periodo_obj, personal=OuterRef('pk'),
+            ).values('neto_a_pagar')[:1]
+            qs = qs.annotate(neto_a_pagar=Subquery(
+                neto_sq, output_field=DecimalField(max_digits=12, decimal_places=2),
+            ))
+    except Exception:
+        pass
+
     BANCO_MAP = {
         'bcp':        ('BCP',        generar_bcp_telecredito,    'txt', 'text/plain'),
         'bbva':       ('BBVA',       generar_bbva_net_cash,      'txt', 'text/plain'),
