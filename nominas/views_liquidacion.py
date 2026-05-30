@@ -431,6 +431,7 @@ def api_liquidacion(request, personal_id):
         'indemnizacion':      str(liq.indemnizacion),
         'otros_pagos':        str(liq.otros_pagos),
         # Descuentos
+        'descuento_pension':    str(liq.descuento_pension),
         'prestamos_pendientes': str(liq.prestamos_pendientes),
         'adelantos_pendientes': str(liq.adelantos_pendientes),
         'embargo':              str(liq.embargo),
@@ -466,6 +467,7 @@ def liquidacion_laboral_detalle(request, liquidacion_id):
         ('Otros pagos',                 liq.otros_pagos),
     ]
     descuentos = [
+        ('Aporte pensionario (AFP/ONP)', liq.descuento_pension),
         ('Préstamos pendientes',  liq.prestamos_pendientes),
         ('Adelantos pendientes',  liq.adelantos_pendientes),
         ('Embargo judicial',      liq.embargo),

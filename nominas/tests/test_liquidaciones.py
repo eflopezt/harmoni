@@ -123,8 +123,10 @@ class TestModelo:
 
         # Total bruto > 0
         assert liq.total_bruto > Decimal('0')
-        # No hay descuentos → neto == bruto
-        assert liq.total_neto == liq.total_bruto
+        # Descuento AFP/ONP sobre conceptos afectos (sueldo mes + gratif trunca)
+        assert liq.descuento_pension > Decimal('0')
+        # Neto = bruto − descuentos (incluye AFP/ONP)
+        assert liq.total_neto == liq.total_bruto - liq.descuento_pension
 
 
 # ─── 2. Signal: auto-genera al cesar ─────────────────────────────────────────
@@ -274,8 +276,8 @@ class TestDescuentos:
         liq.calcular()
 
         assert liq.prestamos_pendientes == Decimal('1000.00')
-        # Neto = bruto - 1000
-        assert liq.total_neto == liq.total_bruto - Decimal('1000.00')
+        # Neto = bruto - 1000 - AFP/ONP
+        assert liq.total_neto == liq.total_bruto - Decimal('1000.00') - liq.descuento_pension
 
     def test_descuentos_manuales_no_se_sobrescriben_via_otros(self, worker_activo):
         """Descuentos manuales (embargo, otros) persisten tras calcular()."""
@@ -289,8 +291,8 @@ class TestDescuentos:
         liq.calcular()
         assert liq.embargo == Decimal('500.00')
         assert liq.otros_descuentos == Decimal('150.00')
-        # Neto incluye estos descuentos
-        assert liq.total_neto == liq.total_bruto - Decimal('650.00')
+        # Neto incluye estos descuentos + AFP/ONP
+        assert liq.total_neto == liq.total_bruto - Decimal('650.00') - liq.descuento_pension
 
 
 # ─── 6. API endpoint ─────────────────────────────────────────────────────────

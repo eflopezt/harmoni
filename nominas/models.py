@@ -1219,6 +1219,12 @@ class LiquidacionLaboral(models.Model):
                                                verbose_name='Embargo judicial')
     otros_descuentos     = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
                                                verbose_name='Otros descuentos')
+    descuento_pension    = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name='Descuento AFP/ONP',
+        help_text='Aporte pensionario sobre los conceptos afectos (sueldo del '
+                  'mes + gratif. trunca). CTS y vacaciones son inafectas.',
+    )
 
     # ── Totales ──────────────────────────────────────────────────────────
     total_bruto = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'),
@@ -1365,7 +1371,24 @@ class LiquidacionLaboral(models.Model):
         except Exception:
             pass
 
-        # ── 7. Totales ────────────────────────────────────────────────────
+        # ── 7. Descuento pensionario (AFP/ONP) ────────────────────────────
+        # Solo sobre conceptos AFECTOS: sueldo del mes + gratif. trunca.
+        # CTS y vacaciones truncas son INAFECTAS (Ley 29351 / Ley 30334).
+        from .engine import AFP_TASAS, AFP_APORTE, ONP_TASA
+        base_afecta = self.sueldo_mes_curso + self.gratif_trunca
+        regimen = getattr(personal, 'regimen_pension', 'AFP')
+        descto_pension = Decimal('0')
+        if regimen == 'ONP':
+            descto_pension = base_afecta * ONP_TASA / Decimal('100')
+        elif regimen == 'AFP':
+            afp_nombre = getattr(personal, 'afp', 'Prima') or 'Prima'
+            tasas = AFP_TASAS.get(afp_nombre, AFP_TASAS['Prima'])
+            descto_pension = base_afecta * (
+                AFP_APORTE + tasas['comision_flujo'] + tasas['seguro']
+            ) / Decimal('100')
+        self.descuento_pension = descto_pension.quantize(Decimal('0.01'), ROUND_HALF_UP)
+
+        # ── 8. Totales ────────────────────────────────────────────────────
         self.total_bruto = (
             self.vacaciones_truncas + self.gratif_trunca + self.cts_trunca
             + self.sueldo_mes_curso + self.he_no_compensadas
@@ -1374,7 +1397,7 @@ class LiquidacionLaboral(models.Model):
 
         total_desc = (
             self.prestamos_pendientes + self.adelantos_pendientes
-            + self.embargo + self.otros_descuentos
+            + self.embargo + self.otros_descuentos + self.descuento_pension
         ).quantize(Decimal('0.01'), ROUND_HALF_UP)
 
         self.total_neto = (self.total_bruto - total_desc).quantize(
