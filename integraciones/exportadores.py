@@ -113,7 +113,7 @@ def generar_t_registro_altas(queryset):
     from io import StringIO
     output = StringIO()
 
-    hoy = date.today()
+    hoy = timezone.localdate()
 
     for p in queryset:
         row = [
@@ -154,7 +154,7 @@ def generar_t_registro_bajas(queryset):
             _safe(p.nro_doc),
             _fecha(p.fecha_cese),
             '01',  # motivo cese: 01 = despido/renuncia (simplificado, Tabla 24 SUNAT)
-            hoy_str := date.today().strftime('%Y%m'),
+            hoy_str := timezone.localdate().strftime('%Y%m'),
         ]
         output.write('|'.join(row) + '\n')
 
@@ -257,7 +257,7 @@ def generar_afp_net(queryset, periodo_str=''):
             p.nro_doc,
             _monto(sueldo),
             _monto(aporte),
-            periodo_str or date.today().strftime('%Y%m'),
+            periodo_str or timezone.localdate().strftime('%Y%m'),
             _safe(p.afp),
         ]
         output.write('|'.join(row) + '\n')
@@ -309,7 +309,7 @@ def generar_pago_banco(queryset, banco_filtro='', monto_campo='sueldo_base'):
             p.nro_doc,
             _monto(sueldo),
             'PEN',
-            f'Remuneracion {date.today().strftime("%m/%Y")}',
+            f'Remuneracion {timezone.localdate().strftime("%m/%Y")}',
         ])
         count += 1
 
@@ -342,7 +342,7 @@ def generar_essalud(queryset, periodo_str=''):
             p.apellidos_nombres,
             _monto(sueldo),
             _monto(essalud),
-            periodo_str or date.today().strftime('%Y%m'),
+            periodo_str or timezone.localdate().strftime('%Y%m'),
         ])
         count += 1
 
@@ -393,7 +393,7 @@ def generar_bbva_net_cash(queryset, descripcion='REMUNERACION'):
             _monto(sueldo),
             'PEN',
             descripcion[:30],
-            date.today().strftime('%d/%m/%Y'),
+            timezone.localdate().strftime('%d/%m/%Y'),
         ]
         output.write('	'.join(row) + '\r\n')
 
@@ -448,7 +448,7 @@ def generar_scotiabank_masivo(queryset, descripcion='REMUNERACION'):
             _monto(sueldo),
             'PEN',
             descripcion[:30],
-            date.today().strftime('%d/%m/%Y'),
+            timezone.localdate().strftime('%d/%m/%Y'),
         ])
         count += 1
     return output.getvalue(), count
@@ -469,7 +469,7 @@ def generar_banco_nacion(queryset, descripcion='REMUNERACION'):
             _safe(p.cuenta_ahorros),
             _monto(sueldo),
             descripcion[:30],
-            date.today().strftime('%d%m%Y'),
+            timezone.localdate().strftime('%d%m%Y'),
         ]
         output.write(','.join(row) + '\r\n')
         count += 1
@@ -490,7 +490,7 @@ def generar_plame(queryset_personal, queryset_nomina=None, periodo_str=''):
     pension|cuspp|afp|aporte_afp|aporte_onp|ir_5ta|neto|periodo
     '''
     output = io.StringIO()
-    hoy = date.today()
+    hoy = timezone.localdate()
     periodo = periodo_str or hoy.strftime('%Y%m')
 
     # Usa los mapeos del módulo (Tabla 02/03/09 SUNAT, todos en formato 2 dígitos
