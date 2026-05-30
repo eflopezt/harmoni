@@ -30,6 +30,7 @@ PLAN_CUENTAS_DEFAULT = {
     "rem_pagar_haber":     ("4111", "Remuneraciones por pagar"),
     "afp_pagar_haber":     ("4031", "AFP por pagar"),
     "onp_pagar_haber":     ("4011", "ONP por pagar"),
+    "ir5ta_pagar_haber":   ("4017", "IR 5ta categoria por pagar"),
     "essalud_pagar_haber": ("4032", "EsSalud por pagar"),
     # Provisiones contables separadas (PCGE 2020)
     "cts_debe":            ("6291", "Compensacion tiempo de servicios (provision)"),
@@ -128,6 +129,10 @@ def _get_totales_periodo(periodo, empresa=None):
             concepto__formula="ONP",
         ).aggregate(s=Sum("monto"))["s"] or Decimal("0")
 
+        ir5ta_total = linea_qs.filter(
+            concepto__formula="IR_5TA",
+        ).aggregate(s=Sum("monto"))["s"] or Decimal("0")
+
         gratif_prov = (bruto_pre / Decimal("6")).quantize(Decimal("0.01"))
 
         return {
@@ -136,6 +141,7 @@ def _get_totales_periodo(periodo, empresa=None):
             "essalud":     essalud,
             "afp":         afp_total.quantize(Decimal("0.01")),
             "onp":         onp_total.quantize(Decimal("0.01")),
+            "ir5ta":       ir5ta_total.quantize(Decimal("0.01")),
             "gratif_prov": gratif_prov,
         }
 
@@ -158,6 +164,10 @@ def _get_totales_periodo(periodo, empresa=None):
         concepto__formula="ONP",
     ).aggregate(s=Sum("monto"))["s"] or Decimal("0")
 
+    ir5ta_total = linea_qs.filter(
+        concepto__formula="IR_5TA",
+    ).aggregate(s=Sum("monto"))["s"] or Decimal("0")
+
     gratif_prov = (bruto / Decimal("6")).quantize(Decimal("0.01"))
 
     return {
@@ -166,6 +176,7 @@ def _get_totales_periodo(periodo, empresa=None):
         "essalud":     essalud.quantize(Decimal("0.01")),
         "afp":         afp_total.quantize(Decimal("0.01")),
         "onp":         onp_total.quantize(Decimal("0.01")),
+        "ir5ta":       ir5ta_total.quantize(Decimal("0.01")),
         "gratif_prov": gratif_prov,
     }
 
@@ -248,12 +259,16 @@ def generar_asiento_concar(periodo, empresa=None):
         writer.writerow(row("afp_pagar_haber", "H", tots["afp"]))
     if tots["onp"] > 0:
         writer.writerow(row("onp_pagar_haber", "H", tots["onp"]))
+    if tots.get("ir5ta", Decimal("0")) > 0:
+        writer.writerow(row("ir5ta_pagar_haber", "H", tots["ir5ta"]))
     writer.writerow(row("essalud_pagar_haber", "H", tots["essalud"]))
 
-    # Cuadre: diferencia de gratif_prov -> cuenta 4151 Gratificaciones por pagar
+    # Cuadre: el residuo (provisión de gratificaciones + descuentos no
+    # clasificados arriba) va a 4151 Gratificaciones por pagar.
     diferencia = (
         tots["bruto"] + tots["essalud"] + tots["gratif_prov"]
-        - tots["neto"] - tots["afp"] - tots["onp"] - tots["essalud"]
+        - tots["neto"] - tots["afp"] - tots["onp"]
+        - tots.get("ir5ta", Decimal("0")) - tots["essalud"]
     )
     if abs(diferencia) > Decimal("0.02"):
         writer.writerow([
@@ -315,6 +330,17 @@ def generar_asiento_sigo(periodo, empresa=None):
         filas.append(linea("afp_pagar_haber", Decimal("0"), tots["afp"]))
     if tots["onp"] > 0:
         filas.append(linea("onp_pagar_haber", Decimal("0"), tots["onp"]))
+    if tots.get("ir5ta", Decimal("0")) > 0:
+        filas.append(linea("ir5ta_pagar_haber", Decimal("0"), tots["ir5ta"]))
+
+    # Cuadre: residuo (provisión gratificaciones + descuentos no clasificados)
+    diferencia = (
+        tots["bruto"] + tots["essalud"] + tots["gratif_prov"]
+        - tots["neto"] - tots["afp"] - tots["onp"]
+        - tots.get("ir5ta", Decimal("0")) - tots["essalud"]
+    )
+    if abs(diferencia) > Decimal("0.02"):
+        filas.append(linea("gratif_pagar_haber", Decimal("0"), diferencia))
 
     for f in filas:
         output.write("|".join(f) + "\n")
@@ -382,6 +408,22 @@ def generar_asiento_sap_excel(periodo, empresa=None):
         (plan["onp_pagar_haber"][0],     plan["onp_pagar_haber"][1],     Decimal("0"),         tots["onp"]),
         (plan["essalud_pagar_haber"][0], plan["essalud_pagar_haber"][1], Decimal("0"),         tots["essalud"]),
     ]
+    if tots.get("ir5ta", Decimal("0")) > 0:
+        filas_asiento.insert(6, (
+            plan["ir5ta_pagar_haber"][0], plan["ir5ta_pagar_haber"][1],
+            Decimal("0"), tots["ir5ta"],
+        ))
+    # Cuadre: residuo (provisión gratificaciones + descuentos no clasificados)
+    diferencia = (
+        tots["bruto"] + tots["essalud"] + tots["gratif_prov"]
+        - tots["neto"] - tots["afp"] - tots["onp"]
+        - tots.get("ir5ta", Decimal("0")) - tots["essalud"]
+    )
+    if abs(diferencia) > Decimal("0.02"):
+        filas_asiento.append((
+            plan["gratif_pagar_haber"][0], plan["gratif_pagar_haber"][1],
+            Decimal("0"), diferencia,
+        ))
 
     cc_field = cc or "001"
     for i, (cuenta, desc, debe, haber) in enumerate(filas_asiento, 2):
@@ -530,6 +572,17 @@ def generar_sire_libro_diario(periodo, empresa=None):
         asientos.append(("afp_pagar_haber", Decimal("0"), tots["afp"]))
     if tots["onp"] > 0:
         asientos.append(("onp_pagar_haber", Decimal("0"), tots["onp"]))
+    if tots.get("ir5ta", Decimal("0")) > 0:
+        asientos.append(("ir5ta_pagar_haber", Decimal("0"), tots["ir5ta"]))
+
+    # Cuadre: residuo (provisión gratificaciones + descuentos no clasificados)
+    diferencia = (
+        tots["bruto"] + tots["essalud"] + tots["gratif_prov"]
+        - tots["neto"] - tots["afp"] - tots["onp"]
+        - tots.get("ir5ta", Decimal("0")) - tots["essalud"]
+    )
+    if abs(diferencia) > Decimal("0.02"):
+        asientos.append(("gratif_pagar_haber", Decimal("0"), diferencia))
 
     for i, (cuenta_key, debe, haber) in enumerate(asientos, 1):
         output.write("|".join(linea(cuenta_key, debe, haber, i)) + "\n")
@@ -600,11 +653,14 @@ def generar_asiento_siscont(periodo, empresa=None):
         filas.append(row_data("afp_pagar_haber", Decimal("0"), tots["afp"]))
     if tots["onp"] > 0:
         filas.append(row_data("onp_pagar_haber", Decimal("0"), tots["onp"]))
+    if tots.get("ir5ta", Decimal("0")) > 0:
+        filas.append(row_data("ir5ta_pagar_haber", Decimal("0"), tots["ir5ta"]))
 
-    # Provision gratificacion (cuadre)
+    # Provision gratificacion + descuentos no clasificados (cuadre)
     diff = (
         tots["bruto"] + tots["essalud"] + tots["gratif_prov"]
-        - tots["neto"] - tots["afp"] - tots["onp"] - tots["essalud"]
+        - tots["neto"] - tots["afp"] - tots["onp"]
+        - tots.get("ir5ta", Decimal("0")) - tots["essalud"]
     )
     if abs(diff) > Decimal("0.02"):
         filas.append([
@@ -835,13 +891,15 @@ def generar_asiento_excel_universal(periodo, empresa=None):
         ("rem_pagar_haber",     Decimal("0"),        tots["neto"]),
         ("afp_pagar_haber",     Decimal("0"),        tots["afp"]),
         ("onp_pagar_haber",     Decimal("0"),        tots["onp"]),
+        ("ir5ta_pagar_haber",   Decimal("0"),        tots.get("ir5ta", Decimal("0"))),
         ("essalud_pagar_haber", Decimal("0"),        tots["essalud"]),
     ]
 
-    # Cuadre de la provisión gratificación al haber (4151)
+    # Cuadre: residuo (provisión gratificaciones + descuentos no clasificados) al haber (4151)
     diferencia = (
         tots["bruto"] + tots["essalud"] + tots["gratif_prov"]
-        - tots["neto"] - tots["afp"] - tots["onp"] - tots["essalud"]
+        - tots["neto"] - tots["afp"] - tots["onp"]
+        - tots.get("ir5ta", Decimal("0")) - tots["essalud"]
     )
     if abs(diferencia) > Decimal("0.02"):
         filas.append(("gratif_pagar_haber", Decimal("0"), diferencia))
@@ -862,11 +920,10 @@ def generar_asiento_excel_universal(periodo, empresa=None):
         ws.cell(row=row, column=8, value=float(haber) if haber else None)
         row += 1
 
-    # Fila de TOTAL (sin fórmulas, valores estáticos — más portable)
+    # Fila de TOTAL (sin fórmulas, valores estáticos — más portable).
+    # La diferencia ya está incluida en `filas`, no sumarla de nuevo.
     total_debe  = sum(d for _, d, _ in filas)
     total_haber = sum(h for _, _, h in filas)
-    if diferencia > Decimal("0.02"):
-        total_haber += diferencia
     ws.cell(row=row, column=6, value="TOTAL").font = Font(bold=True)
     ws.cell(row=row, column=7, value=float(total_debe)).font  = Font(bold=True)
     ws.cell(row=row, column=8, value=float(total_haber)).font = Font(bold=True)
