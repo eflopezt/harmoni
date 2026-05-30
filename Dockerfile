@@ -27,8 +27,13 @@ RUN pip install --upgrade pip && \
 # --- Runtime stage ---
 FROM python:3.12-slim
 
+# TZ=America/Lima: el contenedor corre en UTC por defecto, lo que hacía que
+# date.today()/datetime.now() (hora local del SO) devolvieran la fecha UTC —
+# un día adelantada en las tardes/noches peruanas. Fijar la TZ del contenedor
+# lo corrige a nivel de infraestructura.
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    TZ=America/Lima
 
 WORKDIR /app
 
@@ -41,7 +46,10 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libgdk-pixbuf-2.0-0 \
+    tzdata \
     curl gnupg ca-certificates apt-transport-https \
+    && ln -fs /usr/share/zoneinfo/America/Lima /etc/localtime \
+    && dpkg-reconfigure -f noninteractive tzdata \
     && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
