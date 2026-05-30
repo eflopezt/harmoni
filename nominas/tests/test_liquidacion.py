@@ -224,8 +224,8 @@ class TestCalcularLiquidacion:
     # ── Gratificacion trunca ─────────────────────────────────────────────
 
     def test_gratif_trunca_excludes_pension(self):
-        """Gratif trunca no descuenta AFP/ONP (se calcula bruta para el empleado,
-        los descuentos van sobre rem_trunca + gratif_trunca como base)."""
+        """Gratif trunca no descuenta AFP/ONP: es INAFECTA (Ley 29351). El
+        descuento pensionario va solo sobre rem_trunca."""
         p = _make_personal(sueldo_base=3000, fecha_cese=date(2026, 3, 31))
         result = self._calc(p)
         meses = _meses_semestre_gratif(date(2026, 3, 31))  # 3
@@ -299,7 +299,7 @@ class TestCalcularLiquidacion:
                            regimen_pension='AFP', afp='Habitat')
         result = self._calc(p)
 
-        base = result['rem_trunca'] + result['gratif_trunca']
+        base = result['rem_trunca']  # gratif inafecta (Ley 29351)
         tasas = AFP_TASAS['Habitat']
         aporte = _rd(base * AFP_APORTE)
         comision = _rd(base * tasas['comision_flujo'] / Decimal('100'))
@@ -314,7 +314,7 @@ class TestCalcularLiquidacion:
                            regimen_pension='AFP', afp='Profuturo')
         result = self._calc(p)
 
-        base = result['rem_trunca'] + result['gratif_trunca']
+        base = result['rem_trunca']  # gratif inafecta (Ley 29351)
         tasas = AFP_TASAS['Profuturo']
         aporte = _rd(base * AFP_APORTE)
         comision = _rd(base * tasas['comision_flujo'] / Decimal('100'))
@@ -329,7 +329,7 @@ class TestCalcularLiquidacion:
                            regimen_pension='AFP', afp=None)
         result = self._calc(p)
 
-        base = result['rem_trunca'] + result['gratif_trunca']
+        base = result['rem_trunca']  # gratif inafecta (Ley 29351)
         tasas = AFP_TASAS['Prima']
         aporte = _rd(base * AFP_APORTE)
         comision = _rd(base * tasas['comision_flujo'] / Decimal('100'))
@@ -341,12 +341,12 @@ class TestCalcularLiquidacion:
     # ── ONP calculation ──────────────────────────────────────────────────
 
     def test_onp_calculation(self):
-        """ONP = 13% sobre rem_trunca + gratif_trunca."""
+        """ONP = 13% sobre rem_trunca (gratif inafecta)."""
         p = _make_personal(sueldo_base=3000, fecha_cese=date(2026, 3, 31),
                            regimen_pension='ONP')
         result = self._calc(p)
 
-        base = result['rem_trunca'] + result['gratif_trunca']
+        base = result['rem_trunca']  # gratif inafecta (Ley 29351)
         expected = _rd(base * ONP_TASA)
         assert result['descto_pension'] == expected
         assert result['regimen_pension'] == 'ONP'

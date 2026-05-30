@@ -149,8 +149,10 @@ def _calcular_liquidacion(personal: Personal, rmv: Decimal = None) -> dict:
     vac_truncas    = _rd(sueldo / 30 * dias_truncos)
 
     # ── 5. Descuentos sobre liquidación ──────────────────────────────────────
-    # AFP/ONP aplican sobre rem_trunca y gratif_trunca; NO sobre CTS ni vacaciones (inafectos)
-    base_desctos = rem_trunca + gratif_trunca
+    # AFP/ONP aplican SOLO sobre la remuneración afecta (rem_trunca). La
+    # gratificación trunca, la CTS y las vacaciones son INAFECTAS a aportes
+    # pensionarios (Ley 29351 / Ley 30334).
+    base_desctos = rem_trunca
     regimen      = getattr(personal, 'regimen_pension', 'AFP')
 
     descto_pension = Decimal('0')

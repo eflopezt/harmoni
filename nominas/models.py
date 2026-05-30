@@ -1222,8 +1222,9 @@ class LiquidacionLaboral(models.Model):
     descuento_pension    = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal('0'),
         verbose_name='Descuento AFP/ONP',
-        help_text='Aporte pensionario sobre los conceptos afectos (sueldo del '
-                  'mes + gratif. trunca). CTS y vacaciones son inafectas.',
+        help_text='Aporte pensionario sobre la remuneración afecta (sueldo del '
+                  'mes en curso). Gratificación trunca, CTS y vacaciones son '
+                  'inafectas (Ley 29351 / Ley 30334).',
     )
 
     # ── Totales ──────────────────────────────────────────────────────────
@@ -1372,10 +1373,11 @@ class LiquidacionLaboral(models.Model):
             pass
 
         # ── 7. Descuento pensionario (AFP/ONP) ────────────────────────────
-        # Solo sobre conceptos AFECTOS: sueldo del mes + gratif. trunca.
-        # CTS y vacaciones truncas son INAFECTAS (Ley 29351 / Ley 30334).
+        # Solo sobre la REMUNERACIÓN AFECTA: el sueldo del mes en curso.
+        # Gratificación trunca, CTS y vacaciones truncas son INAFECTAS a aportes
+        # pensionarios (Ley 29351 / Ley 30334).
         from .engine import AFP_TASAS, AFP_APORTE, ONP_TASA
-        base_afecta = self.sueldo_mes_curso + self.gratif_trunca
+        base_afecta = self.sueldo_mes_curso
         regimen = getattr(personal, 'regimen_pension', 'AFP')
         descto_pension = Decimal('0')
         if regimen == 'ONP':
