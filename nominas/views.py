@@ -1324,7 +1324,7 @@ def verificar_boleta(request, token):
 
     # Iteración acotada a últimos 24 meses + select_related para evitar N+1.
     from datetime import timedelta
-    desde = timezone.now().date() - timedelta(days=730)
+    desde = timezone.localdate() - timedelta(days=730)
     qs = (
         RegistroNomina.objects
         .select_related('personal', 'periodo')

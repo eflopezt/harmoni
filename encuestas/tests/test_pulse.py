@@ -76,7 +76,7 @@ def worker_user(db, workers):
 
 
 def _semana_actual():
-    iso = timezone.now().date().isocalendar()
+    iso = timezone.localdate().isocalendar()
     return iso.year, iso.week
 
 

@@ -737,7 +737,7 @@ def encuesta_recordatorio(request, pk):
 
 def _semana_iso_now():
     """(anio_iso, semana_iso) según hoy."""
-    iso = timezone.now().date().isocalendar()
+    iso = timezone.localdate().isocalendar()
     return iso.year, iso.week
 
 

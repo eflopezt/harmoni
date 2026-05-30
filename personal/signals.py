@@ -330,7 +330,7 @@ def _crear_firma_digital_cese(personal, pdf_bytes, plantilla):
         from django.core.files.base import ContentFile
         from django.utils import timezone
         from datetime import timedelta
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         nombre_archivo = f'Carta_Cese_{personal.nro_doc}_{hoy.strftime("%Y%m%d")}.pdf'
         doc = DocumentoFirmaDigital(
             personal=personal,

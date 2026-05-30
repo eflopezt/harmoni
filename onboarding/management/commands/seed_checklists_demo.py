@@ -70,7 +70,7 @@ class Command(BaseCommand):
             ))
             return
 
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
 
         # Definir 3 perfiles: completado, en_proceso, en_riesgo
         # Distribución aproximada según count.

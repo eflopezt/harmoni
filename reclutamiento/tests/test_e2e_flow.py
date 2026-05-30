@@ -424,11 +424,11 @@ class TestFlujoCalendario:
             vacante=vacante, etapa=etapas['Entrevista'],
             nombre_completo='CAL E2E', email='cal_e2e@test.com',
         )
-        # Entrevista en este mes
-        now = timezone.now()
+        # Entrevista el dia 15 del mes actual (deterministico, no cruza de mes)
+        dia15 = timezone.localdate().replace(day=15)
         EntrevistaPrograma.objects.create(
             postulacion=post,
-            fecha_hora=now + timedelta(days=2),
+            fecha_hora=timezone.make_aware(timezone.datetime(dia15.year, dia15.month, 15, 12, 0)),
             entrevistador=admin_user,
             tipo='RRHH',
             modalidad='PRESENCIAL',

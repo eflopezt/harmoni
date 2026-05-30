@@ -197,7 +197,7 @@ class TestChecklistGastronomiaVistas:
         assert data['nuevo_valor'] is True
         checklist.refresh_from_db()
         assert checklist.contrato_firmado is True
-        assert checklist.contrato_firmado_fecha == timezone.now().date()
+        assert checklist.contrato_firmado_fecha == timezone.localdate()
 
     def test_toggle_desmarca_item(self, admin_client, checklist):
         checklist.contrato_firmado = True

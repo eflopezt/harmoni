@@ -1165,7 +1165,7 @@ def checklist_gastro_detalle(request, pk):
                 messages.error(request, f'Calificación inválida: {e}')
                 return redirect('checklist_gastro_detalle', pk=pk)
             setattr(checklist, f'evaluacion_{n}', True)
-            setattr(checklist, f'evaluacion_{n}_fecha', timezone.now().date())
+            setattr(checklist, f'evaluacion_{n}_fecha', timezone.localdate())
             setattr(checklist, f'evaluacion_{n}_calificacion', cal)
             setattr(checklist, f'evaluacion_{n}_notas', request.POST.get(f'evaluacion_{n}_notas', ''))
             _recalcular_completado(checklist)
@@ -1209,7 +1209,7 @@ def checklist_gastro_toggle(request, pk):
     setattr(checklist, campo, nuevo_valor)
     fecha_field = f'{campo}_fecha'
     if hasattr(checklist, fecha_field):
-        setattr(checklist, fecha_field, timezone.now().date() if nuevo_valor else None)
+        setattr(checklist, fecha_field, timezone.localdate() if nuevo_valor else None)
 
     _recalcular_completado(checklist)
     if checklist.responsable_id is None:
@@ -1241,7 +1241,7 @@ def crear_checklist_para_personal_nuevo(personal, fecha_ingreso=None, responsabl
     if existente:
         return existente
 
-    fecha = fecha_ingreso or personal.fecha_alta or timezone.now().date()
+    fecha = fecha_ingreso or personal.fecha_alta or timezone.localdate()
     checklist = ChecklistGastronomia.objects.create(
         personal=personal,
         fecha_ingreso=fecha,
@@ -1256,7 +1256,7 @@ def checklist_gastro_auto_crear(request):
     """Crea checklists para los Personal activos con fecha_alta en los últimos 120 días
     que aún no tengan un checklist asociado.
     """
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     desde = hoy - timedelta(days=120)
     candidatos = (
         Personal.objects

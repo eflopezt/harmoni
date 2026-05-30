@@ -39,7 +39,7 @@ _WORD_RE = re.compile(r"[a-záéíóúñü0-9]+", re.IGNORECASE)
 
 def _semana_actual(today: date | None = None) -> tuple[int, int]:
     """Devuelve (anio_iso, semana_iso) para 'hoy'."""
-    today = today or timezone.now().date()
+    today = today or timezone.localdate()
     iso = today.isocalendar()
     return iso.year, iso.week
 
@@ -192,7 +192,7 @@ def tendencia_12_semanas(empresa_id=None, n_semanas: int = 12):
 
     Retorna lista ordenada cronológicamente: [(semana, anio, animo_avg, n, nps_avg), …]
     """
-    today = timezone.now().date()
+    today = timezone.localdate()
     # Generar (anio, semana) de las últimas N semanas
     semanas_obj = []
     cur = today

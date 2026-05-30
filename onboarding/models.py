@@ -334,7 +334,7 @@ class ChecklistGastronomia(models.Model):
 
     @property
     def dias_desde_ingreso(self):
-        return (timezone.now().date() - self.fecha_ingreso).days
+        return (timezone.localdate() - self.fecha_ingreso).days
 
     @property
     def alertas_vencidas(self):

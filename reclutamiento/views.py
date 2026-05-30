@@ -187,7 +187,7 @@ def vacante_detalle(request, pk):
     # Calcular dias_en_etapa para cada postulacion.
     # Usamos la fecha de la ultima nota (las notas de cambio de etapa se crean automaticamente).
     # Si no hay notas, se usa fecha_postulacion como referencia.
-    hoy_dt = timezone.now().date()
+    hoy_dt = timezone.localdate()
     post_ids = [p.pk for p in postulaciones]
     # Obtener la ultima nota por postulacion
     from django.db.models import Max
@@ -547,7 +547,7 @@ def pipeline_panel(request):
         postulaciones = postulaciones.filter(tags__contains=[tag_filtro])
 
     # Calcular dias_en_etapa para pipeline global
-    hoy_dt_pl = timezone.now().date()
+    hoy_dt_pl = timezone.localdate()
     pl_ids = [p.pk for p in postulaciones]
     from django.db.models import Max as _Max
     ultimas_notas_pl = dict(
@@ -771,7 +771,7 @@ def mi_dia_reclutador(request):
     from django.db.models import Count, Q
 
     user = request.user
-    hoy_dt = timezone.now().date()
+    hoy_dt = timezone.localdate()
 
     # 1. Entrevistas de hoy
     entrevistas_hoy = (
@@ -1179,7 +1179,7 @@ def calendario_entrevistas(request):
     from calendar import monthrange
     import calendar as _cal
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     try:
         mes = int(request.GET.get('mes', hoy.month))
         anio = int(request.GET.get('anio', hoy.year))

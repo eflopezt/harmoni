@@ -54,7 +54,7 @@ class Command(BaseCommand):
         from asistencia.views.calendario import _recalcular_horas
         from cierre.models import PeriodoCierre
 
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         desde = (
             date.fromisoformat(opts['desde']) if opts['desde']
             else hoy - timedelta(days=180)
