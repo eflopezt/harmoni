@@ -247,8 +247,26 @@ def exportar_pago_banco(request):
         cuenta_ahorros__gt='',
     ).order_by('apellidos_nombres')
 
+    # Al banco se transfiere el NETO del período, no el sueldo bruto.
+    monto_campo = 'sueldo_base'
+    try:
+        from django.db.models import OuterRef, Subquery, DecimalField
+        from nominas.models import RegistroNomina, PeriodoNomina
+        anio, mes = int(periodo[:4]), int(periodo[5:])
+        periodo_obj = PeriodoNomina.objects.filter(anio=anio, mes=mes, tipo='REGULAR').first()
+        if periodo_obj:
+            neto_sq = RegistroNomina.objects.filter(
+                periodo=periodo_obj, personal=OuterRef('pk'),
+            ).values('neto_a_pagar')[:1]
+            qs = qs.annotate(neto_a_pagar=Subquery(
+                neto_sq, output_field=DecimalField(max_digits=12, decimal_places=2),
+            ))
+            monto_campo = 'neto_a_pagar'
+    except Exception:
+        pass
+
     tipo_log = f'BANCO_{banco.upper()[:3]}' if banco else 'BANCO_BCP'
-    contenido, count = generar_pago_banco(qs, banco_filtro=banco)
+    contenido, count = generar_pago_banco(qs, banco_filtro=banco, monto_campo=monto_campo)
 
     validos = dict(LogExportacion.TIPO_CHOICES)
     LogExportacion.objects.create(
