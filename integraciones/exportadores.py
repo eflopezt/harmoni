@@ -541,15 +541,28 @@ def generar_plame(queryset_personal, queryset_nomina=None, periodo_str=''):
 
         ir_5ta = Decimal('0')
         neto   = rem_comp - aporte_afp - aporte_onp
+        dias_lab = '30'
 
         if queryset_nomina:
+            # Preferir los valores REALES de la planilla del período (incluyen HE
+            # en la rem y el aporte AFP completo: aporte + comisión + seguro).
             try:
                 from django.db.models import Sum
-                reg    = queryset_nomina.get(personal=p)
-                neto   = reg.neto_a_pagar or neto
-                ir_5ta = reg.lineas.filter(concepto__formula='IR_5TA').aggregate(
-                    s=Sum('monto')
-                )['s'] or Decimal('0')
+                reg = queryset_nomina.get(personal=p)
+                rem_comp = (reg.total_ingresos or rem_comp).quantize(Decimal('0.01'))
+                essalud  = (reg.aporte_essalud or essalud).quantize(Decimal('0.01'))
+                neto     = reg.neto_a_pagar or neto
+                dias_lab = str(getattr(reg, 'dias_trabajados', 30) or 30)
+                lineas = reg.lineas.all()
+                ir_5ta = lineas.filter(concepto__formula='IR_5TA').aggregate(s=Sum('monto'))['s'] or Decimal('0')
+                afp_real = lineas.filter(
+                    concepto__formula__in=['AFP_APORTE', 'AFP_COMISION', 'AFP_SEGURO'],
+                ).aggregate(s=Sum('monto'))['s']
+                onp_real = lineas.filter(concepto__formula='ONP').aggregate(s=Sum('monto'))['s']
+                if afp_real is not None:
+                    aporte_afp = afp_real
+                if onp_real is not None:
+                    aporte_onp = onp_real
             except Exception:
                 pass
 
@@ -574,7 +587,7 @@ def generar_plame(queryset_personal, queryset_nomina=None, periodo_str=''):
             _monto(rem_comp),
             _monto(rem_comp),
             _monto(essalud),
-            '30',  # días laborados (TODO: leer de RegistroNomina si está disponible)
+            dias_lab,  # días laborados del período (de RegistroNomina)
             '48',  # horas semanales jornada (TODO: leer de Personal.jornada)
             PENSION_TREG.get(p.regimen_pension, '03'),
             _safe(p.cuspp) if p.regimen_pension == 'AFP' else '',
