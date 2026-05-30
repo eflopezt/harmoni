@@ -319,6 +319,22 @@ def exportar_essalud(request):
     periodo = request.GET.get('periodo', _periodo_actual())
     qs = Personal.objects.filter(estado='Activo').order_by('apellidos_nombres')
 
+    # Declarar la rem asegurable y el aporte EsSalud REALES del período.
+    try:
+        from django.db.models import OuterRef, Subquery, DecimalField
+        from nominas.models import RegistroNomina, PeriodoNomina
+        anio, mes = int(periodo[:4]), int(periodo[5:])
+        periodo_obj = PeriodoNomina.objects.filter(anio=anio, mes=mes, tipo='REGULAR').first()
+        if periodo_obj:
+            reg = RegistroNomina.objects.filter(periodo=periodo_obj, personal=OuterRef('pk'))
+            dec = DecimalField(max_digits=12, decimal_places=2)
+            qs = qs.annotate(
+                essalud_base_real=Subquery(reg.values('total_ingresos')[:1], output_field=dec),
+                essalud_real=Subquery(reg.values('aporte_essalud')[:1], output_field=dec),
+            )
+    except Exception:
+        pass
+
     contenido, count = generar_essalud(qs, periodo.replace('-', ''))
 
     LogExportacion.objects.create(

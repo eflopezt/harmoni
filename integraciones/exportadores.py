@@ -337,12 +337,18 @@ def generar_essalud(queryset, periodo_str=''):
         'APORTE_ESSALUD_9%', 'PERIODO',
     ])
 
-    ESSALUD_RATE = Decimal('0.09')
+    ESSALUD_RATE = Decimal('0.09')  # fallback si no hay datos del período
     count = 0
 
     for p in queryset:
-        sueldo = p.sueldo_base or Decimal('0')
-        essalud = (sueldo * ESSALUD_RATE).quantize(Decimal('0.01'))
+        # Preferir la rem asegurable y el aporte REALES del período (anotados).
+        base_real    = getattr(p, 'essalud_base_real', None)
+        essalud_real = getattr(p, 'essalud_real', None)
+        sueldo = base_real if base_real is not None else (p.sueldo_base or Decimal('0'))
+        if essalud_real is not None:
+            essalud = essalud_real.quantize(Decimal('0.01'))
+        else:
+            essalud = (sueldo * ESSALUD_RATE).quantize(Decimal('0.01'))
 
         writer.writerow([
             p.nro_doc,
