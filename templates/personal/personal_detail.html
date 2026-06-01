@@ -612,7 +612,7 @@ function portalCrearAcceso(personalPk) {
         method: 'POST',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
-                        || getCookie('csrftoken'),
+                        || '{{ csrf_token }}',
             'Content-Type': 'application/x-www-form-urlencoded',
         },
     })
@@ -641,7 +641,7 @@ function portalResetCredenciales(personalPk) {
         method: 'POST',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
-                        || getCookie('csrftoken'),
+                        || '{{ csrf_token }}',
             'Content-Type': 'application/x-www-form-urlencoded',
         },
     })

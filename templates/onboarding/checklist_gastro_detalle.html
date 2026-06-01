@@ -342,7 +342,7 @@
         if (parts.length === 2) return parts.pop().split(';').shift();
         return null;
     }
-    const csrftoken = getCookie('csrftoken');
+    const csrftoken = '{{ csrf_token }}';  // del DOM: inmune a CSRF_COOKIE_HTTPONLY
 
     document.querySelectorAll('.toggle-form').forEach(function (form) {
         form.addEventListener('submit', function (ev) {

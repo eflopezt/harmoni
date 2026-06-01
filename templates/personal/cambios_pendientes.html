@@ -116,7 +116,7 @@ function aprobarCambio(pk) {
     fetch(`/roster/aprobar/${pk}/`, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
+            'X-CSRFToken': '{{ csrf_token }}',
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
@@ -141,7 +141,7 @@ function rechazarCambio(pk) {
     fetch(`/roster/rechazar/${pk}/`, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
+            'X-CSRFToken': '{{ csrf_token }}',
             'X-Requested-With': 'XMLHttpRequest'
         }
     })

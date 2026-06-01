@@ -668,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return cookieValue;
     }
-    const csrftoken = getCookie('csrftoken');
+    const csrftoken = '{{ csrf_token }}';  // del DOM: inmune a CSRF_COOKIE_HTTPONLY
     
     // Función para actualizar el color de fondo basado en el código
     function updateCellColor(select) {
