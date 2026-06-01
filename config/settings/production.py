@@ -48,7 +48,14 @@ SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True') == 'True
 CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'True') == 'True'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_HTTPONLY = True
+# CSRF_COOKIE_HTTPONLY debe ser False: la app usa el patrón AJAX que lee el
+# token CSRF desde la cookie con JS (getCookie('csrftoken') → header
+# X-CSRFToken). Con HTTPONLY=True el navegador oculta la cookie a JS, el header
+# sale vacío y Django responde 403 "CSRF verification failed" en esos POST
+# (roster matricial, detalle de personal, viáticos, checklist gastro, etc.).
+# El token CSRF NO es un secreto que requiera HTTPOnly: su protección viene del
+# patrón synchronizer, no de ocultarlo a JS (ver docs de Django).
+CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
