@@ -172,17 +172,17 @@ class TestPensionAlimenticia:
 
 class TestEmbargoCivil:
     def test_dentro_de_inembargable_no_aplica(self):
-        # 5 × RMV(1130) = 5650 ; rem 3000 < 5650 → exceso 0
-        r = calcular_embargo_civil(Decimal('3000'), rmv=Decimal('1130'))
+        # 5 URP = 5 × (10% UIT 5500) = 2750 ; rem 2500 < 2750 → exceso 0
+        r = calcular_embargo_civil(Decimal('2500'), uit=Decimal('5500'))
         assert r['aplica_embargo'] is False
         assert r['monto_max_embargo'] == Decimal('0.00')
 
     def test_exceso_se_embarga_un_tercio(self):
-        # rem 8000, inembargable 5650 → exceso 2350 ; 1/3 = 783.33
-        r = calcular_embargo_civil(Decimal('8000'), rmv=Decimal('1130'))
-        assert r['inembargable'] == Decimal('5650.00')
-        assert r['exceso'] == Decimal('2350.00')
-        assert r['monto_max_embargo'] == Decimal('783.33')
+        # rem 8000, inembargable 5 URP = 2750 → exceso 5250 ; 1/3 = 1750.00
+        r = calcular_embargo_civil(Decimal('8000'), uit=Decimal('5500'))
+        assert r['inembargable'] == Decimal('2750.00')
+        assert r['exceso'] == Decimal('5250.00')
+        assert r['monto_max_embargo'] == Decimal('1750.00')
         assert r['aplica_embargo'] is True
 
 

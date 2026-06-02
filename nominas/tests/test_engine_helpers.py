@@ -141,18 +141,18 @@ class PensionAlimenticiaTests(TestCase):
 
 class EmbargoCivilTests(TestCase):
     def test_inembargable_si_no_excede_5_urp(self):
-        """RMV 1130 × 5 = 5650 inembargable. Sueldo 5000 → no aplica."""
-        r = calcular_embargo_civil(Decimal('5000'), rmv=Decimal('1130'))
+        """5 URP = 5 × (10% UIT 5500) = 2750 inembargable. Sueldo 2500 → no aplica."""
+        r = calcular_embargo_civil(Decimal('2500'), uit=Decimal('5500'))
         self.assertEqual(r['exceso'], Decimal('0'))
         self.assertEqual(r['monto_max_embargo'], Decimal('0'))
         self.assertFalse(r['aplica_embargo'])
 
     def test_sobre_5_urp_un_tercio_embargable(self):
-        """Sueldo 8000, inembargable 5650, exceso 2350, embargo max = 2350/3 = 783.33"""
-        r = calcular_embargo_civil(Decimal('8000'), rmv=Decimal('1130'))
-        self.assertEqual(r['inembargable'], Decimal('5650.00'))
-        self.assertEqual(r['exceso'], Decimal('2350.00'))
-        self.assertEqual(r['monto_max_embargo'], Decimal('783.33'))
+        """Sueldo 8000, inembargable 5 URP = 2750, exceso 5250, embargo max = 5250/3 = 1750.00"""
+        r = calcular_embargo_civil(Decimal('8000'), uit=Decimal('5500'))
+        self.assertEqual(r['inembargable'], Decimal('2750.00'))
+        self.assertEqual(r['exceso'], Decimal('5250.00'))
+        self.assertEqual(r['monto_max_embargo'], Decimal('1750.00'))
         self.assertTrue(r['aplica_embargo'])
 
 

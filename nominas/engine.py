@@ -352,29 +352,33 @@ def calcular_pension_alimenticia(
 
 def calcular_embargo_civil(
     rem_total: Decimal,
-    rmv: Decimal = None,
+    uit: Decimal = None,
 ) -> dict:
     """
-    Embargo civil sobre remuneración — Art. 648 CPC.
+    Embargo civil sobre remuneración — Art. 648 inc. 6 CPC.
 
     Reglas:
-    - Inembargable hasta 5 URP (5 × RMV) — protege salario mínimo de vida.
+    - Inembargable hasta 5 URP. La URP (Unidad de Referencia Procesal) equivale
+      al 10% de la UIT (fijada por el Poder Judicial). 2026: UIT 5.500 → URP 550
+      → 5 URP = 2.750.
     - Sobre el exceso: hasta 1/3 (33.33%) embargable.
 
     Para deudas alimentarias el tope sube a 60% — usar calcular_pension_alimenticia
     en su lugar.
 
-    Returns: dict con inembargable, embargable, monto_max_descontable
+    Returns: dict con urp, inembargable, exceso, monto_max_embargo, aplica_embargo
     """
     rem_total = Decimal(rem_total or 0)
-    rmv_efectivo = Decimal(rmv) if rmv else _get_rmv()
+    uit_efectivo = Decimal(uit) if uit else _get_uit()
 
-    inembargable = rmv_efectivo * Decimal('5')
+    urp = uit_efectivo * Decimal('0.10')      # URP = 10% UIT
+    inembargable = urp * Decimal('5')         # 5 URP (Art. 648 inc. 6 CPC)
     exceso = max(rem_total - inembargable, Decimal('0'))
     monto_max = _redondear(exceso / Decimal('3'))
 
     return {
         'rem_total':         rem_total,
+        'urp':               _redondear(urp),
         'inembargable':      _redondear(inembargable),
         'exceso':            _redondear(exceso),
         'monto_max_embargo': monto_max,

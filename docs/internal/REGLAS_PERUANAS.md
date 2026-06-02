@@ -59,7 +59,7 @@
 
 - Vigente desde **1 de enero 2025**.
 - Es el piso de toda remuneración mensual en régimen privado a jornada completa.
-- Sirve de base para: asignación familiar (10% RMV), inembargabilidad (5 URP = 5 RMV), bono nocturno (RMV nocturna ≥ RMV +35%), tope SCTR mínimo, y régimen de microempresa.
+- Sirve de base para: asignación familiar (10% RMV), bono nocturno (RMV nocturna ≥ RMV +35%), tope SCTR mínimo, y régimen de microempresa. (La inembargabilidad NO usa la RMV: son 5 URP = 5 × 10% UIT.)
 - En código: `nominas/engine.py::RMV_2026` (fallback) y `ConfiguracionSistema.rmv_valor` (override por admin).
 
 ### 2.2 Jornada de trabajo 48h/semana — D.Leg. 854 + Art. 25 Constitución
@@ -517,7 +517,9 @@ Fuente: Resolución SBS publicada cuatrimestralmente. Override en `Configuracion
 ### 17.2 Reglas
 
 **Inembargable:**
-- Hasta **5 URP** (5 × RMV = **S/ 5,650** en 2026).
+- Hasta **5 URP**. La URP (Unidad de Referencia Procesal) = **10% de la UIT**
+  (fijada por el Poder Judicial), **NO** la RMV. 2026: UIT 5,500 → URP 550 →
+  **5 URP = S/ 2,750**.
 
 **Embargable sobre el exceso:**
 - **Deudas civiles**: hasta **1/3** (33.33%) del exceso sobre 5 URP.
@@ -526,7 +528,7 @@ Fuente: Resolución SBS publicada cuatrimestralmente. Override en `Configuracion
 ### 17.3 Ejemplos
 
 **Embargo civil sueldo S/ 8,000:**
-- Inembargable: 5,650 → Exceso: 2,350 → Máximo embargable: 2,350/3 = **S/ 783.33**
+- Inembargable: 2,750 → Exceso: 5,250 → Máximo embargable: 5,250/3 = **S/ 1,750.00**
 
 **Pensión alimenticia 30% sueldo S/ 3,000:**
 - Base = sueldo – descuentos legales (AFP/ONP, IR 5ta) = 3000 − 600 = 2400
