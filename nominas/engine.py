@@ -234,6 +234,43 @@ def calcular_he(horas: Decimal, sueldo_mensual: Decimal, tipo: str = 'HE_25',
     return _redondear(Decimal(horas) * vh * factor)
 
 
+def valor_he_banco_no_compensadas(personal, sueldo_mensual: Decimal) -> Decimal:
+    """Valor en soles de las HE banqueadas (BancoHoras) NO compensadas.
+
+    Las HE de personal STAFF se acumulan en el banco para compensarse con
+    descanso; el saldo NO compensado es deuda del empleador que se paga al cese
+    (ver BancoHoras.__doc__ y MovimientoBancoHoras tipo LIQUIDACION).
+
+    Valorización: se agregan todos los períodos del trabajador. La compensación
+    (`he_compensadas`) es un total sin desglose por tasa → se distribuye de forma
+    PROPORCIONAL entre las tasas acumuladas (criterio neutral). Cada hora
+    remanente se valora a la hora ordinaria (sueldo/30/8) × sobretasa
+    (1.25 / 1.35 / 2.00). Devuelve 0 si no hay banco o el saldo es ≤ 0.
+    """
+    if not personal or sueldo_mensual is None or Decimal(sueldo_mensual) <= 0:
+        return Decimal('0')
+    from django.db.models import Sum
+    from asistencia.models import BancoHoras
+
+    agg = BancoHoras.objects.filter(personal=personal).aggregate(
+        a25=Sum('he_25_acumuladas'), a35=Sum('he_35_acumuladas'),
+        a100=Sum('he_100_acumuladas'), comp=Sum('he_compensadas'))
+    a25 = Decimal(str(agg['a25'] or 0))
+    a35 = Decimal(str(agg['a35'] or 0))
+    a100 = Decimal(str(agg['a100'] or 0))
+    comp = Decimal(str(agg['comp'] or 0))
+    total_acum = a25 + a35 + a100
+    saldo = total_acum - comp
+    if total_acum <= 0 or saldo <= 0:
+        return Decimal('0')
+    ratio = saldo / total_acum  # proporción no compensada
+    vh = valor_hora(sueldo_mensual)  # sueldo / 30 / 8
+    monto = (a25 * ratio * vh * Decimal('1.25')
+             + a35 * ratio * vh * Decimal('1.35')
+             + a100 * ratio * vh * Decimal('2.00'))
+    return _redondear(monto)
+
+
 # ─── Subsidios ESSALUD ─────────────────────────────────────────────────
 
 def calcular_subsidio_incapacidad(

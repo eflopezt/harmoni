@@ -816,3 +816,42 @@ class TestGenerarPeriodo:
         assert stats['errores'] == 0
         # Solo procesa los OBRA — debe haber al menos 1
         assert stats['generados'] + stats['actualizados'] >= 1
+
+
+@pytest.mark.django_db
+class TestHENoCompensadasBanco:
+    """valor_he_banco_no_compensadas: deuda de HE banqueadas no compensadas al cese."""
+
+    def test_valoriza_saldo_no_compensado_proporcional(self):
+        from nominas.engine import valor_he_banco_no_compensadas
+        from asistencia.models import BancoHoras
+        emp = _empresa_test()
+        p = _crear_personal(emp, sueldo=Decimal('3000'))
+        BancoHoras.objects.create(
+            personal=p, periodo_anio=2026, periodo_mes=2,
+            he_25_acumuladas=Decimal('10'), he_35_acumuladas=Decimal('4'),
+            he_100_acumuladas=Decimal('0'), he_compensadas=Decimal('4'),
+            saldo_horas=Decimal('10'),
+        )
+        # total_acum=14, saldo=10, ratio=10/14, vh=3000/30/8=12.5
+        # ratio*12.5*(10*1.25 + 4*1.35) = (10/14)*12.5*17.9 = 159.82
+        r = valor_he_banco_no_compensadas(p, Decimal('3000'))
+        assert r == Decimal('159.82')
+
+    def test_sin_banco_es_cero(self):
+        from nominas.engine import valor_he_banco_no_compensadas
+        emp = _empresa_test()
+        p = _crear_personal(emp, sueldo=Decimal('3000'))
+        assert valor_he_banco_no_compensadas(p, Decimal('3000')) == Decimal('0')
+
+    def test_saldo_totalmente_compensado_es_cero(self):
+        from nominas.engine import valor_he_banco_no_compensadas
+        from asistencia.models import BancoHoras
+        emp = _empresa_test()
+        p = _crear_personal(emp, sueldo=Decimal('3000'))
+        BancoHoras.objects.create(
+            personal=p, periodo_anio=2026, periodo_mes=2,
+            he_25_acumuladas=Decimal('8'), he_compensadas=Decimal('8'),
+            saldo_horas=Decimal('0'),
+        )
+        assert valor_he_banco_no_compensadas(p, Decimal('3000')) == Decimal('0')

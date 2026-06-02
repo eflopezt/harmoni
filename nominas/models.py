@@ -1360,6 +1360,15 @@ class LiquidacionLaboral(models.Model):
             Decimal('0.01'), ROUND_HALF_UP,
         )
 
+        # ── 4b. HE banqueadas no compensadas (deuda del banco de horas) ────
+        # Solo STAFF acumula banco; el saldo no compensado se paga al cese.
+        # Antes he_no_compensadas nunca se asignaba (quedaba 0) → no se pagaba.
+        try:
+            from .engine import valor_he_banco_no_compensadas
+            self.he_no_compensadas = valor_he_banco_no_compensadas(personal, sueldo)
+        except Exception:
+            self.he_no_compensadas = Decimal('0.00')
+
         # ── 5. Indemnización (Art. 38 DS 003-97-TR) ───────────────────────
         if self.motivo_cese == 'DESPIDO_ARB':
             self.indemnizacion = self._calcular_indemnizacion(personal, sueldo, fecha_cese)
