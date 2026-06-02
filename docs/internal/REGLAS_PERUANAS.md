@@ -538,6 +538,7 @@ Fuente: Resolución SBS publicada cuatrimestralmente. Override en `Configuracion
 
 - `nominas/engine.py::calcular_embargo_civil`
 - `nominas/engine.py::calcular_pension_alimenticia`
+- `nominas/engine.py::valor_he_banco_no_compensadas` (deuda de HE del banco pagada al cese)
 
 ---
 
