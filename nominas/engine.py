@@ -688,9 +688,17 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     # ── 8. Otros descuentos manuales ──
     descto_prestamo  = _redondear(p.descuento_prestamo)
     otros_descuentos = _redondear(p.otros_descuentos)
+    # Embargo / retención judicial (campo dedicado → línea propia y código PLAME 0703).
+    # Antes el engine no leía p.embargo: un embargo judicial NO se descontaba del
+    # neto de la boleta (solo lo veía el campo total_neto del modelo, que no se usa
+    # para output). Ahora sí reduce el neto a pagar.
+    embargo_judicial = _redondear(getattr(p, 'embargo', 0) or 0)
 
     # ── 9. Totales ──
-    total_desc_trabajador = afp_aporte + afp_comision + afp_seguro + onp + ir_5ta + descto_prestamo + otros_descuentos + cm_desc_total
+    total_desc_trabajador = (
+        afp_aporte + afp_comision + afp_seguro + onp + ir_5ta
+        + descto_prestamo + otros_descuentos + embargo_judicial + cm_desc_total
+    )
     neto                  = _redondear(total_ingresos_bruto - total_desc_trabajador)
 
     # ── 10. Aportes empleador (costo empresa) ──
@@ -762,6 +770,9 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         _agregar('descto-prestamo', Decimal('0'),   Decimal('0'), descto_prestamo)
     if otros_descuentos > 0:
         _agregar('otros-descuentos',Decimal('0'),   Decimal('0'), otros_descuentos)
+    if embargo_judicial > 0:
+        _agregar('embargo-judicial', Decimal('0'),  Decimal('0'), embargo_judicial,
+                 'Retención judicial')
 
     # Conceptos manuales tipo DESCUENTO
     for cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():

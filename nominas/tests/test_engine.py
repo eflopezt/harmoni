@@ -452,6 +452,25 @@ class TestRegularPayroll:
         # essalud is not in total_descuentos
         assert result['aporte_essalud'] > Decimal('0')
 
+    # -- Embargo judicial --
+
+    def test_embargo_judicial_reduce_neto(self):
+        """El embargo judicial (campo dedicado RegistroNomina.embargo) se descuenta
+        del neto a pagar y aparece como línea propia. Regresión: antes el engine no
+        leía p.embargo → el embargo no reducía el neto de la boleta."""
+        reg_sin = _make_registro(sueldo_base=Decimal('5000.00'))
+        reg_con = _make_registro(sueldo_base=Decimal('5000.00'),
+                                 embargo=Decimal('500.00'))
+        res_sin = calcular_registro(reg_sin, _mock_conceptos())
+        res_con = calcular_registro(reg_con, _mock_conceptos())
+        # El neto baja exactamente el monto del embargo
+        assert res_con['neto_a_pagar'] == _r(res_sin['neto_a_pagar'] - Decimal('500.00'))
+        assert res_con['total_descuentos'] == _r(
+            res_sin['total_descuentos'] + Decimal('500.00'))
+        # Aparece la línea 'embargo-judicial' (mapea a PLAME 0703)
+        codigos = [l['concepto'].codigo for l in res_con['lineas']]
+        assert 'embargo-judicial' in codigos
+
     # -- Asignacion Familiar --
 
     def test_asignacion_familiar_10_percent_rmv(self):
