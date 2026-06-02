@@ -435,3 +435,64 @@
 @media (max-width: 480px) {
   .hm-notif-drawer { width: 100vw; }
 }
+
+/* =============================================================================
+   FIX DE CONTRASTE — headings legibles sobre superficies oscuras
+   -----------------------------------------------------------------------------
+   Causa: `main h2/h5/h6 {color:#0f2926/#134e4a}` (portal-polish.css) y
+   `.hm-body h1,h2 {color:#0F172A}` (harmoni-v2.css) fijan color OSCURO a TODOS
+   los headings dentro de <main>. En contenedores de fondo oscuro el heading
+   queda ilegible (texto oscuro sobre fondo oscuro). Estas reglas restauran un
+   color claro SOLO donde el contenedor ya declara texto claro o usa un fondo
+   Bootstrap oscuro conocido — son seguras (no afectan páginas de fondo claro).
+   Carga al final → ganan por orden de cascada.
+   ============================================================================= */
+
+/* 1. El contenedor declaró texto claro (inline color:#fff o clase .text-white):
+      el heading debe HEREDARLO en vez de tomar el oscuro global. */
+[style*="color:#fff"]  :is(h1,h2,h3,h4,h5,h6),
+[style*="color: #fff"] :is(h1,h2,h3,h4,h5,h6),
+[style*="color:#ffffff"] :is(h1,h2,h3,h4,h5,h6),
+[style*="color:white"] :is(h1,h2,h3,h4,h5,h6),
+.text-white :is(h1,h2,h3,h4,h5,h6),
+.text-bg-primary :is(h1,h2,h3,h4,h5,h6),
+.text-bg-dark :is(h1,h2,h3,h4,h5,h6),
+.text-bg-success :is(h1,h2,h3,h4,h5,h6) {
+    color: inherit;
+}
+
+/* 2. Headers Bootstrap con fondo oscuro (modal/card). Solo clases OSCURAS
+      (no bg-light/bg-warning/bg-info, que son claras). */
+.modal-header.bg-primary   :is(h1,h2,h3,h4,h5,h6), .modal-header.bg-primary   .modal-title,
+.modal-header.bg-secondary :is(h1,h2,h3,h4,h5,h6), .modal-header.bg-secondary .modal-title,
+.modal-header.bg-success   :is(h1,h2,h3,h4,h5,h6), .modal-header.bg-success   .modal-title,
+.modal-header.bg-danger    :is(h1,h2,h3,h4,h5,h6), .modal-header.bg-danger    .modal-title,
+.modal-header.bg-dark      :is(h1,h2,h3,h4,h5,h6), .modal-header.bg-dark      .modal-title,
+.card-header.bg-primary    :is(h1,h2,h3,h4,h5,h6),
+.card-header.bg-secondary  :is(h1,h2,h3,h4,h5,h6),
+.card-header.bg-success    :is(h1,h2,h3,h4,h5,h6),
+.card-header.bg-danger     :is(h1,h2,h3,h4,h5,h6),
+.card-header.bg-dark       :is(h1,h2,h3,h4,h5,h6) {
+    color: #fff;
+}
+
+/* 3. Heroes con gradiente/relleno oscuro de marca puestos inline (los anclajes
+      #0d2b27 / #134e4a / #0f2926 son verdes oscuros de marca; exigir también
+      "gradient"/"background" evita falsos positivos con color de texto/borde). */
+[style*="linear-gradient"][style*="0d2b27"] :is(h1,h2,h3,h4,h5,h6),
+[style*="linear-gradient"][style*="134e4a"] :is(h1,h2,h3,h4,h5,h6),
+[style*="linear-gradient"][style*="0f2926"] :is(h1,h2,h3,h4,h5,h6),
+[style*="linear-gradient"][style*="064e3b"] :is(h1,h2,h3,h4,h5,h6),
+[style*="background:#0d2b27"] :is(h1,h2,h3,h4,h5,h6),
+[style*="background: #0d2b27"] :is(h1,h2,h3,h4,h5,h6),
+[style*="background:#134e4a"] :is(h1,h2,h3,h4,h5,h6),
+[style*="background:#0f2926"] :is(h1,h2,h3,h4,h5,h6) {
+    color: #fff;
+}
+
+/* 4. Headers de módulo de Salarios (.X-header con background oscuro propio). */
+.sa-header h2, .eq-header h2, .sim-header h2, .graf-header h2,
+.sa-header :is(h1,h3,h4,h5,h6), .eq-header :is(h1,h3,h4,h5,h6),
+.sim-header :is(h1,h3,h4,h5,h6), .graf-header :is(h1,h3,h4,h5,h6) {
+    color: #fff;
+}
