@@ -248,6 +248,38 @@ class CuotaGenerationTest(PrestamoTestMixin, TestCase):
         prestamo.refresh_from_db()
         assert prestamo.cuota_mensual == Decimal("300.00")
 
+    def test_cuotas_incluyen_interes_si_tasa_mayor_cero(self):
+        """Con tasa > 0 las cuotas reales incluyen interés (amortización
+        francesa) y coinciden con calcular_cronograma — el mismo cálculo que
+        muestra el contrato PDF. Regresión: antes generar_cuotas hacía
+        monto/num_cuotas e ignoraba el interés."""
+        from datetime import date as _date
+
+        from prestamos.cronograma import calcular_cronograma
+
+        personal = self._create_personal()
+        tipo = self._create_tipo_prestamo(
+            nombre="Con Interes", codigo="con-interes",
+            tasa_interes_mensual=Decimal("2.000"),
+        )
+        user = self._create_user()
+        prestamo = Prestamo.objects.create(
+            personal=personal,
+            tipo=tipo,
+            monto_solicitado=Decimal("1000.00"),
+            num_cuotas=3,
+            estado="PENDIENTE",
+        )
+        prestamo.aprobar(user)
+        cuotas = list(prestamo.cuotas.order_by("numero"))
+        total = sum(c.monto for c in cuotas)
+        # Con interés el total devuelto supera el capital prestado
+        assert total > Decimal("1000.00")
+        # Y coincide cuota a cuota con la amortización francesa del contrato
+        esperado = calcular_cronograma(
+            Decimal("1000.00"), 3, _date(2026, 1, 1), Decimal("2.000"))
+        assert [c.monto for c in cuotas] == [r["monto"] for r in esperado]
+
     def test_cuotas_have_sequential_numbers(self):
         personal = self._create_personal()
         tipo = self._create_tipo_prestamo()

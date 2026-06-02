@@ -161,36 +161,40 @@ class Prestamo(models.Model):
         return round((self.cuotas_pagadas / self.num_cuotas) * 100)
 
     def generar_cuotas(self):
-        """Genera cuotas al aprobar. Última cuota ajusta residuo."""
-        from dateutil.relativedelta import relativedelta
+        """Genera las cuotas del cronograma al aprobar/desembolsar.
 
-        monto = self.monto_efectivo
-        cuota_base = (monto / self.num_cuotas).quantize(Decimal('0.01'))
+        Delega el cálculo a `calcular_cronograma`, que incluye interés (tipo
+        francés) si `tasa_interes > 0` y es idéntico a monto/num_cuotas cuando
+        la tasa es 0 (préstamo blanco). Así las cuotas que se descuentan en
+        planilla coinciden con el cronograma del contrato PDF (que usa la misma
+        función). La última cuota ajusta el residuo de redondeo.
+        """
+        from datetime import datetime
+
+        from .cronograma import calcular_cronograma
+
         inicio = self.fecha_primer_descuento or date.today().replace(day=1)
-
-        # Ensure inicio is a date object (puede llegar como str desde el form)
         if isinstance(inicio, str):
-            from datetime import datetime
             inicio = datetime.strptime(inicio, '%Y-%m-%d').date()
 
-        cuotas = []
-        acumulado = Decimal('0.00')
-        for i in range(self.num_cuotas):
-            periodo = inicio + relativedelta(months=i)
-            if i == self.num_cuotas - 1:
-                monto_cuota = monto - acumulado
-            else:
-                monto_cuota = cuota_base
-                acumulado += cuota_base
-            cuotas.append(CuotaPrestamo(
-                prestamo=self, numero=i + 1,
-                periodo=periodo, monto=monto_cuota,
-            ))
+        cronograma = calcular_cronograma(
+            monto=self.monto_efectivo,
+            num_cuotas=self.num_cuotas,
+            fecha_desembolso=inicio,   # primera fecha de descuento
+            tasa_interes=self.tasa_interes,
+        )
 
         CuotaPrestamo.objects.filter(prestamo=self).delete()
-        CuotaPrestamo.objects.bulk_create(cuotas)
-        self.cuota_mensual = cuota_base
-        self.save(update_fields=['cuota_mensual'])
+        CuotaPrestamo.objects.bulk_create([
+            CuotaPrestamo(
+                prestamo=self, numero=row['numero'],
+                periodo=row['fecha_vencimiento'], monto=row['monto'],
+            )
+            for row in cronograma
+        ])
+        if cronograma:
+            self.cuota_mensual = cronograma[0]['monto']
+            self.save(update_fields=['cuota_mensual'])
 
     def aprobar(self, usuario, monto_aprobado=None, fecha_descuento=None,
                 num_cuotas=None):
