@@ -48,23 +48,24 @@ if [ -f deploy/docker-compose.prod.yml ]; then
     cp deploy/docker-compose.prod.yml docker-compose.prod.yml
 fi
 
-# Verificar que existe .env.production
-if [ ! -f .env.production ]; then
-    if [ -f deploy/.env.production ]; then
-        cp deploy/.env.production .env.production
-        warn "Archivo .env.production copiado — EDITA las credenciales antes de continuar"
-        warn "  nano /opt/harmoni/app/.env.production"
-        read -p "Presiona Enter cuando hayas editado el .env.production..."
+# Verificar que existe deploy/.env.production (lo lee el compose vía env_file relativo a deploy/).
+# Es un archivo gitignored con secretos reales; se crea desde deploy/.env.production.template.
+if [ ! -f deploy/.env.production ]; then
+    if [ -f deploy/.env.production.template ]; then
+        cp deploy/.env.production.template deploy/.env.production
+        warn "deploy/.env.production creado desde template — EDITA las credenciales antes de continuar"
+        warn "  nano /opt/harmoni/app/deploy/.env.production"
+        read -p "Presiona Enter cuando hayas editado deploy/.env.production..."
     else
-        error "No se encontró .env.production. Crea uno basado en deploy/.env.production"
+        error "No se encontró deploy/.env.production.template para basar deploy/.env.production"
     fi
 fi
 
 # ─── 3. Generar SECRET_KEY si falta ─────────────────────────────────────────
-if grep -q "CAMBIAR-genera" .env.production; then
+if grep -q "CAMBIAR-genera" deploy/.env.production; then
     info "Generando DJANGO_SECRET_KEY..."
     NEW_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(50))")
-    sed -i "s|DJANGO_SECRET_KEY=CAMBIAR.*|DJANGO_SECRET_KEY=${NEW_KEY}|" .env.production
+    sed -i "s|DJANGO_SECRET_KEY=CAMBIAR.*|DJANGO_SECRET_KEY=${NEW_KEY}|" deploy/.env.production
     info "SECRET_KEY generado ✓"
 fi
 

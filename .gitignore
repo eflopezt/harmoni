@@ -46,6 +46,10 @@ staticfiles/
 .env
 .env.local
 .env.*.local
+# Archivo real de prod/demo: NUNCA trackear (usar deploy/.env.production.template como base).
+# Lo lee el compose vía `env_file: .env.production` relativo a deploy/.
+.env.production
+deploy/.env.production
 .secrets
 deploy/.secrets
 claves.md

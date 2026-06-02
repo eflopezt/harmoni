@@ -32,28 +32,26 @@ ssh -i "$SSH_KEY" "$VPS" "bash -s" << 'REMOTE'
 set -e
 cd /opt/harmoni/app
 
-# Preservar .env.production y docker-compose.prod.yml
-cp .env.production /tmp/harmoni-env-backup 2>/dev/null || true
-cp docker-compose.prod.yml /tmp/harmoni-compose-backup 2>/dev/null || true
+# Preservar el .env real (gitignored, secretos reales — el compose lo lee de deploy/.env.production)
+cp deploy/.env.production /tmp/harmoni-env-backup 2>/dev/null || true
 
 # Extraer nuevo código
 tar xzf /tmp/harmoni-deploy.tar.gz
 rm /tmp/harmoni-deploy.tar.gz
 
-# Restaurar configs de producción
-cp /tmp/harmoni-env-backup .env.production 2>/dev/null || true
-cp /tmp/harmoni-compose-backup docker-compose.prod.yml 2>/dev/null || true
+# Restaurar el .env real (el tarball no lo incluye por estar gitignored)
+cp /tmp/harmoni-env-backup deploy/.env.production 2>/dev/null || true
 
 # Permisos
 chown -R deploy:deploy /opt/harmoni/app
 
-# Build y reiniciar
-COMPOSE_PROJECT_NAME=harmoni docker compose -f docker-compose.prod.yml build web 2>&1 | tail -3
-COMPOSE_PROJECT_NAME=harmoni docker compose -f docker-compose.prod.yml run --rm web python manage.py migrate --noinput 2>&1 | tail -5
-COMPOSE_PROJECT_NAME=harmoni docker compose -f docker-compose.prod.yml run --rm \
+# Build y reiniciar (el compose vive en deploy/, NO en la raíz)
+COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml build web 2>&1 | tail -3
+COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml run --rm web python manage.py migrate --noinput 2>&1 | tail -5
+COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml run --rm \
   -v /opt/harmoni/staticfiles:/app/staticfiles web python manage.py collectstatic --noinput 2>&1 | tail -1
 chmod -R 777 /opt/harmoni/staticfiles
-COMPOSE_PROJECT_NAME=harmoni docker compose -f docker-compose.prod.yml up -d --force-recreate 2>&1 | grep -E 'Started|Healthy'
+COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml up -d --force-recreate 2>&1 | grep -E 'Started|Healthy'
 REMOTE
 
 # 4. Verificar

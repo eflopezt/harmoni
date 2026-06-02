@@ -102,28 +102,26 @@ jobs:
           set -e
           cd /opt/harmoni/app
 
-          # Preserve production configs
-          cp .env.production /tmp/harmoni-env-backup 2>/dev/null || true
-          cp docker-compose.prod.yml /tmp/harmoni-compose-backup 2>/dev/null || true
+          # Preserve real env (gitignored, secretos reales — el compose lo lee de deploy/.env.production)
+          cp deploy/.env.production /tmp/harmoni-env-backup 2>/dev/null || true
 
           # Extract new code
           tar xzf /tmp/harmoni-deploy.tar.gz
           rm /tmp/harmoni-deploy.tar.gz
 
-          # Restore production configs
-          cp /tmp/harmoni-env-backup .env.production 2>/dev/null || true
-          cp /tmp/harmoni-compose-backup docker-compose.prod.yml 2>/dev/null || true
+          # Restore real env (el tarball no lo incluye por estar gitignored)
+          cp /tmp/harmoni-env-backup deploy/.env.production 2>/dev/null || true
 
           # Fix permissions
           chown -R deploy:deploy /opt/harmoni/app
 
-          # Build, migrate, collectstatic, restart
-          COMPOSE_PROJECT_NAME=harmoni docker compose -f docker-compose.prod.yml build web
-          COMPOSE_PROJECT_NAME=harmoni docker compose -f docker-compose.prod.yml run --rm web python manage.py migrate --noinput
-          COMPOSE_PROJECT_NAME=harmoni docker compose -f docker-compose.prod.yml run --rm \
+          # Build, migrate, collectstatic, restart (el compose vive en deploy/, NO en la raíz)
+          COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml build web
+          COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml run --rm web python manage.py migrate --noinput
+          COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml run --rm \
             -v /opt/harmoni/staticfiles:/app/staticfiles web python manage.py collectstatic --noinput
           chmod -R 777 /opt/harmoni/staticfiles
-          COMPOSE_PROJECT_NAME=harmoni docker compose -f docker-compose.prod.yml up -d --force-recreate
+          COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml up -d --force-recreate
           REMOTE
 
       - name: Verify deployment
