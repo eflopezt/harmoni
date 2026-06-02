@@ -651,7 +651,11 @@ class TareoProcessor:
                 if p and p.pk == pid:
                     personal_obj = p
                     break
-            jornada_h = self._obtener_jornada(personal_obj, 'LOCAL')
+            # 1 día CHE = jornada del trabajador según SU condición real
+            # (FORÁNEO 11h, LOCAL 8.5h). Antes hardcodeaba 'LOCAL' → infla el
+            # saldo del banco para STAFF foráneo (descontaba 8.5h en vez de 11h).
+            condicion = (getattr(personal_obj, 'condicion', '') or 'LOCAL').upper().replace('Á', 'A')
+            jornada_h = self._obtener_jornada(personal_obj, condicion)
             horas_compensadas = Decimal(str(dias_che)) * jornada_h
 
             banco, created = BancoHoras.objects.get_or_create(
