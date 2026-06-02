@@ -12,10 +12,17 @@ Formatos:
 Base legal: R.S. 210-2004/SUNAT y modificatorias.
 """
 import io
+import unicodedata
 from datetime import date
 from decimal import Decimal
 
 from personal.models import Personal
+
+
+def _nfc(s: str) -> str:
+    """Normaliza a NFC para no perder tildes (combining/NFD) al codificar el
+    archivo a latin-1 para SUNAT. Idempotente para texto ya en NFC."""
+    return unicodedata.normalize('NFC', s)
 
 
 # ── Mapeos SUNAT T-Registro ──────────────────────────────────────────
@@ -244,7 +251,7 @@ def generar_tregistro_altas(queryset=None, fecha_desde=None, fecha_hasta=None) -
             periodo_str,                                            # 28. Periodo
             _safe(p.cargo)[:60],                                    # 29. Cargo
         ]
-        output.write('|'.join(row) + '\r\n')
+        output.write(_nfc('|'.join(row)) + '\r\n')
         count += 1
 
     return output.getvalue(), count
@@ -328,7 +335,7 @@ def generar_tregistro_bajas(queryset=None, fecha_desde=None, fecha_hasta=None) -
             MOTIVO_BAJA_TREG.get(p.motivo_cese or '', '99'),   # 7. Motivo baja
             periodo_str,                                        # 8. Periodo
         ]
-        output.write('|'.join(row) + '\r\n')
+        output.write(_nfc('|'.join(row)) + '\r\n')
         count += 1
 
     return output.getvalue(), count

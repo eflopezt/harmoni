@@ -12,10 +12,17 @@ Base legal: R.S. 183-2011/SUNAT y modificatorias.
 UIT 2026: S/ 5,500  |  RMV 2025: S/ 1,130
 """
 import io
+import unicodedata
 from decimal import Decimal
 
 
 from .models import PeriodoNomina
+
+
+def _nfc(s: str) -> str:
+    """Normaliza a NFC para que las tildes (combining/NFD) no se pierdan al
+    codificar el archivo a latin-1 para SUNAT. Idempotente para texto ya en NFC."""
+    return unicodedata.normalize('NFC', s)
 
 
 # ── Mapeos SUNAT ─────────────────────────────────────────────────────
@@ -375,7 +382,7 @@ def generar_plame_remuneraciones(periodo: PeriodoNomina) -> tuple[str, int]:
             CATEGORIA_SUNAT.get(getattr(p, 'categoria', 'NORMAL'), '01'),  # 26. Categoria
             TIPO_TRAB_SUNAT.get(getattr(p, 'tipo_trab', 'Empleado'), '01'),  # 27. Tipo trab
         ]
-        output.write('|'.join(row) + '\r\n')
+        output.write(_nfc('|'.join(row)) + '\r\n')
         count += 1
 
     return output.getvalue(), count
@@ -432,7 +439,7 @@ def generar_plame_retenciones_5ta(periodo: PeriodoNomina) -> tuple[str, int]:
             _monto(ir_5ta),                            # 5. Retencion 5ta
             periodo_str,                               # 6. Periodo
         ]
-        output.write('|'.join(row) + '\r\n')
+        output.write(_nfc('|'.join(row)) + '\r\n')
         count += 1
 
     return output.getvalue(), count
@@ -490,7 +497,7 @@ def generar_plame_jornada(periodo: PeriodoNomina) -> tuple[str, int]:
             _monto(horas_he),                          # 8. Horas sobretiempo
             periodo_str,                               # 9. Periodo
         ]
-        output.write('|'.join(row) + '\r\n')
+        output.write(_nfc('|'.join(row)) + '\r\n')
         count += 1
 
     return output.getvalue(), count
