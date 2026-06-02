@@ -23,6 +23,41 @@ from typing import Optional, Dict, Any
 from django.db.models import Sum
 
 
+def _norm_fecha(f):
+    """Normaliza una fecha que puede venir como date o str ISO. None si inválida."""
+    if not f:
+        return None
+    if isinstance(f, str):
+        try:
+            return date.fromisoformat(f[:10])
+        except ValueError:
+            return None
+    return f
+
+
+def dias_truncos_vacaciones(fecha_alta, fecha_corte: Optional[date] = None) -> float:
+    """Días de vacaciones truncos del período en curso (proporcional), DL 713 Art. 22.
+
+    2.5 días por mes (30/12), con meses de 30 días, contados desde el último
+    aniversario de servicio hasta la fecha de corte. Tope 30. Función PURA
+    (no consulta BD) → reutilizable en liquidación al cese sin tocar la BD.
+
+    Antes este valor vivía en SaldoVacacional.dias_truncos, que nunca se
+    persiste (queda 0) → la liquidación omitía los truncos del período en curso.
+    """
+    f_alta = _norm_fecha(fecha_alta)
+    if not f_alta:
+        return 0.0
+    fecha_corte = fecha_corte or date.today()
+    dias_servicio = (fecha_corte - f_alta).days
+    if dias_servicio <= 0:
+        return 0.0
+    anios_servicio = dias_servicio // 365
+    dias_periodo_actual = dias_servicio - (anios_servicio * 365)
+    meses_periodo_actual = dias_periodo_actual / 30.0
+    return min(30.0, round(30.0 / 12.0 * meses_periodo_actual, 2))
+
+
 def calcular_saldo_vacaciones(personal, fecha_corte: Optional[date] = None) -> Dict[str, Any]:
     """
     Calcula el saldo vacacional disponible para un trabajador a una fecha de corte.
@@ -102,13 +137,8 @@ def calcular_saldo_vacaciones(personal, fecha_corte: Optional[date] = None) -> D
     # Días completos: 30 × años cumplidos
     dias_completos = anios_servicio * 30
 
-    # Días truncos: proporcional al período en curso
-    # Días transcurridos desde el último aniversario hasta hoy
-    dias_periodo_actual = dias_servicio - (anios_servicio * 365)
-    meses_periodo_actual = dias_periodo_actual / 30.0
-    dias_truncos = round(30.0 / 12.0 * meses_periodo_actual, 2)
-    # No puede exceder 30 días en el período en curso
-    dias_truncos = min(30.0, dias_truncos)
+    # Días truncos: proporcional al período en curso (helper puro reutilizable)
+    dias_truncos = dias_truncos_vacaciones(f_alta, fecha_corte)
 
     # ── Consumidos: solicitudes en estado terminal aprobado ─────────
     # Importación tardía para evitar ciclos

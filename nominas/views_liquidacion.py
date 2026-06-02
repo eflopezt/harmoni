@@ -135,15 +135,20 @@ def _calcular_liquidacion(personal: Personal, rmv: Decimal = None) -> dict:
 
     # ── 4. Vacaciones truncas (DL 713) ───────────────────────────────────────
     dias_pendientes = Decimal('0')
-    dias_truncos    = Decimal('0')
     try:
         from vacaciones.models import SaldoVacacional
         sv = SaldoVacacional.objects.filter(personal=personal).order_by('-periodo_inicio').first()
         if sv:
             dias_pendientes = Decimal(str(sv.dias_pendientes or 0))
-            dias_truncos    = Decimal(str(sv.dias_truncos or 0))
     except Exception:
         pass
+
+    # Truncos del período en curso (proporcional). sv.dias_truncos nunca se
+    # persiste (queda 0) → se calculan a la fecha de cese; si no, un trabajador
+    # que cesa en su primer año cobraría 0 de vacaciones truncas (subpago).
+    from vacaciones.calculadora_saldo import dias_truncos_vacaciones
+    dias_truncos = Decimal(str(dias_truncos_vacaciones(
+        getattr(personal, 'fecha_alta', None), fecha_cese)))
 
     vac_pendientes = _rd(sueldo / 30 * dias_pendientes)
     vac_truncas    = _rd(sueldo / 30 * dias_truncos)

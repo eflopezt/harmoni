@@ -1344,12 +1344,18 @@ class LiquidacionLaboral(models.Model):
             sv = SaldoVacacional.objects.filter(personal=personal)\
                 .order_by('-periodo_inicio').first()
             if sv:
-                dias_vac = (
-                    Decimal(str(sv.dias_pendientes or 0))
-                    + Decimal(str(sv.dias_truncos or 0))
-                )
+                dias_vac += Decimal(str(sv.dias_pendientes or 0))
         except Exception:
-            dias_vac = Decimal('0')
+            pass
+        # Truncos del período en curso. sv.dias_truncos nunca se persiste (queda
+        # 0) → se calculan a la fecha de cese; sin esto un trabajador que cesa en
+        # su primer año cobraría 0 de vacaciones truncas (subpago).
+        try:
+            from vacaciones.calculadora_saldo import dias_truncos_vacaciones
+            dias_vac += Decimal(str(dias_truncos_vacaciones(
+                getattr(personal, 'fecha_alta', None), fecha_cese)))
+        except Exception:
+            pass
         self.vacaciones_truncas = (valor_dia * dias_vac).quantize(
             Decimal('0.01'), ROUND_HALF_UP,
         )

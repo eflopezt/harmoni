@@ -275,17 +275,31 @@ class TestCalcularLiquidacion:
     # ── Vacaciones pendientes ────────────────────────────────────────────
 
     def test_vac_pendientes_with_saldo(self):
-        """Vacaciones pendientes = sueldo/30 * dias_pendientes."""
-        p = _make_personal(sueldo_base=3000, fecha_cese=date(2026, 3, 31))
-        vac_mock = _patch_vacaciones(dias_pendientes=15, dias_truncos=5)
+        """Vac pendientes = sueldo/30 × dias_pendientes (del saldo).
+        Truncos = proporcional al período en curso (fecha_alta→cese): 2 meses → 5 días."""
+        # alta 30-ene, cese 31-mar → 60 días = 2 meses → 5 días truncos
+        p = _make_personal(sueldo_base=3000, fecha_cese=date(2026, 3, 31),
+                           fecha_alta=date(2026, 1, 30))
+        vac_mock = _patch_vacaciones(dias_pendientes=15, dias_truncos=0)
         result = self._calc(p, vac_mock=vac_mock)
 
         assert result['vac_pendientes'] == _rd(Decimal('3000') / 30 * 15)
         assert result['vac_truncas'] == _rd(Decimal('3000') / 30 * 5)
         assert result['dias_pendientes'] == 15
 
-    def test_vac_no_saldo(self):
-        """Sin SaldoVacacional, vacaciones = 0."""
+    def test_vac_truncas_primer_anio_sin_saldo(self):
+        """Regresión: trabajador que cesa en su PRIMER año (sin SaldoVacacional)
+        igual cobra vacaciones truncas proporcionales. Antes daba 0 porque la
+        liquidación leía sv.dias_truncos (siempre 0)."""
+        # alta 30-ene, cese 31-mar → 2 meses → 5 días truncos (DL 713 Art. 22)
+        p = _make_personal(sueldo_base=3000, fecha_cese=date(2026, 3, 31),
+                           fecha_alta=date(2026, 1, 30))
+        result = self._calc(p)  # sin SaldoVacacional
+        assert result['vac_pendientes'] == Decimal('0')
+        assert result['vac_truncas'] == _rd(Decimal('3000') / 30 * 5)
+
+    def test_vac_no_saldo_ni_fecha_alta(self):
+        """Sin SaldoVacacional ni fecha_alta, vacaciones = 0."""
         p = _make_personal(sueldo_base=3000, fecha_cese=date(2026, 3, 31))
         result = self._calc(p)
         assert result['vac_pendientes'] == Decimal('0')
