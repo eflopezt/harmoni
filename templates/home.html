@@ -207,15 +207,15 @@
 .hfd{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px 24px;margin-bottom:1.25rem;box-shadow:0 2px 14px rgba(15,41,38,.05);}
 .hfd-head h2{font-size:1.35rem;font-weight:800;color:#0f2926;margin:0 0 4px;letter-spacing:-.02em;}
 .hfd-head p{color:#64748b;font-size:.92rem;margin:0 0 18px;max-width:660px;}
-.hfd-steps{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;}
-.hfd-step{flex:1 1 0;min-width:150px;text-decoration:none;background:#f8fafc;border:1px solid #eef2f6;border-radius:12px;padding:16px 14px;position:relative;transition:transform .15s,box-shadow .15s,border-color .15s;display:block;}
+.hfd-steps{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.hfd-step{text-decoration:none;background:#f8fafc;border:1px solid #eef2f6;border-radius:12px;padding:15px 13px;position:relative;transition:transform .15s,box-shadow .15s,border-color .15s;display:block;}
 .hfd-step:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(15,118,110,.13);border-color:#5eead4;}
-.hfd-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;background:var(--c,#0f766e);margin-bottom:10px;box-shadow:0 4px 10px rgba(15,41,38,.18);}
-.hfd-step h3{font-size:.92rem;font-weight:700;color:#0f2926;margin:0 0 3px;}
-.hfd-step p{font-size:.76rem;color:#64748b;margin:0;line-height:1.35;}
-.hfd-num{position:absolute;top:10px;right:12px;font-size:.72rem;font-weight:800;color:#cbd5e1;}
-.hfd-arrow{display:flex;align-items:center;color:#cbd5e1;font-size:.8rem;}
-@media(max-width:820px){.hfd-arrow{display:none;}.hfd-step{flex:1 1 44%;}}
+.hfd-ico{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;color:#fff;background:var(--c,#0f766e);margin-bottom:9px;box-shadow:0 4px 10px rgba(15,41,38,.18);}
+.hfd-step h3{font-size:.9rem;font-weight:700;color:#0f2926;margin:0 0 3px;}
+.hfd-step p{font-size:.74rem;color:#64748b;margin:0;line-height:1.32;}
+.hfd-num{position:absolute;top:9px;right:11px;font-size:.72rem;font-weight:800;color:#cbd5e1;}
+@media(max-width:1100px){.hfd-steps{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:560px){.hfd-steps{grid-template-columns:repeat(2,1fr);}}
 .hfd-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
 .hfd-btn{display:inline-flex;align-items:center;text-decoration:none;font-weight:700;font-size:.9rem;padding:11px 20px;border-radius:10px;transition:transform .12s,box-shadow .12s,background .12s;}
 .hfd-btn-primary{background:linear-gradient(135deg,#0f766e,#0d2b27);color:#fff;box-shadow:0 4px 14px rgba(15,118,110,.28);}
@@ -230,15 +230,10 @@
   </div>
   <div class="hfd-steps">
     <a class="hfd-step" href="{% url 'reclutamiento_dashboard' %}"><span class="hfd-num">1</span><div class="hfd-ico" style="--c:#6366f1"><i class="fas fa-user-plus"></i></div><h3>Reclutamiento</h3><p>Pipeline de candidatos y contratación en un clic.</p></a>
-    <div class="hfd-arrow"><i class="fas fa-chevron-right"></i></div>
     <a class="hfd-step" href="{% url 'onboarding_panel' %}"><span class="hfd-num">2</span><div class="hfd-ico" style="--c:#0891b2"><i class="fas fa-clipboard-check"></i></div><h3>Onboarding</h3><p>Documentos, exámenes y alta a SUNAT del nuevo ingreso.</p></a>
-    <div class="hfd-arrow"><i class="fas fa-chevron-right"></i></div>
     <a class="hfd-step" href="{% url 'asistencia_dashboard' %}"><span class="hfd-num">3</span><div class="hfd-ico" style="--c:#0f766e"><i class="fas fa-clock"></i></div><h3>Asistencia</h3><p>Tareo, horas extra y faltas — listos para la planilla.</p></a>
-    <div class="hfd-arrow"><i class="fas fa-chevron-right"></i></div>
     <a class="hfd-step" href="{% url 'workflow_mes' %}"><span class="hfd-num">4</span><div class="hfd-ico" style="--c:#16a34a"><i class="fas fa-calculator"></i></div><h3>Planilla del mes</h3><p>Cálculo automático con asistencia, préstamos y descuentos.</p></a>
-    <div class="hfd-arrow"><i class="fas fa-chevron-right"></i></div>
     <a class="hfd-step" href="{% url 'integraciones_panel' %}"><span class="hfd-num">5</span><div class="hfd-ico" style="--c:#d97706"><i class="fas fa-file-export"></i></div><h3>SUNAT &amp; Pago</h3><p>PLAME, AFPNet, T-Registro y archivo de banco.</p></a>
-    <div class="hfd-arrow"><i class="fas fa-chevron-right"></i></div>
     <a class="hfd-step" href="{% url 'nominas_liquidaciones' %}"><span class="hfd-num">6</span><div class="hfd-ico" style="--c:#0d2b27"><i class="fas fa-handshake"></i></div><h3>Cese &amp; Liquidación</h3><p>Liquidación, CTS, vacaciones y baja SUNAT automáticas.</p></a>
   </div>
   <div class="hfd-cta">
