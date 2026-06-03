@@ -492,7 +492,11 @@ def detectar_inconsistencias(concepto):
     if concepto.codigo_plame == '' and not concepto.es_sistema:
         warns.append('Sin código PLAME — no exportará a SUNAT')
 
-    if concepto.formula == 'FIJO' and concepto.monto_fijo == Decimal('0'):
+    # Los conceptos de SISTEMA con monto 0 son legítimos: su valor se calcula en
+    # el engine (asig-familiar = 10% RMV) o se ingresa por caso (movilidad,
+    # refrigerio). No son inconsistencias — se exime es_sistema (como las demás reglas).
+    if (concepto.formula == 'FIJO' and concepto.monto_fijo == Decimal('0')
+            and not concepto.es_sistema):
         warns.append('Fórmula FIJO con monto 0 — revisar')
 
     return warns
