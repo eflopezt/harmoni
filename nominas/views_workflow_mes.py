@@ -190,6 +190,25 @@ def _construir_steps(periodo, hoy):
             'done': periodo.estado == 'CERRADO',
             'link': reverse('nominas_periodo_detalle', args=[periodo.pk]),
         })
+
+        # ── Dependencias: marcar como BLOQUEADO lo que aún no se puede hacer ──
+        # (un paso bloqueado espera a que se complete uno anterior). Así el
+        # usuario ve UN solo paso accionable y no 7 pasos "en curso" a la vez.
+        generado = periodo.estado in ('CALCULADO', 'APROBADO', 'CERRADO')
+        aprobado = periodo.estado in ('APROBADO', 'CERRADO')
+        _bloqueo = {
+            'aprobar':  not generado,   # primero hay que generar la planilla
+            'boletas':  not aprobado,   # emitir requiere planilla aprobada
+            'acuses':   not aprobado,
+            'plame':    not aprobado,
+            'afpnet':   not aprobado,
+            'banco':    not aprobado,
+            'contable': not aprobado,
+            'cerrar':   not aprobado,   # cerrar requiere todo aprobado
+        }
+        for s in steps:
+            if not s.get('done') and _bloqueo.get(s['key']):
+                s['bloqueado'] = True
     else:
         # Sin período, los demás steps están bloqueados
         for n, key, icon, titulo, descr in [
@@ -226,6 +245,11 @@ def workflow_mes(request):
         periodo = PeriodoNomina.objects.filter(tipo='REGULAR').order_by('-anio', '-mes').first()
 
     steps = _construir_steps(periodo, hoy)
+    # El "siguiente" paso accionable = primero no hecho y no bloqueado.
+    for s in steps:
+        if not s.get('done') and not s.get('bloqueado'):
+            s['actual'] = True
+            break
     n_done = sum(1 for s in steps if s.get('done'))
     # round (no int) para coincidir con el Math.round del JS (evita 16% vs 17%)
     progreso_pct = round(n_done / len(steps) * 100) if steps else 0

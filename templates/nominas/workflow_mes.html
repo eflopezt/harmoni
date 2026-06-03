@@ -62,26 +62,28 @@
         <div style="flex-shrink:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:1;
           {% if step.done %}background:var(--hm-success);color:#fff;
           {% elif step.bloqueado %}background:var(--hm-slate-100);color:var(--hm-slate-400);
-          {% else %}background:#fff;border:3px solid var(--hm-brand-600);color:var(--hm-brand-700);{% endif %}
+          {% elif step.actual %}background:#fff;border:3px solid var(--hm-brand-600);color:var(--hm-brand-700);
+          {% else %}background:#fff;border:2px solid var(--hm-slate-300);color:var(--hm-slate-500);{% endif %}
           font-weight:800;font-size:15px;box-shadow:0 0 0 4px var(--hm-canvas);">
           {% if step.done %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>
           {% else %}{{ step.n }}{% endif %}
         </div>
 
-        <div class="hm-panel" style="flex:1;{% if step.bloqueado %}opacity:.55;{% endif %}{% if not step.done and not step.bloqueado %}border-color:var(--hm-brand-300);box-shadow:0 0 0 3px rgba(20,163,154,.08);{% endif %}">
+        <div class="hm-panel" style="flex:1;{% if step.bloqueado %}opacity:.55;{% endif %}{% if step.actual %}border-color:var(--hm-brand-300);box-shadow:0 0 0 3px rgba(20,163,154,.08);{% endif %}">
           <div style="padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
               <div style="display:flex;align-items:center;gap:10px;">
-                <i class="{{ step.icon }}" style="color:{% if step.done %}var(--hm-success){% elif step.bloqueado %}var(--hm-slate-400){% else %}var(--hm-brand-600){% endif %};font-size:14px;"></i>
+                <i class="{{ step.icon }}" style="color:{% if step.done %}var(--hm-success){% elif step.bloqueado %}var(--hm-slate-400){% elif step.actual %}var(--hm-brand-600){% else %}var(--hm-slate-500){% endif %};font-size:14px;"></i>
                 <strong style="color:var(--hm-slate-900);font-size:14.5px;">{{ step.titulo }}</strong>
                 {% if step.done %}<span class="hm-badge hm-badge-success">COMPLETADO</span>
-                {% elif step.bloqueado %}<span class="hm-badge hm-badge-neutral">PENDIENTE</span>
-                {% else %}<span class="hm-badge hm-badge-warning">EN CURSO</span>{% endif %}
+                {% elif step.bloqueado %}<span class="hm-badge hm-badge-neutral"><i class="fas fa-lock" style="font-size:9px;margin-right:3px;"></i>BLOQUEADO</span>
+                {% elif step.actual %}<span class="hm-badge hm-badge-warning">SIGUIENTE</span>
+                {% else %}<span class="hm-badge hm-badge-neutral">PENDIENTE</span>{% endif %}
               </div>
               <p style="margin:5px 0 0;color:var(--hm-slate-500);font-size:13px;">{{ step.descripcion }}</p>
             </div>
             {% if step.link and not step.bloqueado %}
-              <a href="{{ step.link }}" class="{% if step.done %}hm-btn-ghost{% else %}hm-btn-primary{% endif %}" style="flex-shrink:0;">
+              <a href="{{ step.link }}" class="{% if step.actual %}hm-btn-primary{% else %}hm-btn-ghost{% endif %}" style="flex-shrink:0;">
                 {% if step.done %}Ver{% else %}Ir →{% endif %}
               </a>
             {% endif %}
