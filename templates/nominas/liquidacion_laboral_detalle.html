@@ -47,6 +47,11 @@
          title="Certificado de Trabajo (PDF)">
         <i class="fas fa-file-signature me-1"></i>Certificado de trabajo
       </a>
+      <a href="{% url 'nominas_tregistro_baja_personal' personal.pk %}"
+         class="btn btn-sm btn-outline-dark"
+         title="Archivo T-Registro de baja (cese) para subir a SUNAT">
+        <i class="fas fa-file-export me-1"></i>Baja T-Registro
+      </a>
       {% if encuesta_exit_etapa_activa and encuesta_exit_url %}
       <a href="{{ encuesta_exit_url }}"
          class="btn btn-sm btn-outline-info" target="_blank"

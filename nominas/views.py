@@ -734,6 +734,46 @@ def periodo_exportar_tregistro(request, pk):
     return response
 
 
+@login_required
+@solo_admin
+def tregistro_alta_personal(request, personal_id):
+    """Descarga el T-Registro de ALTA de un solo trabajador (para subir a SUNAT
+    al contratar/terminar onboarding). Reusa el exportador existente."""
+    from personal.models import Personal
+    from .exports_tregistro import generar_tregistro_altas
+    p = get_object_or_404(Personal, pk=personal_id)
+    content, count = generar_tregistro_altas(queryset=Personal.objects.filter(pk=p.pk))
+    if count == 0:
+        messages.warning(request, 'No se pudo generar el T-Registro de alta (revisa datos del trabajador).')
+        return redirect('personal_detail', pk=p.pk)
+    nombre = f'T-Registro_Alta_{p.nro_doc}.txt'
+    response = HttpResponse(content.encode('latin-1', errors='replace'),
+                           content_type='text/plain; charset=iso-8859-1')
+    response['Content-Disposition'] = f'attachment; filename="{nombre}"'
+    logger.info(f'T-Registro ALTA individual exportado: {p.nro_doc}, usuario={request.user}')
+    return response
+
+
+@login_required
+@solo_admin
+def tregistro_baja_personal(request, personal_id):
+    """Descarga el T-Registro de BAJA (cese) de un solo trabajador. Cierra el gap:
+    generar_tregistro_bajas existía pero no tenía vista que lo invocara."""
+    from personal.models import Personal
+    from .exports_tregistro import generar_tregistro_bajas
+    p = get_object_or_404(Personal, pk=personal_id)
+    content, count = generar_tregistro_bajas(queryset=Personal.objects.filter(pk=p.pk))
+    if count == 0:
+        messages.warning(request, 'No se pudo generar el T-Registro de baja (el trabajador debe estar cesado con fecha de cese).')
+        return redirect('personal_detail', pk=p.pk)
+    nombre = f'T-Registro_Baja_{p.nro_doc}.txt'
+    response = HttpResponse(content.encode('latin-1', errors='replace'),
+                           content_type='text/plain; charset=iso-8859-1')
+    response['Content-Disposition'] = f'attachment; filename="{nombre}"'
+    logger.info(f'T-Registro BAJA individual exportado: {p.nro_doc}, usuario={request.user}')
+    return response
+
+
 # ─── Registro individual ───────────────────────────────────────────────────────
 
 @login_required

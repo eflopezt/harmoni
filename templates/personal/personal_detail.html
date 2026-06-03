@@ -60,6 +60,10 @@
         <a href="{% url 'documentos_legajo' personal.pk %}" class="btn btn-sm btn-outline-light">
             <i class="fas fa-folder-open me-1"></i>Legajo
         </a>
+        <a href="{% url 'nominas_tregistro_alta_personal' personal.pk %}" class="btn btn-sm btn-outline-light"
+           title="Archivo T-Registro de alta para subir a SUNAT">
+            <i class="fas fa-file-export me-1"></i>Alta T-Registro
+        </a>
         {% if plantillas_constancia %}
         <div class="dropdown d-inline-block">
             <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button"

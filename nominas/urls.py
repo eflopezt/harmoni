@@ -114,6 +114,8 @@ urlpatterns = [
     path('periodos/<int:pk>/boletas.zip', views.periodo_boletas_zip, name='nominas_periodo_boletas_zip'),
     path('periodos/<int:pk>/plame/', views.periodo_exportar_plame, name='nominas_periodo_plame'),
     path('periodos/<int:pk>/tregistro/', views.periodo_exportar_tregistro, name='nominas_periodo_tregistro'),
+    path('tregistro/alta/<int:personal_id>/', views.tregistro_alta_personal, name='nominas_tregistro_alta_personal'),
+    path('tregistro/baja/<int:personal_id>/', views.tregistro_baja_personal, name='nominas_tregistro_baja_personal'),
 
     # Registros individuales
     path('registros/<int:pk>/', views.registro_detalle, name='nominas_registro_detalle'),
