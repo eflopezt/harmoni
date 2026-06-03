@@ -227,7 +227,8 @@ def workflow_mes(request):
 
     steps = _construir_steps(periodo, hoy)
     n_done = sum(1 for s in steps if s.get('done'))
-    progreso_pct = int(n_done / len(steps) * 100) if steps else 0
+    # round (no int) para coincidir con el Math.round del JS (evita 16% vs 17%)
+    progreso_pct = round(n_done / len(steps) * 100) if steps else 0
 
     return render(request, 'nominas/workflow_mes.html', {
         'hoy':           hoy,
