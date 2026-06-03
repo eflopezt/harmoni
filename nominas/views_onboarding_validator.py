@@ -154,10 +154,13 @@ def _check_conceptos():
         ))
 
     # Conceptos críticos (deben existir activos)
+    # OJO: los códigos reales usan guion (sueldo-basico, ir-5ta), no guion bajo.
+    # Antes se buscaba sueldo_basico/ir_5ta → falso "Falta" que bajaba el score
+    # y disparaba severidad crítica aunque los conceptos SÍ existían.
     criticos = [
-        ('sueldo_basico',   'Remuneración básica'),
+        ('sueldo-basico',   'Remuneración básica'),
         ('essalud',         'EsSalud 9%'),
-        ('ir_5ta',          'IR 5ta Categoría'),
+        ('ir-5ta',          'IR 5ta Categoría'),
     ]
     for codigo, label in criticos:
         existe = ConceptoRemunerativo.objects.filter(codigo=codigo, activo=True).exists()
