@@ -351,15 +351,16 @@ a:hover {
 
 .sidebar-tab {
     flex: 1;
-    padding: 0.52rem 0.15rem 0.48rem;
+    min-width: 0;                 /* permite que el flex item se encoja */
+    padding: 0.52rem 0.08rem 0.48rem;
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--sidebar-section-title);
-    font-size: 0.57rem;
+    font-size: 0.55rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;       /* menos tracking → cabe "Gestión" sin cortarse */
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -369,6 +370,11 @@ a:hover {
     line-height: 1;
     margin-bottom: -1px;
     white-space: nowrap;
+}
+.sidebar-tab span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;      /* si aún no cabe, "…" legible en vez de corte seco */
 }
 
 .sidebar-tab i {
