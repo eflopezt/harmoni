@@ -735,6 +735,40 @@ class TestGenerarPeriodo:
             assert reg.estado == 'CALCULADO'
             assert reg.neto_a_pagar > Decimal('0')
 
+    def test_consolida_asistencia_dias_falta_y_he(self):
+        """Item D: generar_periodo consolida del tareo (ciclo 22→21) los días no
+        laborados (FA/LSG/SAI → dias_falta, dias_trabajados=30−faltas) y las HE
+        PAGABLES (he_al_banco=False; las de STAFF que van al banco se excluyen)."""
+        from datetime import date as _date
+        from nominas.models import PeriodoNomina, RegistroNomina
+        from asistencia.models import TareoImportacion, RegistroTareo
+        emp = _empresa_test()
+        p = _crear_personal(emp, sueldo=Decimal('3000'), regimen='ONP')
+        imp = TareoImportacion.objects.create(
+            tipo='RELOJ', periodo_inicio=_date(2026, 5, 22),
+            periodo_fin=_date(2026, 6, 21), archivo_nombre='t.xlsx', estado='PENDIENTE')
+
+        def _rt(fecha, codigo, he25=Decimal('0'), banco=False):
+            RegistroTareo.objects.create(
+                importacion=imp, personal=p, dni=p.nro_doc, grupo='RCO',
+                fecha=fecha, codigo_dia=codigo, he_25=he25, he_al_banco=banco)
+        # Ciclo 22-may → 21-jun (período 6/2026): 2 faltas + HE
+        _rt(_date(2026, 6, 1), 'FA')
+        _rt(_date(2026, 6, 2), 'LSG')
+        _rt(_date(2026, 6, 3), 'A', he25=Decimal('2'))               # HE pagable
+        _rt(_date(2026, 6, 4), 'A', he25=Decimal('5'), banco=True)   # al banco → NO se paga
+
+        per, _ = PeriodoNomina.objects.get_or_create(
+            tipo='REGULAR', anio=2026, mes=6,
+            defaults={'fecha_inicio': _date(2026, 6, 1), 'fecha_fin': _date(2026, 6, 30),
+                      'estado': 'BORRADOR', 'empresa': emp},
+        )
+        generar_periodo(per)
+        reg = RegistroNomina.objects.get(periodo=per, personal=p)
+        assert reg.dias_falta == 2                     # FA + LSG
+        assert reg.dias_trabajados == 28               # 30 − 2
+        assert reg.horas_extra_25 == Decimal('2.00')   # solo la pagable (la del banco se excluye)
+
     def test_periodo_gratificacion_usa_calculadora_correcta(self):
         from nominas.models import PeriodoNomina
         emp = _empresa_test()

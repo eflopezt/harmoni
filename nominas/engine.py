@@ -1085,6 +1085,36 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
         _calcular = calcular_registro
         dias_default = 30  # Mes completo
 
+    # ── Consolidación de ASISTENCIA → NÓMINA (solo planilla REGULAR) ──────
+    # Ciclo de tareo 22→21 (MES_CORTE, el mismo que el banco de horas). Por cada
+    # trabajador se traen del RegistroTareo del ciclo:
+    #   • HE 25/35/100 PAGABLES (he_al_banco=False) → las de STAFF van al banco,
+    #     no se pagan en la planilla mensual, por eso se excluyen.
+    #   • días NO laborados = FA/LSG/SAI (CODIGOS_DESCUENTO) → dias_trabajados = 30 − no_lab.
+    # Trabajadores SIN tareo en el ciclo quedan en el default (30 días, HE 0) → sin cambio.
+    tareo_map = {}
+    if tipo not in ('GRATIFICACION', 'CTS'):
+        try:
+            from django.db.models import Sum, Count, Q
+            from asistencia.models import RegistroTareo
+            from asistencia.services.periodo_helper import get_periodo, TIPO_MES_CORTE
+            ciclo = get_periodo(TIPO_MES_CORTE, periodo.anio, periodo.mes)
+            _agg = (RegistroTareo.objects
+                    .filter(fecha__gte=ciclo.fecha_inicio, fecha__lte=ciclo.fecha_fin,
+                            personal__isnull=False)
+                    .values('personal_id')
+                    .annotate(
+                        he25=Sum('he_25', filter=Q(he_al_banco=False)),
+                        he35=Sum('he_35', filter=Q(he_al_banco=False)),
+                        he100=Sum('he_100', filter=Q(he_al_banco=False)),
+                        no_lab=Count('id', filter=Q(codigo_dia__in=['FA', 'LSG', 'SAI'])),
+                    ))
+            tareo_map = {r['personal_id']: r for r in _agg}
+        except Exception:
+            logger.warning('No se pudo consolidar asistencia→nómina del período %s',
+                           getattr(periodo, 'pk', '?'), exc_info=True)
+            tareo_map = {}
+
     # Performance audit fix: envolver en transaction.atomic para batch atomico
     # y usar bulk_create para LineaNomina. Para 800 trabajadores x ~18 lineas
     # cada uno, esto reduce de ~14400 INSERTs individuales a 800 bulk_creates,
@@ -1094,16 +1124,25 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
         # cargo_obj es la FK (cargo es CharField legacy retenido por backcompat)
         for emp in qs.select_related('cargo_obj', 'subarea', 'empresa'):
             try:
+                _defaults = {
+                    'sueldo_base':      emp.sueldo_base or Decimal('0'),
+                    'regimen_pension':  emp.regimen_pension or 'AFP',
+                    'afp':              emp.afp or '',
+                    'grupo':            emp.grupo_tareo or '',
+                    'asignacion_familiar': getattr(emp, 'asignacion_familiar', False),
+                    'dias_trabajados':  dias_default,
+                }
+                # Poblar días/HE desde la asistencia consolidada (planilla REGULAR).
+                _t = tareo_map.get(emp.pk)
+                if _t is not None:
+                    _no_lab = int(_t['no_lab'] or 0)
+                    _defaults['dias_falta']      = _no_lab
+                    _defaults['dias_trabajados'] = max(0, dias_default - _no_lab)
+                    _defaults['horas_extra_25']  = _t['he25'] or Decimal('0')
+                    _defaults['horas_extra_35']  = _t['he35'] or Decimal('0')
+                    _defaults['horas_extra_100'] = _t['he100'] or Decimal('0')
                 registro, created = RegistroNomina.objects.update_or_create(
-                    periodo=periodo, personal=emp,
-                    defaults={
-                        'sueldo_base':      emp.sueldo_base or Decimal('0'),
-                        'regimen_pension':  emp.regimen_pension or 'AFP',
-                        'afp':              emp.afp or '',
-                        'grupo':            emp.grupo_tareo or '',
-                        'asignacion_familiar': getattr(emp, 'asignacion_familiar', False),
-                        'dias_trabajados':  dias_default,
-                    },
+                    periodo=periodo, personal=emp, defaults=_defaults,
                 )
                 # Recalcular con el calculador apropiado
                 resultado = _calcular(registro, conceptos)

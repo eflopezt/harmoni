@@ -107,9 +107,9 @@ class WorkflowMesTests(TestCase):
         resp = self.client.get('/nominas/workflow-mes/')
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'Workflow del Mes')
-        # Debe haber 11 steps (era 10 antes — commit ada889c añadió AFPNet
-        # step #9 entre PLAME y Asiento Contable, renumerando los siguientes).
-        self.assertEqual(len(resp.context['steps']), 11)
+        # Debe haber 12 steps (se añadió 'Pago a banco' como paso #10, entre
+        # AFPNet y Asiento Contable, renumerando los siguientes).
+        self.assertEqual(len(resp.context['steps']), 12)
         # Progreso siempre entre 0 y 100
         self.assertGreaterEqual(resp.context['progreso_pct'], 0)
         self.assertLessEqual(resp.context['progreso_pct'], 100)
