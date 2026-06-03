@@ -725,13 +725,51 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     # ── 8. Otros descuentos manuales ──
     descto_prestamo  = _redondear(p.descuento_prestamo)
     otros_descuentos = _redondear(p.otros_descuentos)
-    # NOTA: la planilla REGULAR (RegistroNomina) no tiene campo embargo. Los
-    # embargos/pensiones judiciales hoy se cargan en otros_descuentos, o deberían
-    # cablearse desde descuentos.DescuentoPlanilla (gap pendiente). El campo
-    # embargo dedicado vive solo en LiquidacionLaboral (cese).
+
+    # ── 8b. Descuentos judiciales (embargo/pensión) desde DescuentoPlanilla ──
+    # Decisión Edwin: auto-cargar con VALIDACIÓN DE TOPE legal. Pensión ≤ 60% de
+    # (rem − descuentos legales); embargo civil ≤ 1/3 del exceso sobre 5 URP
+    # (Art. 648 CPC). Si la cuota ordenada excede el tope, se capa y se alerta.
+    judicial_total = Decimal('0')
+    judicial_lineas = []  # (codigo_concepto, monto, observacion)
+    _pers = getattr(p, 'personal', None)
+    if _pers is not None and getattr(_pers, 'pk', None):
+        try:
+            from descuentos.models import DescuentoPlanilla
+            _desc_legales = afp_aporte + afp_comision + afp_seguro + onp + ir_5ta
+            for d in DescuentoPlanilla.objects.filter(
+                    personal=_pers, estado='EN_CURSO',
+                    causal__in=['EMBARGO_JUDICIAL', 'PENSION_ALIMENTICIA']):
+                _cuota = _redondear(d.cuota_mensual or 0)
+                _saldo = _redondear(getattr(d, 'saldo_pendiente', None) or _cuota)
+                if _saldo > 0:
+                    _cuota = min(_cuota, _saldo)
+                if _cuota <= 0:
+                    continue
+                if d.causal == 'PENSION_ALIMENTICIA':
+                    _tope = calcular_pension_alimenticia(
+                        total_ingresos_bruto, _desc_legales, Decimal('60'))['monto']
+                    _cod, _obs = 'pension-alimenticia', 'Pensión alimenticia (tope 60%)'
+                else:
+                    _tope = calcular_embargo_civil(
+                        total_ingresos_bruto, uit=uit)['monto_max_embargo']
+                    _cod, _obs = 'embargo-judicial', 'Embargo civil (tope 1/3 sobre 5 URP)'
+                _monto = min(_cuota, _tope)
+                if _monto < _cuota:
+                    logger.warning('Descuento judicial %s capado por tope legal: %s → %s (rem %s)',
+                                   d.causal, _cuota, _monto, total_ingresos_bruto)
+                if _monto > 0:
+                    judicial_total += _monto
+                    judicial_lineas.append((_cod, _monto, _obs))
+        except Exception:
+            logger.warning('No se pudieron consolidar descuentos judiciales', exc_info=True)
+            judicial_total = Decimal('0')
+            judicial_lineas = []
 
     # ── 9. Totales ──
-    total_desc_trabajador = afp_aporte + afp_comision + afp_seguro + onp + ir_5ta + descto_prestamo + otros_descuentos + cm_desc_total
+    total_desc_trabajador = (afp_aporte + afp_comision + afp_seguro + onp + ir_5ta
+                             + descto_prestamo + otros_descuentos + judicial_total
+                             + cm_desc_total)
     neto                  = _redondear(total_ingresos_bruto - total_desc_trabajador)
 
     # ── 10. Aportes empleador (costo empresa) ──
@@ -803,6 +841,9 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         _agregar('descto-prestamo', Decimal('0'),   Decimal('0'), descto_prestamo)
     if otros_descuentos > 0:
         _agregar('otros-descuentos',Decimal('0'),   Decimal('0'), otros_descuentos)
+    # Descuentos judiciales (embargo/pensión) — código PLAME 0703 vía concepto.
+    for _cod, _monto, _obs in judicial_lineas:
+        _agregar(_cod, Decimal('0'), Decimal('0'), _monto, _obs)
 
     # Conceptos manuales tipo DESCUENTO
     for cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():
@@ -1115,6 +1156,30 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
                            getattr(periodo, 'pk', '?'), exc_info=True)
             tareo_map = {}
 
+    # ── PRÉSTAMOS → planilla (auto-descuento desde el cronograma, decisión Edwin) ──
+    # Suma la(s) cuota(s) del MES (cuota.periodo del mes/año del período) de los
+    # préstamos EN_CURSO, estado PENDIENTE/VENCIDA. Cada mes descuenta su propia
+    # cuota → idempotente y sin doble cobro entre meses. Reemplaza la digitación
+    # manual de descuento_prestamo (la fuente de verdad es el cronograma).
+    prestamo_map = {}
+    if tipo not in ('GRATIFICACION', 'CTS'):
+        try:
+            from django.db.models import Sum
+            from prestamos.models import CuotaPrestamo
+            _cuotas = (CuotaPrestamo.objects
+                       .filter(prestamo__estado='EN_CURSO',
+                               estado__in=['PENDIENTE', 'VENCIDA'],
+                               periodo__year=periodo.anio, periodo__month=periodo.mes,
+                               prestamo__personal__isnull=False)
+                       .values('prestamo__personal_id')
+                       .annotate(total=Sum('monto')))
+            prestamo_map = {c['prestamo__personal_id']: (c['total'] or Decimal('0'))
+                            for c in _cuotas}
+        except Exception:
+            logger.warning('No se pudieron consolidar las cuotas de préstamo del período %s',
+                           getattr(periodo, 'pk', '?'), exc_info=True)
+            prestamo_map = {}
+
     # Performance audit fix: envolver en transaction.atomic para batch atomico
     # y usar bulk_create para LineaNomina. Para 800 trabajadores x ~18 lineas
     # cada uno, esto reduce de ~14400 INSERTs individuales a 800 bulk_creates,
@@ -1141,6 +1206,9 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
                     _defaults['horas_extra_25']  = _t['he25'] or Decimal('0')
                     _defaults['horas_extra_35']  = _t['he35'] or Decimal('0')
                     _defaults['horas_extra_100'] = _t['he100'] or Decimal('0')
+                # Cuota de préstamo del mes (auto desde el cronograma).
+                if tipo not in ('GRATIFICACION', 'CTS'):
+                    _defaults['descuento_prestamo'] = prestamo_map.get(emp.pk, Decimal('0')) or Decimal('0')
                 registro, created = RegistroNomina.objects.update_or_create(
                     periodo=periodo, personal=emp, defaults=_defaults,
                 )

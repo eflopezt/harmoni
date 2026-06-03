@@ -544,6 +544,26 @@ def periodo_cerrar(request, pk):
 
     periodo.estado = 'CERRADO'
     periodo.save(update_fields=['estado'])
+
+    # Al cerrar la planilla REGULAR, marca como PAGADAS las cuotas de préstamo del
+    # mes (las que generar_periodo descontó, item E1). Imprescindible para que el
+    # saldo del préstamo baje y la liquidación al cese NO vuelva a cobrarlas (la
+    # liquidación lee Prestamo.saldo_pendiente, basado en cuotas pagadas).
+    if periodo.tipo == 'REGULAR':
+        try:
+            from prestamos.models import CuotaPrestamo
+            cuotas = CuotaPrestamo.objects.filter(
+                prestamo__estado='EN_CURSO', estado__in=['PENDIENTE', 'VENCIDA'],
+                periodo__year=periodo.anio, periodo__month=periodo.mes)
+            n = 0
+            for cuota in cuotas:
+                cuota.registrar_pago(referencia=f'Planilla {periodo.mes:02d}/{periodo.anio}')
+                n += 1
+            if n:
+                logger.info('Cierre %s: %s cuota(s) de préstamo marcadas pagadas', pk, n)
+        except Exception:
+            logger.warning('No se pudieron marcar cuotas de préstamo al cerrar %s', pk, exc_info=True)
+
     messages.success(request, f'Período {periodo} cerrado definitivamente.')
     return redirect('nominas_periodo_detalle', pk=pk)
 

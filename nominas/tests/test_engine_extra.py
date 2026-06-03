@@ -769,6 +769,31 @@ class TestGenerarPeriodo:
         assert reg.dias_trabajados == 28               # 30 − 2
         assert reg.horas_extra_25 == Decimal('2.00')   # solo la pagable (la del banco se excluye)
 
+    def test_descuenta_cuota_prestamo_del_mes(self):
+        """Item E1: generar_periodo auto-descuenta la cuota del préstamo del mes
+        (cronograma) en RegistroNomina.descuento_prestamo."""
+        from datetime import date as _date
+        from nominas.models import PeriodoNomina, RegistroNomina
+        from prestamos.models import TipoPrestamo, Prestamo, CuotaPrestamo
+        emp = _empresa_test()
+        p = _crear_personal(emp, sueldo=Decimal('3000'), regimen='ONP')
+        tipo = TipoPrestamo.objects.create(nombre='Personal X', codigo='px', max_cuotas=12)
+        prest = Prestamo.objects.create(
+            personal=p, tipo=tipo, monto_solicitado=Decimal('600'),
+            num_cuotas=6, estado='EN_CURSO')
+        # Borrar cuotas auto-generadas y crear una controlada en el mes del período
+        CuotaPrestamo.objects.filter(prestamo=prest).delete()
+        CuotaPrestamo.objects.create(prestamo=prest, numero=1,
+                                     periodo=_date(2026, 6, 15),
+                                     monto=Decimal('100'), estado='PENDIENTE')
+        per, _ = PeriodoNomina.objects.get_or_create(
+            tipo='REGULAR', anio=2026, mes=6,
+            defaults={'fecha_inicio': _date(2026, 6, 1), 'fecha_fin': _date(2026, 6, 30),
+                      'estado': 'BORRADOR', 'empresa': emp})
+        generar_periodo(per)
+        reg = RegistroNomina.objects.get(periodo=per, personal=p)
+        assert reg.descuento_prestamo == Decimal('100.00')
+
     def test_periodo_gratificacion_usa_calculadora_correcta(self):
         from nominas.models import PeriodoNomina
         emp = _empresa_test()
@@ -889,3 +914,59 @@ class TestHENoCompensadasBanco:
             saldo_horas=Decimal('0'),
         )
         assert valor_he_banco_no_compensadas(p, Decimal('3000')) == Decimal('0')
+
+
+@pytest.mark.django_db
+class TestDescuentosJudiciales:
+    """Item E2: pensión/embargo desde DescuentoPlanilla con validación de tope."""
+
+    def _registro(self, emp, sueldo, regimen='ONP'):
+        from datetime import date as _date
+        from nominas.models import PeriodoNomina, RegistroNomina
+        p = _crear_personal(emp, sueldo=Decimal(str(sueldo)), regimen=regimen)
+        per, _ = PeriodoNomina.objects.get_or_create(
+            tipo='REGULAR', anio=2026, mes=6,
+            defaults={'fecha_inicio': _date(2026, 6, 1), 'fecha_fin': _date(2026, 6, 30),
+                      'estado': 'BORRADOR', 'empresa': emp})
+        reg = RegistroNomina.objects.create(
+            periodo=per, personal=p, sueldo_base=Decimal(str(sueldo)),
+            regimen_pension=regimen, dias_trabajados=30)
+        return p, reg
+
+    def test_pension_dentro_de_tope_se_descuenta_completa(self):
+        from descuentos.models import DescuentoPlanilla
+        emp = _empresa_test()
+        p, reg = self._registro(emp, 3000, 'ONP')
+        res_sin = calcular_registro(reg)
+        DescuentoPlanilla.objects.create(
+            personal=p, causal='PENSION_ALIMENTICIA', monto_total=Decimal('6000'),
+            num_cuotas=10, cuota_mensual=Decimal('600'), estado='EN_CURSO')
+        res_con = calcular_registro(reg)
+        # 600 está bien por debajo del tope (60% de ~2600) → se descuenta completo
+        assert res_con['total_descuentos'] == res_sin['total_descuentos'] + Decimal('600.00')
+
+    def test_pension_excede_tope_se_capa(self):
+        from descuentos.models import DescuentoPlanilla
+        emp = _empresa_test()
+        p, reg = self._registro(emp, 3000, 'ONP')
+        res_sin = calcular_registro(reg)
+        DescuentoPlanilla.objects.create(
+            personal=p, causal='PENSION_ALIMENTICIA', monto_total=Decimal('50000'),
+            num_cuotas=10, cuota_mensual=Decimal('5000'), estado='EN_CURSO')
+        res_con = calcular_registro(reg)
+        delta = res_con['total_descuentos'] - res_sin['total_descuentos']
+        # cuota 5000 capada al tope (60% del bruto 3000 = 1800; aún menos tras desc. legales)
+        assert Decimal('0') < delta < Decimal('1800')
+
+    def test_embargo_civil_respeta_inembargable(self):
+        from descuentos.models import DescuentoPlanilla
+        emp = _empresa_test()
+        # Sueldo 1200 < 5 URP (≥1500 para cualquier UIT usual) → inembargable
+        p, reg = self._registro(emp, 1200, 'ONP')
+        res_sin = calcular_registro(reg)
+        DescuentoPlanilla.objects.create(
+            personal=p, causal='EMBARGO_JUDICIAL', monto_total=Decimal('3000'),
+            num_cuotas=10, cuota_mensual=Decimal('300'), estado='EN_CURSO')
+        res_con = calcular_registro(reg)
+        # rem 1200 < 5 URP → monto_max_embargo=0 → capado a 0 (no se descuenta)
+        assert res_con['total_descuentos'] == res_sin['total_descuentos']
