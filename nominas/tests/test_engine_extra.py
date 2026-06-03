@@ -970,3 +970,38 @@ class TestDescuentosJudiciales:
         res_con = calcular_registro(reg)
         # rem 1200 < 5 URP → monto_max_embargo=0 → capado a 0 (no se descuenta)
         assert res_con['total_descuentos'] == res_sin['total_descuentos']
+
+
+@pytest.mark.django_db
+class TestCierreMarcaCuotasPrestamo:
+    """Al cerrar la planilla, la cuota de préstamo del mes se marca PAGADA →
+    evita que la liquidación al cese vuelva a cobrarla (item E1, salvaguarda)."""
+
+    def test_cierre_marca_cuota_pagada(self, client):
+        from datetime import date as _date
+        from django.contrib.auth.models import User
+        from django.urls import reverse
+        from nominas.models import PeriodoNomina
+        from prestamos.models import TipoPrestamo, Prestamo, CuotaPrestamo
+        admin = User.objects.create_user('cierre_admin', password='x',
+                                         is_superuser=True, is_staff=True)
+        client.force_login(admin)
+        emp = _empresa_test()
+        p = _crear_personal(emp, sueldo=Decimal('3000'))
+        tipo = TipoPrestamo.objects.create(nombre='T cierre', codigo='tcierre', max_cuotas=12)
+        prest = Prestamo.objects.create(personal=p, tipo=tipo,
+                                        monto_solicitado=Decimal('200'),
+                                        num_cuotas=2, estado='EN_CURSO')
+        CuotaPrestamo.objects.filter(prestamo=prest).delete()
+        c1 = CuotaPrestamo.objects.create(prestamo=prest, numero=1,
+                                          periodo=_date(2026, 6, 15),
+                                          monto=Decimal('100'), estado='PENDIENTE')
+        per = PeriodoNomina.objects.create(
+            tipo='REGULAR', anio=2026, mes=6,
+            fecha_inicio=_date(2026, 6, 1), fecha_fin=_date(2026, 6, 30),
+            estado='APROBADO', empresa=emp)
+        resp = client.post(reverse('nominas_periodo_cerrar', args=[per.pk]))
+        assert resp.status_code in (200, 302)
+        c1.refresh_from_db()
+        assert c1.estado == 'PAGADO'
+        assert c1.monto_pagado == Decimal('100.00')
