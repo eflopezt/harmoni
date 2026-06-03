@@ -161,18 +161,29 @@ def _construir_steps(periodo, hoy):
                     if periodo.estado in ('APROBADO', 'CERRADO')
                     else reverse('nominas_periodo_detalle', args=[periodo.pk]),
         })
-        # Step 10: Asiento contable
+        # Step 10: Pago a banco (archivo de transferencias por el NETO)
         steps.append({
-            'n': 10, 'key': 'contable', 'icon': 'fas fa-file-invoice', 'titulo': 'Asiento contable',
+            'n': 10, 'key': 'banco', 'icon': 'fas fa-university', 'titulo': 'Pago a banco',
+            'descripcion': 'Genera el archivo de transferencias (neto) para el banco'
+                           if periodo.estado in ('APROBADO', 'CERRADO')
+                           else 'Disponible cuando la planilla esté aprobada',
+            'done': periodo.estado == 'CERRADO',
+            'link': reverse('nominas_periodo_archivo_banco', args=[periodo.pk])
+                    if periodo.estado in ('APROBADO', 'CERRADO')
+                    else reverse('nominas_periodo_detalle', args=[periodo.pk]),
+        })
+        # Step 11: Asiento contable
+        steps.append({
+            'n': 11, 'key': 'contable', 'icon': 'fas fa-file-invoice', 'titulo': 'Asiento contable',
             'descripcion': 'Exportado a CONCAR/Siscont/SAP'
                            if getattr(periodo, 'contabilizado', False)
                            else 'Pendiente — exporta para tu contador',
             'done': getattr(periodo, 'contabilizado', False),
             'link': reverse('nominas_periodo_detalle', args=[periodo.pk]),
         })
-        # Step 11: Cerrar
+        # Step 12: Cerrar
         steps.append({
-            'n': 11, 'key': 'cerrar', 'icon': 'fas fa-lock', 'titulo': 'Cerrar período',
+            'n': 12, 'key': 'cerrar', 'icon': 'fas fa-lock', 'titulo': 'Cerrar período',
             'descripcion': 'Período inmutable — congelado para auditoría'
                            if periodo.estado == 'CERRADO'
                            else 'Pendiente — cerrar cuando todo esté OK',
@@ -188,8 +199,9 @@ def _construir_steps(periodo, hoy):
             (7,  'acuses',   'fas fa-signature',      'Acuses de recibo',  'Espera al paso 3'),
             (8,  'plame',    'fas fa-file-export',    'Exportar PLAME',    'Espera al paso 3'),
             (9,  'afpnet',   'fas fa-piggy-bank',     'Exportar AFPNet',   'Espera al paso 3'),
-            (10, 'contable', 'fas fa-file-invoice',   'Asiento contable',  'Espera al paso 3'),
-            (11, 'cerrar',   'fas fa-lock',           'Cerrar período',    'Espera al paso 3'),
+            (10, 'banco',    'fas fa-university',     'Pago a banco',      'Espera al paso 3'),
+            (11, 'contable', 'fas fa-file-invoice',   'Asiento contable',  'Espera al paso 3'),
+            (12, 'cerrar',   'fas fa-lock',           'Cerrar período',    'Espera al paso 3'),
         ]:
             steps.append({
                 'n': n, 'key': key, 'icon': icon, 'titulo': titulo,
