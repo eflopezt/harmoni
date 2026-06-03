@@ -4,6 +4,7 @@ Integraciones Peru -- Vistas.
 Panel central de exportaciones hacia sistemas externos SUNAT, AFP, bancos.
 """
 import io
+import unicodedata
 from datetime import date
 
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -28,6 +29,14 @@ solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
 def _periodo_actual():
     hoy = date.today()
     return f'{hoy.year}-{hoy.month:02d}'
+
+
+def _flat_sunat(contenido):
+    """Codifica un archivo plano regulatorio (T-Registro/AFPNet) a latin-1 (ANSI),
+    con NFC para no perder tildes. Los archivos planos de SUNAT/SBS son ANSI; con
+    utf-8 las tildes (José, Núñez) salían como bytes multibyte y el sistema las leía
+    mal. (EsSalud se exporta como CSV utf-8-sig para Excel → no usa esto.)"""
+    return unicodedata.normalize('NFC', contenido).encode('latin-1', errors='replace')
 
 
 @login_required
@@ -127,7 +136,7 @@ def exportar_t_registro_altas(request):
         generado_por=request.user,
     )
 
-    response = HttpResponse(contenido, content_type='text/plain; charset=utf-8')
+    response = HttpResponse(_flat_sunat(contenido), content_type='text/plain; charset=iso-8859-1')
     response['Content-Disposition'] = (
         f'attachment; filename="TRegistro_Altas_{periodo.replace("-","")}.txt"'
     )
@@ -159,7 +168,7 @@ def exportar_t_registro_bajas(request):
         generado_por=request.user,
     )
 
-    response = HttpResponse(contenido, content_type='text/plain; charset=utf-8')
+    response = HttpResponse(_flat_sunat(contenido), content_type='text/plain; charset=iso-8859-1')
     response['Content-Disposition'] = (
         f'attachment; filename="TRegistro_Bajas_{periodo.replace("-","")}.txt"'
     )
@@ -253,7 +262,7 @@ def exportar_afp_net(request):
         generado_por=request.user,
     )
 
-    response = HttpResponse(contenido, content_type='text/plain; charset=utf-8')
+    response = HttpResponse(_flat_sunat(contenido), content_type='text/plain; charset=iso-8859-1')
     response['Content-Disposition'] = (
         f'attachment; filename="AFPNet_{afp_filtro or "TODAS"}_{periodo.replace("-","")}.txt"'
     )
@@ -438,7 +447,7 @@ def exportar_plame(request):
         generado_por=request.user,
     )
 
-    response = HttpResponse(contenido, content_type='text/plain; charset=utf-8')
+    response = HttpResponse(_flat_sunat(contenido), content_type='text/plain; charset=iso-8859-1')
     fn = 'PLAME_' + periodo.replace('-', '') + '.txt'
     response['Content-Disposition'] = f'attachment; filename="{fn}"'
     return response
