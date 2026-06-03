@@ -124,7 +124,16 @@ def _check_conceptos():
     checks = []
     total       = ConceptoRemunerativo.objects.count()
     activos     = ConceptoRemunerativo.objects.filter(activo=True).count()
-    sin_plame   = ConceptoRemunerativo.objects.filter(codigo_plame='', activo=True).count()
+    # Solo cuentan como "sin PLAME" los conceptos que SÍ son líneas del PLAME 0601
+    # del trabajador (ingresos y descuentos). Los aportes del empleador
+    # (EsSalud/SCTR, tipo=APORTE_EMPLEADOR) y las provisiones internas
+    # (prov-gratif/prov-cts, subtipo=PROVISION) NO se declaran como concepto del
+    # trabajador → exigirles código PLAME era falsa alarma que bajaba el score.
+    sin_plame   = (ConceptoRemunerativo.objects
+                   .filter(codigo_plame='', activo=True)
+                   .exclude(tipo='APORTE_EMPLEADOR')
+                   .exclude(subtipo='PROVISION')
+                   .count())
 
     if total == 0:
         checks.append(_check(
