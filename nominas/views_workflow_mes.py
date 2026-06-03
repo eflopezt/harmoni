@@ -44,8 +44,11 @@ def _construir_steps(periodo, hoy):
     asis_link = '/asistencia/'
     asis_msg = 'Importa o consolida la asistencia de los trabajadores'
     try:
-        from asistencia.models import RegistroAsistencia
-        count = RegistroAsistencia.objects.filter(
+        # El sistema registra asistencia en RegistroTareo (no existe
+        # RegistroAsistencia → el import fallaba siempre y el paso 1 quedaba
+        # eternamente "no hecho" aunque hubiera tareo cargado).
+        from asistencia.models import RegistroTareo
+        count = RegistroTareo.objects.filter(
             fecha__year=hoy.year,
             fecha__month=hoy.month,
         ).count()
