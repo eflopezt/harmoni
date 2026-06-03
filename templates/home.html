@@ -120,6 +120,22 @@
 .hw-cta-text { font-size: .84rem; font-weight: 600; color: #92400e; flex: 1; }
 .hw-cta-ok .hw-cta-text { color: #166534; }
 
+/* Centro de Acción — lista de pendientes priorizada (todos a la vez) */
+.hw-ac { display: flex; flex-direction: column; gap: 7px; }
+.hw-ac-head { font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #64748b; margin-bottom: 1px; }
+.hw-ac-row {
+  display: flex; align-items: center; gap: 11px; text-decoration: none;
+  background: #fff; border: 1px solid #e7ebf0; border-left: 3px solid var(--ac, #94a3b8);
+  border-radius: 9px; padding: 9px 12px; transition: transform .12s, box-shadow .12s, border-color .12s;
+}
+.hw-ac-row:hover { transform: translateX(2px); box-shadow: 0 4px 12px rgba(15,41,38,.08); border-color: var(--ac, #94a3b8); }
+.hw-ac-ico { width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .82rem; color: var(--ac, #475569); background: #f1f5f9; }
+.hw-ac-body { flex: 1; min-width: 0; line-height: 1.2; }
+.hw-ac-count { font-size: .95rem; font-weight: 800; color: #0f2926; }
+.hw-ac-lbl { font-size: .78rem; color: #475569; }
+.hw-ac-go { font-size: .82rem; color: var(--ac, #475569); flex-shrink: 0; opacity: .65; }
+.hw-ac-row:hover .hw-ac-go { opacity: 1; transform: translateX(2px); }
+
 /* Modules */
 .hw-modules {
   display: grid;
@@ -397,48 +413,55 @@
       {% endif %}
     </div>
 
-    {# CTA: pendientes o todo OK #}
-    {% if cambios_pendientes > 0 %}
-    <div class="hw-cta">
-      <div>
-        <div class="hw-cta-text"><i class="fas fa-bell me-2"></i>{{ cambios_pendientes }} aprobación{{ cambios_pendientes|pluralize:"es" }} esperando revisión</div>
-        {% if contratos_vencen %}
-        <div style="font-size:.74rem;color:#92400e;margin-top:3px;opacity:.8">
-          <i class="fas fa-file-contract me-1"></i>{{ contratos_vencen }} contrato{{ contratos_vencen|pluralize:"s" }} por vencer en 30 días
-        </div>
-        {% endif %}
-      </div>
-      <a href="{% url 'dashboard_aprobaciones' %}" class="btn btn-sm flex-shrink-0" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;font-weight:600;box-shadow:0 2px 8px rgba(245,158,11,.35);">
-        <i class="fas fa-tasks me-1"></i>Revisar
+    {# ── Centro de Acción — todos los pendientes a la vez, priorizados ── #}
+    {% if cambios_pendientes > 0 or contratos_vencen or alertas_rrhh_critical or workflows_pendientes or evaluaciones_pendientes %}
+    <div class="hw-ac">
+      <div class="hw-ac-head"><i class="fas fa-bolt me-1"></i>Qué necesita tu atención</div>
+
+      {% if cambios_pendientes > 0 %}
+      <a class="hw-ac-row" style="--ac:#d97706" href="{% url 'dashboard_aprobaciones' %}">
+        <span class="hw-ac-ico"><i class="fas fa-clipboard-check"></i></span>
+        <span class="hw-ac-body"><span class="hw-ac-count">{{ cambios_pendientes }}</span>
+          <span class="hw-ac-lbl">aprobación{{ cambios_pendientes|pluralize:"es" }} esperando revisión (vacaciones, papeletas, HE)</span></span>
+        <i class="fas fa-arrow-right hw-ac-go"></i>
       </a>
-    </div>
-    {% elif contratos_vencen %}
-    <div class="hw-cta" style="background:#fff1f2;border-color:#fca5a5;">
-      <div class="hw-cta-text" style="color:#991b1b;">
-        <i class="fas fa-file-contract me-2"></i>{{ contratos_vencen }} contrato{{ contratos_vencen|pluralize:"s" }} vence{{ contratos_vencen|pluralize:"n" }} en los próximos 30 días
-      </div>
-      <a href="{% url 'personal_list' %}" class="btn btn-sm btn-outline-danger flex-shrink-0">Ver</a>
-    </div>
-    {% elif alertas_rrhh_critical and alertas_rrhh_critical > 0 %}
-    <div class="hw-cta" style="background:#fef2f2;border-color:#fca5a5;">
-      <div>
-        <div class="hw-cta-text" style="color:#991b1b;">
-          <i class="fas fa-exclamation-triangle me-2"></i>{{ alertas_rrhh_critical }} alerta{{ alertas_rrhh_critical|pluralize:"s" }} crítica{{ alertas_rrhh_critical|pluralize:"s" }} activa{{ alertas_rrhh_critical|pluralize:"s" }}
-        </div>
-        {% if alertas_rrhh_total > alertas_rrhh_critical %}
-        <div style="font-size:.74rem;color:#b45309;margin-top:3px;opacity:.85">
-          <i class="fas fa-bell me-1"></i>{{ alertas_rrhh_total }} alertas en total
-        </div>
-        {% endif %}
-      </div>
-      <a href="{% url 'analytics_alertas' %}" class="btn btn-sm btn-outline-danger flex-shrink-0">Ver alertas</a>
-    </div>
-    {% elif workflows_pendientes and workflows_pendientes > 0 %}
-    <div class="hw-cta" style="background:#eff6ff;border-color:#93c5fd;">
-      <div class="hw-cta-text" style="color:#1e40af;">
-        <i class="fas fa-code-branch me-2"></i>{{ workflows_pendientes }} aprobación{{ workflows_pendientes|pluralize:"es" }} de workflow pendiente{{ workflows_pendientes|pluralize:"s" }}
-      </div>
-      <a href="{% url 'workflow_bandeja' %}" class="btn btn-sm btn-outline-primary flex-shrink-0">Revisar</a>
+      {% endif %}
+
+      {% if contratos_vencen %}
+      <a class="hw-ac-row" style="--ac:#dc2626" href="{% url 'personal_list' %}">
+        <span class="hw-ac-ico"><i class="fas fa-file-contract"></i></span>
+        <span class="hw-ac-body"><span class="hw-ac-count">{{ contratos_vencen }}</span>
+          <span class="hw-ac-lbl">contrato{{ contratos_vencen|pluralize:"s" }} vence{{ contratos_vencen|pluralize:"n" }} en los próximos 30 días</span></span>
+        <i class="fas fa-arrow-right hw-ac-go"></i>
+      </a>
+      {% endif %}
+
+      {% if alertas_rrhh_critical and alertas_rrhh_critical > 0 %}
+      <a class="hw-ac-row" style="--ac:#b91c1c" href="{% url 'analytics_alertas' %}">
+        <span class="hw-ac-ico"><i class="fas fa-exclamation-triangle"></i></span>
+        <span class="hw-ac-body"><span class="hw-ac-count">{{ alertas_rrhh_critical }}</span>
+          <span class="hw-ac-lbl">alerta{{ alertas_rrhh_critical|pluralize:"s" }} crítica{{ alertas_rrhh_critical|pluralize:"s" }} de RRHH{% if alertas_rrhh_total > alertas_rrhh_critical %} · {{ alertas_rrhh_total }} en total{% endif %}</span></span>
+        <i class="fas fa-arrow-right hw-ac-go"></i>
+      </a>
+      {% endif %}
+
+      {% if workflows_pendientes and workflows_pendientes > 0 %}
+      <a class="hw-ac-row" style="--ac:#2563eb" href="{% url 'workflow_bandeja' %}">
+        <span class="hw-ac-ico"><i class="fas fa-code-branch"></i></span>
+        <span class="hw-ac-body"><span class="hw-ac-count">{{ workflows_pendientes }}</span>
+          <span class="hw-ac-lbl">aprobación{{ workflows_pendientes|pluralize:"es" }} de workflow pendiente{{ workflows_pendientes|pluralize:"s" }}</span></span>
+        <i class="fas fa-arrow-right hw-ac-go"></i>
+      </a>
+      {% endif %}
+
+      {% if evaluaciones_pendientes and evaluaciones_pendientes > 0 %}
+      <a class="hw-ac-row" style="--ac:#4f46e5" href="{% url 'evaluaciones_dashboard' %}">
+        <span class="hw-ac-ico"><i class="fas fa-star"></i></span>
+        <span class="hw-ac-body"><span class="hw-ac-count">{{ evaluaciones_pendientes }}</span>
+          <span class="hw-ac-lbl">evaluación{{ evaluaciones_pendientes|pluralize:"es" }} pendiente{{ evaluaciones_pendientes|pluralize:"s" }}</span></span>
+        <i class="fas fa-arrow-right hw-ac-go"></i>
+      </a>
+      {% endif %}
     </div>
     {% else %}
     <div class="hw-cta hw-cta-ok">
