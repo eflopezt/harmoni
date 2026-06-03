@@ -117,3 +117,9 @@ docs/manual_capturas/
 
 # Logos en raíz (vivir en static/img/ si se versionan)
 /LOGO HARMONI*.png
+
+# Artefactos de agentes/auditorías/crawls (no versionar — un git add -A los arrastraba)
+.claude/worktrees/
+.claude/settings.local.json
+/errores_import.xlsx
+/scripts/_crawl_result.txt
