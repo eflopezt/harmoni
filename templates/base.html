@@ -1205,9 +1205,9 @@
     <main class="harmoni-content">
         {# Banner de alertas nóminas — solo admin, solo si hay algo que reportar #}
         {% if user.is_superuser and nominas_alerts and nominas_alerts.count %}
-          <div style="background:{% if nominas_alerts.severidad == 'critico' %}#fee2e2;border:1px solid #fca5a5;color:#7f1d1d{% else %}#fef3c7;border:1px solid #fcd34d;color:#92400e{% endif %};padding:10px 16px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div style="background:{% if nominas_alerts.severidad == 'critico' and not DEMO_MODE %}#fee2e2;border:1px solid #fca5a5;color:#7f1d1d{% else %}#fef3c7;border:1px solid #fcd34d;color:#92400e{% endif %};padding:10px 16px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.88rem;">
-              <i class="fas {% if nominas_alerts.severidad == 'critico' %}fa-exclamation-circle{% else %}fa-exclamation-triangle{% endif %}" style="font-size:1.1rem;"></i>
+              <i class="fas {% if nominas_alerts.severidad == 'critico' and not DEMO_MODE %}fa-exclamation-circle{% else %}fa-exclamation-triangle{% endif %}" style="font-size:1.1rem;"></i>
               <strong>Atención de nóminas:</strong>
               {% if nominas_alerts.onboarding_score is not None and nominas_alerts.onboarding_score < 80 %}
                 Onboarding score <strong>{{ nominas_alerts.onboarding_score }}/100</strong>
