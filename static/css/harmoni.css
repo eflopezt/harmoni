@@ -342,25 +342,27 @@ a:hover {
    ════════════════════════════════════════════ */
 .sidebar-tabs {
     display: flex;
+    flex-wrap: wrap;          /* 2 filas (3+2) → labels completos sin cortarse */
     flex-shrink: 0;
-    padding: 0 0.4rem;
+    padding: 0.15rem 0.35rem 0;
     border-bottom: 1px solid var(--sidebar-border);
     gap: 2px;
+    row-gap: 2px;
     background: #F8FAFC;  /* slate-50, subtle banding */
 }
 
 .sidebar-tab {
-    flex: 1;
+    flex: 1 1 28%;                /* ~3 por fila → 5 tabs quedan 3+2 */
     min-width: 0;                 /* permite que el flex item se encoja */
-    padding: 0.52rem 0.08rem 0.48rem;
+    padding: 0.5rem 0.1rem 0.46rem;
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--sidebar-section-title);
-    font-size: 0.55rem;
+    font-size: 0.58rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;       /* menos tracking → cabe "Gestión" sin cortarse */
+    text-transform: none;         /* mixed-case es más angosto y legible que MAYÚS */
+    letter-spacing: 0;
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -374,7 +376,7 @@ a:hover {
 .sidebar-tab span {
     max-width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;      /* si aún no cabe, "…" legible en vez de corte seco */
+    text-overflow: ellipsis;      /* red de seguridad si algún label fuera muy largo */
 }
 
 .sidebar-tab i {
