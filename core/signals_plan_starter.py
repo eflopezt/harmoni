@@ -20,13 +20,8 @@ from django.dispatch import receiver
 logger = logging.getLogger('core.plan_starter_signals')
 
 
-# Umbral de alerta — al alcanzar este número, mandar email a ventas
-ALERTA_THRESHOLD = 28   # de 30 (Starter)
-PLAN_LIMITS = {
-    'STARTER':     30,
-    'PROFESIONAL': 100,
-    'BUSINESS':    300,
-}
+# Tope de trabajadores por plan: fuente única core/planes.py
+from core.planes import plan_max_trabajadores
 
 # Email destinatario de alertas
 VENTAS_EMAIL = getattr(settings, 'VENTAS_ALERT_EMAIL', 'ventas@harmoni.pe')
@@ -37,7 +32,7 @@ def _maybe_alert_upsell(empresa):
     if not empresa or not empresa.plan:
         return
 
-    tope = PLAN_LIMITS.get(empresa.plan)
+    tope = plan_max_trabajadores(empresa.plan)
     if tope is None:
         return  # ENTERPRISE no tiene tope
 
@@ -111,7 +106,7 @@ def enforce_plan_worker_cap(sender, instance, **kwargs):
         plan = getattr(instance.empresa, 'plan', None)
     except Exception:
         return
-    tope = PLAN_LIMITS.get(plan)
+    tope = plan_max_trabajadores(plan)
     if tope is None:
         return  # ENTERPRISE o plan desconocido — sin tope
 

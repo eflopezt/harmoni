@@ -135,7 +135,7 @@ def onboarding_starter_step3(request):
             razon_social=emp_data['razon_social'],
             email_rrhh=emp_data.get('email_rrhh', ''),
             telefono=emp_data.get('telefono', ''),
-            plan='STARTER',
+            plan='ASISTENCIA',   # plan de entrada (antes 'STARTER')
             activa=True,
             es_principal=False,  # no tocar empresa principal
         )

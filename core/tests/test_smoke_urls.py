@@ -42,7 +42,7 @@ def _gettable_urls():
 def admin_client(client, db, django_user_model):
     Empresa.objects.get_or_create(
         ruc='20100100100',
-        defaults={'razon_social': 'Smoke SAC', 'plan': 'ENTERPRISE', 'activa': True},
+        defaults={'razon_social': 'Smoke SAC', 'plan': 'SUITE', 'activa': True},
     )
     u = django_user_model.objects.create_superuser(
         username='smoke_admin', password='x', email='smoke@test.com',

@@ -143,6 +143,29 @@ MODULOS = {
         'nombre': 'Workflows de aprobación', 'nivel': 3,
         'patrones': [r'^/workflows/'],
     },
+    'gastronomia': {
+        'nombre': 'Módulos de gastronomía (Pulse, Roster gastro, Briefing)', 'nivel': 3,
+        'patrones': [
+            r'^/empresas/pulse/', r'^/roster/gastro/',
+            r'^/personal/roster/gastro/', r'^/asistencia/briefing/',
+        ],
+    },
+
+    # ── Nivel 2 · PLANILLA — reportes avanzados / PDFs ──────────────────
+    # (El panel básico de reportes y el listado quedan en nivel 1; lo avanzado
+    #  —cruces, masivos, PDFs, envíos por email— exige Planilla.)
+    'reportes_avanzados': {
+        'nombre': 'Reportes avanzados y PDFs', 'nivel': 2,
+        'patrones': [
+            r'^/reportes/planilla/pdf/', r'^/reportes/personal/pdf/',
+            r'^/reportes/asistencia/pdf/', r'^/reportes/vacaciones/pdf/',
+            r'^/asistencia/reportes/areas/', r'^/asistencia/reportes/pivote/',
+            r'^/asistencia/reportes/kpis-cross/', r'^/asistencia/reportes/masivo/',
+            r'^/asistencia/reportes/enviar-masivo/',
+            r'^/asistencia/reportes/\d+/pdf/', r'^/asistencia/reportes/\d+/enviar/',
+            r'^/documentos/legajo/\d+/pdf/',
+        ],
+    },
 
     # ── Nivel 4 · SUITE ─────────────────────────────────────────────────
     'reclutamiento': {
@@ -157,6 +180,7 @@ MODULOS = {
             r'^/asistencia/solicitudes-he/',
             r'^/nominas/boletas/\d+/notificar/',
             r'^/nominas/notificar/',
+            r'^/documentos/vencimientos/notificar/',
         ],
     },
 }

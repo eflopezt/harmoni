@@ -66,7 +66,7 @@ def empresa(db):
         subdominio='perftest',
         razon_social='Perf Test SAC',
         ruc='20111222333',
-        plan='PROFESIONAL',
+        plan='SUITE',
         activa=True,
     )
 

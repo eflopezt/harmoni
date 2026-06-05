@@ -93,7 +93,7 @@ class TestWizardOnboardingStarter:
 
         # Verifica creación
         emp = Empresa.objects.get(ruc='20999000111')
-        assert emp.plan == 'STARTER'
+        assert emp.plan == 'ASISTENCIA'
         assert emp.razon_social == 'Wizard Test SAC'
         assert User.objects.filter(username='wtest_admin', is_staff=True).exists()
 
@@ -118,7 +118,7 @@ class TestAPIMePlan:
         r = self.client.get('/api/v1/me/plan/')
         assert r.status_code == 200
         data = json.loads(r.content)
-        assert data['plan'] in ('STARTER', 'PROFESIONAL')   # depende whitelist
+        assert data['plan'] in ('ASISTENCIA', 'SUITE')   # sin empresa → default Suite
         assert 'features_bloqueadas' in data
         assert 'upgrade_url' in data
         assert data['empresa'] is None
@@ -129,8 +129,8 @@ class TestAPIMePlan:
         r = self.client.get('/api/v1/me/plan/')
         data = json.loads(r.content)
         assert data['es_starter'] is True
-        assert data['plan'] == 'STARTER'
-        assert data['max_trabajadores'] == 30
+        assert data['plan'] == 'ASISTENCIA'
+        assert data['max_trabajadores'] == 50
 
 
 # ═══════════════════════════════════════════════════════════════════════

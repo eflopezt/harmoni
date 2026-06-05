@@ -26,7 +26,7 @@ def _empresa_demo_para_subdomain_middleware(db):
         defaults={
             'razon_social': 'Harmoni Demo SAC',
             'ruc': '20999999999',
-            'plan': 'PROFESIONAL',
+            'plan': 'SUITE',
             'activa': True,
         },
     )

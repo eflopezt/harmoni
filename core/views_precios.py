@@ -5,111 +5,107 @@ URL: /precios/  (público, sin login)
 """
 from django.shortcuts import render
 
+from core.planes import PLANES as _PLANES, plan_max_trabajadores
 
-PLANES = [
-    {
-        'codigo':       'STARTER',
-        'nombre':       'Starter',
-        'precio':       149,
-        'colaboradores': 'hasta 30',
-        'tagline':      'Para PYMEs que necesitan planilla simple',
-        'color':        '#94a3b8',
-        'destacado':    False,
+
+# Bullets curados por plan (marketing). Precios/topes salen de core/planes.py.
+_FEATURES = {
+    'ASISTENCIA': {
+        'tagline': 'Control de asistencia para tu equipo',
+        'color': '#0891b2', 'destacado': False,
         'features': [
-            'Personal y asistencia',
-            'Papeletas (admin entra permisos)',
-            'Planilla mensual completa',
-            'Boleta PDF (descarga local)',
+            'Tareo diario (importación Excel/biométrico)',
+            'Papeletas y permisos',
+            'Horas extra y banco de horas',
+            'Reportes de asistencia',
             'Vacaciones (gestión admin)',
-            'Exportes Concar, Siscont',
-            'PLAME / AFPnet',
+            'Personal y áreas',
             'Soporte por email',
         ],
         'features_no': [
-            'Portal del colaborador',
-            'Envío automático de boletas',
-            'Reclutamiento con IA',
-            'Multi-empresa',
+            'Planilla y boletas', 'Exportaciones SUNAT',
+            'Gestión de talento', 'Reclutamiento y portal',
         ],
     },
-    {
-        'codigo':       'PROFESIONAL',
-        'nombre':       'Profesional',
-        'precio':       399,
-        'colaboradores': 'hasta 100',
-        'tagline':      'El plan más elegido',
-        'color':        '#0f766e',
-        'destacado':    True,
+    'PLANILLA': {
+        'tagline': 'El ciclo de pago completo, sin Excel',
+        'color': '#0f766e', 'destacado': True,
         'features': [
-            '— Todo lo de Starter +',
-            'Portal del trabajador (mobile)',
-            'Envío automático de boletas',
-            'Acuses electrónicos (DS 009-2011-TR)',
-            'Reclutamiento con CV parser',
-            'Pipeline Kanban',
-            'Capacitaciones + Evaluaciones',
-            'Préstamos / Adelantos',
-            'Disciplinaria con templates',
-            'Soporte por chat (4h SLA)',
+            '— Todo lo de Asistencia +',
+            'Planilla mensual con cálculo automático',
+            'Boletas (DS 009-2011-TR) y liquidaciones',
+            'Conceptos, contratos y préstamos',
+            'Workflow del mes guiado',
+            'Exportaciones SUNAT: PLAME, AFPNet, T-Registro',
+            'Archivo de pago a banco (neto)',
+            'Reportes avanzados y PDFs',
+            'Soporte por chat',
         ],
         'features_no': [
-            'Predictor IA de Rotación',
-            'BI Excel multi-empresa',
+            'Evaluaciones, capacitaciones, clima',
+            'Reclutamiento y banco de talento',
+            'Portal del empleado',
+        ],
+    },
+    'TALENTO': {
+        'tagline': 'Gestión de RRHH de punta a punta',
+        'color': '#7c3aed', 'destacado': False,
+        'features': [
+            '— Todo lo de Planilla +',
+            'Evaluaciones de desempeño',
+            'Capacitaciones',
+            'Encuestas y clima laboral',
+            'Organigrama y onboarding/offboarding',
+            'Gestión disciplinaria',
+            'Viáticos y calendario laboral',
+            'Analytics y Dashboard Ejecutivo',
+            'Workflows de aprobación',
+        ],
+        'features_no': [
+            'Reclutamiento y banco de talento',
+            'Portal del empleado',
+            'IA',
+        ],
+    },
+    'SUITE': {
+        'tagline': 'RRHH completo con reclutamiento, portal e IA',
+        'color': '#0d2b27', 'destacado': False,
+        'features': [
+            '— Todo lo de Talento +',
+            'Reclutamiento: pipeline, vacantes, banco de talento',
+            'CV parser y comparador de candidatos',
+            'Portal del empleado (boletas, solicitudes, self-service)',
+            'IA de RRHH',
+            'Módulos de gastronomía (Pulse, Briefing, Roster)',
             'Multi-empresa (multi-RUC)',
-            'Workflows custom',
-        ],
-    },
-    {
-        'codigo':       'BUSINESS',
-        'nombre':       'Business',
-        'precio':       799,
-        'colaboradores': 'hasta 300',
-        'tagline':      'Para empresas medianas con BI e IA',
-        'color':        '#0d2b27',
-        'destacado':    False,
-        'features': [
-            '— Todo lo de Profesional +',
-            'Predictor IA de Rotación',
-            'AI Summary de CVs',
-            'Evaluaciones 360°',
-            'Dashboard Ejecutivo cross-modulo',
-            'BI Excel multi-empresa (8 tabs)',
-            'Workflows custom (vacaciones, HE, etc.)',
-            'Bandas salariales + análisis equidad',
-            'API REST integraciones',
-            'Soporte prioritario (2h SLA)',
-        ],
-        'features_no': [
-            'Multi-empresa avanzado (>3 RUCs)',
-            'SSO / Active Directory',
-            'Integración Synkro / SAP',
-        ],
-    },
-    {
-        'codigo':       'ENTERPRISE',
-        'nombre':       'Enterprise',
-        'precio':       None,
-        'precio_label': 'Personalizado',
-        'colaboradores': '300+',
-        'tagline':      'Para grupos con múltiples razones sociales',
-        'color':        '#a855f7',
-        'destacado':    False,
-        'features': [
-            '— Todo lo de Business +',
-            'Multi-empresa ilimitado (24+ RUCs)',
-            'Pulse del Grupo (multi-local)',
-            'Briefing del Día (gastronomía)',
-            'Cuadrícula Semanal drag&drop',
-            'BPM/HACCP tracking gastro',
-            'SSO / Active Directory',
-            'Integración Synkro / SAP / Spring',
-            'Onboarding dedicado (2 semanas)',
-            'Soporte 24×7 con SLA garantizado',
-            'Features customizadas',
+            'Soporte prioritario',
         ],
         'features_no': [],
     },
-]
+}
+
+
+def _construir_planes():
+    out = []
+    for code, meta in sorted(_PLANES.items(), key=lambda kv: kv[1]['nivel']):
+        f = _FEATURES.get(code, {})
+        tope = plan_max_trabajadores(code)
+        out.append({
+            'codigo':        code,
+            'nombre':        meta['nombre'],
+            'precio':        meta['precio'],
+            'precio_label':  None if meta['precio'] else 'Personalizado',
+            'colaboradores': f'hasta {tope}' if tope else '300+',
+            'tagline':       f.get('tagline', meta.get('tagline', '')),
+            'color':         f.get('color', '#0f766e'),
+            'destacado':     f.get('destacado', False),
+            'features':      f.get('features', []),
+            'features_no':   f.get('features_no', []),
+        })
+    return out
+
+
+PLANES = _construir_planes()
 
 
 FAQS = [
@@ -131,11 +127,11 @@ FAQS = [
     },
     {
         'q': '¿Aceptan pago anual?',
-        'a': 'Sí. Pago anual adelantado tiene 10% de descuento. Ej: Profesional = S/ 399/mes × 12 × 0.9 = S/ 4,309/año.',
+        'a': 'Sí. Pago anual adelantado tiene 10% de descuento. Ej: Talento = S/ 399/mes × 12 × 0.9 = S/ 4,309/año.',
     },
     {
-        'q': '¿Qué incluye el onboarding dedicado del Enterprise?',
-        'a': '2 semanas con un especialista que: (1) Carga workers desde sistema actual, (2) Configura conceptos custom (propinas, recargo), (3) Capacita a tu equipo de RRHH, (4) Migra histórico de planillas.',
+        'q': '¿Qué incluye el onboarding del plan Suite?',
+        'a': '2 semanas con un especialista que: (1) Carga workers desde tu sistema actual, (2) Configura conceptos custom (propinas, recargo), (3) Capacita a tu equipo de RRHH, (4) Migra histórico de planillas.',
     },
 ]
 

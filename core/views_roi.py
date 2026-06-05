@@ -17,24 +17,26 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
 
-# Precios Harmoni por plan
+# Precios Harmoni por plan (derivados de core/planes.py).
+from core.planes import PLANES as _PLANES
+
 PRECIOS_PLAN = {
-    'STARTER':     {'mensual': 149,  'max_workers': 30,  'nombre': 'Starter'},
-    'PROFESIONAL': {'mensual': 399,  'max_workers': 100, 'nombre': 'Profesional'},
-    'BUSINESS':    {'mensual': 799,  'max_workers': 300, 'nombre': 'Business'},
-    'ENTERPRISE':  {'mensual': 1500, 'max_workers': 9999, 'nombre': 'Enterprise (estimado)'},
+    code: {
+        'mensual':     meta['precio'] or 1500,          # estimado para tope sin precio
+        'max_workers': meta['max_trab'] or 9999,
+        'nombre':      meta['nombre'],
+    }
+    for code, meta in _PLANES.items()
 }
 
 
 def _recomendar_plan(n_workers):
-    """Devuelve la key del plan recomendado según headcount."""
-    if n_workers <= 30:
-        return 'STARTER'
-    if n_workers <= 100:
-        return 'PROFESIONAL'
-    if n_workers <= 300:
-        return 'BUSINESS'
-    return 'ENTERPRISE'
+    """Devuelve la key del plan recomendado según headcount (por tope de cada plan)."""
+    for code, meta in sorted(_PLANES.items(), key=lambda kv: kv[1]['nivel']):
+        tope = meta['max_trab']
+        if tope is None or n_workers <= tope:
+            return code
+    return 'SUITE'
 
 
 @require_http_methods(['GET', 'POST'])

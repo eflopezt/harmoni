@@ -50,7 +50,7 @@ class TestIsStarterUser:
         from personal.models import Personal
         emp = Empresa.objects.create(
             ruc='20999888777', razon_social='Test Starter SAC',
-            plan='STARTER',
+            plan='ASISTENCIA',
         )
         u = User.objects.create_user(username='admin_starter', password='x')
         Personal.objects.create(
@@ -66,7 +66,7 @@ class TestIsStarterUser:
         from personal.models import Personal
         emp = Empresa.objects.create(
             ruc='20888777666', razon_social='Test Profesional SAC',
-            plan='PROFESIONAL',
+            plan='PLANILLA',
         )
         u = User.objects.create_user(username='admin_prof', password='x')
         Personal.objects.create(
@@ -95,12 +95,10 @@ class TestIsBlockedPath:
             '/reclutamiento/pipeline/',
             '/personal/organigrama/',
             '/personal/contratos/',
-            '/personal/roster/matricial/',
             '/calendario/',
             '/capacitaciones/',
             '/evaluaciones/',
             '/disciplinaria/',
-            '/asistencia/banco-horas/',
             '/asistencia/solicitudes-he/',
             '/workflows/',
             '/salarios/',
@@ -146,8 +144,8 @@ class TestIsBlockedPath:
             '/asistencia/papeletas/reporte/',
             '/asistencia/reportes/',           # panel matricial básico
             '/asistencia/reportes/listado/',
-            '/nominas/',
-            '/nominas/boletas/123/',           # boleta NO notificar es OK
+            '/asistencia/banco-horas/',        # banco de horas = parte de Asistencia (n1)
+            '/personal/roster/matricial/',     # roster matricial = vista de asistencia (n1)
             '/vacaciones/',
             '/documentos/',
             '/cierre/',

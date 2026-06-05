@@ -17,23 +17,24 @@ from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 
 
+# Derivado de core/planes.py (4 planes por módulos) + estética por plan.
+from core.planes import PLANES as _PLANES, PLAN_DEFAULT
+
+_PLAN_ESTILO = {
+    'ASISTENCIA': {'color': '#0891b2', 'icon': 'fa-clock'},
+    'PLANILLA':   {'color': '#0f766e', 'icon': 'fa-calculator'},
+    'TALENTO':    {'color': '#7c3aed', 'icon': 'fa-people-group'},
+    'SUITE':      {'color': '#0d2b27', 'icon': 'fa-crown'},
+}
 PLAN_INFO = {
-    'STARTER': {
-        'nombre': 'Starter', 'precio_mensual': 149, 'cap_workers': 30,
-        'color': '#94a3b8', 'icon': 'fa-leaf',
-    },
-    'PROFESIONAL': {
-        'nombre': 'Profesional', 'precio_mensual': 399, 'cap_workers': 100,
-        'color': '#0f766e', 'icon': 'fa-rocket',
-    },
-    'BUSINESS': {
-        'nombre': 'Business', 'precio_mensual': 799, 'cap_workers': 300,
-        'color': '#0d2b27', 'icon': 'fa-building',
-    },
-    'ENTERPRISE': {
-        'nombre': 'Enterprise', 'precio_mensual': None, 'cap_workers': None,
-        'color': '#a855f7', 'icon': 'fa-crown',
-    },
+    code: {
+        'nombre':         meta['nombre'],
+        'precio_mensual': meta['precio'],
+        'cap_workers':    meta['max_trab'],
+        'color':          _PLAN_ESTILO.get(code, {}).get('color', '#0f766e'),
+        'icon':           _PLAN_ESTILO.get(code, {}).get('icon', 'fa-rocket'),
+    }
+    for code, meta in _PLANES.items()
 }
 
 
@@ -60,8 +61,8 @@ def mi_cuenta_plan(request):
     except Exception:
         pass
 
-    plan_code = empresa.plan if empresa else 'PROFESIONAL'
-    plan_info = PLAN_INFO.get(plan_code, PLAN_INFO['PROFESIONAL'])
+    plan_code = empresa.plan if empresa else PLAN_DEFAULT
+    plan_info = PLAN_INFO.get(plan_code, PLAN_INFO[PLAN_DEFAULT])
 
     # ── KPIs cacheados por empresa (5 min TTL) ──
     cache_key = f'micuenta_kpis:{empresa.pk}' if empresa else f'micuenta_kpis_user:{user.pk}'
