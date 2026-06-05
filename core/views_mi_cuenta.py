@@ -116,13 +116,8 @@ def mi_cuenta_plan(request):
 
     storage_mb = round(boletas_count * 0.08, 1)  # ~80KB por boleta PDF
 
-    # Próximo pago — no cacheable porque incluye datos sensibles de billing
-    suscripcion = None
-    try:
-        from empresas.models_billing import Suscripcion
-        suscripcion = Suscripcion.objects.filter(empresa=empresa).first()
-    except Exception:
-        pass
+    # (La suscripción se muestra desde los campos de Empresa — ver mi_plan.html.
+    #  Se eliminó la lectura del modelo legacy Suscripcion, que estaba sin uso.)
 
     # Color de barra según uso
     if workers_pct >= 90:
@@ -144,7 +139,6 @@ def mi_cuenta_plan(request):
         'periodos_count':  periodos_count,
         'boletas_count':   boletas_count,
         'storage_mb':      storage_mb,
-        'suscripcion':     suscripcion,
         'progress_color':  progress_color,
         'progress_text':   progress_text,
     })
