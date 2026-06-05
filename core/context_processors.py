@@ -41,7 +41,24 @@ def plan_starter_context(request):
 
     es_starter = nivel <= 1
 
+    # ── Estado de la prueba gratuita (para el banner) ──
+    trial_dias = None
+    trial_vencido = False
+    try:
+        if user is not None and getattr(user, 'is_authenticated', False) \
+                and not getattr(user, 'is_superuser', False):
+            from core.middleware_plan_starter import empresa_de
+            emp = empresa_de(user)
+            if emp is not None and emp.en_prueba:
+                trial_dias = emp.dias_prueba_restantes
+                trial_vencido = emp.prueba_vencida
+    except Exception:
+        pass
+
     return {
+        'trial_dias_restantes': trial_dias,
+        'trial_vencido':        trial_vencido,
+        'en_prueba':            trial_dias is not None,
         # Identidad del plan
         'plan_codigo':    plan_code,
         'plan_nombre':    meta.get('nombre', plan_code),

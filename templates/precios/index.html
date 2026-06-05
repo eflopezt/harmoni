@@ -64,17 +64,15 @@
       </ul>
       {% endif %}
 
-      {% if p.codigo == 'STARTER' %}
-      <a href="/onboarding/starter/" data-confetti="1" style="display:block;text-align:center;background:{{ p.color }};color:#fff;padding:13px;border-radius:10px;font-weight:700;text-decoration:none;font-size:.92rem;">
-        Empieza gratis →
-      </a>
-      {% elif p.codigo == 'ENTERPRISE' %}
-      <a href="https://wa.me/51906602313?text=Hola,%20me%20interesa%20el%20Plan%20Enterprise%20de%20Harmoni." target="_blank" style="display:block;text-align:center;background:{{ p.color }};color:#fff;padding:13px;border-radius:10px;font-weight:700;text-decoration:none;font-size:.92rem;">
-        <i class="fab fa-whatsapp"></i> Solicitar cotización
+      {% if p.codigo == 'ASISTENCIA' or p.codigo == 'PLANILLA' %}
+      {# Planes self-service: auto-registro con prueba de 30 días #}
+      <a href="/onboarding/starter/?plan={{ p.codigo }}" data-confetti="1" style="display:block;text-align:center;background:{{ p.color }};color:#fff;padding:13px;border-radius:10px;font-weight:700;text-decoration:none;font-size:.92rem;">
+        Empezar 30 días gratis →
       </a>
       {% else %}
-      <a href="https://wa.me/51906602313?text=Hola,%20quiero%20el%20Plan%20{{ p.nombre|urlencode }}%20de%20Harmoni." target="_blank" style="display:block;text-align:center;background:{{ p.color }};color:#fff;padding:13px;border-radius:10px;font-weight:700;text-decoration:none;font-size:.92rem;">
-        Empezar 30 días gratis
+      {# Talento / Suite: venta asistida #}
+      <a href="https://wa.me/51906602313?text=Hola,%20me%20interesa%20el%20Plan%20{{ p.nombre|urlencode }}%20de%20Harmoni." target="_blank" style="display:block;text-align:center;background:{{ p.color }};color:#fff;padding:13px;border-radius:10px;font-weight:700;text-decoration:none;font-size:.92rem;">
+        <i class="fab fa-whatsapp"></i> Hablar con ventas
       </a>
       {% endif %}
     </div>

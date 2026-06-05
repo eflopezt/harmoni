@@ -153,6 +153,19 @@ STARTER_BLOCKED_PATTERNS = [
 STARTER_BLOCKED_RE = [re.compile(p) for p in STARTER_BLOCKED_PATTERNS]
 
 
+def empresa_de(user):
+    """Devuelve la Empresa del user (vía Personal) o None."""
+    if not getattr(user, 'is_authenticated', False):
+        return None
+    try:
+        personal = getattr(user, 'personal_data', None) or getattr(user, 'personal', None)
+        if personal:
+            return getattr(personal, 'empresa', None)
+    except Exception:
+        pass
+    return None
+
+
 def resolve_plan(user):
     """Devuelve el código de plan del user (ASISTENCIA/PLANILLA/TALENTO/SUITE).
 
@@ -162,12 +175,9 @@ def resolve_plan(user):
     from core.planes import PLAN_DEFAULT, PLAN_MIN
     if not user.is_authenticated:
         return PLAN_DEFAULT
-    try:
-        personal = getattr(user, 'personal_data', None) or getattr(user, 'personal', None)
-        if personal and getattr(personal, 'empresa', None):
-            return personal.empresa.plan or PLAN_DEFAULT
-    except Exception:
-        pass
+    emp = empresa_de(user)
+    if emp:
+        return emp.plan or PLAN_DEFAULT
     if user.username in STARTER_USERNAMES:
         return PLAN_MIN
     return PLAN_DEFAULT
@@ -203,17 +213,34 @@ class PlanStarterMiddleware:
         if not user.is_authenticated or user.is_superuser:
             return self.get_response(request)
 
-        plan = resolve_plan(user)
-        nivel = plan_nivel(plan)
-        if nivel >= 4:  # Suite → acceso total, sin gating
-            return self.get_response(request)
-
         path = request.path
         ALWAYS_ALLOW = (
             '/admin/', '/logout/', '/static/', '/media/',
             '/upgrade/', '/login/', '/cuenta/',
         )
-        if any(path.startswith(p) for p in ALWAYS_ALLOW):
+        always = any(path.startswith(p) for p in ALWAYS_ALLOW)
+
+        # Prueba gratuita vencida → hard stop a /upgrade/ (salvo allow-list).
+        emp = empresa_de(user)
+        if emp is not None and emp.prueba_vencida and not always:
+            try:
+                messages.warning(
+                    request,
+                    'Tu prueba gratuita venció. Actualiza tu plan para seguir usando Harmoni.'
+                )
+            except Exception:
+                pass
+            try:
+                return HttpResponseRedirect(reverse('upgrade_plan'))
+            except Exception:
+                return HttpResponseRedirect('/')
+
+        plan = resolve_plan(user)
+        nivel = plan_nivel(plan)
+        if nivel >= 4:  # Suite → acceso total, sin gating
+            return self.get_response(request)
+
+        if always:
             return self.get_response(request)
 
         nivel_req, modulo = nivel_requerido_path(path)

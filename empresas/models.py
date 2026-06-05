@@ -232,6 +232,16 @@ class Empresa(models.Model):
         ),
     )
 
+    # ── Prueba gratuita (trial self-service) ──
+    # Si está seteada y es futura → en prueba; si es pasada → prueba vencida
+    # (se bloquea acceso a /upgrade/). Null = cuenta de pago / sin restricción
+    # de prueba (clientes existentes).
+    fecha_fin_prueba = models.DateField(
+        null=True, blank=True,
+        verbose_name='Fin de la prueba gratuita',
+        help_text='Fecha de vencimiento del trial. Vacío = cuenta de pago (sin prueba).',
+    )
+
     # ── Helpers de plan (delegan en core/planes.py) ──
     @property
     def plan_nivel(self):
@@ -241,6 +251,25 @@ class Empresa(models.Model):
     def incluye_modulo(self, modulo_key):
         from core.planes import plan_incluye_modulo
         return plan_incluye_modulo(self.plan, modulo_key)
+
+    # ── Helpers de prueba ──
+    @property
+    def en_prueba(self):
+        """True si la empresa tiene una prueba configurada (vigente o vencida)."""
+        return self.fecha_fin_prueba is not None
+
+    @property
+    def prueba_vencida(self):
+        from django.utils import timezone
+        return bool(self.fecha_fin_prueba and self.fecha_fin_prueba < timezone.localdate())
+
+    @property
+    def dias_prueba_restantes(self):
+        """Días que faltan para que venza la prueba (None si no hay prueba; 0 si venció)."""
+        if not self.fecha_fin_prueba:
+            return None
+        from django.utils import timezone
+        return max(0, (self.fecha_fin_prueba - timezone.localdate()).days)
 
     creado_en      = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)

@@ -1209,6 +1209,23 @@
 
     <!-- Content -->
     <main class="harmoni-content">
+        {# Banner de prueba gratuita — días restantes / vencida #}
+        {% if en_prueba %}
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 16px;border-radius:8px;margin-bottom:14px;
+            {% if trial_vencido %}background:#fee2e2;border:1px solid #fca5a5;color:#7f1d1d;{% elif trial_dias_restantes <= 5 %}background:#fef3c7;border:1px solid #fcd34d;color:#92400e;{% else %}background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;{% endif %}">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <i class="fas {% if trial_vencido %}fa-lock{% else %}fa-gift{% endif %}" style="font-size:1.05rem;"></i>
+              {% if trial_vencido %}
+                <strong>Tu prueba gratuita venció.</strong> Actualiza tu plan para seguir usando Harmoni.
+              {% else %}
+                <strong>Prueba gratuita:</strong> te quedan <strong>{{ trial_dias_restantes }}</strong> día{{ trial_dias_restantes|pluralize:"s" }}.
+              {% endif %}
+            </div>
+            <a href="{% url 'upgrade_plan' %}" style="flex-shrink:0;background:#0f766e;color:#fff;padding:7px 16px;border-radius:8px;font-weight:700;text-decoration:none;font-size:.85rem;">
+              {% if trial_vencido %}Actualizar plan{% else %}Ver planes{% endif %}
+            </a>
+          </div>
+        {% endif %}
         {# Banner de alertas nóminas — solo admin, solo si hay algo que reportar #}
         {% if user.is_superuser and nominas_alerts and nominas_alerts.count %}
           <div style="background:{% if nominas_alerts.severidad == 'critico' and not DEMO_MODE %}#fee2e2;border:1px solid #fca5a5;color:#7f1d1d{% else %}#fef3c7;border:1px solid #fcd34d;color:#92400e{% endif %};padding:10px 16px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">

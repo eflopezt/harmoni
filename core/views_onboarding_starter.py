@@ -23,6 +23,19 @@ from empresas.models import Empresa
 
 User = get_user_model()
 
+# Planes con auto-registro (trial self-service). Los demás (Talento/Suite) van a ventas.
+SELF_SERVE_PLANS = {'ASISTENCIA', 'PLANILLA'}
+DIAS_PRUEBA = 30
+
+
+def _resolver_plan(request):
+    """Plan elegido por el prospecto (?plan= o session). Solo self-serve; default Asistencia."""
+    cand = (request.GET.get('plan') or '').strip().upper()
+    if cand in SELF_SERVE_PLANS:
+        return cand
+    sess = request.session.get('onboarding_starter', {})
+    return sess.get('plan') if sess.get('plan') in SELF_SERVE_PLANS else 'ASISTENCIA'
+
 
 def _session_data(request):
     """Datos parciales del wizard guardados en session."""
@@ -82,7 +95,12 @@ def _validate_step2(post):
 @require_http_methods(['GET', 'POST'])
 def onboarding_starter_step1(request):
     """Paso 1 — Datos de la empresa."""
-    data = _session_data(request).get('empresa', {})
+    session = _session_data(request)
+    # Capturar el plan elegido (desde /precios/?plan=...) y recordarlo.
+    session['plan'] = _resolver_plan(request)
+    _save_session(request, session)
+
+    data = session.get('empresa', {})
     errors = []
     if request.method == 'POST':
         data, errors = _validate_step1(request.POST)
@@ -91,8 +109,12 @@ def onboarding_starter_step1(request):
             session['empresa'] = data
             _save_session(request, session)
             return redirect('onboarding_starter_step2')
+
+    from core.planes import PLANES
     return render(request, 'onboarding/starter_step1.html', {
         'step': 1, 'total_steps': 3, 'data': data, 'errors': errors,
+        'plan_nombre': PLANES.get(session['plan'], {}).get('nombre', 'Asistencia'),
+        'dias_prueba': DIAS_PRUEBA,
     })
 
 
@@ -130,12 +152,16 @@ def onboarding_starter_step3(request):
         emp_data = session['empresa']
         adm_data = session['admin']
 
+        from datetime import timedelta
+        from django.utils import timezone
+        plan_elegido = session.get('plan') if session.get('plan') in SELF_SERVE_PLANS else 'ASISTENCIA'
         empresa = Empresa.objects.create(
             ruc=emp_data['ruc'],
             razon_social=emp_data['razon_social'],
             email_rrhh=emp_data.get('email_rrhh', ''),
             telefono=emp_data.get('telefono', ''),
-            plan='ASISTENCIA',   # plan de entrada (antes 'STARTER')
+            plan=plan_elegido,
+            fecha_fin_prueba=timezone.localdate() + timedelta(days=DIAS_PRUEBA),
             activa=True,
             es_principal=False,  # no tocar empresa principal
         )
@@ -156,15 +182,20 @@ def onboarding_starter_step3(request):
         # Auto-login
         user.backend = f'{ModelBackend.__module__}.{ModelBackend.__name__}'
         login(request, user)
+        from core.planes import PLANES
+        nombre_plan = PLANES.get(empresa.plan, {}).get('nombre', empresa.plan)
         messages.success(
             request,
-            f'¡Bienvenido a Harmoni! Tu Plan Starter está activo. '
-            f'Empresa: {empresa.razon_social}.'
+            f'¡Bienvenido a Harmoni! Tu prueba gratuita del plan {nombre_plan} '
+            f'está activa por {DIAS_PRUEBA} días. Empresa: {empresa.razon_social}.'
         )
         return redirect('/')
 
+    from core.planes import PLANES
     return render(request, 'onboarding/starter_step3.html', {
         'step': 3, 'total_steps': 3,
         'empresa': session['empresa'],
         'admin':   session['admin'],
+        'plan_nombre': PLANES.get(_resolver_plan(request), {}).get('nombre', 'Asistencia'),
+        'dias_prueba': DIAS_PRUEBA,
     })
