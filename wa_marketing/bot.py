@@ -35,15 +35,15 @@ MENU_PRINCIPAL_TEXT = (
 
 PLANES_TEXT = (
     "*Planes Harmoni ERP* 💼\n\n"
-    "🔹 *STARTER* — S/ 149/mes\n"
-    "   Hasta 50 colaboradores\n"
-    "   Personal · Asistencia · Nóminas\n\n"
-    "🔹 *PROFESIONAL* — S/ 349/mes\n"
-    "   Hasta 200 colaboradores\n"
-    "   22 módulos + IA + integraciones\n\n"
-    "🔹 *ENTERPRISE* — A medida\n"
-    "   Colaboradores ilimitados\n"
-    "   Multi-empresa + API + SLA 24/7\n\n"
+    "🔹 *ASISTENCIA* — S/ 99/mes (hasta 50)\n"
+    "   Tareo, papeletas, horas extra, reportes\n\n"
+    "🔹 *PLANILLA* — S/ 199/mes (hasta 100)\n"
+    "   + Nóminas, boletas, liquidación y SUNAT\n\n"
+    "🔹 *TALENTO* — S/ 399/mes (hasta 300)\n"
+    "   + Evaluaciones, capacitaciones, clima, analytics\n\n"
+    "🔹 *SUITE* — S/ 699/mes (300+)\n"
+    "   + Reclutamiento, portal del empleado e IA\n\n"
+    "Asistencia y Planilla tienen *30 días gratis* (sin tarjeta).\n"
     "¿Quieres una demo? Responde *1*. Para hablar con un asesor responde *4*."
 )
 

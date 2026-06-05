@@ -335,9 +335,11 @@
                     <a href="{% url 'subarea_list' %}" class="nav-item" data-match="/subareas">
                         <i class="fas fa-sitemap"></i><span>SubÁreas</span>
                     </a>
+                    {% if not oculta_organigrama %}
                     <a href="{% url 'organigrama_erp' %}" class="nav-item" data-match="/organigrama">
                         <i class="fas fa-project-diagram"></i><span>Organigrama</span>
                     </a>
+                    {% endif %}
 
                     {% if mod_roster or user.is_superuser or user.is_staff %}
                     <div class="nav-subheader"><i class="fas fa-calendar"></i><span>Planificación</span></div>
@@ -903,6 +905,7 @@
             {% endif %}
 
             <!-- ══ ANALYTICS ══ -->
+            {% if modulos.analytics %}
             <div class="nav-section" data-section="analytics" data-group="gestion">
                 <button class="nav-section-toggle" type="button">
                     <i class="fas fa-chart-line section-icon"></i>
@@ -944,6 +947,7 @@
                     </a>
                 </div>
             </div>
+            {% endif %}{# /modulos.analytics #}
 
             <!-- ══ ADMINISTRACIÓN ══ -->
             {% if user.is_superuser or es_responsable %}
