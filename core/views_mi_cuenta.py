@@ -116,8 +116,17 @@ def mi_cuenta_plan(request):
 
     storage_mb = round(boletas_count * 0.08, 1)  # ~80KB por boleta PDF
 
-    # (La suscripción se muestra desde los campos de Empresa — ver mi_plan.html.
-    #  Se eliminó la lectura del modelo legacy Suscripcion, que estaba sin uso.)
+    # Historial de pagos del cliente (facturación) — desde el ledger vivo.
+    pagos = []
+    total_pagado = 0
+    if empresa:
+        try:
+            from empresas.models_billing import HistorialPago
+            pagos = list(HistorialPago.objects.filter(empresa=empresa)
+                         .order_by('-fecha_pago', '-creado_en')[:12])
+            total_pagado = sum((p.monto for p in pagos if p.estado == 'PAGADO'), 0)
+        except Exception:
+            pass
 
     # Color de barra según uso
     if workers_pct >= 90:
@@ -141,4 +150,6 @@ def mi_cuenta_plan(request):
         'storage_mb':      storage_mb,
         'progress_color':  progress_color,
         'progress_text':   progress_text,
+        'pagos':           pagos,
+        'total_pagado':    total_pagado,
     })

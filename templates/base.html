@@ -1073,6 +1073,13 @@
                     <small class="text-muted">{{ user.email|default:"Sin email registrado" }}</small>
                 </li>
                 <li><hr class="dropdown-divider my-1"></li>
+                {% if user.is_staff %}
+                <li>
+                    <a class="dropdown-item" href="{% url 'mi_cuenta_plan' %}">
+                        <i class="fas fa-file-invoice-dollar me-2 text-muted"></i>Mi plan y facturación
+                    </a>
+                </li>
+                {% endif %}
                 <li>
                     <a class="dropdown-item" href="{% url 'preferencias_usuario' %}">
                         <i class="fas fa-sliders-h me-2 text-muted"></i>Mis Preferencias
