@@ -496,3 +496,14 @@
 .sim-header :is(h1,h3,h4,h5,h6), .graf-header :is(h1,h3,h4,h5,h6) {
     color: #fff;
 }
+
+/* 5. Headers del PORTAL del trabajador con gradiente oscuro de marca por CLASE
+      (#0d2b27→#134e4a). La regla #3 solo cubre el gradiente puesto INLINE; estos
+      lo declaran por clase, así que el <h2> del nombre heredaba el color oscuro
+      global y quedaba ilegible sobre el verde. */
+.nomina-header :is(h1,h2,h3,h4,h5,h6),
+.vac-header    :is(h1,h2,h3,h4,h5,h6),
+.eval-header   :is(h1,h2,h3,h4,h5,h6),
+.cap-header    :is(h1,h2,h3,h4,h5,h6) {
+    color: #fff;
+}
