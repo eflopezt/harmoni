@@ -30,7 +30,7 @@
   <div class="row g-4">
 
     {# ═══ Columna izquierda: Pendientes ═══ #}
-    <div class="col-lg-7">
+    <div class="col-lg-8">
       <div class="card border-0 shadow-sm">
         <div class="card-header d-flex align-items-center gap-2"
              style="background:#fee2e2; border-bottom:1px solid #fca5a5;">
@@ -70,7 +70,7 @@
                     </span>
                   </td>
                   <td><small>{{ p.get_motivo_cese_display|default:"—" }}</small></td>
-                  <td class="text-end">
+                  <td class="text-end text-nowrap">
                     <a href="{% url 'nominas_liquidacion_detalle' p.pk %}"
                        class="btn btn-sm btn-danger">
                       <i class="fas fa-calculator me-1"></i>Liquidar
@@ -92,7 +92,7 @@
     </div>
 
     {# ═══ Columna derecha: Ya Liquidados ═══ #}
-    <div class="col-lg-5">
+    <div class="col-lg-4">
       <div class="card border-0 shadow-sm">
         <div class="card-header d-flex align-items-center gap-2"
              style="background:#f0fdf4; border-bottom:1px solid #bbf7d0;">
