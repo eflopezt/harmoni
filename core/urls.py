@@ -11,6 +11,7 @@ from core import views_suscripciones
 urlpatterns = [
     # Gestión manual de suscripciones (superuser)
     path('suscripciones/', views_suscripciones.suscripciones_admin, name='suscripciones_admin'),
+    path('suscripciones/<int:empresa_id>/pagos/', views_suscripciones.suscripcion_pagos, name='suscripcion_pagos'),
 
     # Dashboard ejecutivo cross-modulo (CEO/Director)
     path('dashboard/ejecutivo/', views_dashboard.dashboard_ejecutivo,

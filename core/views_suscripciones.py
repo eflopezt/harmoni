@@ -104,3 +104,18 @@ def suscripciones_admin(request):
         'resumen':  resumen,
         'planes':   [{'codigo': c, 'nombre': PLANES[c]['nombre']} for c in PLANES],
     })
+
+
+@user_passes_test(_es_super)
+def suscripcion_pagos(request, empresa_id):
+    """Historial completo de pagos (ledger) de una empresa."""
+    from empresas.models_billing import HistorialPago
+    emp = Empresa.objects.filter(pk=empresa_id).first()
+    if not emp:
+        messages.error(request, 'Empresa no encontrada.')
+        return redirect('suscripciones_admin')
+    pagos = HistorialPago.objects.filter(empresa=emp).order_by('-fecha_pago', '-creado_en')
+    total = sum((p.monto for p in pagos if p.estado == 'PAGADO'), 0)
+    return render(request, 'core/suscripcion_pagos.html', {
+        'empresa': emp, 'pagos': pagos, 'total': total,
+    })

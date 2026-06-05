@@ -58,7 +58,7 @@
             {% if e.suscripcion_hasta %}<small>Pago hasta: {{ e.suscripcion_hasta|date:"d/m/Y" }}</small><br>{% endif %}
             {% if e.fecha_fin_prueba %}<small class="text-muted">Prueba: {{ e.fecha_fin_prueba|date:"d/m/Y" }}</small><br>{% endif %}
             {% with up=e.pagos_suscripcion.all|first %}
-              {% if up %}<small class="text-success" title="{{ up.get_metodo_pago_display }} · {{ up.referencia }}"><i class="fas fa-receipt"></i> S/ {{ up.monto }} · {{ up.fecha_pago|date:"d/m" }} ({{ e.pagos_suscripcion.all|length }})</small>{% endif %}
+              {% if up %}<a href="{% url 'suscripcion_pagos' e.pk %}" class="text-success" style="text-decoration:none;" title="Ver historial de pagos"><small><i class="fas fa-receipt"></i> S/ {{ up.monto }} · {{ up.fecha_pago|date:"d/m" }} ({{ e.pagos_suscripcion.all|length }})</small></a>{% else %}<a href="{% url 'suscripcion_pagos' e.pk %}" class="text-muted" style="text-decoration:none;"><small>Ver pagos</small></a>{% endif %}
             {% endwith %}
           </td>
           <td class="text-center">{{ e.n_workers }}</td>

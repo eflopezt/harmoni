@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Pagos — {{ empresa.razon_social }}{% endblock %}
+{% block content %}
+<div style="max-width:900px;margin:0 auto;">
+  <a href="{% url 'suscripciones_admin' %}" style="color:#0f766e;text-decoration:none;font-size:.85rem;">
+    <i class="fas fa-arrow-left"></i> Volver a suscripciones
+  </a>
+  <h1 style="font-size:1.4rem;font-weight:800;color:#0f2926;margin:8px 0 2px;">
+    <i class="fas fa-receipt" style="color:#0f766e;"></i> Pagos — {{ empresa.nombre_comercial|default:empresa.razon_social }}
+  </h1>
+  <p style="color:#64748b;font-size:.88rem;margin:0 0 16px;">
+    RUC {{ empresa.ruc }} · Plan {{ empresa.plan }} ·
+    {% if empresa.suscripcion_hasta %}Suscripción hasta {{ empresa.suscripcion_hasta|date:"d/m/Y" }}{% else %}Sin suscripción registrada{% endif %}
+    · <strong>Total pagado: S/ {{ total }}</strong>
+  </p>
+
+  <div class="table-responsive" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;">
+    <table class="table table-sm mb-0" style="font-size:.86rem;">
+      <thead class="table-light">
+        <tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Referencia</th><th>Periodo</th><th>Estado</th><th>Registró</th></tr>
+      </thead>
+      <tbody>
+        {% for p in pagos %}
+        <tr>
+          <td>{{ p.fecha_pago|date:"d/m/Y" }}</td>
+          <td><strong>S/ {{ p.monto }}</strong></td>
+          <td>{{ p.get_metodo_pago_display }}</td>
+          <td>{{ p.referencia|default:"—" }}</td>
+          <td><small class="text-muted">{% if p.periodo_desde %}{{ p.periodo_desde|date:"d/m/y" }} → {{ p.periodo_hasta|date:"d/m/y" }}{% else %}—{% endif %}</small></td>
+          <td>
+            {% if p.estado == 'PAGADO' %}<span class="badge bg-success">Pagado</span>
+            {% elif p.estado == 'PENDIENTE' %}<span class="badge bg-warning text-dark">Pendiente</span>
+            {% elif p.estado == 'ANULADO' %}<span class="badge bg-secondary">Anulado</span>
+            {% else %}<span class="badge bg-danger">{{ p.get_estado_display }}</span>{% endif %}
+          </td>
+          <td><small class="text-muted">{{ p.registrado_por.get_full_name|default:p.registrado_por.username|default:"—" }}</small></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted p-4">Aún no hay pagos registrados para esta empresa.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
