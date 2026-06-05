@@ -153,52 +153,61 @@ STARTER_BLOCKED_PATTERNS = [
 STARTER_BLOCKED_RE = [re.compile(p) for p in STARTER_BLOCKED_PATTERNS]
 
 
-def is_starter_user(user):
-    """
-    Devuelve True si el user pertenece a una empresa con Plan Starter.
+def resolve_plan(user):
+    """Devuelve el código de plan del user (ASISTENCIA/PLANILLA/TALENTO/SUITE).
 
-    Resolución (en orden de prioridad):
-    1. Empresa.plan == 'STARTER' via Personal.empresa  (caso producción)
-    2. Username en STARTER_USERNAMES                    (caso demo / fallback)
+    Orden: Empresa.plan vía Personal → fallback STARTER_USERNAMES (nivel mínimo)
+    → default (sin restricción) para users sin empresa.
     """
+    from core.planes import PLAN_DEFAULT, PLAN_MIN
     if not user.is_authenticated:
-        return False
-
-    # 1. Resolver via Personal → Empresa.plan
+        return PLAN_DEFAULT
     try:
-        # Personal.usuario es OneToOneField con related_name="personal_data"
         personal = getattr(user, 'personal_data', None) or getattr(user, 'personal', None)
         if personal and getattr(personal, 'empresa', None):
-            if personal.empresa.plan == 'STARTER':
-                return True
+            return personal.empresa.plan or PLAN_DEFAULT
     except Exception:
-        # Si el modelo Personal no existe aún, o la relación falla → fallback
         pass
+    if user.username in STARTER_USERNAMES:
+        return PLAN_MIN
+    return PLAN_DEFAULT
 
-    # 2. Fallback por username (demos)
-    return user.username in STARTER_USERNAMES
+
+def is_starter_user(user):
+    """Back-compat: True si el plan del user es el de nivel más bajo (Asistencia)."""
+    from core.planes import plan_nivel
+    if not user.is_authenticated:
+        return False
+    return plan_nivel(resolve_plan(user)) <= 1
 
 
 def is_blocked_path(path):
-    """Devuelve True si la URL está bloqueada para Starter."""
-    for pat in STARTER_BLOCKED_RE:
-        if pat.match(path):
-            return True
-    return False
+    """Back-compat: True si la URL exige un nivel > 1 (no incluida en el plan mínimo)."""
+    from core.planes import nivel_requerido_path
+    nivel_req, _ = nivel_requerido_path(path)
+    return nivel_req > 1
 
 
 class PlanStarterMiddleware:
-    """Restringe acceso a features enterprise para users Starter."""
+    """Gating por nivel de plan (core/planes.py): bloquea las URLs cuyo módulo
+    exige un nivel superior al plan de la empresa, y redirige al upsell.
+    Superusuarios (staff Harmoni) y plan Suite no se restringen."""
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # Solo aplica a users autenticados de Plan Starter
-        if not is_starter_user(request.user):
+        from core.planes import plan_nivel, nivel_requerido_path
+
+        user = request.user
+        if not user.is_authenticated or user.is_superuser:
             return self.get_response(request)
 
-        # Permitir siempre: admin, logout, static, api de auth, upgrade
+        plan = resolve_plan(user)
+        nivel = plan_nivel(plan)
+        if nivel >= 4:  # Suite → acceso total, sin gating
+            return self.get_response(request)
+
         path = request.path
         ALWAYS_ALLOW = (
             '/admin/', '/logout/', '/static/', '/media/',
@@ -207,23 +216,25 @@ class PlanStarterMiddleware:
         if any(path.startswith(p) for p in ALWAYS_ALLOW):
             return self.get_response(request)
 
-        # Verificar si está bloqueado
-        if is_blocked_path(path):
-            logger.info(
-                f"Plan Starter bloqueado: {request.user.username} → {path}"
-            )
+        nivel_req, modulo = nivel_requerido_path(path)
+        if nivel < nivel_req:
+            logger.info(f"Plan {plan} (n{nivel}) bloqueado: {user.username} → {path} "
+                        f"(módulo '{modulo}' requiere n{nivel_req})")
             try:
                 messages.warning(
                     request,
-                    'Esta funcionalidad no está incluida en tu Plan Starter. '
-                    'Habla con ventas para upgrade a un plan superior.'
+                    'Esta funcionalidad no está incluida en tu plan actual. '
+                    'Actualiza tu plan para habilitarla.'
                 )
             except Exception:
                 pass
             try:
                 return HttpResponseRedirect(reverse('upgrade_plan'))
             except Exception:
-                # Si la URL upgrade no existe, redirect a home
                 return HttpResponseRedirect('/')
 
         return self.get_response(request)
+
+
+# Alias semántico (el nombre viejo se mantiene por settings/back-compat).
+PlanGatingMiddleware = PlanStarterMiddleware

@@ -5,50 +5,70 @@ Context processors de Harmoni.
 
 def plan_starter_context(request):
     """
-    Inyecta flag `es_plan_starter` para mostrar/ocultar features
-    enterprise en templates.
+    Inyecta info del plan y flags de ocultación de módulos a TODOS los templates,
+    derivados del nivel real del plan (Asistencia/Planilla/Talento/Suite) — ver
+    core/planes.py. Mantiene los nombres `es_plan_starter` y `oculta_*` por
+    back-compat con los templates existentes.
 
-    Uso en templates:
-        {% if not es_plan_starter %}
-            <a href="...">Feature avanzada</a>
-        {% endif %}
-
-    Flags inyectados:
-        es_plan_starter:  bool — True si user del plan Starter
-        plan_actual:      str  — 'Starter' o 'Profesional+'
-        oculta_rco:       bool — True si debe ocultar la división RCO/STAFF
-                                 (Starter solo maneja STAFF)
-        oculta_pdf:       bool — True si debe ocultar botones de PDF de reportes
-        oculta_capacitaciones: bool — True si oculta módulo capacitaciones
-        oculta_organigrama:    bool — True si oculta módulo organigrama
-        oculta_calendario:     bool — True si oculta calendario laboral
-        oculta_contratos:      bool — True si oculta gestión formal de contratos
-        oculta_disciplinaria:  bool — True si oculta medidas disciplinarias
+    Nuevos:
+        plan_codigo / plan_nombre / plan_nivel
+        modulos      dict {modulo_key: bool incluido}  → {% if modulos.reclutamiento %}
     """
+    user = getattr(request, 'user', None)
     try:
-        from core.middleware_plan_starter import is_starter_user
-        es_starter = is_starter_user(getattr(request, 'user', None))
+        from core.planes import (PLANES, PLAN_DEFAULT, plan_nivel,
+                                  modulos_por_nivel)
+        from core.middleware_plan_starter import resolve_plan
+
+        if user is not None and getattr(user, 'is_superuser', False):
+            plan_code = PLAN_DEFAULT          # staff Harmoni ve todo
+        elif user is not None and getattr(user, 'is_authenticated', False):
+            plan_code = resolve_plan(user)
+        else:
+            plan_code = PLAN_DEFAULT
+
+        nivel = plan_nivel(plan_code)
+        modulos = modulos_por_nivel(plan_code)
+        meta = PLANES.get(plan_code, PLANES[PLAN_DEFAULT])
     except Exception:
-        es_starter = False
+        # Fallback ultradefensivo: tratar como plan tope (no ocultar nada).
+        plan_code, nivel, meta = 'SUITE', 4, {'nombre': 'Suite'}
+        modulos = {}
+
+    def oculto(mod_key):
+        # Si el módulo no está en el mapa (no gateado) → nunca oculto.
+        return not modulos.get(mod_key, True)
+
+    es_starter = nivel <= 1
+
     return {
-        'es_plan_starter':       es_starter,
-        'plan_actual':           'Starter' if es_starter else 'Profesional+',
-        # Flags de ocultación masiva — todos derivan del mismo bit
-        'oculta_rco':            es_starter,
-        'oculta_pdf':            es_starter,
-        'oculta_capacitaciones': es_starter,
-        'oculta_organigrama':    es_starter,
-        'oculta_calendario':     es_starter,
-        'oculta_contratos':      es_starter,
-        'oculta_disciplinaria':  es_starter,
-        'oculta_banco_horas':    es_starter,
-        'oculta_workflows':      es_starter,
-        'oculta_salarios':       es_starter,
-        'oculta_prestamos':      es_starter,
-        'oculta_reclutamiento':  es_starter,
-        # Portal y comunicación con el trabajador
-        'oculta_portal':         es_starter,   # Starter no tiene portal del colaborador
-        'oculta_horas_extras':   es_starter,   # Sin solicitudes de HE
-        'oculta_notificar':      es_starter,   # No se notifica/envía boletas
-        'oculta_solicitudes':    es_starter,   # Workflow de solicitudes deshabilitado
+        # Identidad del plan
+        'plan_codigo':    plan_code,
+        'plan_nombre':    meta.get('nombre', plan_code),
+        'plan_nivel':     nivel,
+        'modulos':        modulos,
+        # Back-compat
+        'es_plan_starter': es_starter,
+        'plan_actual':     meta.get('nombre', 'Suite'),
+        # Flags de ocultación (derivados del módulo real)
+        'oculta_capacitaciones': oculto('capacitaciones'),
+        'oculta_organigrama':    oculto('organigrama'),
+        'oculta_calendario':     oculto('calendario'),
+        'oculta_contratos':      oculto('contratos'),
+        'oculta_disciplinaria':  oculto('disciplinaria'),
+        'oculta_workflows':      oculto('workflows'),
+        'oculta_salarios':       oculto('salarios'),
+        'oculta_prestamos':      oculto('prestamos'),
+        'oculta_reclutamiento':  oculto('reclutamiento'),
+        'oculta_portal':         oculto('portal'),
+        # Portal-dependientes (solicitudes/notificaciones al trabajador)
+        'oculta_horas_extras':   oculto('portal'),
+        'oculta_notificar':      oculto('portal'),
+        'oculta_solicitudes':    oculto('portal'),
+        # Banco de horas ahora es parte de Asistencia (nivel 1) → nunca oculto
+        'oculta_banco_horas':    False,
+        # RCO/STAFF: división de asistencia, disponible en todos los planes
+        'oculta_rco':            False,
+        # PDFs de reportes avanzados → desde Talento (analytics)
+        'oculta_pdf':            oculto('analytics'),
     }

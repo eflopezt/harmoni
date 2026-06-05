@@ -65,18 +65,18 @@ class Command(BaseCommand):
             f'{plan_anterior} → {plan}'
         ))
 
-        # Hints útiles
-        if plan == 'STARTER':
+        # Hints útiles — tope de colaboradores del plan (si lo tiene)
+        from core.planes import plan_max_trabajadores
+        tope = plan_max_trabajadores(plan)
+        if tope:
             from personal.models import Personal
             count = Personal.objects.filter(empresa=empresa, estado='Activo').count()
-            tope = 30
             self.stdout.write(self.style.NOTICE(
-                f'\n  Trabajadores activos: {count} / {tope} (límite Starter)'
+                f'\n  Trabajadores activos: {count} / {tope} (límite del plan {plan})'
             ))
             if count > tope:
                 self.stdout.write(self.style.WARNING(
-                    f'  ⚠ La empresa tiene {count} workers — supera el tope Starter.\n'
-                    f'  Esto NO se revierte automáticamente, pero NO se podrán dar de alta más.'
+                    f'  ⚠ La empresa tiene {count} workers — supera el tope del plan.'
                 ))
 
     def _listar(self):

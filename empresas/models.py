@@ -217,23 +217,30 @@ class Empresa(models.Model):
     )
 
     # ── Plan / tier comercial de Harmoni ─────────────────────────────
-    PLAN_CHOICES = [
-        ('STARTER',     'Starter — S/ 149/mes (hasta 30 colaboradores)'),
-        ('PROFESIONAL', 'Profesional — S/ 399/mes (hasta 100 colaboradores)'),
-        ('BUSINESS',    'Business — S/ 799/mes (hasta 300 colaboradores)'),
-        ('ENTERPRISE',  'Enterprise — Personalizado (300+ colaboradores)'),
-    ]
+    # Fuente única de verdad de planes/módulos: core/planes.py
+    from core.planes import plan_choices as _plan_choices, PLAN_DEFAULT as _PLAN_DEFAULT
+    PLAN_CHOICES = _plan_choices()
     plan = models.CharField(
         max_length=20,
         choices=PLAN_CHOICES,
-        default='PROFESIONAL',
+        default=_PLAN_DEFAULT,
         verbose_name='Plan Harmoni',
         help_text=(
-            'Plan contratado por esta empresa. Determina qué módulos y '
-            'features están habilitados. El middleware PlanStarterMiddleware '
-            'restringe acceso para empresas con plan=STARTER.'
+            'Plan contratado (Asistencia/Planilla/Talento/Suite). Determina qué '
+            'módulos están habilitados. El gating por nivel está en core/planes.py '
+            'y lo aplica PlanGatingMiddleware.'
         ),
     )
+
+    # ── Helpers de plan (delegan en core/planes.py) ──
+    @property
+    def plan_nivel(self):
+        from core.planes import plan_nivel
+        return plan_nivel(self.plan)
+
+    def incluye_modulo(self, modulo_key):
+        from core.planes import plan_incluye_modulo
+        return plan_incluye_modulo(self.plan, modulo_key)
 
     creado_en      = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)

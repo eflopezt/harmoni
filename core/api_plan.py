@@ -29,39 +29,21 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 
-PLAN_LIMITS = {
-    'STARTER':     30,
-    'PROFESIONAL': 100,
-    'BUSINESS':    300,
-    'ENTERPRISE':  None,  # sin tope
-}
+# Derivado de la fuente única core/planes.py (4 planes por módulos).
+from core.planes import (PLANES, MODULOS, plan_max_trabajadores,
+                         plan_display as _plan_display, plan_nivel,
+                         plan_incluye_modulo)
 
-PLAN_DISPLAY = {
-    'STARTER':     'Starter — S/ 149/mes (hasta 30 colaboradores)',
-    'PROFESIONAL': 'Profesional — S/ 399/mes (hasta 100 colaboradores)',
-    'BUSINESS':    'Business — S/ 799/mes (hasta 300 colaboradores)',
-    'ENTERPRISE':  'Enterprise — Personalizado (300+ colaboradores)',
-}
+PLAN_LIMITS = {code: plan_max_trabajadores(code) for code in PLANES}
+PLAN_DISPLAY = {code: _plan_display(code) for code in PLANES}
 
 
-# Features bloqueadas por plan (resumido)
-FEATURES_BLOQUEADAS_POR_PLAN = {
-    'STARTER': [
-        'reclutamiento', 'portal', 'capacitaciones', 'evaluaciones',
-        'disciplinaria', 'organigrama', 'contratos', 'calendario',
-        'banco_horas', 'workflows', 'salarios', 'prestamos', 'viaticos',
-        'integraciones', 'analytics', 'comunicaciones', 'encuestas',
-        'dashboard_ejecutivo', 'bi_excel', 'predictor_ia',
-        'notificar_boletas', 'envio_email', 'solicitudes_he',
-    ],
-    'PROFESIONAL': [
-        'predictor_ia', 'dashboard_ejecutivo', 'bi_excel_multi_empresa',
-    ],
-    'BUSINESS': [
-        # Business tiene casi todo — solo enterprise customs
-    ],
-    'ENTERPRISE': [],
-}
+def _features_bloqueadas(plan_code):
+    """Lista de módulos NO incluidos en el plan (los que exigen nivel superior)."""
+    return sorted(k for k in MODULOS if not plan_incluye_modulo(plan_code, k))
+
+
+FEATURES_BLOQUEADAS_POR_PLAN = {code: _features_bloqueadas(code) for code in PLANES}
 
 
 @extend_schema(
@@ -78,7 +60,7 @@ FEATURES_BLOQUEADAS_POR_PLAN = {
         200: {
             'type': 'object',
             'properties': {
-                'plan':                  {'type': 'string', 'enum': ['STARTER', 'PROFESIONAL', 'BUSINESS', 'ENTERPRISE']},
+                'plan':                  {'type': 'string', 'enum': ['ASISTENCIA', 'PLANILLA', 'TALENTO', 'SUITE']},
                 'plan_display':          {'type': 'string'},
                 'max_trabajadores':      {'type': 'integer', 'nullable': True},
                 'trabajadores_actuales': {'type': 'integer'},
@@ -132,7 +114,9 @@ def api_me_plan(request):
     except Exception:
         pass
 
-    plan_code = empresa.plan if empresa else 'PROFESIONAL'
+    from core.middleware_plan_starter import resolve_plan, is_starter_user
+    from core.planes import PLAN_DEFAULT
+    plan_code = empresa.plan if empresa else resolve_plan(user) if user.is_authenticated else PLAN_DEFAULT
 
     # Contar trabajadores activos
     workers_count = 0
@@ -145,11 +129,7 @@ def api_me_plan(request):
         except Exception:
             workers_count = 0
 
-    # Es Starter? (puede ser via plan o via username whitelist)
-    from core.middleware_plan_starter import is_starter_user
     es_starter = is_starter_user(user)
-    if es_starter and plan_code != 'STARTER':
-        plan_code = 'STARTER'  # forzar consistencia
 
     return Response({
         'plan':                  plan_code,
