@@ -6,8 +6,12 @@ from core import views_bi
 from core import views_dashboard
 from core import views_reports
 from core import views_status
+from core import views_suscripciones
 
 urlpatterns = [
+    # Gestión manual de suscripciones (superuser)
+    path('suscripciones/', views_suscripciones.suscripciones_admin, name='suscripciones_admin'),
+
     # Dashboard ejecutivo cross-modulo (CEO/Director)
     path('dashboard/ejecutivo/', views_dashboard.dashboard_ejecutivo,
          name='dashboard_ejecutivo'),

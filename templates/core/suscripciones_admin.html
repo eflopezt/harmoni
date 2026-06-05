@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Suscripciones — Harmoni{% endblock %}
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;">
+  <h1 style="font-size:1.5rem;font-weight:800;color:#0f2926;margin:0 0 4px;">
+    <i class="fas fa-receipt" style="color:#0f766e;"></i> Suscripciones
+  </h1>
+  <p style="color:#64748b;font-size:.9rem;margin:0 0 18px;">
+    Gestión manual de pagos. Marca hasta cuándo está pagada cada empresa, cambia de plan o cancela.
+  </p>
+
+  {# Resumen #}
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+    <div style="flex:1;min-width:130px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:1.5rem;font-weight:800;color:#047857;">{{ resumen.ACTIVA }}</div>
+      <div style="font-size:.75rem;color:#475569;">Suscripción activa</div>
+    </div>
+    <div style="flex:1;min-width:130px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:1.5rem;font-weight:800;color:#0e7490;">{{ resumen.TRIAL }}</div>
+      <div style="font-size:.75rem;color:#475569;">En prueba</div>
+    </div>
+    <div style="flex:1;min-width:130px;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:1.5rem;font-weight:800;color:#b91c1c;">{{ resumen.VENCIDA }}</div>
+      <div style="font-size:.75rem;color:#475569;">Vencidas (bloqueadas)</div>
+    </div>
+    <div style="flex:1;min-width:130px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:1.5rem;font-weight:800;color:#475569;">{{ resumen.SIN_RESTRICCION }}</div>
+      <div style="font-size:.75rem;color:#475569;">Sin restricción</div>
+    </div>
+  </div>
+
+  <div class="table-responsive" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;">
+    <table class="table table-sm mb-0" style="font-size:.85rem;">
+      <thead class="table-light">
+        <tr>
+          <th>Empresa</th><th>Plan</th><th>Estado</th><th>Vence</th>
+          <th class="text-center">Trab.</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in empresas %}
+        <tr>
+          <td>
+            <div style="font-weight:600;color:#0f2926;">{{ e.nombre_comercial|default:e.razon_social|truncatechars:32 }}</div>
+            <small class="text-muted">RUC {{ e.ruc }}{% if e.suscripcion_nota %} · {{ e.suscripcion_nota|truncatechars:24 }}{% endif %}</small>
+          </td>
+          <td><span class="badge bg-secondary">{{ e.plan }}</span></td>
+          <td>
+            {% if e.estado_suscripcion == 'ACTIVA' %}<span class="badge bg-success">Activa</span>
+            {% elif e.estado_suscripcion == 'TRIAL' %}<span class="badge" style="background:#0e7490;color:#fff;">Prueba</span>
+            {% elif e.estado_suscripcion == 'VENCIDA' %}<span class="badge bg-danger">Vencida</span>
+            {% else %}<span class="badge bg-light text-dark">Sin restricción</span>{% endif %}
+            {% if e.dias_acceso_restantes is not None and e.estado_suscripcion != 'VENCIDA' %}
+              <small class="text-muted d-block">{{ e.dias_acceso_restantes }}d restantes</small>
+            {% endif %}
+          </td>
+          <td>
+            {% if e.suscripcion_hasta %}<small>Pago: {{ e.suscripcion_hasta|date:"d/m/Y" }}</small><br>{% endif %}
+            {% if e.fecha_fin_prueba %}<small class="text-muted">Prueba: {{ e.fecha_fin_prueba|date:"d/m/Y" }}</small>{% endif %}
+          </td>
+          <td class="text-center">{{ e.n_workers }}</td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+              {# Extender suscripción #}
+              <form method="post" style="display:inline-flex;gap:3px;align-items:center;">
+                {% csrf_token %}
+                <input type="hidden" name="empresa_id" value="{{ e.pk }}">
+                <input type="hidden" name="accion" value="extender">
+                <select name="meses" class="form-select form-select-sm" style="width:auto;font-size:.78rem;padding:2px 4px;">
+                  <option value="1">+1 mes</option><option value="3">+3 m</option>
+                  <option value="6">+6 m</option><option value="12">+12 m</option>
+                </select>
+                <button class="btn btn-sm btn-success" style="font-size:.75rem;padding:2px 8px;" title="Registrar pago">Pagar</button>
+              </form>
+              {# Cambiar plan #}
+              <form method="post" style="display:inline-flex;gap:3px;align-items:center;">
+                {% csrf_token %}
+                <input type="hidden" name="empresa_id" value="{{ e.pk }}">
+                <input type="hidden" name="accion" value="cambiar_plan">
+                <select name="plan" class="form-select form-select-sm" style="width:auto;font-size:.78rem;padding:2px 4px;">
+                  {% for p in planes %}<option value="{{ p.codigo }}" {% if p.codigo == e.plan %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+                </select>
+                <button class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;padding:2px 8px;">Plan</button>
+              </form>
+              {# Cancelar #}
+              <form method="post" onsubmit="return confirm('¿Cancelar la suscripción de {{ e.razon_social|escapejs }}? Se bloqueará el acceso.');" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="empresa_id" value="{{ e.pk }}">
+                <input type="hidden" name="accion" value="cancelar">
+                <button class="btn btn-sm btn-outline-danger" style="font-size:.75rem;padding:2px 8px;">Cancelar</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

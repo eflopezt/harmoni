@@ -967,6 +967,11 @@
                     </a>
                     {% if user.is_superuser %}
 
+                    <div class="nav-subheader"><i class="fas fa-receipt"></i><span>Facturación</span></div>
+                    <a href="{% url 'suscripciones_admin' %}" class="nav-item" data-match="/suscripciones">
+                        <i class="fas fa-receipt"></i><span>Suscripciones</span>
+                    </a>
+
                     <div class="nav-subheader"><i class="fas fa-code-branch"></i><span>Workflows</span></div>
                     <a href="{% url 'workflow_bandeja' %}" class="nav-item" data-match="^/workflows/">
                         <i class="fas fa-code-branch"></i>
@@ -1213,21 +1218,31 @@
 
     <!-- Content -->
     <main class="harmoni-content">
-        {# Banner de prueba gratuita — días restantes / vencida #}
-        {% if en_prueba %}
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 16px;border-radius:8px;margin-bottom:14px;
-            {% if trial_vencido %}background:#fee2e2;border:1px solid #fca5a5;color:#7f1d1d;{% elif trial_dias_restantes <= 5 %}background:#fef3c7;border:1px solid #fcd34d;color:#92400e;{% else %}background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;{% endif %}">
+        {# Banner de suscripción/prueba — trial, por vencer o vencida #}
+        {% if mostrar_banner_sub and sub_estado == 'VENCIDA' %}
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 16px;border-radius:8px;margin-bottom:14px;background:#fee2e2;border:1px solid #fca5a5;color:#7f1d1d;">
             <div style="display:flex;align-items:center;gap:8px;">
-              <i class="fas {% if trial_vencido %}fa-lock{% else %}fa-gift{% endif %}" style="font-size:1.05rem;"></i>
-              {% if trial_vencido %}
-                <strong>Tu prueba gratuita venció.</strong> Actualiza tu plan para seguir usando Harmoni.
-              {% else %}
-                <strong>Prueba gratuita:</strong> te quedan <strong>{{ trial_dias_restantes }}</strong> día{{ trial_dias_restantes|pluralize:"s" }}.
-              {% endif %}
+              <i class="fas fa-lock" style="font-size:1.05rem;"></i>
+              <strong>Tu suscripción venció.</strong> Renueva tu plan para seguir usando Harmoni.
             </div>
-            <a href="{% url 'upgrade_plan' %}" style="flex-shrink:0;background:#0f766e;color:#fff;padding:7px 16px;border-radius:8px;font-weight:700;text-decoration:none;font-size:.85rem;">
-              {% if trial_vencido %}Actualizar plan{% else %}Ver planes{% endif %}
-            </a>
+            <a href="{% url 'upgrade_plan' %}" style="flex-shrink:0;background:#0f766e;color:#fff;padding:7px 16px;border-radius:8px;font-weight:700;text-decoration:none;font-size:.85rem;">Renovar plan</a>
+          </div>
+        {% elif sub_estado == 'TRIAL' %}
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 16px;border-radius:8px;margin-bottom:14px;
+            {% if sub_dias_restantes <= 5 %}background:#fef3c7;border:1px solid #fcd34d;color:#92400e;{% else %}background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;{% endif %}">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-gift" style="font-size:1.05rem;"></i>
+              <strong>Prueba gratuita:</strong> te quedan <strong>{{ sub_dias_restantes }}</strong> día{{ sub_dias_restantes|pluralize:"s" }}.
+            </div>
+            <a href="{% url 'upgrade_plan' %}" style="flex-shrink:0;background:#0f766e;color:#fff;padding:7px 16px;border-radius:8px;font-weight:700;text-decoration:none;font-size:.85rem;">Ver planes</a>
+          </div>
+        {% elif sub_estado == 'ACTIVA' and sub_dias_restantes <= 7 %}
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 16px;border-radius:8px;margin-bottom:14px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-calendar-day" style="font-size:1.05rem;"></i>
+              <strong>Tu suscripción vence en {{ sub_dias_restantes }} día{{ sub_dias_restantes|pluralize:"s" }}.</strong> Renueva para no perder acceso.
+            </div>
+            <a href="{% url 'upgrade_plan' %}" style="flex-shrink:0;background:#0f766e;color:#fff;padding:7px 16px;border-radius:8px;font-weight:700;text-decoration:none;font-size:.85rem;">Renovar</a>
           </div>
         {% endif %}
         {# Banner de alertas nóminas — solo admin, solo si hay algo que reportar #}

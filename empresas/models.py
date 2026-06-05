@@ -241,6 +241,21 @@ class Empresa(models.Model):
         verbose_name='Fin de la prueba gratuita',
         help_text='Fecha de vencimiento del trial. Vacío = cuenta de pago (sin prueba).',
     )
+    # ── Suscripción de pago (gestión MANUAL — sin pasarela) ──
+    # El dueño marca hasta qué fecha está pagada la suscripción. Mientras
+    # suscripcion_hasta >= hoy, la empresa tiene acceso aunque venza el trial.
+    # Vacío = no hay suscripción pagada registrada.
+    suscripcion_hasta = models.DateField(
+        null=True, blank=True,
+        verbose_name='Suscripción pagada hasta',
+        help_text='Fecha hasta la que está pagada la suscripción (gestión manual). '
+                  'Vacío = sin suscripción de pago registrada.',
+    )
+    suscripcion_nota = models.CharField(
+        max_length=200, blank=True, default='',
+        verbose_name='Nota de facturación',
+        help_text='Referencia interna: medio de pago, comprobante, etc.',
+    )
 
     # ── Helpers de plan (delegan en core/planes.py) ──
     @property
@@ -270,6 +285,52 @@ class Empresa(models.Model):
             return None
         from django.utils import timezone
         return max(0, (self.fecha_fin_prueba - timezone.localdate()).days)
+
+    # ── Acceso (trial + suscripción de pago manual) ──
+    @property
+    def suscripcion_vigente(self):
+        from django.utils import timezone
+        return bool(self.suscripcion_hasta and self.suscripcion_hasta >= timezone.localdate())
+
+    @property
+    def acceso_bloqueado(self):
+        """True si trial y suscripción están ambos vencidos (o el trial venció y no
+        hay suscripción). Cuentas sin trial ni suscripción (legacy de pago) = nunca
+        bloqueadas."""
+        from django.utils import timezone
+        hoy = timezone.localdate()
+        if self.suscripcion_hasta and self.suscripcion_hasta >= hoy:
+            return False
+        if self.fecha_fin_prueba and self.fecha_fin_prueba >= hoy:
+            return False
+        # Tiene trial o suscripción, pero ambos vencidos → bloqueado
+        return bool(self.fecha_fin_prueba or self.suscripcion_hasta)
+
+    @property
+    def estado_suscripcion(self):
+        """'ACTIVA' (pagada vigente) · 'TRIAL' (prueba vigente) · 'VENCIDA' · 'SIN_RESTRICCION'."""
+        from django.utils import timezone
+        hoy = timezone.localdate()
+        if self.suscripcion_hasta and self.suscripcion_hasta >= hoy:
+            return 'ACTIVA'
+        if self.fecha_fin_prueba and self.fecha_fin_prueba >= hoy:
+            return 'TRIAL'
+        if self.fecha_fin_prueba or self.suscripcion_hasta:
+            return 'VENCIDA'
+        return 'SIN_RESTRICCION'
+
+    @property
+    def dias_acceso_restantes(self):
+        """Días restantes de acceso (suscripción si vigente, si no la prueba). None si sin restricción."""
+        from django.utils import timezone
+        hoy = timezone.localdate()
+        if self.suscripcion_hasta and self.suscripcion_hasta >= hoy:
+            return (self.suscripcion_hasta - hoy).days
+        if self.fecha_fin_prueba and self.fecha_fin_prueba >= hoy:
+            return (self.fecha_fin_prueba - hoy).days
+        if self.fecha_fin_prueba or self.suscripcion_hasta:
+            return 0
+        return None
 
     creado_en      = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)

@@ -220,13 +220,13 @@ class PlanStarterMiddleware:
         )
         always = any(path.startswith(p) for p in ALWAYS_ALLOW)
 
-        # Prueba gratuita vencida → hard stop a /upgrade/ (salvo allow-list).
+        # Acceso vencido (trial + suscripción ambos vencidos) → hard stop a /upgrade/.
         emp = empresa_de(user)
-        if emp is not None and emp.prueba_vencida and not always:
+        if emp is not None and emp.acceso_bloqueado and not always:
             try:
                 messages.warning(
                     request,
-                    'Tu prueba gratuita venció. Actualiza tu plan para seguir usando Harmoni.'
+                    'Tu suscripción venció. Renueva tu plan para seguir usando Harmoni.'
                 )
             except Exception:
                 pass
