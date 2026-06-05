@@ -507,3 +507,25 @@
 .cap-header    :is(h1,h2,h3,h4,h5,h6) {
     color: #fff;
 }
+
+/* 6. Barrido sistemático de cabeceras/heroes con fondo oscuro de marca por CLASE
+      (mismo bug que el portal: el heading hereda el color oscuro global y queda
+      ilegible). Lista auditada por código — solo selectores cuyo `background`
+      usa un color oscuro de marca (#0d2b27/#134e4a/#0f766e/#0f2926…). */
+.ai-chat-header   :is(h1,h2,h3,h4,h5,h6),
+.ai-intel-header  :is(h1,h2,h3,h4,h5,h6),
+.exec-header      :is(h1,h2,h3,h4,h5,h6),
+.exec-ask-header  :is(h1,h2,h3,h4,h5,h6),
+.cal-header       :is(h1,h2,h3,h4,h5,h6),
+.compare-header   :is(h1,h2,h3,h4,h5,h6),
+.cta-banner       :is(h1,h2,h3,h4,h5,h6),
+.escala-header    :is(h1,h2,h3,h4,h5,h6),
+.gastro-card-header :is(h1,h2,h3,h4,h5,h6),
+.mes-header       :is(h1,h2,h3,h4,h5,h6),
+.modal-header-dark :is(h1,h2,h3,h4,h5,h6),
+.modal-detail  .modal-header :is(h1,h2,h3,h4,h5,h6),
+.modal-detalle .modal-header :is(h1,h2,h3,h4,h5,h6),
+.neto-hero        :is(h1,h2,h3,h4,h5,h6),
+.worker-banner    :is(h1,h2,h3,h4,h5,h6) {
+    color: #fff;
+}
