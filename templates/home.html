@@ -238,11 +238,18 @@
 .hfd-btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(15,118,110,.36);color:#fff;}
 .hfd-btn-ghost{background:#fff;color:#0f766e;border:1.5px solid #99f6e4;}
 .hfd-btn-ghost:hover{background:#f0fdfa;color:#0f766e;}
+/* Banda transversal — gestión continua del talento (no es una etapa lineal) */
+.hfd-band{margin-top:16px;padding-top:14px;border-top:1px dashed #d7e3e0;}
+.hfd-band-label{display:block;font-size:.74rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#0f766e;margin-bottom:9px;}
+.hfd-chips{display:flex;flex-wrap:wrap;gap:7px;}
+.hfd-chip{display:inline-flex;align-items:center;gap:6px;text-decoration:none;background:#f0fdfa;border:1px solid #cdeee8;color:#0f5d57;font-size:.78rem;font-weight:600;padding:6px 12px;border-radius:999px;transition:background .12s,border-color .12s,transform .12s;}
+.hfd-chip:hover{background:#ccfbf1;border-color:#5eead4;color:#0f5d57;transform:translateY(-1px);}
+.hfd-chip i{font-size:.72rem;color:#0f766e;}
 </style>
 <div class="hfd">
   <div class="hfd-head">
     <h2><i class="fas fa-route me-2" style="color:#0f766e"></i>Así funciona Harmoni</h2>
-    <p>Todo el ciclo de tu equipo, conectado en un solo lugar — del primer candidato hasta el cese, sin planillas en Excel ni datos sueltos. Haz clic en cualquier etapa para verla.</p>
+    <p>Todo el ciclo de tu equipo, conectado en un solo lugar — del primer candidato hasta la salida, más la gestión continua del talento. Sin planillas en Excel ni datos sueltos. Haz clic en cualquier etapa para verla.</p>
   </div>
   <div class="hfd-steps">
     <a class="hfd-step" href="{% url 'reclutamiento_dashboard' %}"><span class="hfd-num">1</span><div class="hfd-ico" style="--c:#6366f1"><i class="fas fa-user-plus"></i></div><h3>Reclutamiento</h3><p>Pipeline de candidatos y contratación en un clic.</p></a>
@@ -250,7 +257,20 @@
     <a class="hfd-step" href="{% url 'asistencia_dashboard' %}"><span class="hfd-num">3</span><div class="hfd-ico" style="--c:#0f766e"><i class="fas fa-clock"></i></div><h3>Asistencia</h3><p>Tareo, horas extra y faltas — listos para la planilla.</p></a>
     <a class="hfd-step" href="{% url 'workflow_mes' %}"><span class="hfd-num">4</span><div class="hfd-ico" style="--c:#16a34a"><i class="fas fa-calculator"></i></div><h3>Planilla del mes</h3><p>Cálculo automático con asistencia, préstamos y descuentos.</p></a>
     <a class="hfd-step" href="{% url 'integraciones_panel' %}"><span class="hfd-num">5</span><div class="hfd-ico" style="--c:#d97706"><i class="fas fa-file-export"></i></div><h3>SUNAT &amp; Pago</h3><p>PLAME, AFPNet, T-Registro y archivo de banco.</p></a>
-    <a class="hfd-step" href="{% url 'nominas_liquidaciones' %}"><span class="hfd-num">6</span><div class="hfd-ico" style="--c:#0d2b27"><i class="fas fa-handshake"></i></div><h3>Cese &amp; Liquidación</h3><p>Liquidación, CTS, vacaciones y baja SUNAT automáticas.</p></a>
+    <a class="hfd-step" href="{% url 'offboarding_panel' %}"><span class="hfd-num">6</span><div class="hfd-ico" style="--c:#0d2b27"><i class="fas fa-handshake"></i></div><h3>Cese &amp; Offboarding</h3><p>Liquidación (CTS, vacaciones), baja SUNAT, entrevista de salida y devolución.</p></a>
+  </div>
+  <div class="hfd-band">
+    <span class="hfd-band-label"><i class="fas fa-sync-alt me-1"></i>Y durante todo el ciclo</span>
+    <div class="hfd-chips">
+      <a class="hfd-chip" href="{% url 'evaluaciones_dashboard' %}"><i class="fas fa-star"></i>Evaluaciones</a>
+      <a class="hfd-chip" href="{% url 'capacitaciones_panel' %}"><i class="fas fa-graduation-cap"></i>Capacitaciones</a>
+      <a class="hfd-chip" href="{% url 'encuestas_panel' %}"><i class="fas fa-comment-dots"></i>Clima &amp; Encuestas</a>
+      <a class="hfd-chip" href="{% url 'equidad_salarial' %}"><i class="fas fa-scale-balanced"></i>Equidad salarial</a>
+      <a class="hfd-chip" href="{% url 'disciplinaria_dashboard' %}"><i class="fas fa-gavel"></i>Disciplinaria</a>
+      <a class="hfd-chip" href="{% url 'vacaciones_panel' %}"><i class="fas fa-umbrella-beach"></i>Vacaciones</a>
+      <a class="hfd-chip" href="{% url 'prestamos_panel' %}"><i class="fas fa-hand-holding-usd"></i>Préstamos</a>
+      <a class="hfd-chip" href="{% url 'viaticos_panel' %}"><i class="fas fa-suitcase-rolling"></i>Viáticos</a>
+    </div>
   </div>
   <div class="hfd-cta">
     <a href="{% url 'workflow_mes' %}" class="hfd-btn hfd-btn-primary">
