@@ -591,7 +591,7 @@ def pipeline_panel(request):
     ).order_by('titulo')
 
     context = {
-        'titulo': 'Pipeline de Seleccion',
+        'titulo': 'Pipeline de Selección',
         'pipeline': pipeline,
         'etapas': etapas,
         'vacantes_activas': vacantes_activas,
