@@ -55,21 +55,30 @@
             {% endif %}
           </td>
           <td>
-            {% if e.suscripcion_hasta %}<small>Pago: {{ e.suscripcion_hasta|date:"d/m/Y" }}</small><br>{% endif %}
-            {% if e.fecha_fin_prueba %}<small class="text-muted">Prueba: {{ e.fecha_fin_prueba|date:"d/m/Y" }}</small>{% endif %}
+            {% if e.suscripcion_hasta %}<small>Pago hasta: {{ e.suscripcion_hasta|date:"d/m/Y" }}</small><br>{% endif %}
+            {% if e.fecha_fin_prueba %}<small class="text-muted">Prueba: {{ e.fecha_fin_prueba|date:"d/m/Y" }}</small><br>{% endif %}
+            {% with up=e.pagos_suscripcion.all|first %}
+              {% if up %}<small class="text-success" title="{{ up.get_metodo_pago_display }} · {{ up.referencia }}"><i class="fas fa-receipt"></i> S/ {{ up.monto }} · {{ up.fecha_pago|date:"d/m" }} ({{ e.pagos_suscripcion.all|length }})</small>{% endif %}
+            {% endwith %}
           </td>
           <td class="text-center">{{ e.n_workers }}</td>
           <td>
             <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
-              {# Extender suscripción #}
-              <form method="post" style="display:inline-flex;gap:3px;align-items:center;">
+              {# Registrar pago (extiende suscripción + crea entrada en el ledger) #}
+              <form method="post" style="display:inline-flex;gap:3px;align-items:center;flex-wrap:wrap;">
                 {% csrf_token %}
                 <input type="hidden" name="empresa_id" value="{{ e.pk }}">
                 <input type="hidden" name="accion" value="extender">
-                <select name="meses" class="form-select form-select-sm" style="width:auto;font-size:.78rem;padding:2px 4px;">
+                <select name="meses" class="form-select form-select-sm" style="width:auto;font-size:.76rem;padding:2px 4px;">
                   <option value="1">+1 mes</option><option value="3">+3 m</option>
                   <option value="6">+6 m</option><option value="12">+12 m</option>
                 </select>
+                <select name="metodo" class="form-select form-select-sm" style="width:auto;font-size:.76rem;padding:2px 4px;">
+                  <option value="YAPE">Yape</option><option value="PLIN">Plin</option>
+                  <option value="TRANSFERENCIA">Transf.</option><option value="TARJETA">Tarjeta</option>
+                  <option value="EFECTIVO">Efectivo</option><option value="OTRO">Otro</option>
+                </select>
+                <input name="referencia" placeholder="Ref./operación" class="form-control form-control-sm" style="width:110px;font-size:.76rem;padding:2px 6px;">
                 <button class="btn btn-sm btn-success" style="font-size:.75rem;padding:2px 8px;" title="Registrar pago">Pagar</button>
               </form>
               {# Cambiar plan #}

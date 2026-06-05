@@ -238,10 +238,19 @@ class HistorialPago(models.Model):
         ('RECIBO',  'Recibo'),
     ]
 
+    # Vínculo directo a la empresa (fuente de verdad del billing actual).
+    # `suscripcion` queda opcional/legacy (el sistema vivo usa Empresa.suscripcion_hasta).
+    empresa = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.CASCADE,
+        related_name='pagos_suscripcion',
+        null=True, blank=True,
+    )
     suscripcion = models.ForeignKey(
         Suscripcion,
         on_delete=models.CASCADE,
         related_name='pagos',
+        null=True, blank=True,
     )
     monto = models.DecimalField(
         max_digits=10, decimal_places=2,

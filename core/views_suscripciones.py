@@ -41,12 +41,28 @@ def suscripciones_admin(request):
 
         if accion == 'extender':
             meses = int(request.POST.get('meses', 1))
+            periodo_desde = base
             emp.suscripcion_hasta = base + timedelta(days=30 * meses)
-            nota = request.POST.get('nota', '').strip()
-            if nota:
-                emp.suscripcion_nota = nota
+            metodo = request.POST.get('metodo', 'YAPE')
+            referencia = request.POST.get('referencia', '').strip()
+            if referencia:
+                emp.suscripcion_nota = f'{metodo} · {referencia}'
             emp.save(update_fields=['suscripcion_hasta', 'suscripcion_nota', 'actualizado_en'])
-            messages.success(request, f'{emp.razon_social}: suscripción extendida {meses} mes(es) → {emp.suscripcion_hasta}.')
+
+            # Registrar el pago en el ledger (HistorialPago) — comprobante/referencia.
+            try:
+                from empresas.models_billing import HistorialPago
+                precio = PLANES.get(emp.plan, {}).get('precio') or 0
+                HistorialPago.objects.create(
+                    empresa=emp, monto=precio * meses, fecha_pago=hoy,
+                    metodo_pago=metodo, referencia=referencia, estado='PAGADO',
+                    periodo_desde=periodo_desde, periodo_hasta=emp.suscripcion_hasta,
+                    registrado_por=request.user,
+                    notas=f'Registro manual desde panel de suscripciones ({meses} mes/es).',
+                )
+            except Exception:
+                pass
+            messages.success(request, f'{emp.razon_social}: pago registrado, suscripción hasta {emp.suscripcion_hasta}.')
 
         elif accion == 'cambiar_plan':
             nuevo = request.POST.get('plan')
@@ -76,7 +92,7 @@ def suscripciones_admin(request):
     empresas = list(
         Empresa.objects.annotate(
             n_workers=Count('personal', filter=Q(personal__estado='Activo'))
-        ).order_by('-actualizado_en')
+        ).prefetch_related('pagos_suscripcion').order_by('-actualizado_en')
     )
     # Resumen por estado
     resumen = {'ACTIVA': 0, 'TRIAL': 0, 'VENCIDA': 0, 'SIN_RESTRICCION': 0}
