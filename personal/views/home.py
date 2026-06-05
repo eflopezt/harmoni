@@ -260,6 +260,23 @@ def home(request):
         ).count(),
     }
 
+    # ── Primeros pasos — guía para cuentas NUEVAS (aún sin empleados) ──
+    # Evita que un trial recién registrado caiga en un dashboard vacío sin saber
+    # qué hacer. Se muestra solo mientras no haya empleados cargados.
+    if total_activos == 0 and (request.user.is_superuser or gerencias_filtradas.exists()):
+        try:
+            emp = getattr(request, 'empresa_actual', None) \
+                or getattr(getattr(request.user, 'personal_data', None), 'empresa', None)
+            from nominas.models import ConceptoRemunerativo
+            context['primeros_pasos'] = {
+                'empresa_pk':   emp.pk if emp else None,
+                'rep_ok':       bool(emp and getattr(emp, 'representante_legal', '')
+                                     and getattr(emp, 'direccion', '')),
+                'conceptos_ok': ConceptoRemunerativo.objects.filter(activo=True).count() >= 5,
+            }
+        except Exception:
+            pass
+
     # ── Asistencia HOY (solo admin/responsable) ──
     if request.user.is_superuser or gerencias_filtradas.exists():
         from asistencia.models import RegistroTareo
