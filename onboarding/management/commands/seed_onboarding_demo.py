@@ -79,13 +79,21 @@ class Command(BaseCommand):
                 notas='Proceso de demostración.',
             )
             n_completar = int(round(len(pasos_tpl) * pct))
+            pend_pos = 0  # posición entre los pendientes → fecha límite escalonada a futuro
             for idx, tpl in enumerate(pasos_tpl):
                 completado = idx < n_completar
+                if completado:
+                    # completado: límite en el pasado (no cuenta como vencido)
+                    flim = fecha_ingreso + timedelta(days=tpl.dias_plazo)
+                else:
+                    # pendiente: límite a FUTURO escalonado → demo sin "pasos vencidos"
+                    pend_pos += 1
+                    flim = hoy + timedelta(days=2 + pend_pos * 2)
                 PasoOnboarding.objects.create(
                     proceso=proceso, paso_plantilla=tpl, orden=tpl.orden,
                     titulo=tpl.titulo,
                     estado='COMPLETADO' if completado else 'PENDIENTE',
-                    fecha_limite=fecha_ingreso + timedelta(days=tpl.dias_plazo),
+                    fecha_limite=flim,
                     fecha_completado=(timezone.now() if completado else None),
                     completado_por=(admin if completado else None),
                 )
