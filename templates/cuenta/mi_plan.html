@@ -85,23 +85,30 @@
     <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
         <i class="fas fa-credit-card" style="color:#16a34a;font-size:1.2rem;"></i>
-        <strong style="color:#0d2b27;">Próximo pago</strong>
+        <strong style="color:#0d2b27;">Suscripción</strong>
       </div>
-      {% if suscripcion %}
-      <div style="font-size:1.2rem;font-weight:800;color:#0d2b27;">
-        {{ suscripcion.proximo_pago|default:"Sin programar" }}
-      </div>
-      <div style="font-size:.78rem;color:#64748b;margin-top:8px;">
-        Ciclo: {{ suscripcion.get_ciclo_display|default:"-" }}
-      </div>
+      {% if empresa.estado_suscripcion == 'ACTIVA' %}
+        <div style="font-size:1.1rem;font-weight:800;color:#047857;">Activa</div>
+        <div style="font-size:.82rem;color:#64748b;margin-top:6px;">
+          Pagada hasta <strong>{{ empresa.suscripcion_hasta|date:"d/m/Y" }}</strong> · {{ empresa.dias_acceso_restantes }} día{{ empresa.dias_acceso_restantes|pluralize:"s" }}
+        </div>
+      {% elif empresa.estado_suscripcion == 'TRIAL' %}
+        <div style="font-size:1.1rem;font-weight:800;color:#0e7490;">Prueba gratuita</div>
+        <div style="font-size:.82rem;color:#64748b;margin-top:6px;">
+          Te quedan <strong>{{ empresa.dias_acceso_restantes }}</strong> día{{ empresa.dias_acceso_restantes|pluralize:"s" }} (hasta {{ empresa.fecha_fin_prueba|date:"d/m/Y" }})
+        </div>
+      {% elif empresa.estado_suscripcion == 'VENCIDA' %}
+        <div style="font-size:1.1rem;font-weight:800;color:#b91c1c;">Vencida</div>
+        <div style="font-size:.82rem;color:#64748b;margin-top:6px;">Renueva tu plan para reactivar el acceso.</div>
       {% else %}
-      <div style="color:#64748b;font-size:.9rem;">Sin información de suscripción</div>
+        <div style="font-size:1.1rem;font-weight:800;color:#0d2b27;">Activa</div>
+        <div style="font-size:.78rem;color:#64748b;margin-top:6px;">Para renovar o cambiar de plan, contáctanos.</div>
       {% endif %}
     </div>
   </div>
 
   <!-- CTA contextual -->
-  {% if plan_code != 'ENTERPRISE' %}
+  {% if plan_code != 'SUITE' %}
   <div class="mc-cta" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:12px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
     <div>
       <h4 style="margin:0;color:#78350f;font-weight:800;">
