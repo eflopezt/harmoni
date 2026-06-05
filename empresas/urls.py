@@ -1,4 +1,5 @@
 from django.urls import include, path
+from django.views.generic import RedirectView
 from . import views
 from . import views_billing
 from . import views_admin
@@ -14,13 +15,13 @@ urlpatterns = [
     path('seleccionar/', views.seleccionar_empresa, name='empresa_seleccionar'),
     path('onboarding/', include('empresas.urls_onboarding')),
 
-    # Billing — user-facing
-    path('billing/', views_billing.billing_dashboard, name='billing_dashboard'),
-    path('billing/upgrade/', views_billing.billing_upgrade, name='billing_upgrade'),
-    path('billing/pago/', views_billing.billing_payment, name='billing_payment'),
-    path('billing/comprobante/<int:pago_id>/', views_billing.billing_invoice, name='billing_invoice'),
-
-    # Billing — super-admin
-    path('billing/admin/', views_admin.admin_billing_dashboard, name='admin_billing_dashboard'),
-    path('billing/admin/action/', views_admin.admin_billing_action, name='admin_billing_action'),
+    # Billing legacy → redirige a los paneles VIVOS (sistema consolidado).
+    # El subsistema viejo (Plan/Suscripcion + BillingMiddleware) quedó retirado;
+    # estas rutas se mantienen para no romper enlaces/reverse y llevar al panel real.
+    path('billing/', RedirectView.as_view(pattern_name='mi_cuenta_plan', permanent=False), name='billing_dashboard'),
+    path('billing/upgrade/', RedirectView.as_view(pattern_name='upgrade_plan', permanent=False), name='billing_upgrade'),
+    path('billing/pago/', RedirectView.as_view(pattern_name='mi_cuenta_plan', permanent=False), name='billing_payment'),
+    path('billing/comprobante/<int:pago_id>/', RedirectView.as_view(url='/cuenta/plan/', permanent=False), name='billing_invoice'),
+    path('billing/admin/', RedirectView.as_view(pattern_name='suscripciones_admin', permanent=False), name='admin_billing_dashboard'),
+    path('billing/admin/action/', RedirectView.as_view(pattern_name='suscripciones_admin', permanent=False), name='admin_billing_action'),
 ]

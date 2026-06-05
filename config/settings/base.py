@@ -83,11 +83,11 @@ MIDDLEWARE = [
     *(['csp.middleware.CSPMiddleware'] if __import__('importlib').util.find_spec('csp') else []),
     'empresas.middleware_subdomain.SubdomainMiddleware',
     'empresas.middleware.EmpresaMiddleware',
-    'empresas.middleware_billing.BillingMiddleware',
+    # (BillingMiddleware retirado — billing/suscripción ahora lo maneja el sistema
+    #  vivo: core/planes.py + Empresa.suscripcion_hasta + PlanStarterMiddleware.)
     # Restringe trabajadores a URLs del portal (defensa profunda).
-    # Debe ir DESPUÉS de auth+empresa+billing para tener el contexto completo.
     'core.middleware_worker_access.WorkerAccessRestrictionMiddleware',
-    # Restringe usuarios Plan Starter a features básicas (sin IA, sin reclutamiento)
+    # Gating por plan + trial/suscripción (core/planes.py).
     'core.middleware_plan_starter.PlanStarterMiddleware',
     'core.middleware.AuditMiddleware',
 ]
