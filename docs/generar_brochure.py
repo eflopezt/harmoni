@@ -405,33 +405,37 @@ doc.add_page_break()
 add_centered('Planes y Precios', size=22, color=DARK, bold=True, space_after=16)
 
 planes = [
-    ('STARTER', 'S/ 149', '/mes', [
+    ('ASISTENCIA', 'S/ 99', '/mes', [
         'Hasta 50 colaboradores',
-        'Personal + Asistencia + Vacaciones',
-        'Nominas basicas',
-        'Portal del Trabajador',
+        'Tareo, papeletas, horas extra',
+        'Banco de horas y reportes',
+        'Vacaciones (gestion admin)',
         'Soporte por email',
     ]),
-    ('PROFESIONAL', 'S/ 349', '/mes', [
-        'Hasta 200 colaboradores',
-        'Todos los 22 modulos',
-        'Inteligencia Artificial',
-        'Integraciones SUNAT/AFP/Bancos',
-        'Soporte prioritario WhatsApp',
-        'Implementacion asistida',
+    ('PLANILLA', 'S/ 199', '/mes', [
+        'Hasta 100 colaboradores',
+        'Todo Asistencia +',
+        'Nominas, boletas y liquidacion',
+        'SUNAT: PLAME / AFPNet / T-Registro',
+        'Contratos y prestamos',
     ]),
-    ('ENTERPRISE', 'A medida', '', [
-        'Colaboradores ilimitados',
-        'Multi-empresa (tenancy)',
-        'API REST completa',
-        'Personalizaciones a medida',
-        'Servidor dedicado',
-        'Soporte 24/7 + SLA',
-        'Capacitacion presencial',
+    ('TALENTO', 'S/ 399', '/mes', [
+        'Hasta 300 colaboradores',
+        'Todo Planilla +',
+        'Evaluaciones y capacitaciones',
+        'Encuestas, clima y organigrama',
+        'Analytics y Dashboard Ejecutivo',
+    ]),
+    ('SUITE', 'S/ 699', '/mes', [
+        '300+ colaboradores',
+        'Todo Talento +',
+        'Reclutamiento y banco de talento',
+        'Portal del empleado e IA',
+        'Multi-empresa y soporte prioritario',
     ]),
 ]
 
-table = doc.add_table(rows=1, cols=3)
+table = doc.add_table(rows=1, cols=4)
 table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
 for i, (name, price, period, features) in enumerate(planes):

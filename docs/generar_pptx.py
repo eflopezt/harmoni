@@ -260,46 +260,51 @@ slide = prs.slides.add_slide(prs.slide_layouts[6])
 add_bg(slide, WHITE)
 add_text(slide, 0.5, 0.3, 12, 0.8, 'Planes y Precios', size=36, color=DARK, bold=True, align=PP_ALIGN.CENTER)
 
-# Starter
-add_text(slide, 1, 1.5, 3.5, 0.6, 'STARTER', size=22, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
-add_text(slide, 1, 2.2, 3.5, 0.6, 'S/ 149/mes', size=28, color=DARK, bold=True, align=PP_ALIGN.CENTER)
-add_multiline(slide, 1, 3, 3.5, 3.5, [
+# 4 planes por modulos — 4 columnas
+# Asistencia
+add_text(slide, 0.5, 1.5, 3.0, 0.6, 'ASISTENCIA', size=18, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide, 0.5, 2.2, 3.0, 0.6, 'S/ 99/mes', size=24, color=DARK, bold=True, align=PP_ALIGN.CENTER)
+add_multiline(slide, 0.5, 3, 3.0, 3.5, [
     'Hasta 50 colaboradores',
-    'Personal + Asistencia',
-    'Nominas basicas',
-    'Portal del Trabajador',
+    'Tareo y papeletas',
+    'Horas extra y banco',
+    'Reportes de asistencia',
     'Soporte email',
-], size=13, color=GRAY)
+], size=12, color=GRAY)
 
-# Profesional (featured)
-add_text(slide, 5, 1.2, 3.5, 0.4, 'MAS POPULAR', size=12, color=CYAN, bold=True, align=PP_ALIGN.CENTER)
-add_text(slide, 5, 1.5, 3.5, 0.6, 'PROFESIONAL', size=22, color=WHITE, bold=True, align=PP_ALIGN.CENTER)
-add_text(slide, 5, 2.2, 3.5, 0.6, 'S/ 349/mes', size=28, color=WHITE, bold=True, align=PP_ALIGN.CENTER)
-add_multiline(slide, 5, 3, 3.5, 3.5, [
-    'Hasta 200 colaboradores',
-    '22 modulos completos',
-    'Inteligencia Artificial',
-    'PLAME, AFP, CTS bancos',
-    'Soporte WhatsApp prioritario',
-    'Implementacion asistida',
-], size=13, color=RGBColor(0xE8, 0xFA, 0xF7))
+# Planilla (featured)
+add_text(slide, 3.7, 1.2, 3.0, 0.4, 'MAS POPULAR', size=11, color=CYAN, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide, 3.7, 1.5, 3.0, 0.6, 'PLANILLA', size=18, color=WHITE, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide, 3.7, 2.2, 3.0, 0.6, 'S/ 199/mes', size=24, color=WHITE, bold=True, align=PP_ALIGN.CENTER)
+add_multiline(slide, 3.7, 3, 3.0, 3.5, [
+    'Hasta 100 colaboradores',
+    '+ Nominas y boletas',
+    'Liquidacion y contratos',
+    'SUNAT: PLAME/AFP/T-Reg',
+    'Prestamos',
+], size=12, color=RGBColor(0xE8, 0xFA, 0xF7))
 
-# Paint the Profesional column
-txBox = slide.shapes.add_textbox(Inches(4.8), Inches(1.1), Inches(3.9), Inches(5.5))
-tf = txBox.text_frame
-# Can't easily paint bg in pptx textbox, skip
+# Talento
+add_text(slide, 6.9, 1.5, 3.0, 0.6, 'TALENTO', size=18, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide, 6.9, 2.2, 3.0, 0.6, 'S/ 399/mes', size=24, color=DARK, bold=True, align=PP_ALIGN.CENTER)
+add_multiline(slide, 6.9, 3, 3.0, 3.5, [
+    'Hasta 300 colaboradores',
+    '+ Evaluaciones',
+    'Capacitaciones y clima',
+    'Organigrama y onboarding',
+    'Analytics ejecutivo',
+], size=12, color=GRAY)
 
-# Enterprise
-add_text(slide, 9, 1.5, 3.5, 0.6, 'ENTERPRISE', size=22, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
-add_text(slide, 9, 2.2, 3.5, 0.6, 'A medida', size=28, color=DARK, bold=True, align=PP_ALIGN.CENTER)
-add_multiline(slide, 9, 3, 3.5, 3.5, [
-    'Colaboradores ilimitados',
+# Suite
+add_text(slide, 10.1, 1.5, 3.0, 0.6, 'SUITE', size=18, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide, 10.1, 2.2, 3.0, 0.6, 'S/ 699/mes', size=24, color=DARK, bold=True, align=PP_ALIGN.CENTER)
+add_multiline(slide, 10.1, 3, 3.0, 3.5, [
+    '300+ colaboradores',
+    '+ Reclutamiento',
+    'Portal del empleado',
+    'IA de RRHH',
     'Multi-empresa',
-    'API REST completa',
-    'Personalizaciones',
-    'Servidor dedicado',
-    'SLA 24/7',
-], size=13, color=GRAY)
+], size=12, color=GRAY)
 
 # ================================================================
 # SLIDE 14 - CTA

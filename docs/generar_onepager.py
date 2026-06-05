@@ -121,13 +121,14 @@ for d in diffs:
 doc.add_paragraph().paragraph_format.space_after = Pt(4)
 
 # === PRECIOS ===
-t3 = doc.add_table(rows=2, cols=3)
+t3 = doc.add_table(rows=2, cols=4)
 t3.alignment = WD_TABLE_ALIGNMENT.CENTER
 
-headers = ['STARTER', 'PROFESIONAL', 'ENTERPRISE']
-prices = ['S/ 149/mes\nHasta 50 colaboradores\nPersonal + Asistencia + Nominas',
-          'S/ 349/mes\nHasta 200 colaboradores\n22 modulos + IA + Integraciones',
-          'A medida\nColaboradores ilimitados\nMulti-empresa + API + SLA 24/7']
+headers = ['ASISTENCIA', 'PLANILLA', 'TALENTO', 'SUITE']
+prices = ['S/ 99/mes\nHasta 50 colab.\nTareo, papeletas, HE, banco horas',
+          'S/ 199/mes\nHasta 100 colab.\n+ Nominas, boletas, liquidacion, SUNAT',
+          'S/ 399/mes\nHasta 300 colab.\n+ Evaluaciones, clima, analytics',
+          'S/ 699/mes\n300+ colab.\n+ Reclutamiento, portal del empleado, IA']
 
 for i, h in enumerate(headers):
     cell = t3.cell(0, i)

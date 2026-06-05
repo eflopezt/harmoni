@@ -80,14 +80,14 @@ FEATURES_BLOQUEADAS_POR_PLAN = {code: _features_bloqueadas(code) for code in PLA
     },
     examples=[
         OpenApiExample(
-            'Cliente Starter (Pixel Motion)',
+            'Cliente Asistencia (Pixel Motion)',
             value={
-                'plan': 'STARTER',
-                'plan_display': 'Starter — S/ 149/mes (hasta 30 colaboradores)',
-                'max_trabajadores': 30,
+                'plan': 'ASISTENCIA',
+                'plan_display': 'Asistencia — S/ 99/mes',
+                'max_trabajadores': 50,
                 'trabajadores_actuales': 25,
                 'es_starter': True,
-                'features_bloqueadas': ['reclutamiento', 'portal', 'capacitaciones', 'evaluaciones'],
+                'features_bloqueadas': ['reclutamiento', 'portal', 'nominas', 'evaluaciones'],
                 'upgrade_url': '/upgrade/',
                 'empresa': {'ruc': '20612345678', 'razon_social': 'Pixel Motion Design S.A.C.'},
             },
