@@ -223,6 +223,7 @@ class HistorialPago(models.Model):
         ('PLIN',          'Plin'),
         ('TRANSFERENCIA', 'Transferencia bancaria'),
         ('TARJETA',       'Tarjeta de crédito/débito'),
+        ('MERCADOPAGO',   'MercadoPago (online)'),
         ('EFECTIVO',      'Efectivo'),
         ('OTRO',          'Otro'),
     ]

@@ -107,6 +107,32 @@
     </div>
   </div>
 
+  <!-- ══ PAGO ONLINE — renovar con MercadoPago ══ -->
+  {% if pago_online_disponible %}
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:22px 26px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+    <div>
+      <strong style="color:#0d2b27;font-size:1.05rem;"><i class="fas fa-bolt" style="color:#0f766e;"></i> Renovar suscripción</strong>
+      <p style="margin:6px 0 0;color:#64748b;font-size:.88rem;">
+        Plan <strong>{{ plan_info.nombre }}</strong> · S/ {{ plan_info.precio_mensual }}/mes.
+        Paga con tarjeta o Yape — el acceso se extiende automáticamente al confirmarse.
+      </p>
+    </div>
+    <form method="post" action="{% url 'pago_iniciar' %}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      {% csrf_token %}
+      <input type="hidden" name="plan" value="{{ plan_code }}">
+      <select name="meses" class="form-select form-select-sm" style="width:auto;">
+        <option value="1">1 mes — S/ {{ plan_info.precio_mensual }}</option>
+        <option value="3">3 meses</option>
+        <option value="6">6 meses</option>
+        <option value="12">12 meses</option>
+      </select>
+      <button type="submit" style="background:#0f766e;color:#fff;border:none;padding:10px 20px;border-radius:10px;font-weight:700;white-space:nowrap;">
+        Pagar ahora →
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
   <!-- CTA contextual -->
   {% if plan_code != 'SUITE' %}
   <div class="mc-cta" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:12px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">

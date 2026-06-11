@@ -416,3 +416,11 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=3, minute=30),  # Diario 03:30
     },
 }
+
+# ──────────────────────────────────────────────────────────────
+# MERCADOPAGO — cobro online de suscripciones (core/pagos/)
+# Sin access token, la UI de pago online se oculta y el cobro
+# sigue siendo manual (panel /sistema/suscripciones/).
+# ──────────────────────────────────────────────────────────────
+MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN', '')
+MERCADOPAGO_WEBHOOK_SECRET = os.environ.get('MERCADOPAGO_WEBHOOK_SECRET', '')

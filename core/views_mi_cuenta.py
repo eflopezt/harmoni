@@ -18,6 +18,7 @@ from django.views.decorators.cache import never_cache
 
 
 # Derivado de core/planes.py (4 planes por módulos) + estética por plan.
+from core.pagos import mercadopago
 from core.planes import PLANES as _PLANES, PLAN_DEFAULT
 
 _PLAN_ESTILO = {
@@ -152,4 +153,12 @@ def mi_cuenta_plan(request):
         'progress_text':   progress_text,
         'pagos':           pagos,
         'total_pagado':    total_pagado,
+        # Pago online (MercadoPago): solo para cuentas con trial/suscripción.
+        # Las cuentas legacy (SIN_RESTRICCION) siguen con gestión manual — pagar
+        # online les setearía suscripcion_hasta y activaría el enforcement.
+        'pago_online_disponible': (
+            mercadopago.esta_configurado()
+            and empresa is not None
+            and empresa.estado_suscripcion != 'SIN_RESTRICCION'
+        ),
     })

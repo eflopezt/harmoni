@@ -12,11 +12,26 @@ def upgrade_plan(request):
 
     # Plan actual real de la empresa del user.
     plan_actual = _PLANES[PLAN_DEFAULT]['nombre']
+    pago_online = False
     if request.user.is_authenticated:
         try:
             from core.middleware_plan_starter import resolve_plan
             code = resolve_plan(request.user)
             plan_actual = _PLANES.get(code, _PLANES[PLAN_DEFAULT])['nombre']
+        except Exception:
+            pass
+        # Si la pasarela está activa y la cuenta tiene trial/suscripción
+        # (típicamente llegan aquí bloqueados por vencimiento), ofrecer
+        # renovar online en vez de solo WhatsApp.
+        try:
+            from core.middleware_plan_starter import empresa_de
+            from core.pagos import mercadopago
+            emp = empresa_de(request.user) or getattr(request, 'empresa_actual', None)
+            pago_online = (
+                mercadopago.esta_configurado()
+                and emp is not None
+                and emp.estado_suscripcion != 'SIN_RESTRICCION'
+            )
         except Exception:
             pass
 
@@ -32,4 +47,5 @@ def upgrade_plan(request):
     return render(request, 'upgrade_plan.html', {
         'plan_actual': plan_actual,
         'planes':      planes,
+        'pago_online': pago_online,
     })

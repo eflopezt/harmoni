@@ -182,6 +182,10 @@ urlpatterns = [
     path('onboarding/starter/listo/', __import__('core.views_onboarding_starter', fromlist=['onboarding_starter_step3']).onboarding_starter_step3, name='onboarding_starter_step3'),
     # Mi cuenta — dashboard del plan vigente
     path('cuenta/plan/', __import__('core.views_mi_cuenta', fromlist=['mi_cuenta_plan']).mi_cuenta_plan, name='mi_cuenta_plan'),
+    # Cobro online de suscripciones — MercadoPago Checkout Pro
+    path('cuenta/plan/pagar/', __import__('core.views_pagos', fromlist=['iniciar_pago']).iniciar_pago, name='pago_iniciar'),
+    path('cuenta/plan/pago/retorno/', __import__('core.views_pagos', fromlist=['retorno_pago']).retorno_pago, name='pago_retorno'),
+    path('webhooks/mercadopago/', __import__('core.views_pagos', fromlist=['webhook_mercadopago']).webhook_mercadopago, name='webhook_mercadopago'),
     # Tour interactivo demo Sabores del Sur Enterprise
     path('tour/edo/', __import__('core.views_tour_edo', fromlist=['tour_edo']).tour_edo, name='tour_edo'),
     # Centro de Comando — dashboard ejecutivo "1 vista"

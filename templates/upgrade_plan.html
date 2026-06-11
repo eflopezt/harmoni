@@ -166,6 +166,18 @@
     </div>
 </div>
 
+{% if pago_online %}
+<div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;padding:16px 22px;margin:0 0 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div style="color:#115e59;font-size:.92rem;">
+        <strong><i class="fas fa-bolt me-1"></i>Renueva sin esperar:</strong>
+        paga online con tarjeta o Yape y tu acceso se reactiva automáticamente.
+    </div>
+    <a href="{% url 'mi_cuenta_plan' %}" style="background:#0f766e;color:#fff;padding:9px 18px;border-radius:10px;font-weight:700;text-decoration:none;white-space:nowrap;">
+        Pagar online →
+    </a>
+</div>
+{% endif %}
+
 <div class="plan-grid">
     {% for plan in planes %}
     <div class="plan-card {% if plan.destacado %}destacado{% endif %}"
