@@ -7,7 +7,8 @@
       "PowerShell(Get-Command *)",
       "PowerShell(winget install *)",
       "PowerShell(Get-Process *)",
-      "PowerShell($attrs = Get-ChildItem -Path \"templates\" -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 10 FullName, Attributes; $attrs | Format-Table -AutoSize -Wrap; Write-Output \"---placeholders count---\"; \\(Get-ChildItem -Path . -Recurse -Force -ErrorAction SilentlyContinue | Where-Object { $_.Attributes -band 0x400000 }\\).Count)"
+      "PowerShell($attrs = Get-ChildItem -Path \"templates\" -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 10 FullName, Attributes; $attrs | Format-Table -AutoSize -Wrap; Write-Output \"---placeholders count---\"; \\(Get-ChildItem -Path . -Recurse -Force -ErrorAction SilentlyContinue | Where-Object { $_.Attributes -band 0x400000 }\\).Count)",
+      "Bash(scp \"C:/Users/edwii/iCloudDrive/CSRT/Cotizaciones/Harmoni/salida/Propuesta_Grupo_EDO_Sushi_Bar_2026-05-25.pdf\" root@212.56.34.166:/opt/harmoni-demo/staticfiles/propuesta_temp.pdf)"
     ]
   }
 }
