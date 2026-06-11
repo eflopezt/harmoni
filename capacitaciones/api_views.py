@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
+from core.api_mixins import EmpresaFilteredViewSetMixin
 from .models import Capacitacion, RequerimientoCapacitacion, CertificacionTrabajador
 from .api_serializers import (
     CapacitacionSerializer,
@@ -18,8 +19,11 @@ from .api_serializers import (
     list=extend_schema(tags=['Capacitaciones']),
     retrieve=extend_schema(tags=['Capacitaciones']),
 )
-class CapacitacionViewSet(viewsets.ReadOnlyModelViewSet):
-    """Capacitaciones (cursos, talleres, charlas)."""
+class CapacitacionViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Capacitaciones (cursos, talleres, charlas).
+
+    Capacitacion no tiene ruta ORM a Empresa → deny-by-default por API
+    (solo superuser) hasta que el modelo gane tenancy."""
     queryset = Capacitacion.objects.select_related('categoria', 'creado_por').all()
     serializer_class = CapacitacionSerializer
     permission_classes = [IsAuthenticated]
@@ -33,8 +37,9 @@ class CapacitacionViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['Capacitaciones']),
     retrieve=extend_schema(tags=['Capacitaciones']),
 )
-class RequerimientoCapacitacionViewSet(viewsets.ReadOnlyModelViewSet):
-    """Requerimientos de capacitación obligatoria."""
+class RequerimientoCapacitacionViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Requerimientos de capacitación obligatoria (catálogo normativo compartido)."""
+    empresa_global = True
     queryset = RequerimientoCapacitacion.objects.select_related('categoria').filter(activo=True)
     serializer_class = RequerimientoCapacitacionSerializer
     permission_classes = [IsAuthenticated]
@@ -48,8 +53,9 @@ class RequerimientoCapacitacionViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['Capacitaciones']),
     retrieve=extend_schema(tags=['Capacitaciones']),
 )
-class CertificacionTrabajadorViewSet(viewsets.ReadOnlyModelViewSet):
+class CertificacionTrabajadorViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Certificaciones obtenidas por trabajadores."""
+    empresa_field = 'personal__empresa'
     queryset = CertificacionTrabajador.objects.select_related(
         'personal', 'requerimiento', 'capacitacion').all()
     serializer_class = CertificacionTrabajadorSerializer

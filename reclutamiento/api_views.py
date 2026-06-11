@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 
+from core.api_mixins import EmpresaFilteredViewSetMixin
 from .models import Vacante, EtapaPipeline, Postulacion, NotaPostulacion
 from .api_serializers import (
     VacanteSerializer,
@@ -29,8 +30,9 @@ from .api_serializers import (
     list=extend_schema(tags=['Reclutamiento']),
     retrieve=extend_schema(tags=['Reclutamiento']),
 )
-class EtapaPipelineViewSet(viewsets.ReadOnlyModelViewSet):
-    """Etapas del pipeline de selección."""
+class EtapaPipelineViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Etapas del pipeline de selección (catálogo compartido)."""
+    empresa_global = True
     queryset = EtapaPipeline.objects.filter(activa=True)
     serializer_class = EtapaPipelineSerializer
     permission_classes = [IsAuthenticated]
@@ -41,8 +43,11 @@ class EtapaPipelineViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['Reclutamiento']),
     retrieve=extend_schema(tags=['Reclutamiento']),
 )
-class VacanteViewSet(viewsets.ReadOnlyModelViewSet):
-    """Vacantes abiertas."""
+class VacanteViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Vacantes abiertas.
+
+    Vacante no tiene ruta ORM a Empresa (area es catálogo global) →
+    deny-by-default por API hasta que el modelo gane tenancy."""
     queryset = Vacante.objects.select_related('area', 'responsable').prefetch_related('postulaciones').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -69,9 +74,12 @@ class VacanteViewSet(viewsets.ReadOnlyModelViewSet):
         responses={200: FunnelStatsSerializer(many=True)},
     ),
 )
-class PostulacionViewSet(viewsets.ModelViewSet):
+class PostulacionViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
     """
     Postulaciones a vacantes con acciones de pipeline.
+
+    Postulacion (PII de candidatos) no tiene ruta ORM a Empresa →
+    deny-by-default por API: solo superuser lee/escribe.
 
     Extra actions:
     - POST /api/reclutamiento/postulaciones/<pk>/mover-etapa/  — mover etapa
@@ -206,7 +214,7 @@ class PostulacionViewSet(viewsets.ModelViewSet):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
         accion = data['accion']
-        qs = Postulacion.objects.filter(pk__in=data['ids'], estado='ACTIVA')
+        qs = self.get_queryset().filter(pk__in=data['ids'], estado='ACTIVA')
 
         count = 0
         if accion == 'mover':
@@ -260,7 +268,7 @@ class PostulacionViewSet(viewsets.ModelViewSet):
         etapas = EtapaPipeline.objects.filter(activa=True).order_by('orden')
         data = []
         for e in etapas:
-            count = Postulacion.objects.filter(etapa=e, estado='ACTIVA').count()
+            count = self.get_queryset().filter(etapa=e, estado='ACTIVA').count()
             data.append({
                 'etapa_id':     e.pk,
                 'etapa_nombre': e.nombre,

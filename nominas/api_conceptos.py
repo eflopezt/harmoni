@@ -13,7 +13,7 @@ Endpoints:
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import ConceptoRemunerativo
@@ -69,6 +69,20 @@ class ConceptoSerializer(serializers.ModelSerializer):
         return value
 
 
+class _EscrituraSoloSuperuser(BasePermission):
+    """ConceptoRemunerativo es config GLOBAL del deployment (sin campo
+    empresa): la comparten las planillas de todas las empresas. Cualquier
+    autenticado puede leer, pero solo superuser puede escribir — un admin
+    trial de /onboarding/starter/ no debe poder alterar conceptos que usan
+    las planillas de otras empresas."""
+    message = 'Solo un superusuario puede modificar conceptos (configuración global).'
+
+    def has_permission(self, request, view):
+        if view.action in ('list', 'retrieve', 'templates', 'stats'):
+            return True
+        return bool(request.user and request.user.is_superuser)
+
+
 @extend_schema(
     summary='Conceptos Remunerativos',
     description='CRUD de conceptos. Filtros: ?tipo=INGRESO&activo=true&categoria=SUELDO&q=texto',
@@ -86,7 +100,7 @@ class ConceptoViewSet(viewsets.ModelViewSet):
     - q: búsqueda full-text en nombre, código, PLAME, descripción
     """
     serializer_class = ConceptoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, _EscrituraSoloSuperuser]
     queryset = ConceptoRemunerativo.objects.all()
 
     def get_queryset(self):

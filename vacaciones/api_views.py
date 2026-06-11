@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
+from core.api_mixins import EmpresaFilteredViewSetMixin
 from .models import SaldoVacacional, SolicitudVacacion, SolicitudPermiso
 from .api_serializers import (
     SaldoVacacionalSerializer,
@@ -18,8 +19,9 @@ from .api_serializers import (
     list=extend_schema(tags=['Vacaciones']),
     retrieve=extend_schema(tags=['Vacaciones']),
 )
-class SaldoVacacionalViewSet(viewsets.ReadOnlyModelViewSet):
+class SaldoVacacionalViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Saldos vacacionales por periodo."""
+    empresa_field = 'personal__empresa'
     queryset = SaldoVacacional.objects.select_related('personal').all()
     serializer_class = SaldoVacacionalSerializer
     permission_classes = [IsAuthenticated]
@@ -34,8 +36,9 @@ class SaldoVacacionalViewSet(viewsets.ReadOnlyModelViewSet):
     retrieve=extend_schema(tags=['Vacaciones']),
     create=extend_schema(tags=['Vacaciones']),
 )
-class SolicitudVacacionViewSet(viewsets.ModelViewSet):
+class SolicitudVacacionViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
     """Solicitudes de vacaciones (lectura + creación)."""
+    empresa_field = 'personal__empresa'
     queryset = SolicitudVacacion.objects.select_related('personal', 'saldo').all()
     serializer_class = SolicitudVacacionSerializer
     permission_classes = [IsAuthenticated]
@@ -51,8 +54,9 @@ class SolicitudVacacionViewSet(viewsets.ModelViewSet):
     retrieve=extend_schema(tags=['Vacaciones']),
     create=extend_schema(tags=['Vacaciones']),
 )
-class SolicitudPermisoViewSet(viewsets.ModelViewSet):
+class SolicitudPermisoViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
     """Solicitudes de permisos (lectura + creación)."""
+    empresa_field = 'personal__empresa'
     queryset = SolicitudPermiso.objects.select_related('personal', 'tipo').all()
     serializer_class = SolicitudPermisoSerializer
     permission_classes = [IsAuthenticated]

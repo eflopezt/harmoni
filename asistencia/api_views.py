@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
+from core.api_mixins import EmpresaFilteredViewSetMixin
 from .models import RegistroTareo, BancoHoras, ConfiguracionSistema
 from .api_serializers import (
     RegistroTareoSerializer,
@@ -20,8 +21,9 @@ from .api_serializers import (
     list=extend_schema(tags=['Asistencia']),
     retrieve=extend_schema(tags=['Asistencia']),
 )
-class RegistroTareoViewSet(viewsets.ReadOnlyModelViewSet):
+class RegistroTareoViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Registros de asistencia diarios (solo lectura)."""
+    empresa_field = 'personal__empresa'
     queryset = RegistroTareo.objects.select_related('personal', 'regimen').all()
     serializer_class = RegistroTareoSerializer
     permission_classes = [IsAuthenticated]
@@ -36,8 +38,9 @@ class RegistroTareoViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['Asistencia']),
     retrieve=extend_schema(tags=['Asistencia']),
 )
-class BancoHorasViewSet(viewsets.ReadOnlyModelViewSet):
+class BancoHorasViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Banco de horas compensatorias (solo lectura)."""
+    empresa_field = 'personal__empresa'
     queryset = BancoHoras.objects.select_related('personal').all()
     serializer_class = BancoHorasSerializer
     permission_classes = [IsAuthenticated]

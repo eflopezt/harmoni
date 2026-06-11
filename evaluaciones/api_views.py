@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
+from core.api_mixins import EmpresaFilteredViewSetMixin
 from .models import (
     Competencia, CicloEvaluacion, Evaluacion,
     ResultadoConsolidado, PlanDesarrollo,
@@ -27,8 +28,9 @@ from .api_serializers import (
     list=extend_schema(tags=['Evaluaciones']),
     retrieve=extend_schema(tags=['Evaluaciones']),
 )
-class CompetenciaViewSet(viewsets.ReadOnlyModelViewSet):
-    """Catálogo de competencias."""
+class CompetenciaViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Catálogo de competencias (compartido)."""
+    empresa_global = True
     queryset = Competencia.objects.filter(activa=True)
     serializer_class = CompetenciaSerializer
     permission_classes = [IsAuthenticated]
@@ -42,8 +44,10 @@ class CompetenciaViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['Evaluaciones']),
     retrieve=extend_schema(tags=['Evaluaciones']),
 )
-class CicloEvaluacionViewSet(viewsets.ReadOnlyModelViewSet):
-    """Ciclos de evaluación de desempeño."""
+class CicloEvaluacionViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Ciclos de evaluación de desempeño.
+
+    CicloEvaluacion no tiene ruta ORM a Empresa → deny-by-default por API."""
     queryset = CicloEvaluacion.objects.select_related('plantilla', 'creado_por').all()
     serializer_class = CicloEvaluacionSerializer
     permission_classes = [IsAuthenticated]
@@ -57,8 +61,9 @@ class CicloEvaluacionViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['Evaluaciones']),
     retrieve=extend_schema(tags=['Evaluaciones']),
 )
-class EvaluacionViewSet(viewsets.ReadOnlyModelViewSet):
+class EvaluacionViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Evaluaciones individuales."""
+    empresa_field = 'evaluado__empresa'
     queryset = Evaluacion.objects.select_related(
         'ciclo', 'evaluado', 'evaluador').all()
     serializer_class = EvaluacionSerializer
@@ -73,8 +78,9 @@ class EvaluacionViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['Evaluaciones']),
     retrieve=extend_schema(tags=['Evaluaciones']),
 )
-class ResultadoConsolidadoViewSet(viewsets.ReadOnlyModelViewSet):
+class ResultadoConsolidadoViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Resultados consolidados (9-Box)."""
+    empresa_field = 'personal__empresa'
     queryset = ResultadoConsolidado.objects.select_related('ciclo', 'personal').all()
     serializer_class = ResultadoConsolidadoSerializer
     permission_classes = [IsAuthenticated]
@@ -87,8 +93,9 @@ class ResultadoConsolidadoViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['Evaluaciones']),
     retrieve=extend_schema(tags=['Evaluaciones']),
 )
-class PlanDesarrolloViewSet(viewsets.ReadOnlyModelViewSet):
+class PlanDesarrolloViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Planes de desarrollo individual (PDI)."""
+    empresa_field = 'personal__empresa'
     queryset = PlanDesarrollo.objects.select_related('personal', 'ciclo').all()
     serializer_class = PlanDesarrolloSerializer
     permission_classes = [IsAuthenticated]
@@ -102,8 +109,12 @@ class PlanDesarrolloViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['OKRs']),
     retrieve=extend_schema(tags=['OKRs']),
 )
-class ObjetivoClaveViewSet(viewsets.ReadOnlyModelViewSet):
-    """Objetivos y Resultados Clave (OKRs)."""
+class ObjetivoClaveViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Objetivos y Resultados Clave (OKRs).
+
+    Nota: OKRs de nivel EMPRESA/ÁREA (personal NULL) quedan ocultos por API
+    para usuarios tenant — el modelo no registra a qué empresa pertenecen."""
+    empresa_field = 'personal__empresa'
     queryset = ObjetivoClave.objects.select_related(
         'personal', 'area', 'objetivo_padre',
     ).prefetch_related('resultados_clave').all()
@@ -119,8 +130,9 @@ class ObjetivoClaveViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['OKRs']),
     retrieve=extend_schema(tags=['OKRs']),
 )
-class ResultadoClaveViewSet(viewsets.ReadOnlyModelViewSet):
+class ResultadoClaveViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Key Results vinculados a objetivos OKR."""
+    empresa_field = 'objetivo__personal__empresa'
     queryset = ResultadoClave.objects.select_related(
         'objetivo', 'responsable',
     ).all()
@@ -135,8 +147,9 @@ class ResultadoClaveViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(tags=['OKRs']),
     retrieve=extend_schema(tags=['OKRs']),
 )
-class CheckInOKRViewSet(viewsets.ReadOnlyModelViewSet):
+class CheckInOKRViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Check-ins de progreso de Key Results."""
+    empresa_field = 'resultado_clave__objetivo__personal__empresa'
     queryset = CheckInOKR.objects.select_related(
         'resultado_clave__objetivo', 'registrado_por',
     ).all()

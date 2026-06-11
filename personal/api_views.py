@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
+from core.api_mixins import EmpresaFilteredViewSetMixin
 from .models import Area, SubArea, Personal, Roster, RosterAudit
 from .serializers import (
     AreaSerializer, SubAreaSerializer,
@@ -17,8 +18,9 @@ from .serializers import (
 from .permissions import puede_editar_roster
 
 
-class AreaViewSet(viewsets.ModelViewSet):
-    """ViewSet para Gerencias."""
+class AreaViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
+    """ViewSet para Gerencias (catálogo compartido, igual que filtrar_areas)."""
+    empresa_global = True
     queryset = Area.objects.prefetch_related('subareas', 'responsables').all()
     serializer_class = AreaSerializer
     permission_classes = [IsAuthenticated]
@@ -29,8 +31,9 @@ class AreaViewSet(viewsets.ModelViewSet):
     ordering = ['nombre']
 
 
-class SubAreaViewSet(viewsets.ModelViewSet):
-    """ViewSet para SubÁreas."""
+class SubAreaViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
+    """ViewSet para SubÁreas (catálogo compartido)."""
+    empresa_global = True
     queryset = SubArea.objects.select_related('area').all()
     serializer_class = SubAreaSerializer
     permission_classes = [IsAuthenticated]
@@ -41,8 +44,9 @@ class SubAreaViewSet(viewsets.ModelViewSet):
     ordering = ['area__nombre', 'nombre']
 
 
-class PersonalViewSet(viewsets.ModelViewSet):
+class PersonalViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
     """ViewSet para Personal."""
+    empresa_field = 'empresa'
     queryset = Personal.objects.select_related('subarea', 'subarea__area', 'usuario').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -63,7 +67,7 @@ class PersonalViewSet(viewsets.ModelViewSet):
     def activos(self, request):
         """Endpoint para obtener solo personal activo."""
         personal_activo = self.filter_queryset(
-            self.queryset.filter(estado='Activo')
+            self.get_queryset().filter(estado='Activo')
         )
         page = self.paginate_queryset(personal_activo)
         if page is not None:
@@ -81,8 +85,9 @@ class PersonalViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class RosterViewSet(viewsets.ModelViewSet):
+class RosterViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
     """ViewSet para Roster."""
+    empresa_field = 'personal__empresa'
     queryset = Roster.objects.select_related('personal', 'personal__subarea__area').all()
     serializer_class = RosterSerializer
     permission_classes = [IsAuthenticated]
@@ -97,12 +102,14 @@ class RosterViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('No tienes permisos para editar el roster de este personal.')
 
     def perform_create(self, serializer):
+        self.validar_empresa_payload(serializer)
         personal = serializer.validated_data.get('personal')
         if personal is not None:
             self._validar_permiso_roster(personal)
         serializer.save(modificado_por=self.request.user)
 
     def perform_update(self, serializer):
+        self.validar_empresa_payload(serializer)
         personal = serializer.validated_data.get('personal', serializer.instance.personal)
         self._validar_permiso_roster(personal)
         serializer.save(modificado_por=self.request.user)
@@ -114,6 +121,7 @@ class RosterViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             registros = serializer.validated_data.get('registros', [])
             for registro in registros:
+                self.validar_empresa_objeto(registro['personal'], path='empresa')
                 self._validar_permiso_roster(registro['personal'])
             serializer.save()
             return Response(
@@ -135,7 +143,7 @@ class RosterViewSet(viewsets.ModelViewSet):
             )
 
         roster = self.filter_queryset(
-            self.queryset.filter(fecha__range=[fecha_desde, fecha_hasta])
+            self.get_queryset().filter(fecha__range=[fecha_desde, fecha_hasta])
         )
         page = self.paginate_queryset(roster)
         if page is not None:
@@ -145,8 +153,9 @@ class RosterViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class RosterAuditViewSet(viewsets.ReadOnlyModelViewSet):
+class RosterAuditViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """ViewSet para auditoría de Roster (solo lectura)."""
+    empresa_field = 'personal__empresa'
     queryset = RosterAudit.objects.select_related('personal', 'usuario').all()
     serializer_class = RosterAuditSerializer
     permission_classes = [IsAuthenticated]
