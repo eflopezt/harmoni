@@ -12,6 +12,8 @@ Architecture: Row-level tenancy
 from django.conf import settings
 from django.db import models
 
+from core.crypto_fields import EncryptedCharField
+
 
 class Empresa(models.Model):
     """
@@ -102,7 +104,7 @@ class Empresa(models.Model):
         verbose_name='Usuario SMTP',
         help_text='Email o usuario para autenticación',
     )
-    email_host_password = models.CharField(
+    email_host_password = EncryptedCharField(
         max_length=200, blank=True, default='',
         verbose_name='Contraseña SMTP',
         help_text='Contraseña o App Password',
@@ -129,7 +131,7 @@ class Empresa(models.Model):
         max_length=12, choices=WHATSAPP_PROVIDER_CHOICES,
         default='NONE', verbose_name='Proveedor WhatsApp',
     )
-    whatsapp_access_token = models.CharField(
+    whatsapp_access_token = EncryptedCharField(
         max_length=500, blank=True, default='',
         verbose_name='WhatsApp Access Token',
         help_text='Token permanente de la Meta Business App (solo para Meta Cloud API)',
@@ -144,7 +146,7 @@ class Empresa(models.Model):
         verbose_name='OpenClaw Gateway URL',
         help_text='URL del gateway OpenClaw (default: http://localhost:19000)',
     )
-    openclaw_gateway_token = models.CharField(
+    openclaw_gateway_token = EncryptedCharField(
         max_length=200, blank=True, default='',
         verbose_name='OpenClaw Gateway Token',
         help_text='Token de autenticacion para OpenClaw (si aplica)',

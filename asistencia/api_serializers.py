@@ -48,5 +48,6 @@ class ConfiguracionSistemaSerializer(serializers.ModelSerializer):
             'zapsign_api_key',
             'telegram_bot_token',
             'whatsapp_access_token',
+            'openclaw_gateway_token',
         ]
         read_only_fields = ['id']

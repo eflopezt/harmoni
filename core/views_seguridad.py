@@ -13,7 +13,7 @@ CATEGORIAS = [
         'color':     '#0f766e',
         'items': [
             'Conexiones HTTPS/TLS 1.3 obligatorias (HSTS habilitado)',
-            'Encriptación at-rest de datos sensibles (SMTP, API keys, contraseñas) con AES-256',
+            'Credenciales de integraciones (SMTP, API keys, tokens) cifradas at-rest con cifrado autenticado Fernet (AES-CBC + HMAC-SHA256)',
             'Hashes irreversibles de contraseñas (PBKDF2 + salt único)',
             'Contraseñas nunca se almacenan en texto plano',
         ],
@@ -66,7 +66,7 @@ CATEGORIAS = [
             'IA con anonimización (no se envían DNIs ni montos a Gemini/DeepSeek)',
             'Default: APIs OpenAI deshabilitadas; preferimos Gemini (EU compliance)',
             'Logs no incluyen contraseñas, PII se sanitiza antes de loggear',
-            'Borrado bajo demanda (derecho al olvido)',
+            'Borrado bajo demanda vía soporte (derechos ARCO — Ley 29733)',
         ],
     },
     {

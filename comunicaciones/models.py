@@ -7,6 +7,7 @@ Otros módulos importan:
 """
 from django.db import models
 from django.contrib.auth.models import User
+from core.crypto_fields import EncryptedCharField
 from personal.models import Personal, Area
 
 
@@ -358,7 +359,7 @@ class ConfiguracionSMTP(models.Model):
                                   verbose_name="Servidor SMTP")
     smtp_port = models.IntegerField(default=587, verbose_name="Puerto")
     smtp_user = models.CharField(max_length=200, blank=True, verbose_name="Usuario SMTP")
-    smtp_password = models.CharField(max_length=200, blank=True, verbose_name="Contraseña SMTP")
+    smtp_password = EncryptedCharField(max_length=200, blank=True, verbose_name="Contraseña SMTP")
     smtp_use_tls = models.BooleanField(default=True, verbose_name="Usar TLS")
     email_from = models.EmailField(blank=True, verbose_name="Email remitente")
     email_reply_to = models.EmailField(blank=True, verbose_name="Email de respuesta")

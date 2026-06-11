@@ -14,6 +14,8 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 import datetime
 
+from core.crypto_fields import EncryptedCharField
+
 
 # ─────────────────────────────────────────────────────────────
 # SECCIÓN 1 ▸ CONFIGURACIÓN DE REGÍMENES Y HORARIOS
@@ -1561,7 +1563,7 @@ class ConfiguracionSistema(models.Model):
         max_length=20, choices=IA_PROVIDER_CHOICES, default='NINGUNO',
         verbose_name="Proveedor de IA (Chat/RAG)",
         help_text="Proveedor para chat, análisis y mapeo de columnas")
-    ia_api_key = models.CharField(
+    ia_api_key = EncryptedCharField(
         max_length=500, blank=True, default='',
         verbose_name="API Key del proveedor",
         help_text="Clave API de Gemini, DeepSeek u OpenAI. No aplica para Ollama.")
@@ -1577,7 +1579,7 @@ class ConfiguracionSistema(models.Model):
         max_length=20, choices=IA_OCR_PROVIDER_CHOICES, default='NINGUNO',
         verbose_name="Proveedor OCR (PDFs escaneados)",
         help_text="Gemini Files API para OCR de PDFs escaneados.")
-    ia_gemini_api_key = models.CharField(
+    ia_gemini_api_key = EncryptedCharField(
         max_length=500, blank=True, default='',
         verbose_name="API Key Gemini (OCR)",
         help_text=(
@@ -1592,7 +1594,7 @@ class ConfiguracionSistema(models.Model):
 
 
     # ── ZapSign Firma Digital ────────────────────────────────────────
-    zapsign_api_key = models.CharField(
+    zapsign_api_key = EncryptedCharField(
         max_length=200, blank=True,
         verbose_name='ZapSign API Key',
         help_text='Token API de ZapSign para firma digital. Obtener en app.zapsign.com.br/settings/tokens',
@@ -1634,7 +1636,7 @@ class ConfiguracionSistema(models.Model):
         verbose_name="Nombre Concepto HE 100% en S10")
 
     # ── Integraciones: Telegram Bot ──────────────────────────────────────────
-    telegram_bot_token = models.CharField(
+    telegram_bot_token = EncryptedCharField(
         max_length=200, blank=True, default='',
         verbose_name="Token del Bot de Telegram",
         help_text="Token del bot de Telegram (obtenido desde @BotFather).")
@@ -1657,7 +1659,7 @@ class ConfiguracionSistema(models.Model):
         max_length=100, blank=True, default='',
         verbose_name="WhatsApp Phone Number ID",
         help_text="ID del número en Meta Developer Console (no el número real).")
-    whatsapp_access_token = models.CharField(
+    whatsapp_access_token = EncryptedCharField(
         max_length=500, blank=True, default='',
         verbose_name="WhatsApp Access Token",
         help_text="Token permanente de la Meta Business App para WhatsApp Cloud API.")
@@ -1669,7 +1671,7 @@ class ConfiguracionSistema(models.Model):
         max_length=200, blank=True, default='http://localhost:19000',
         verbose_name="OpenClaw Gateway URL",
         help_text="URL del gateway OpenClaw para envío de WhatsApp.")
-    openclaw_gateway_token = models.CharField(
+    openclaw_gateway_token = EncryptedCharField(
         max_length=200, blank=True, default='',
         verbose_name="OpenClaw Gateway Token",
         help_text="Token de autenticación para OpenClaw (si aplica).")
