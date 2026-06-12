@@ -463,16 +463,12 @@
   </form>
   {% endif %}
 
-  {# Aprobar #}
+  {# Aprobar — pasa primero por la pantalla de revisión (variance + flags) #}
   {% if puede_aprobar %}
   <div class="action-bar-divider"></div>
-  <form method="post" action="{% url 'nominas_periodo_aprobar' periodo.pk %}" class="d-inline">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-success btn-sm"
-            onclick="return confirm('¿Aprobar y cerrar el período?\n\nEsta acción bloquea la edición de todos los registros.')">
-      <i class="fas fa-check-circle me-1"></i>Aprobar período
-    </button>
-  </form>
+  <a href="{% url 'nominas_periodo_revision' periodo.pk %}" class="btn btn-success btn-sm">
+    <i class="fas fa-clipboard-check me-1"></i>Revisar y aprobar
+  </a>
   {% endif %}
 
   {# Exportar CSV #}

@@ -194,6 +194,21 @@ class PeriodoNomina(models.Model):
         help_text='UIT vigente al generar el período. Usada en IR 5ta categoría.',
     )
 
+    # Snapshot COMPLETO de parámetros legales al generar (tasas AFP por
+    # administradora, ONP, EsSalud, tope RMA, asignación familiar). Permite
+    # responder "¿con qué reglas se calculó esta boleta?" ante una
+    # fiscalización, aunque la SBS/ConfiguracionSistema cambie después.
+    parametros_snapshot = models.JSONField(
+        default=dict, blank=True,
+        verbose_name='Parámetros legales congelados',
+    )
+
+    # Flags de la revisión pre-aprobación descartados por el admin.
+    # clave (TIPO:personal_id) → {'por': username, 'en': iso8601, 'mensaje': str}
+    # Advertencia ≠ bloqueo: se puede aprobar con flags, pero queda registro
+    # de quién decidió ignorar cada uno.
+    flags_descartados = models.JSONField(default=dict, blank=True)
+
     generado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name='+')
     generado_en  = models.DateTimeField(null=True, blank=True)

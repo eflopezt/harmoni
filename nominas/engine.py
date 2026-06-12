@@ -83,6 +83,34 @@ def _get_tasas_afp(afp_nombre: str) -> dict:
     return AFP_TASAS.get(afp_nombre, AFP_TASAS['Prima'])
 
 
+def snapshot_parametros_legales() -> dict:
+    """
+    Captura los parámetros legales vigentes (con overrides de
+    ConfiguracionSistema aplicados) para congelarlos en
+    PeriodoNomina.parametros_snapshot al generar la planilla.
+    Todos los valores como str para serialización JSON estable.
+    """
+    from django.utils import timezone
+
+    return {
+        'capturado_en': timezone.now().isoformat(),
+        'rmv': str(_get_rmv()),
+        'uit': str(_get_uit()),
+        'asignacion_familiar': str(_redondear(_get_rmv() * Decimal('0.10'))),
+        'onp_tasa': str(ONP_TASA),
+        'essalud_tasa': str(ESSALUD_TASA),
+        'afp_aporte': str(AFP_APORTE),
+        'afp_tope_rma': str(_get_tope_rma()),
+        'afp_tasas': {
+            nombre: {
+                'comision_flujo': str(_get_tasas_afp(nombre)['comision_flujo']),
+                'seguro': str(_get_tasas_afp(nombre)['seguro']),
+            }
+            for nombre in AFP_TASAS
+        },
+    }
+
+
 def _get_tope_rma() -> Decimal:
     """Lee el tope RMA AFP. Prioridad: ConfiguracionSistema > constante."""
     try:
@@ -1119,6 +1147,8 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
         periodo.rmv_snapshot = _get_rmv()
     if not getattr(periodo, 'uit_snapshot', None) or Decimal(periodo.uit_snapshot or 0) <= 0:
         periodo.uit_snapshot = _get_uit()
+    if not getattr(periodo, 'parametros_snapshot', None):
+        periodo.parametros_snapshot = snapshot_parametros_legales()
 
     qs = Personal.objects.filter(estado='Activo')
     if grupo:

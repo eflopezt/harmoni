@@ -1,0 +1,232 @@
+{% extends "base_v2.html" %}
+{% block title %}Revisión — {{ periodo }}{% endblock %}
+
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet">
+    <span class="hex"></span>Revisión antes de aprobar · {{ periodo.mes }}/{{ periodo.anio }}
+  </div>
+  <h1>Revisar y <span class="accent">aprobar</span> la planilla</h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Qué cambió vs el mes anterior, qué requiere tu atención y cuánto va a salir de la cuenta — todo en una pantalla, antes de confirmar.
+  </p>
+</section>
+{% endblock %}
+
+{% block body %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+  <div>
+    <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+      <i class="fas fa-clipboard-check me-2" style="color:#0f766e;"></i> Revisión del período
+    </h2>
+    <p style="margin:4px 0 0;color:#64748b;">
+      <strong>{{ periodo.mes }}/{{ periodo.anio }}</strong> · estado {{ periodo.get_estado_display|default:periodo.estado }}
+      {% if anterior %} · comparado con <strong>{{ anterior.mes }}/{{ anterior.anio }}</strong>{% else %} · sin mes anterior para comparar{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'nominas_periodo_detalle' periodo.pk %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Volver al período
+  </a>
+</div>
+
+<!-- Cifra hero: lo que va a salir de la cuenta -->
+<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;margin-bottom:22px;">
+  <div style="background:linear-gradient(135deg,#0f766e,#115e59);color:#fff;padding:18px 22px;border-radius:12px;">
+    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;opacity:.85;">
+      <i class="fas fa-university me-1"></i> A transferir a trabajadores
+    </div>
+    <div style="font-size:2rem;font-weight:800;line-height:1.2;">S/ {{ periodo.total_neto|floatformat:2 }}</div>
+    {% if delta_neto is not None %}
+    <div style="font-size:.82rem;opacity:.9;">
+      {% if delta_neto >= 0 %}+{% endif %}S/ {{ delta_neto|floatformat:2 }} vs mes anterior
+    </div>
+    {% endif %}
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:12px;border:1px solid #e2e8f0;">
+    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Trabajadores</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#0d2b27;">{{ stats.n }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:12px;border:1px solid #e2e8f0;">
+    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Costo empresa</div>
+    <div style="font-size:1.3rem;font-weight:800;color:#0d2b27;">S/ {{ periodo.total_costo_empresa|floatformat:2 }}</div>
+  </div>
+  <div style="background:#fff;padding:14px 18px;border-radius:12px;border:1px solid {% if flags_pendientes %}#fbbf24{% else %}#e2e8f0{% endif %};">
+    <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Flags pendientes</div>
+    <div style="font-size:1.6rem;font-weight:800;color:{% if flags_pendientes %}#b45309{% else %}#15803d{% endif %};">{{ flags_pendientes }}</div>
+  </div>
+</div>
+
+<!-- Flags por trabajador -->
+<div class="card" style="border:1px solid #e2e8f0;border-radius:12px;margin-bottom:22px;">
+  <div class="card-header" style="background:#fff;border-bottom:1px solid #e2e8f0;border-radius:12px 12px 0 0;">
+    <strong style="color:#0d2b27;"><i class="fas fa-flag me-2" style="color:#b45309;"></i>Revisión automática</strong>
+    <span style="color:#64748b;font-size:.85rem;"> — cada flag se puede descartar; queda registrado quién lo descartó</span>
+  </div>
+  <div class="card-body p-0">
+    {% if not flags %}
+    <div style="padding:22px;color:#15803d;"><i class="fas fa-check-circle me-2"></i>Sin observaciones — la planilla se ve consistente con el mes anterior.</div>
+    {% else %}
+    <table class="table table-sm align-middle mb-0">
+      <tbody>
+        {% for f in flags %}
+        <tr style="{% if f.descartado %}opacity:.5;{% endif %}">
+          <td style="width:36px;text-align:center;"><i class="{{ f.icon }}" style="color:{{ f.color }};"></i></td>
+          <td>
+            <strong>{{ f.registro.personal.apellidos_nombres|default:'—' }}</strong>
+            <div style="font-size:.85rem;color:#475569;">{{ f.mensaje }}</div>
+            {% if f.descartado %}
+            <div style="font-size:.75rem;color:#94a3b8;">Descartado por {{ f.descartado.por }} — {{ f.descartado.en|slice:":16" }}{% if f.descartado.mensaje %} · “{{ f.descartado.mensaje }}”{% endif %}</div>
+            {% endif %}
+          </td>
+          <td style="width:110px;">
+            <span class="badge" style="background:{% if f.severidad == 'critico' %}#dc2626{% elif f.severidad == 'warn' %}#d97706{% else %}#1d4ed8{% endif %};">{{ f.severidad }}</span>
+          </td>
+          <td style="width:130px;text-align:right;padding-right:14px;">
+            <form method="post" action="{% url 'nominas_periodo_flag_descartar' periodo.pk %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="flag_key" value="{{ f.key }}">
+              <button type="submit" class="btn btn-sm {% if f.descartado %}btn-outline-secondary{% else %}btn-outline-warning{% endif %}">
+                {% if f.descartado %}Restaurar{% else %}Descartar{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Variación por concepto -->
+<div class="card" style="border:1px solid #e2e8f0;border-radius:12px;margin-bottom:22px;">
+  <div class="card-header" style="background:#fff;border-bottom:1px solid #e2e8f0;border-radius:12px 12px 0 0;">
+    <strong style="color:#0d2b27;"><i class="fas fa-balance-scale me-2" style="color:#0f766e;"></i>Variación por concepto vs mes anterior</strong>
+  </div>
+  <div class="card-body p-0">
+    {% if not anterior %}
+    <div style="padding:22px;color:#64748b;">No hay un período anterior del mismo tipo para comparar.</div>
+    {% else %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr style="color:#475569;font-size:.78rem;text-transform:uppercase;">
+            <th style="padding-left:14px;">Concepto</th>
+            <th>Tipo</th>
+            <th class="text-end">{{ anterior.mes }}/{{ anterior.anio }}</th>
+            <th class="text-end">{{ periodo.mes }}/{{ periodo.anio }}</th>
+            <th class="text-end">Δ S/</th>
+            <th class="text-end" style="padding-right:14px;">Δ %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in variance %}
+          <tr style="{% if r.resaltar %}background:#fffbeb;{% endif %}">
+            <td style="padding-left:14px;">
+              {{ r.nombre }}
+              {% if r.nuevo %}<span class="badge bg-info ms-1">nuevo</span>{% endif %}
+              {% if r.desaparecio %}<span class="badge bg-secondary ms-1">ya no aparece</span>{% endif %}
+            </td>
+            <td><span style="font-size:.78rem;color:{% if r.tipo == 'INGRESO' %}#15803d{% else %}#dc2626{% endif %};">{{ r.tipo }}</span></td>
+            <td class="text-end">{{ r.total_ant|floatformat:2 }}</td>
+            <td class="text-end"><strong>{{ r.total_act|floatformat:2 }}</strong></td>
+            <td class="text-end" style="color:{% if r.delta >= 0 %}#15803d{% else %}#dc2626{% endif %};">{% if r.delta >= 0 %}+{% endif %}{{ r.delta|floatformat:2 }}</td>
+            <td class="text-end" style="padding-right:14px;color:{% if r.resaltar %}#b45309{% else %}#64748b{% endif %};">{% if r.pct >= 0 %}+{% endif %}{{ r.pct|floatformat:1 }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Resumen en lenguaje humano -->
+<div class="accordion mb-4" id="acordeonResumen">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#acc1">
+        <i class="fas fa-users me-2" style="color:#0f766e;"></i>&nbsp;Qué cobran tus trabajadores
+      </button>
+    </h2>
+    <div id="acc1" class="accordion-collapse collapse show" data-bs-parent="#acordeonResumen">
+      <div class="accordion-body" style="color:#334155;">
+        {{ stats.n }} trabajador{{ stats.n|pluralize:"es" }} recibirá{{ stats.n|pluralize:"n" }} en total
+        <strong>S/ {{ periodo.total_neto|floatformat:2 }}</strong>.
+        Neto promedio S/ {{ stats.neto_prom|floatformat:2 }} · mínimo S/ {{ stats.neto_min|floatformat:2 }} · máximo S/ {{ stats.neto_max|floatformat:2 }}.
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc2">
+        <i class="fas fa-landmark me-2" style="color:#b45309;"></i>&nbsp;Qué se retiene y declara
+      </button>
+    </h2>
+    <div id="acc2" class="accordion-collapse collapse" data-bs-parent="#acordeonResumen">
+      <div class="accordion-body" style="color:#334155;">
+        Retenciones a trabajadores (AFP/ONP, IR 5ta, préstamos, judiciales):
+        <strong>S/ {{ retenciones|floatformat:2 }}</strong>.
+        El detalle por concepto está en la tabla de variación; estos montos van a
+        PLAME/AFPnet del período.
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc3">
+        <i class="fas fa-building me-2" style="color:#1d4ed8;"></i>&nbsp;Qué paga la empresa
+      </button>
+    </h2>
+    <div id="acc3" class="accordion-collapse collapse" data-bs-parent="#acordeonResumen">
+      <div class="accordion-body" style="color:#334155;">
+        Costo total del período: <strong>S/ {{ periodo.total_costo_empresa|floatformat:2 }}</strong>
+        (incluye EsSalud S/ {{ stats.essalud|floatformat:2 }} además de la planilla bruta
+        S/ {{ periodo.total_bruto|floatformat:2 }}).
+      </div>
+    </div>
+  </div>
+  {% if parametros %}
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acc4">
+        <i class="fas fa-gavel me-2" style="color:#475569;"></i>&nbsp;Parámetros legales congelados de este período
+      </button>
+    </h2>
+    <div id="acc4" class="accordion-collapse collapse" data-bs-parent="#acordeonResumen">
+      <div class="accordion-body" style="color:#334155;font-size:.9rem;">
+        RMV S/ {{ parametros.rmv }} · UIT S/ {{ parametros.uit }} ·
+        Asig. familiar S/ {{ parametros.asignacion_familiar }} ·
+        ONP {{ parametros.onp_tasa }}% · EsSalud {{ parametros.essalud_tasa }}% ·
+        Aporte AFP {{ parametros.afp_aporte }}% · Tope RMA S/ {{ parametros.afp_tope_rma }}
+        <div style="margin-top:8px;">
+          {% for nombre, t in parametros.afp_tasas.items %}
+          <span class="badge bg-light text-dark border me-1">{{ nombre }}: {{ t.comision_flujo }}% + {{ t.seguro }}%</span>
+          {% endfor %}
+        </div>
+        <div style="margin-top:8px;color:#94a3b8;font-size:.78rem;">
+          Capturados al generar la planilla ({{ parametros.capturado_en|slice:":16" }}) —
+          cambios posteriores de configuración no afectan este período.
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Aprobar -->
+{% if puede_aprobar %}
+<div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:30px;">
+  <form method="post" action="{% url 'nominas_periodo_aprobar' periodo.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-success"
+            onclick="return confirm('¿Aprobar el período?\n\n{% if flags_pendientes %}Hay {{ flags_pendientes }} flag(s) sin revisar.\n\n{% endif %}Se bloquea la edición y se notifica a los trabajadores.')">
+      <i class="fas fa-check-circle me-1"></i>
+      Aprobar período{% if flags_pendientes %} ({{ flags_pendientes }} flags sin revisar){% endif %}
+    </button>
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}

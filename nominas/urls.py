@@ -9,6 +9,7 @@ from . import views_mi_dia
 from . import views_calculadora
 from . import views_workflow_mes
 from . import views_anomalias
+from . import views_variance
 from . import views_reporte_mes
 from . import views_calc_especializadas
 from . import views_interanual
@@ -66,6 +67,10 @@ urlpatterns = [
                                       name='workflow_mes'),
     path('anomalias/<int:pk>/',       views_anomalias.anomalias_periodo,
                                       name='nominas_anomalias_periodo'),
+    path('periodos/<int:pk>/revision/', views_variance.periodo_revision,
+                                      name='nominas_periodo_revision'),
+    path('periodos/<int:pk>/revision/descartar/', views_variance.periodo_flag_descartar,
+                                      name='nominas_periodo_flag_descartar'),
     path('periodos/<int:pk>/reporte-ejecutivo.pdf', views_reporte_mes.reporte_ejecutivo_pdf,
                                       name='nominas_reporte_ejecutivo_pdf'),
     path('calculadora/',              views_calculadora.calculadora_planilla,
