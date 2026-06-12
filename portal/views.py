@@ -1276,6 +1276,61 @@ def mis_evaluaciones(request):
 
 
 # ──────────────────────────────────────────────────────────────
+# Mi Adelanto de Sueldo — EWA sobre devengado (portal)
+# ──────────────────────────────────────────────────────────────
+
+@login_required
+def mi_adelanto(request):
+    """El trabajador solicita un adelanto contra sus días ya trabajados.
+
+    El tope es el 50% del devengado del ciclo de planilla en curso; la
+    solicitud entra al flujo normal de préstamos (RRHH aprueba/desembolsa)
+    y la cuota única se descuenta sola en la planilla del período.
+    """
+    from django.contrib import messages
+    from django.shortcuts import redirect
+
+    from prestamos import ewa
+    from prestamos.models import Prestamo
+
+    empleado = _get_empleado(request.user)
+    context = {'empleado': empleado}
+
+    if not empleado:
+        return render(request, 'portal/mi_adelanto.html', context)
+
+    if request.method == 'POST':
+        try:
+            prestamo = ewa.solicitar_adelanto(
+                empleado,
+                monto=request.POST.get('monto', ''),
+                usuario=request.user,
+                motivo=(request.POST.get('motivo') or '').strip()[:500],
+            )
+            messages.success(
+                request,
+                f'Solicitud registrada por S/ {prestamo.monto_solicitado}. '
+                f'RRHH la revisará; el descuento se aplicará en tu planilla del período.'
+            )
+            return redirect('portal_mi_adelanto')
+        except ewa.EWAError as e:
+            messages.error(request, str(e))
+
+    info = ewa.calcular_disponible(empleado)
+    solicitudes = list(
+        Prestamo.objects.filter(personal=empleado, tipo__codigo=ewa.TIPO_CODIGO)
+        .order_by('-fecha_solicitud', '-creado_en')[:10]
+    )
+    context.update({
+        'info': info,
+        'pct_tope': int(ewa.PCT_TOPE_DEVENGADO * 100),
+        'monto_minimo': ewa.MONTO_MINIMO,
+        'solicitudes': solicitudes,
+    })
+    return render(request, 'portal/mi_adelanto.html', context)
+
+
+# ──────────────────────────────────────────────────────────────
 # Mis Capacitaciones (portal del trabajador)
 # ──────────────────────────────────────────────────────────────
 

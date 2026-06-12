@@ -1,0 +1,134 @@
+{% extends 'portal/base_portal.html' %}
+
+{% block title %}Adelanto de Sueldo{% endblock %}
+
+{% block mobile_title %}Adelanto de Sueldo{% endblock %}
+
+{% block page_title %}
+<h1 class="topbar-h1"><i class="fas fa-hand-holding-dollar me-2 text-success"></i>Adelanto de Sueldo</h1>
+{% endblock %}
+
+{% block portal_content %}
+
+{% if not empleado %}
+<div class="alert alert-warning">Tu usuario no está vinculado a un empleado. Contacta a RRHH o TI.</div>
+{% else %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+      <div class="stat-value">{{ info.dias_devengados }}</div>
+      <div class="stat-label">Días trabajados del ciclo</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-coins"></i></div>
+      <div class="stat-value">S/ {{ info.devengado|floatformat:2 }}</div>
+      <div class="stat-label">Devengado a hoy</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-clock"></i></div>
+      <div class="stat-value">S/ {{ info.comprometido|floatformat:2 }}</div>
+      <div class="stat-label">Adelantos en trámite</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-card--success">
+      <div class="stat-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+      <div class="stat-value">S/ {{ info.disponible|floatformat:2 }}</div>
+      <div class="stat-label">Disponible para adelanto</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <span><i class="fas fa-paper-plane me-2 text-success"></i>Solicitar adelanto</span>
+      </div>
+      <div class="dash-card-body">
+        <p class="text-muted" style="font-size:.85rem">
+          Puedes adelantar hasta el <strong>{{ pct_tope }}%</strong> de lo que ya trabajaste
+          en el ciclo <strong>{{ info.ciclo.label }}</strong>. RRHH revisa tu solicitud y,
+          si se aprueba, el monto se descuenta íntegro en tu planilla del período.
+        </p>
+        {% if info.disponible >= monto_minimo %}
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Monto a solicitar (S/)</label>
+            <input type="number" name="monto" class="form-control" required
+                   min="{{ monto_minimo }}" max="{{ info.disponible }}" step="0.01"
+                   placeholder="Mínimo S/ {{ monto_minimo }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Motivo (opcional)</label>
+            <textarea name="motivo" class="form-control" rows="2" maxlength="500"
+                      placeholder="Ej. emergencia familiar"></textarea>
+          </div>
+          <button type="submit" class="btn btn-success w-100">
+            <i class="fas fa-paper-plane me-2"></i>Enviar solicitud
+          </button>
+        </form>
+        {% else %}
+        <div class="alert alert-secondary mb-0" style="font-size:.85rem">
+          Por ahora no tienes saldo disponible para adelantar
+          (mínimo S/ {{ monto_minimo }}). El disponible crece con cada día trabajado.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <span><i class="fas fa-history me-2 text-success"></i>Mis solicitudes</span>
+      </div>
+      <div class="dash-card-body p-0">
+        {% if solicitudes %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0" style="font-size:.85rem">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th class="text-end">Monto</th>
+                <th>Estado</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in solicitudes %}
+              <tr>
+                <td>{{ s.fecha_solicitud|date:"d/m/Y" }}</td>
+                <td class="text-end">S/ {{ s.monto_solicitado|floatformat:2 }}</td>
+                <td>
+                  {% if s.estado == 'PENDIENTE' %}<span class="badge bg-warning text-dark">Pendiente</span>
+                  {% elif s.estado == 'APROBADO' %}<span class="badge bg-info">Aprobado</span>
+                  {% elif s.estado == 'EN_CURSO' %}<span class="badge bg-success">Desembolsado</span>
+                  {% elif s.estado == 'PAGADO' %}<span class="badge bg-secondary">Descontado</span>
+                  {% elif s.estado == 'RECHAZADO' %}<span class="badge bg-danger">Rechazado</span>
+                  {% else %}<span class="badge bg-light text-dark">{{ s.get_estado_display }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted">{{ s.motivo|truncatechars:40 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-3 text-muted" style="font-size:.85rem">Aún no has solicitado adelantos.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}

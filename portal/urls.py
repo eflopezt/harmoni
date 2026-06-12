@@ -43,6 +43,8 @@ urlpatterns = [
     path('mi-onboarding/', mi_onboarding_portal, name='mi_onboarding_portal'),
     # Mi Nómina / Recibos de Sueldo
     path('mi-nomina/', views.mi_nomina, name='portal_mi_nomina'),
+    # Mi Adelanto de Sueldo (EWA sobre devengado)
+    path('mi-adelanto/', views.mi_adelanto, name='portal_mi_adelanto'),
     # Mis Evaluaciones de Desempeño
     path('mis-evaluaciones/', views.mis_evaluaciones, name='portal_mis_evaluaciones'),
     # Mis Capacitaciones
