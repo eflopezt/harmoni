@@ -60,7 +60,25 @@ class SubAreaForm(forms.ModelForm):
                 w.attrs.setdefault('class', 'form-control')
 
 
+# Campos que determinan A DÓNDE se le paga al trabajador. Cambiarlos es la
+# acción más atacada en sistemas de nómina (fraude "payroll pirates": tomar
+# una cuenta admin y desviar el sueldo). Por eso su edición exige confirmar
+# la contraseña del usuario y dispara notificación al trabajador.
+CAMPOS_PAGO = (
+    'banco', 'cuenta_ahorros', 'cuenta_cci', 'cuenta_cts',
+    'medio_pago_haberes', 'billetera_tipo', 'billetera_celular',
+)
+
+
 class PersonalForm(forms.ModelForm):
+    password_confirma = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+        label='Tu contraseña (solo si cambias datos de pago)',
+        help_text='Por seguridad, cambiar banco/cuenta/billetera de un '
+                  'trabajador existente requiere confirmar tu contraseña.',
+    )
+
     class Meta:
         model = Personal
         fields = [
@@ -93,7 +111,8 @@ class PersonalForm(forms.ModelForm):
             'observaciones_contrato': forms.Textarea(attrs={'rows': 2}),
         }
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
+        self._user = user
         super().__init__(*args, **kwargs)
         # Asegurar que las fechas se muestren en el formato correcto
         if self.instance and self.instance.pk:
@@ -136,6 +155,37 @@ class PersonalForm(forms.ModelForm):
                 self.add_error('billetera_acuerdo',
                                'La Ley 32413 exige el acuerdo previo del trabajador '
                                'para pagar por billetera digital.')
+
+        # ── Validación de formato de cuentas (solo si el valor cambió, para
+        #    no bloquear ediciones de otros campos con data legacy imperfecta) ──
+        def _cambio(campo):
+            if not (self.instance and self.instance.pk):
+                return bool(cleaned.get(campo))
+            return str(cleaned.get(campo) or '') != str(getattr(self.instance, campo, '') or '')
+
+        cci = (cleaned.get('cuenta_cci') or '').replace(' ', '').replace('-', '')
+        if cci and _cambio('cuenta_cci'):
+            if not (cci.isdigit() and len(cci) == 20):
+                self.add_error('cuenta_cci',
+                               'El CCI debe tener exactamente 20 dígitos.')
+        for campo in ('cuenta_ahorros', 'cuenta_cts'):
+            val = (cleaned.get(campo) or '').replace(' ', '').replace('-', '')
+            if val and _cambio(campo) and not val.isdigit():
+                self.add_error(campo, 'La cuenta solo debe contener dígitos.')
+
+        # ── Re-autenticación al cambiar datos de pago (anti payroll-pirates) ──
+        self.campos_pago_cambiados = []
+        if self.instance and self.instance.pk:
+            self.campos_pago_cambiados = [c for c in CAMPOS_PAGO if _cambio(c)]
+            if self.campos_pago_cambiados:
+                pwd = cleaned.get('password_confirma') or ''
+                if not self._user or not pwd or not self._user.check_password(pwd):
+                    self.add_error(
+                        'password_confirma',
+                        'Estás cambiando los datos de pago de este trabajador '
+                        f'({", ".join(self.campos_pago_cambiados)}). '
+                        'Confirma tu contraseña para continuar.'
+                    )
         return cleaned
 
 

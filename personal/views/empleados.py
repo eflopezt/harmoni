@@ -108,6 +108,51 @@ def personal_create(request):
     return render(request, 'personal/personal_form.html', context)
 
 
+def _notificar_cambio_datos_pago(personal, campos, usuario):
+    """
+    Notifica IN_APP al trabajador que sus datos de pago cambiaron.
+    No expone los valores (solo qué campos) — el objetivo es que el titular
+    detecte un cambio que él no pidió y lo reporte de inmediato.
+    """
+    from django.utils import timezone as _tz
+    try:
+        from comunicaciones.models import Notificacion
+        etiquetas = {
+            'banco': 'banco', 'cuenta_ahorros': 'cuenta de ahorros',
+            'cuenta_cci': 'CCI', 'cuenta_cts': 'cuenta CTS',
+            'medio_pago_haberes': 'medio de pago',
+            'billetera_tipo': 'billetera', 'billetera_celular': 'celular de billetera',
+        }
+        lista = ', '.join(etiquetas.get(c, c) for c in campos)
+        Notificacion.objects.create(
+            destinatario=personal,
+            asunto='Se actualizaron tus datos de pago',
+            cuerpo=(
+                'Hola,\n\n'
+                f'Se actualizó tu información de pago de haberes ({lista}).\n\n'
+                'Si tú solicitaste este cambio, no necesitas hacer nada.\n'
+                'Si NO reconoces este cambio, repórtalo de inmediato a '
+                'Recursos Humanos: tu próximo sueldo podría depositarse '
+                'a un destino que no es tuyo.\n\n'
+                'Gerencia de Recursos Humanos'
+            ),
+            tipo='IN_APP',
+            estado='ENVIADA',
+            enviada_en=_tz.now(),
+            metadata={
+                'tipo_evento': 'cambio_datos_pago',
+                'campos': list(campos),
+                'modificado_por': usuario.get_username() if usuario else '',
+            },
+        )
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning(
+            'No se pudo notificar cambio de datos de pago a %s', personal,
+            exc_info=True,
+        )
+
+
 @login_required
 def personal_update(request, pk):
     """Actualizar personal."""
@@ -123,7 +168,7 @@ def personal_update(request, pk):
         # Capturar valores anteriores para auditoría
         old_values = {f.name: getattr(personal, f.name) for f in personal._meta.fields}
 
-        form = PersonalForm(request.POST, instance=personal)
+        form = PersonalForm(request.POST, instance=personal, user=request.user)
         if form.is_valid():
             # Si es responsable, validar que el área pertenezca a su gerencia
             if es_responsable_area(request.user) and not request.user.is_superuser:
@@ -148,6 +193,14 @@ def personal_update(request, pk):
                     cambios[field_name] = {'old': old_val, 'new': new_val}
             if cambios:
                 log_update(request, personal, cambios)
+
+            # ── Aviso al trabajador si cambiaron sus datos de pago ──
+            # (anti payroll-pirates: el titular se entera por canal propio
+            #  de cualquier cambio en a dónde se le deposita el sueldo)
+            if getattr(form, 'campos_pago_cambiados', None):
+                _notificar_cambio_datos_pago(
+                    personal, form.campos_pago_cambiados, request.user
+                )
 
             # ── Reproceso automático si cambió condición o grupo ──
             campos_reproceso = {'condicion', 'grupo_tareo'}

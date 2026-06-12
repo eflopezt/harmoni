@@ -204,6 +204,15 @@
                 {% if form.billetera_acuerdo.errors %}<div class="text-danger small">{{ form.billetera_acuerdo.errors.0 }}</div>{% endif %}
               </div>
             </div>
+            {% if form.instance.pk %}
+            {# Re-autenticación: cambiar el destino del sueldo exige confirmar contraseña #}
+            <div class="col-md-4">
+              <label class="form-label"><i class="fas fa-shield-alt me-1 text-warning"></i>{{ form.password_confirma.label }}</label>
+              {{ form.password_confirma }}
+              <div class="form-text">{{ form.password_confirma.help_text }}</div>
+              {% if form.password_confirma.errors %}<div class="text-danger small">{{ form.password_confirma.errors.0 }}</div>{% endif %}
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>
