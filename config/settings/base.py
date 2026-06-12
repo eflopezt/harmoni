@@ -361,6 +361,14 @@ CELERY_TASK_TIME_LIMIT = 600  # 10 minutos
 from celery.schedules import crontab
 
 CELERY_BEAT_SCHEDULE = {
+    # ── Comunicaciones ──────────────────────────────────────────
+    # Digest diario del Centro de Acción: UN email con todos los
+    # pendientes de aprobación (patrón Workday 7:15am). No envía si
+    # no hay pendientes.
+    'digest-diario-admins': {
+        'task': 'comunicaciones.tasks.enviar_digest_diario_admins',
+        'schedule': crontab(hour=7, minute=15, day_of_week='1-5'),  # Lun-Vie 07:15
+    },
     # ── Asistencia ──────────────────────────────────────────────
     'resumen-semanal-asistencia': {
         'task': 'asistencia.tasks.enviar_resumen_semanal_asistencia',
