@@ -204,6 +204,8 @@ urlpatterns = [
     path('precios/', __import__('core.views_precios', fromlist=['precios']).precios, name='precios_publico'),
     # Página pública de seguridad y compliance
     path('seguridad/', __import__('core.views_seguridad', fromlist=['seguridad']).seguridad, name='seguridad_publica'),
+    # RFC 9116 — contacto para reportes de vulnerabilidades
+    path('.well-known/security.txt', __import__('core.views_seguridad', fromlist=['security_txt']).security_txt, name='security_txt'),
     # Página pública de clientes y testimonios
     path('clientes/', __import__('core.views_clientes', fromlist=['clientes']).clientes, name='clientes_publico'),
     # Sales Hub — hub central de material comercial

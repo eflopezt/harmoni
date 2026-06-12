@@ -24,11 +24,13 @@ CATEGORIAS = [
         'color':     '#0891b2',
         'items': [
             'Ley N° 29733 — Protección de Datos Personales (Perú)',
-            'D.S. N° 003-2013-JUS — Reglamento de la ley',
+            'D.S. N° 016-2024-JUS — Reglamento vigente desde marzo 2025 '
+            '(notificación de brechas a la ANPD en 48 horas: es nuestro compromiso contractual)',
             'D.S. 009-2011-TR — Acuse de recibo de boletas electrónicas',
             'D.Leg. 854 — Jornada de trabajo (turno nocturno 35%)',
             'D.Leg. 728 + 727 — Regímenes laborales soportados',
             'DS 001-98-TR — Boletas de pago (datos obligatorios)',
+            'Acuerdo de tratamiento de datos (DPA) disponible para clientes',
         ],
     },
     {
@@ -49,6 +51,10 @@ CATEGORIAS = [
         'icon':      'fa-user-shield',
         'color':     '#dc2626',
         'items': [
+            'Verificación en dos pasos (MFA TOTP) con app autenticadora — '
+            'el código QR se genera en nuestro servidor, el secreto nunca sale a terceros',
+            'Cambio de cuenta bancaria/billetera de un trabajador exige '
+            're-confirmar contraseña y notifica al trabajador (anti-fraude de desvío de sueldos)',
             'Perfiles de acceso granulares (4 niveles: admin, gerente, RRHH, trabajador)',
             'Worker access middleware — workers solo ven SU data',
             'Session timeout configurable (default 8 horas)',
@@ -87,7 +93,7 @@ CATEGORIAS = [
 CERTIFICACIONES = [
     {'nombre': 'SUNAT', 'desc': 'Formatos PLAME, T-Registro, AFPnet 2026 actualizados', 'icon': 'fa-file-invoice', 'color': '#dc2626'},
     {'nombre': 'MTPE', 'desc': 'Cumplimiento DS 001-98-TR + DS 009-2011-TR', 'icon': 'fa-stamp', 'color': '#0891b2'},
-    {'nombre': 'INDECOPI', 'desc': 'Ley 29733 datos personales — registros formales', 'icon': 'fa-shield-alt', 'color': '#16a34a'},
+    {'nombre': 'MINJUS / ANPD', 'desc': 'Ley 29733 + D.S. 016-2024-JUS — protección de datos personales', 'icon': 'fa-shield-alt', 'color': '#16a34a'},
 ]
 
 
@@ -96,3 +102,15 @@ def seguridad(request):
         'categorias':       CATEGORIAS,
         'certificaciones':  CERTIFICACIONES,
     })
+
+
+def security_txt(request):
+    """RFC 9116 — punto de contacto para reportes de vulnerabilidades."""
+    from django.http import HttpResponse
+    cuerpo = (
+        "Contact: mailto:elopez@harmoni.pe\n"
+        "Preferred-Languages: es, en\n"
+        "Policy: https://harmoni.pe/seguridad/\n"
+        "Expires: 2027-06-30T00:00:00.000Z\n"
+    )
+    return HttpResponse(cuerpo, content_type='text/plain; charset=utf-8')
