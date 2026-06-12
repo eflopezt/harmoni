@@ -564,6 +564,18 @@ def periodo_cerrar(request, pk):
         except Exception:
             logger.warning('No se pudieron marcar cuotas de préstamo al cerrar %s', pk, exc_info=True)
 
+        # Mismo patrón para descuentos judiciales (embargo/pensión): registrar
+        # la aplicación del mes para que el saldo baje, el embargo de monto
+        # fijo se detenga al completarse y el estado avance a PAGADO.
+        try:
+            from descuentos.services import registrar_aplicaciones_cierre
+            n = registrar_aplicaciones_cierre(periodo)
+            if n:
+                logger.info('Cierre %s: %s aplicación(es) de descuento registradas', pk, n)
+        except Exception:
+            logger.warning('No se pudieron registrar aplicaciones de descuento al cerrar %s',
+                           pk, exc_info=True)
+
     messages.success(request, f'Período {periodo} cerrado definitivamente.')
     return redirect('nominas_periodo_detalle', pk=pk)
 

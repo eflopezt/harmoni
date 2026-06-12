@@ -735,11 +735,23 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     _pers = getattr(p, 'personal', None)
     if _pers is not None and getattr(_pers, 'pk', None):
         try:
+            from django.db.models import Q as _Q
+
             from descuentos.models import DescuentoPlanilla
             _desc_legales = afp_aporte + afp_comision + afp_seguro + onp + ir_5ta
-            for d in DescuentoPlanilla.objects.filter(
-                    personal=_pers, estado='EN_CURSO',
-                    causal__in=['EMBARGO_JUDICIAL', 'PENSION_ALIMENTICIA']):
+            # APROBADO también cuenta: el flujo de aprobación deja el descuento
+            # en APROBADO y nadie lo movía a EN_CURSO, así que un embargo
+            # aprobado jamás llegaba a la planilla. Se respeta fecha_inicio si
+            # está en el futuro (aún no empieza).
+            _fin_periodo = getattr(getattr(p, 'periodo', None), 'fecha_fin', None)
+            _qs_jud = DescuentoPlanilla.objects.filter(
+                personal=_pers, estado__in=['APROBADO', 'EN_CURSO'],
+                causal__in=['EMBARGO_JUDICIAL', 'PENSION_ALIMENTICIA'])
+            if _fin_periodo is not None:
+                _qs_jud = _qs_jud.filter(
+                    _Q(fecha_inicio_descuento__isnull=True)
+                    | _Q(fecha_inicio_descuento__lte=_fin_periodo))
+            for d in _qs_jud:
                 _cuota = _redondear(d.cuota_mensual or 0)
                 _saldo = _redondear(getattr(d, 'saldo_pendiente', None) or _cuota)
                 if _saldo > 0:
