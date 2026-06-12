@@ -211,6 +211,8 @@ urlpatterns = [
     # Demo guiado contratación 5 minutos
     path('demos/contratar/', __import__('core.views_demo_contratar', fromlist=['demo_contratar']).demo_contratar, name='demo_contratar'),
     path('admin/', admin.site.urls),
+    # MFA TOTP (segundo factor con app autenticadora)
+    path('cuenta/2fa/', include('core.urls_mfa')),
     path('', include('personal.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

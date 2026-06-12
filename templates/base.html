@@ -1090,6 +1090,11 @@
                         <i class="fas fa-key me-2 text-muted"></i>Cambiar Contraseña
                     </a>
                 </li>
+                <li>
+                    <a class="dropdown-item" href="{% url 'mfa_estado' %}">
+                        <i class="fas fa-shield-alt me-2 text-muted"></i>Verificación en dos pasos
+                    </a>
+                </li>
                 <li><hr class="dropdown-divider my-1"></li>
                 <li>
                     <a class="dropdown-item text-danger" href="{% url 'logout' %}">

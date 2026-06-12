@@ -1,0 +1,23 @@
+{% extends "base_v2.html" %}
+{% block title %}Verificación{% endblock %}
+
+{% block body %}
+<div style="max-width:420px;margin:60px auto;text-align:center;">
+  <div style="font-size:2.4rem;color:#0f766e;"><i class="fas fa-shield-alt"></i></div>
+  <h2 style="color:#0d2b27;font-weight:800;">Verificación en dos pasos</h2>
+  <p style="color:#64748b;">Ingresa el código de tu app autenticadora para continuar.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <input type="text" name="token" class="form-control text-center mx-auto" inputmode="numeric"
+           pattern="[0-9 ]*" maxlength="7" placeholder="000000" required autofocus
+           style="max-width:180px;font-size:1.5rem;letter-spacing:.25em;margin-bottom:14px;">
+    <button type="submit" class="btn btn-success w-100" style="max-width:180px;">Verificar</button>
+  </form>
+
+  <p style="margin-top:18px;">
+    <a href="{% url 'logout' %}" style="color:#94a3b8;font-size:.9rem;">Cerrar sesión</a>
+  </p>
+</div>
+{% endblock %}

@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'django_celery_beat',
     'django_celery_results',
+    # MFA TOTP (apps autenticadoras) — core/views_mfa.py
+    'django_otp',
+    'django_otp.plugins.otp_totp',
     
     # Humanize (formato de números)
     'django.contrib.humanize',
@@ -76,6 +79,11 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # MFA: marca request.user.is_verified() segun el device OTP de la sesion.
+    'django_otp.middleware.OTPMiddleware',
+    # Si el usuario tiene MFA confirmado y no verifico en esta sesion,
+    # lo redirige a /cuenta/2fa/verificar/ (core/middleware_mfa.py).
+    'core.middleware_mfa.MFAEnforceMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # CSP — solo activa si la libreria esta instalada (audit security fix)

@@ -1,0 +1,45 @@
+{% extends "base_v2.html" %}
+{% block title %}Verificación en dos pasos{% endblock %}
+
+{% block body %}
+<div style="max-width:640px;margin:30px auto;">
+  <h2 style="color:#0d2b27;font-weight:800;">
+    <i class="fas fa-shield-alt me-2" style="color:#0f766e;"></i>Verificación en dos pasos (MFA)
+  </h2>
+  <p style="color:#64748b;">
+    Con MFA activo, iniciar sesión requiere tu contraseña <strong>y</strong> un código
+    de tu app autenticadora. Protege la planilla aunque te roben la contraseña.
+  </p>
+
+  {% if device %}
+  <div class="card" style="border:1px solid #bbf7d0;border-radius:12px;">
+    <div class="card-body">
+      <p style="color:#15803d;margin:0 0 12px;">
+        <i class="fas fa-check-circle me-1"></i><strong>MFA activo</strong>
+        — dispositivo «{{ device.name }}».
+      </p>
+      <form method="post" action="{% url 'mfa_desactivar' %}" class="d-flex gap-2"
+            onsubmit="return confirm('¿Desactivar la verificación en dos pasos?')">
+        {% csrf_token %}
+        <input type="password" name="password" class="form-control" style="max-width:260px;"
+               placeholder="Tu contraseña" required autocomplete="current-password">
+        <button type="submit" class="btn btn-outline-danger">Desactivar MFA</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="card" style="border:1px solid #fde68a;border-radius:12px;">
+    <div class="card-body">
+      <p style="color:#b45309;margin:0 0 12px;">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        <strong>MFA inactivo.</strong> Recomendado para todos los usuarios con
+        acceso a planillas y datos bancarios.
+      </p>
+      <a href="{% url 'mfa_activar' %}" class="btn btn-success">
+        <i class="fas fa-qrcode me-1"></i>Activar con app autenticadora
+      </a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
