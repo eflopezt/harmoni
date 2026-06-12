@@ -56,6 +56,9 @@ services:
       # backup_db_diario (03:30) corre AQUI — sin este mount los dumps
       # quedaban dentro del contenedor efimero y se perdian al recrear.
       - /opt/harmoni/backups:/opt/harmoni/backups
+      # deploy/ esta en .dockerignore (para que .env.production jamas entre
+      # a la imagen), asi que el script de backup se monta read-only.
+      - /opt/harmoni/app/deploy/backup-db.sh:/app/deploy/backup-db.sh:ro
     command: >
       celery -A config worker
         --loglevel=info
