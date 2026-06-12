@@ -67,3 +67,5 @@ django-celery-results>=2.5.0
 # SECURITY
 # ==========================================
 django-cors-headers>=4.3.0
+django-otp>=1.5         # MFA TOTP (apps autenticadoras) — core/views_mfa.py
+qrcode[pil]>=7.4.0      # QR verificacion boletas (DS 009-2011-TR) + QR setup MFA
