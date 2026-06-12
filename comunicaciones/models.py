@@ -483,3 +483,13 @@ class CampanaComunicacion(models.Model):
         if not self.destinatarios_count:
             return 0
         return round(self.enviados_ok / self.destinatarios_count * 100, 1)
+
+    @property
+    def tasa_exito(self):
+        """Alias de tasa_exito_pct (nombre que usan templates y tests)."""
+        return self.tasa_exito_pct
+
+    @property
+    def es_editable(self):
+        """Solo los borradores se editan; una campaña enviada es histórica."""
+        return self.estado == 'BORRADOR'

@@ -700,6 +700,76 @@ def campanas_panel(request):
 
 
 @login_required
+@solo_admin
+def campana_crear(request):
+    """Crear campaña segmentada (antes la URL apuntaba al panel: no había
+    forma de crear una campaña desde la UI). accion=borrador la guarda con
+    el conteo de destinatarios pre-resuelto; accion=enviar la dispara ya."""
+    from comunicaciones.campana_service import enviar_campana
+    from comunicaciones.models import CampanaComunicacion
+    from comunicaciones.segmentacion import resolver_destinatarios
+    from personal.models import Area, SubArea
+
+    if request.method == 'POST':
+        def _ids(nombre):
+            return [int(x) for x in request.POST.getlist(nombre) if str(x).isdigit()]
+
+        campana = CampanaComunicacion(
+            nombre=(request.POST.get('nombre') or '').strip(),
+            asunto=(request.POST.get('asunto') or '').strip(),
+            cuerpo=request.POST.get('cuerpo', ''),
+            canal=request.POST.get('canal', 'IN_APP'),
+            filtro_area_ids=_ids('filtro_area_ids'),
+            filtro_subarea_ids=_ids('filtro_subarea_ids'),
+            filtro_cargo=(request.POST.get('filtro_cargo') or '').strip(),
+            filtro_grupo_tareo=(request.POST.get('filtro_grupo_tareo') or '').strip(),
+            filtro_empresa_ids=_ids('filtro_empresa_ids'),
+            filtro_solo_activos=request.POST.get('filtro_solo_activos') in ('on', '1'),
+            creado_por=request.user,
+        )
+        if not campana.nombre or not campana.asunto:
+            messages.error(request, 'Nombre y asunto son obligatorios.')
+            return redirect('com_campana_crear')
+
+        # Programación opcional
+        programada = request.POST.get('programada_para', '')
+        if programada:
+            from django.utils.dateparse import parse_datetime
+            dt = parse_datetime(programada)
+            if dt:
+                campana.programada_para = dt
+                campana.estado = 'PROGRAMADA'
+
+        campana.destinatarios_count = resolver_destinatarios(campana).count()
+        campana.save()
+
+        if request.POST.get('accion') == 'enviar':
+            try:
+                result = enviar_campana(campana, request.user)
+                messages.success(
+                    request,
+                    f'Campaña enviada: {result.get("ok", 0)} OK, '
+                    f'{result.get("fallidos", 0)} fallidos.')
+            except Exception as e:
+                messages.error(request, f'Campaña guardada pero el envío falló: {e}')
+        else:
+            messages.success(
+                request,
+                f'Borrador guardado ({campana.destinatarios_count} destinatarios).')
+        return redirect('com_campana_detalle', pk=campana.pk)
+
+    from empresas.models import Empresa
+    return render(request, 'comunicaciones/campana_form.html', {
+        'titulo':       'Nueva Campaña',
+        'canales':      CampanaComunicacion.CANAL_CHOICES,
+        'areas':        Area.objects.filter(activa=True).order_by('nombre'),
+        'subareas':     SubArea.objects.select_related('area').order_by('nombre'),
+        'grupos_tareo': [('STAFF', 'STAFF'), ('RCO', 'RCO')],
+        'empresas':     Empresa.objects.filter(activa=True).order_by('razon_social'),
+    })
+
+
+@login_required
 def campana_detalle(request, pk):
     """Detalle de campaña + stats."""
     from comunicaciones.models import CampanaComunicacion
@@ -718,23 +788,48 @@ def campana_detalle(request, pk):
 
 @login_required
 def campana_preview_destinatarios(request):
-    """AJAX: cuenta destinatarios según filtros (para mostrar en form)."""
+    """AJAX: cuenta destinatarios según filtros (para mostrar en form).
+
+    Acepta GET con query params abreviados (area_ids=1,2&cargo=...) o POST
+    con los nombres del formulario (filtro_cargo, filtro_solo_activos=on).
+    """
     from comunicaciones.segmentacion import resolver_destinatarios
     from comunicaciones.models import CampanaComunicacion
 
-    # Construir una campaña temporal con los filtros del GET
-    tmp = CampanaComunicacion(
-        filtro_area_ids=[int(x) for x in request.GET.get('area_ids', '').split(',') if x.strip().isdigit()],
-        filtro_subarea_ids=[int(x) for x in request.GET.get('subarea_ids', '').split(',') if x.strip().isdigit()],
-        filtro_cargo=request.GET.get('cargo', '').strip(),
-        filtro_grupo_tareo=request.GET.get('grupo_tareo', '').strip(),
-        filtro_empresa_ids=[int(x) for x in request.GET.get('empresa_ids', '').split(',') if x.strip().isdigit()],
-        filtro_solo_activos=request.GET.get('solo_activos', '1') == '1',
-    )
+    if request.method == 'POST':
+        src = request.POST
+
+        def _ids(nombre):
+            valores = src.getlist(nombre) or (src.get(nombre, '') or '').split(',')
+            return [int(x) for x in valores if str(x).strip().isdigit()]
+
+        tmp = CampanaComunicacion(
+            filtro_area_ids=_ids('filtro_area_ids'),
+            filtro_subarea_ids=_ids('filtro_subarea_ids'),
+            filtro_cargo=(src.get('filtro_cargo') or '').strip(),
+            filtro_grupo_tareo=(src.get('filtro_grupo_tareo') or '').strip(),
+            filtro_empresa_ids=_ids('filtro_empresa_ids'),
+            filtro_solo_activos=src.get('filtro_solo_activos', '1') in ('on', '1'),
+        )
+    else:
+        tmp = CampanaComunicacion(
+            filtro_area_ids=[int(x) for x in request.GET.get('area_ids', '').split(',') if x.strip().isdigit()],
+            filtro_subarea_ids=[int(x) for x in request.GET.get('subarea_ids', '').split(',') if x.strip().isdigit()],
+            filtro_cargo=request.GET.get('cargo', '').strip(),
+            filtro_grupo_tareo=request.GET.get('grupo_tareo', '').strip(),
+            filtro_empresa_ids=[int(x) for x in request.GET.get('empresa_ids', '').split(',') if x.strip().isdigit()],
+            filtro_solo_activos=request.GET.get('solo_activos', '1') == '1',
+        )
     qs = resolver_destinatarios(tmp)
     count = qs.count()
-    sample = list(qs.values('id', 'apellidos_nombres')[:5])
-    return JsonResponse({'count': count, 'sample': sample})
+    # Formato que consume el JS de campana_form.html (nombre + cargo);
+    # se mantienen los alias por compatibilidad de clientes previos.
+    sample = [
+        {'id': p['id'], 'nombre': p['apellidos_nombres'],
+         'apellidos_nombres': p['apellidos_nombres'], 'cargo': p['cargo'] or ''}
+        for p in qs.values('id', 'apellidos_nombres', 'cargo')[:5]
+    ]
+    return JsonResponse({'count': count, 'total': count, 'sample': sample})
 
 
 @login_required
