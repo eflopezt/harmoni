@@ -529,6 +529,40 @@ def _notificar_boletas_disponibles(periodo):
                 registro.personal, exc,
             )
             continue
+
+        # Payday email (best-effort, además del IN_APP): el correo de mayor
+        # apertura del producto — tono cálido, no notarial. Solo si el
+        # trabajador tiene email registrado; el SMTP inactivo lo deja en
+        # FALLIDA sin romper la aprobación.
+        email_trab = (registro.personal.correo_corporativo
+                      or registro.personal.correo_personal or '')
+        if email_trab:
+            try:
+                from comunicaciones.services import NotificacionService
+                NotificacionService.enviar(
+                    destinatario=registro.personal,
+                    asunto=f'💰 ¡Llegó tu pago de {periodo.mes_nombre}!',
+                    cuerpo=(
+                        f'<p>Hola {primer_nombre},</p>'
+                        f'<p>Tu boleta de <strong>{periodo.mes_nombre} {periodo.anio}</strong> '
+                        f'ya está lista. Neto a recibir: '
+                        f'<strong>S/ {registro.neto_a_pagar or 0:,.2f}</strong>.</p>'
+                        f'<p><a href="https://harmoni.pe/mi-portal/mi-nomina/">'
+                        f'Ver mi boleta</a> — revísala y confirma recepción '
+                        f'(DS 009-2011-TR). Si algo no te cuadra, en el portal '
+                        f'puedes pedir que te la expliquen línea por línea.</p>'
+                        f'<p>¡Buen día de pago! 🎉</p>'
+                    ),
+                    tipo='EMAIL',
+                    contexto={
+                        'registro_id': registro.pk,
+                        'periodo_id': periodo.pk,
+                        'tipo_evento': 'payday_email',
+                    },
+                )
+            except Exception:
+                logger.warning('Payday email falló para %s', registro.personal,
+                               exc_info=True)
     return count
 
 
