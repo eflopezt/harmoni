@@ -181,6 +181,29 @@
               {{ form.cuenta_cts }}
               {% if form.cuenta_cts.errors %}<div class="text-danger small">{{ form.cuenta_cts.errors.0 }}</div>{% endif %}
             </div>
+            {# Billetera digital — Ley 32413: requiere acuerdo del trabajador #}
+            <div class="col-md-3">
+              <label class="form-label">{{ form.medio_pago_haberes.label }}</label>
+              {{ form.medio_pago_haberes }}
+              {% if form.medio_pago_haberes.errors %}<div class="text-danger small">{{ form.medio_pago_haberes.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">{{ form.billetera_tipo.label }}</label>
+              {{ form.billetera_tipo }}
+              {% if form.billetera_tipo.errors %}<div class="text-danger small">{{ form.billetera_tipo.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">{{ form.billetera_celular.label }}</label>
+              {{ form.billetera_celular }}
+              {% if form.billetera_celular.errors %}<div class="text-danger small">{{ form.billetera_celular.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <div class="form-check mb-1" title="Ley 32413: el pago por billetera (Yape, Plin…) solo es válido con acuerdo previo del trabajador.">
+                {{ form.billetera_acuerdo }}
+                <label class="form-check-label" for="{{ form.billetera_acuerdo.id_for_label }}">{{ form.billetera_acuerdo.label }}</label>
+                {% if form.billetera_acuerdo.errors %}<div class="text-danger small">{{ form.billetera_acuerdo.errors.0 }}</div>{% endif %}
+              </div>
+            </div>
           </div>
         </div>
       </div>

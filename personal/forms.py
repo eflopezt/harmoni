@@ -71,6 +71,7 @@ class PersonalForm(forms.ModelForm):
             'fecha_nacimiento', 'sexo', 'celular', 'correo_personal', 'correo_corporativo',
             'direccion', 'ubigeo',
             'sueldo_base', 'banco', 'cuenta_ahorros', 'cuenta_cci', 'cuenta_cts',
+            'medio_pago_haberes', 'billetera_tipo', 'billetera_celular', 'billetera_acuerdo',
             'cond_trabajo_mensual', 'alimentacion_mensual', 'viaticos_mensual',
             'tiene_eps', 'eps_descuento_mensual',
             'grupo_tareo', 'condicion', 'regimen_laboral', 'regimen_turno',
@@ -120,6 +121,22 @@ class PersonalForm(forms.ModelForm):
                 widget.attrs.setdefault('class', 'form-control')
             else:
                 widget.attrs.setdefault('class', 'form-control')
+
+    def clean(self):
+        cleaned = super().clean()
+        # Ley 32413: pagar por billetera exige acuerdo del trabajador,
+        # billetera elegida y celular válido (9 dígitos, empieza en 9).
+        if cleaned.get('medio_pago_haberes') == 'BILLETERA':
+            if not cleaned.get('billetera_tipo'):
+                self.add_error('billetera_tipo', 'Selecciona la billetera (Yape, Plin…).')
+            cel = (cleaned.get('billetera_celular') or '').strip()
+            if not (len(cel) == 9 and cel.isdigit() and cel.startswith('9')):
+                self.add_error('billetera_celular', 'Celular inválido: 9 dígitos empezando en 9.')
+            if not cleaned.get('billetera_acuerdo'):
+                self.add_error('billetera_acuerdo',
+                               'La Ley 32413 exige el acuerdo previo del trabajador '
+                               'para pagar por billetera digital.')
+        return cleaned
 
 
 class RosterForm(forms.ModelForm):

@@ -579,6 +579,14 @@
       <li><hr class="dropdown-divider"></li>
       <li>
         <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BILLETERAS"
+           title="Trabajadores con acuerdo de pago por billetera (Ley 32413): Yape, Plin, Ligo, Kontigo">
+          <span style="background:#742284;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;"><i class="fas fa-mobile-screen"></i></span>
+          Billeteras — Yape / Plin (CSV)
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
            href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=GENERICO">
           <i class="fas fa-file-csv text-success"></i>
           Genérico — CSV universal

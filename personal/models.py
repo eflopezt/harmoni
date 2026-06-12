@@ -405,7 +405,47 @@ class Personal(models.Model):
         blank=True,
         verbose_name="Cuenta CTS"
     )
-    
+
+    # --- Pago por billetera digital (Ley 32413 + D.S. 011-2026-EF) ---
+    # El pago de haberes/CTS/gratificaciones por billetera (Yape, Plin, etc.)
+    # es legal SOLO con acuerdo previo del trabajador; el empleador no puede
+    # imponerlo. Sin acuerdo, el pago sigue por cuenta bancaria.
+    MEDIO_PAGO_CHOICES = [
+        ('CUENTA',    'Cuenta bancaria'),
+        ('BILLETERA', 'Billetera digital'),
+    ]
+    BILLETERA_CHOICES = [
+        ('YAPE',    'Yape'),
+        ('PLIN',    'Plin'),
+        ('LIGO',    'Ligo'),
+        ('KONTIGO', 'Kontigo'),
+        ('OTRA',    'Otra billetera'),
+    ]
+    medio_pago_haberes = models.CharField(
+        max_length=10,
+        choices=MEDIO_PAGO_CHOICES,
+        default='CUENTA',
+        verbose_name="Medio de pago de haberes",
+    )
+    billetera_tipo = models.CharField(
+        max_length=10,
+        choices=BILLETERA_CHOICES,
+        blank=True,
+        verbose_name="Billetera digital",
+    )
+    billetera_celular = models.CharField(
+        max_length=9,
+        blank=True,
+        verbose_name="Celular de la billetera",
+        help_text="9 dígitos, empieza en 9",
+    )
+    billetera_acuerdo = models.BooleanField(
+        default=False,
+        verbose_name="Acuerdo del trabajador (Ley 32413)",
+        help_text="El pago por billetera requiere acuerdo previo del trabajador; "
+                  "el empleador no puede imponerlo.",
+    )
+
     # --- Datos económicos ---
     sueldo_base = models.DecimalField(
         max_digits=10,
@@ -939,6 +979,18 @@ class Personal(models.Model):
     def es_confianza_o_direccion(self):
         """D.Leg. 854 art. 5: excluidos de jornada máxima, sin HE ni faltas."""
         return self.categoria in ('CONFIANZA', 'DIRECCION')
+
+    @property
+    def paga_por_billetera(self):
+        """True si el pago de haberes va por billetera digital (Ley 32413):
+        requiere medio BILLETERA + acuerdo del trabajador + celular válido
+        (9 dígitos, empieza en 9). Sin eso, paga por cuenta bancaria."""
+        cel = (self.billetera_celular or '').strip()
+        return (
+            self.medio_pago_haberes == 'BILLETERA'
+            and self.billetera_acuerdo
+            and len(cel) == 9 and cel.isdigit() and cel.startswith('9')
+        )
 
     @property
     def fecha_ingreso(self):

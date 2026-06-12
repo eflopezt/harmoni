@@ -49,6 +49,16 @@ def _registros_pagables(periodo):
     )
 
 
+def _split_por_medio_pago(registros):
+    """Separa los registros entre pago por cuenta bancaria y por billetera
+    digital (Ley 32413). Un trabajador va a billetera SOLO si tiene acuerdo
+    firmado y celular válido; en cualquier otro caso queda en cuenta."""
+    cuenta, billetera = [], []
+    for r in registros:
+        (billetera if r.personal.paga_por_billetera else cuenta).append(r)
+    return cuenta, billetera
+
+
 def _normalizar_cuenta(raw):
     """Limpia espacios y guiones de un número de cuenta."""
     return (raw or '').replace('-', '').replace(' ', '').strip()
@@ -229,16 +239,50 @@ def _generico_csv(periodo, registros):
 
 
 # ─────────────────────────────────────────────────────────────────────
+# Billeteras digitales — Yape / Plin / Ligo / Kontigo (Ley 32413)
+# ─────────────────────────────────────────────────────────────────────
+
+def _billeteras_csv(periodo, registros):
+    """CSV de dispersión a billeteras digitales.
+
+    Ley 32413 + D.S. 011-2026-EF: el pago de haberes/CTS/gratificaciones
+    vía billetera es válido solo con acuerdo previo del trabajador (la
+    selección ya viene filtrada por `paga_por_billetera`). El CSV sirve
+    para importar en las plataformas empresariales de pago masivo de cada
+    billetera o como sustento del abono manual.
+    """
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=',', lineterminator='\r\n')
+    w.writerow([
+        'DNI', 'Apellidos y Nombres', 'Billetera', 'Celular',
+        'Monto (S/)', 'Moneda', 'Referencia',
+    ])
+    for r in registros:
+        p = r.personal
+        w.writerow([
+            (p.nro_doc or '').strip(),
+            (p.apellidos_nombres or '').strip(),
+            p.get_billetera_tipo_display() if p.billetera_tipo else '',
+            (p.billetera_celular or '').strip(),
+            f'{r.neto_a_pagar:.2f}',
+            'PEN',
+            f'Pago haberes {periodo.anio}-{periodo.mes:02d}',
+        ])
+    return buf.getvalue(), 'Billeteras'
+
+
+# ─────────────────────────────────────────────────────────────────────
 # Dispatch + view
 # ─────────────────────────────────────────────────────────────────────
 
 GENERADORES = {
-    'BCP':       (_bcp_telecredito,   'txt'),
-    'BBVA':      (_bbva_netcash,      'csv'),
-    'SCOTIA':    (_scotia_telebanking,'csv'),
-    'INTERBANK': (_interbank_planillas,'txt'),
-    'BN':        (_bn_multired,       'txt'),
-    'GENERICO':  (_generico_csv,      'csv'),
+    'BCP':        (_bcp_telecredito,   'txt'),
+    'BBVA':       (_bbva_netcash,      'csv'),
+    'SCOTIA':     (_scotia_telebanking,'csv'),
+    'INTERBANK':  (_interbank_planillas,'txt'),
+    'BN':         (_bn_multired,       'txt'),
+    'GENERICO':   (_generico_csv,      'csv'),
+    'BILLETERAS': (_billeteras_csv,    'csv'),
 }
 
 
@@ -259,9 +303,20 @@ def periodo_archivo_banco(request, pk):
         messages.error(request, f'Banco no soportado: {banco}. Opciones: {", ".join(GENERADORES.keys())}')
         return redirect('nominas_periodo_detalle', pk=pk)
 
-    registros = list(_registros_pagables(periodo))
-    if not registros:
+    todos = list(_registros_pagables(periodo))
+    if not todos:
         messages.warning(request, 'No hay registros pagables en este período.')
+        return redirect('nominas_periodo_detalle', pk=pk)
+
+    # Ley 32413: quien paga por billetera sale del archivo de banco (evita
+    # doble pago si además tiene CCI) y viceversa.
+    por_cuenta, por_billetera = _split_por_medio_pago(todos)
+    registros = por_billetera if banco == 'BILLETERAS' else por_cuenta
+    if not registros:
+        detalle = ('ningún trabajador con acuerdo de billetera vigente'
+                   if banco == 'BILLETERAS'
+                   else 'todos los trabajadores pagables cobran por billetera')
+        messages.warning(request, f'Sin registros para este archivo: {detalle}.')
         return redirect('nominas_periodo_detalle', pk=pk)
 
     generador, ext = GENERADORES[banco]

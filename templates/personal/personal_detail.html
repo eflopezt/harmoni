@@ -325,6 +325,19 @@ document.getElementById('formDarBaja').addEventListener('submit', function(e) {
                             <dt>Cuenta CTS</dt>
                             <dd>{{ personal.cuenta_cts|default:"—" }}</dd>
                         </div>
+                        <div class="info-item">
+                            <dt>Medio de pago</dt>
+                            <dd>
+                                {% if personal.paga_por_billetera %}
+                                    <span class="badge" style="background:#742284;">
+                                        <i class="fas fa-mobile-screen me-1"></i>{{ personal.get_billetera_tipo_display }} · {{ personal.billetera_celular }}
+                                    </span>
+                                    <span class="text-muted small d-block">Acuerdo Ley 32413 registrado</span>
+                                {% else %}
+                                    Cuenta bancaria
+                                {% endif %}
+                            </dd>
+                        </div>
                     </div>
                 </div>
             </div>
