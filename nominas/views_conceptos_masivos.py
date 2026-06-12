@@ -4,8 +4,15 @@ Importar/exportar conceptos masivos por Excel para un período de nómina.
 Permite al admin descargar un Excel con columnas por concepto manual
 (propinas, bonificaciones, comisiones, etc.) por trabajador, llenarlo
 y subirlo de vuelta para asignar montos en masa.
+
+Round-trip extendido (2026-06): la plantilla incluye además columnas de
+datos del registro (días, horas extra, otros ingresos/descuentos) con
+códigos reservados `__campo` en la fila 2. Al reimportar, esas columnas
+actualizan el RegistroNomina y la planilla se recalcula completa —
+sirve para cargar HE, ajustar días o agregar montos (p.ej. utilidades
+vía concepto manual) exportando, editando y volviendo a subir.
 """
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -22,6 +29,35 @@ from .models import (
     ConceptoRemunerativo,
     LineaNomina,
 )
+
+# Columnas de datos del RegistroNomina incluidas en la plantilla (además de
+# los conceptos manuales). Código reservado (fila 2) → (etiqueta, atributo,
+# tipo de dato). Tipos: 'dias' = entero 0–31, 'horas' = decimal ≥ 0,
+# 'monto' = decimal ≥ 0. Celda vacía al importar = no modificar el campo.
+CAMPOS_REGISTRO = {
+    '__dias_trabajados':  ('Días Trab.',           'dias_trabajados',  'dias'),
+    '__dias_falta':       ('Días Falta',           'dias_falta',       'dias'),
+    '__he_25':            ('HE 25% (hrs)',         'horas_extra_25',   'horas'),
+    '__he_35':            ('HE 35% (hrs)',         'horas_extra_35',   'horas'),
+    '__he_100':           ('HE 100% (hrs)',        'horas_extra_100',  'horas'),
+    '__otros_ingresos':   ('Otros Ingresos (S/)',  'otros_ingresos',   'monto'),
+    '__otros_descuentos': ('Otros Desctos. (S/)',  'otros_descuentos', 'monto'),
+}
+
+
+def _parse_valor_registro(val, kind):
+    """Valida y convierte un valor de columna `__campo`. None = inválido/skip."""
+    try:
+        d = Decimal(str(val))
+    except (ValueError, TypeError, InvalidOperation):
+        return None
+    if d < 0:
+        return None
+    if kind == 'dias':
+        if d != d.to_integral_value() or d > 31:
+            return None
+        return int(d)
+    return d.quantize(Decimal('0.01'))
 
 
 @login_required
@@ -53,12 +89,7 @@ def periodo_conceptos_exportar(request, pk):
         ])
     ).order_by('tipo', 'orden', 'nombre').distinct()
 
-    if not conceptos.exists():
-        messages.warning(
-            request,
-            'No hay conceptos manuales configurados. Configurá conceptos primero.'
-        )
-        return redirect('nominas_periodo_detalle', pk=pk)
+    conceptos = list(conceptos)
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -77,8 +108,15 @@ def periodo_conceptos_exportar(request, pk):
     )
 
     # Row 1: Títulos principales
+    # Tras las 3 fijas van las columnas del registro (días/HE/otros) y
+    # luego una por concepto manual. La fila 2 lleva el código de cada una.
     headers_fijos = ['DNI', 'Apellidos y Nombres', 'Grupo']
-    headers = headers_fijos + [c.nombre for c in conceptos]
+    cols_registro = list(CAMPOS_REGISTRO.items())  # (codigo, (label, attr, kind))
+    headers = (
+        headers_fijos
+        + [label for _, (label, _, _) in cols_registro]
+        + [c.nombre for c in conceptos]
+    )
     for col_idx, h in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col_idx, value=h)
         cell.fill = header_fill
@@ -87,21 +125,28 @@ def periodo_conceptos_exportar(request, pk):
         cell.border = border_thin
 
     # Row 2: códigos (REFERENCIA para parsing en import)
-    for col_idx in range(1, len(headers_fijos) + 1):
-        cell = ws.cell(row=2, column=col_idx, value='')
-        cell.fill = sub_fill
-        cell.border = border_thin
-    for col_idx, c in enumerate(conceptos, len(headers_fijos) + 1):
-        cell = ws.cell(row=2, column=col_idx, value=c.codigo)
+    codigos_fila2 = [''] * len(headers_fijos) \
+        + [cod for cod, _ in cols_registro] \
+        + [c.codigo for c in conceptos]
+    for col_idx, cod in enumerate(codigos_fila2, 1):
+        cell = ws.cell(row=2, column=col_idx, value=cod)
         cell.font = sub_font
         cell.fill = sub_fill
         cell.alignment = Alignment(horizontal='center')
         cell.border = border_thin
 
-    # Row 3: tipo (INGRESO / DESCUENTO) — referencia visual
+    # Row 3: tipo (Asistencia / INGRESO / DESCUENTO) — referencia visual
     for col_idx in range(1, len(headers_fijos) + 1):
         ws.cell(row=3, column=col_idx, value='').border = border_thin
-    for col_idx, c in enumerate(conceptos, len(headers_fijos) + 1):
+    col_idx = len(headers_fijos) + 1
+    for _cod, (_label, _attr, kind) in cols_registro:
+        tipo_label = 'Días/Horas' if kind in ('dias', 'horas') else 'Registro'
+        cell = ws.cell(row=3, column=col_idx, value=tipo_label)
+        cell.font = Font(italic=True, size=8, color='0369A1')
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border_thin
+        col_idx += 1
+    for c in conceptos:
         tipo_label = '+ Ingreso' if c.tipo == 'INGRESO' else 'Descuento'
         cell = ws.cell(row=3, column=col_idx, value=tipo_label)
         cell.font = Font(
@@ -110,6 +155,7 @@ def periodo_conceptos_exportar(request, pk):
         )
         cell.alignment = Alignment(horizontal='center')
         cell.border = border_thin
+        col_idx += 1
 
     # Datos: fila por trabajador (desde row=4)
     for row_idx, reg in enumerate(registros, 4):
@@ -117,8 +163,22 @@ def periodo_conceptos_exportar(request, pk):
         ws.cell(row=row_idx, column=2, value=reg.personal.apellidos_nombres).border = border_thin
         ws.cell(row=row_idx, column=3, value=reg.grupo or '').border = border_thin
 
+        # Columnas del registro (pre-llenas con el valor actual)
+        col_idx = len(headers_fijos) + 1
+        for _cod, (_label, attr, kind) in cols_registro:
+            valor = getattr(reg, attr)
+            if kind == 'dias':
+                valor_num = int(valor)
+            else:
+                valor_num = float(valor) if valor else None
+            cell = ws.cell(row=row_idx, column=col_idx, value=valor_num)
+            cell.number_format = '0' if kind == 'dias' else '#,##0.00'
+            cell.border = border_thin
+            cell.alignment = Alignment(horizontal='right')
+            col_idx += 1
+
         cm = reg.conceptos_manuales or {}
-        for col_idx, c in enumerate(conceptos, len(headers_fijos) + 1):
+        for c in conceptos:
             valor = cm.get(c.codigo)
             try:
                 valor_num = float(valor) if valor not in (None, '', 0) else None
@@ -128,6 +188,7 @@ def periodo_conceptos_exportar(request, pk):
             cell.number_format = '#,##0.00'
             cell.border = border_thin
             cell.alignment = Alignment(horizontal='right')
+            col_idx += 1
 
     # Anchos
     ws.column_dimensions['A'].width = 13
@@ -146,8 +207,10 @@ def periodo_conceptos_exportar(request, pk):
         column=1,
         value=(
             'Instrucciones: completá los montos en cada celda. '
+            'Las columnas de días/HE/otros actualizan el registro del trabajador '
+            '(celda vacía = no se modifica); las demás son conceptos manuales. '
             'Cargá este Excel desde "Importar conceptos masivos" en el período. '
-            'La fila 2 contiene los CODIGOS de los conceptos (NO la modifiques).'
+            'La fila 2 contiene los CODIGOS (NO la modifiques).'
         )
     )
     instr.font = Font(italic=True, color='64748B', size=9)
@@ -211,18 +274,25 @@ def periodo_conceptos_importar(request, pk):
         )
         return redirect('nominas_periodo_detalle', pk=pk)
 
-    # Validar códigos
+    # Separar códigos de registro (`__campo`) de códigos de concepto
+    codigos_concepto = [c for c in codigos if not c.startswith('__')]
     conceptos_db = {
         c.codigo: c for c in ConceptoRemunerativo.objects.filter(
-            codigo__in=codigos, activo=True
+            codigo__in=codigos_concepto, activo=True
         )
     }
-    invalidos = [c for c in codigos if c not in conceptos_db]
+    invalidos = [
+        c for c in codigos
+        if not c.startswith('__') and c not in conceptos_db
+        or c.startswith('__') and c not in CAMPOS_REGISTRO
+    ]
     if invalidos:
         messages.warning(
             request,
             f'Códigos no encontrados (ignorados): {", ".join(invalidos)}'
         )
+
+    conceptos_activos = ConceptoRemunerativo.objects.filter(activo=True).order_by('tipo', 'orden')
 
     # Procesar filas desde row=4
     registros_actualizados = 0
@@ -239,10 +309,25 @@ def periodo_conceptos_importar(request, pk):
             continue
 
         nuevos = {}
+        campos_reg_update = []
         for idx, cod in enumerate(codigos):
+            val = ws.cell(row=row, column=4 + idx).value
+
+            if cod.startswith('__'):
+                # Columna de datos del registro: vacía = no modificar
+                if cod not in CAMPOS_REGISTRO or val is None or val == '':
+                    continue
+                _label, attr, kind = CAMPOS_REGISTRO[cod]
+                parsed = _parse_valor_registro(val, kind)
+                if parsed is None:
+                    continue
+                if getattr(reg, attr) != parsed:
+                    setattr(reg, attr, parsed)
+                    campos_reg_update.append(attr)
+                continue
+
             if cod not in conceptos_db:
                 continue
-            val = ws.cell(row=row, column=4 + idx).value
             if val is None or val == '':
                 continue
             try:
@@ -255,7 +340,6 @@ def periodo_conceptos_importar(request, pk):
         reg.conceptos_manuales = nuevos
 
         # Recalcular registro
-        conceptos_activos = ConceptoRemunerativo.objects.filter(activo=True).order_by('tipo', 'orden')
         with transaction.atomic():
             reg.save()
             resultado = engine.calcular_registro(reg, conceptos_activos)
