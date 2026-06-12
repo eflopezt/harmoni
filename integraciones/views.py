@@ -355,7 +355,11 @@ def exportar_essalud(request):
         generado_por=request.user,
     )
 
-    response = HttpResponse(contenido, content_type='text/csv; charset=utf-8-sig')
+    # Encodear explícito como utf-8-sig: HttpResponse con str usa utf-8 SIN
+    # BOM aunque el header diga utf-8-sig, y sin BOM Excel asume ANSI y
+    # rompe las tildes de los apellidos.
+    response = HttpResponse(contenido.encode('utf-8-sig'),
+                            content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = (
         f'attachment; filename="ESSALUD_{periodo.replace("-","")}.csv"'
     )
