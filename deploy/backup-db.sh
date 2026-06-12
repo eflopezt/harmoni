@@ -39,6 +39,18 @@ BACKUP_DIR="${BACKUP_DIR:-/opt/harmoni/backups}"
 BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 DRY_RUN="${BACKUP_DRY_RUN:-0}"
 
+# ── Credenciales ──────────────────────────────────────────────────────────
+# pg_dump necesita PGPASSWORD (no hay .pgpass en el contenedor). Si no viene
+# en el entorno, derivarla de DATABASE_URL (postgresql://user:pass@host/db),
+# que es la fuente única de credenciales en prod.
+if [ -z "${PGPASSWORD:-}" ] && [ -n "${DATABASE_URL:-}" ]; then
+    _userpass="${DATABASE_URL#*://}"
+    _userpass="${_userpass%%@*}"
+    if [ "$_userpass" != "${_userpass#*:}" ]; then
+        export PGPASSWORD="${_userpass#*:}"
+    fi
+fi
+
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 DUMP_FILE="${BACKUP_DIR}/harmoni-db-${TIMESTAMP}.dump"
 LOG_FILE="${BACKUP_DIR}/backup.log"

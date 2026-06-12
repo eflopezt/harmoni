@@ -53,6 +53,9 @@ services:
     volumes:
       - /opt/harmoni/media:/app/media
       - /opt/harmoni/logs:/app/logs
+      # backup_db_diario (03:30) corre AQUI — sin este mount los dumps
+      # quedaban dentro del contenedor efimero y se perdian al recrear.
+      - /opt/harmoni/backups:/opt/harmoni/backups
     command: >
       celery -A config worker
         --loglevel=info
