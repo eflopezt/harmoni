@@ -474,9 +474,18 @@
     </div>
 
     {# ── Centro de Acción — todos los pendientes a la vez, priorizados ── #}
-    {% if cambios_pendientes > 0 or contratos_vencen or alertas_rrhh_critical or workflows_pendientes or evaluaciones_pendientes %}
+    {% if cambios_pendientes > 0 or contratos_vencen or alertas_rrhh_critical or workflows_pendientes or evaluaciones_pendientes or datos_empresa_criticos %}
     <div class="hw-ac">
       <div class="hw-ac-head"><i class="fas fa-bolt me-1"></i>Qué necesita tu atención</div>
+
+      {% if datos_empresa_criticos %}
+      <a class="hw-ac-row" style="--ac:#b91c1c" href="{% url 'empresa_datos' datos_empresa_pk %}">
+        <span class="hw-ac-ico"><i class="fas fa-building-circle-exclamation"></i></span>
+        <span class="hw-ac-body"><span class="hw-ac-count">{{ datos_empresa_criticos }}</span>
+          <span class="hw-ac-lbl">dato{{ datos_empresa_criticos|pluralize:"s" }} de la empresa sin completar — los archivos SUNAT saldrán incompletos</span></span>
+        <i class="fas fa-arrow-right hw-ac-go"></i>
+      </a>
+      {% endif %}
 
       {% if cambios_pendientes > 0 %}
       <a class="hw-ac-row" style="--ac:#d97706" href="{% url 'dashboard_aprobaciones' %}">

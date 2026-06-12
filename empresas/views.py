@@ -129,6 +129,67 @@ def seleccionar_empresa(request):
 
 @login_required
 @solo_admin
+def empresa_datos(request, pk):
+    """Wizard 'Datos de tu empresa' — una sola página con TODO lo que los
+    archivos SUNAT, boletas y contratos necesitan de la ficha (el editar
+    genérico no cubre representante ni ubigeo, y el validador de onboarding
+    mandaba al admin de Django). Muestra qué falta y por qué importa."""
+    from .completitud import datos_pendientes
+
+    empresa = get_object_or_404(Empresa, pk=pk)
+
+    if request.method == 'POST':
+        campos_texto = [
+            'razon_social', 'nombre_comercial', 'direccion', 'ubigeo',
+            'distrito', 'provincia', 'departamento', 'actividad_economica',
+            'telefono', 'email_rrhh',
+            'representante_legal', 'cargo_representante', 'nro_doc_representante',
+        ]
+        for campo in campos_texto:
+            if campo in request.POST:
+                setattr(empresa, campo, (request.POST.get(campo) or '').strip())
+
+        ruc = (request.POST.get('ruc') or '').strip()
+        if ruc:
+            if len(ruc) == 11 and ruc.isdigit():
+                if Empresa.objects.exclude(pk=empresa.pk).filter(ruc=ruc).exists():
+                    messages.error(request, f'Ya existe otra empresa con RUC {ruc}.')
+                else:
+                    empresa.ruc = ruc
+            else:
+                messages.error(request, 'El RUC debe tener 11 dígitos.')
+
+        tipo_doc = request.POST.get('tipo_doc_representante', '')
+        if tipo_doc in dict(Empresa.TIPO_DOC_REPRESENTANTE_CHOICES):
+            empresa.tipo_doc_representante = tipo_doc
+
+        if 'logo' in request.FILES:
+            empresa.logo = request.FILES['logo']
+
+        empresa.save()
+
+        estado = datos_pendientes(empresa)
+        if estado['completo']:
+            messages.success(
+                request,
+                'Datos guardados. La ficha está completa para SUNAT, boletas y contratos. ✓')
+        else:
+            messages.warning(
+                request,
+                f'Datos guardados. Aún faltan {len(estado["criticos"])} dato(s) '
+                f'crítico(s) para que los archivos SUNAT salgan completos.')
+        return redirect('empresa_datos', pk=empresa.pk)
+
+    return render(request, 'empresas/datos.html', {
+        'titulo': f'Datos de la empresa — {empresa.nombre_display}',
+        'empresa': empresa,
+        'estado': datos_pendientes(empresa),
+        'tipo_doc_choices': Empresa.TIPO_DOC_REPRESENTANTE_CHOICES,
+    })
+
+
+@login_required
+@solo_admin
 def configuracion_empresa(request, pk):
     """Configurar identidad visual de la empresa: logo, membrete, firma."""
     empresa = get_object_or_404(Empresa, pk=pk)

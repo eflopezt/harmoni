@@ -11,6 +11,7 @@ urlpatterns = [
     path('pulse/<int:pk>/cuadricula/', views.cuadricula_semanal_local, name='cuadricula_semanal_local'),
     path('nueva/', views.empresa_crear, name='empresa_crear'),
     path('<int:pk>/editar/', views.empresa_editar, name='empresa_editar'),
+    path('<int:pk>/datos/', views.empresa_datos, name='empresa_datos'),
     path('<int:pk>/configuracion/', views.configuracion_empresa, name='configuracion_empresa'),
     path('seleccionar/', views.seleccionar_empresa, name='empresa_seleccionar'),
     path('onboarding/', include('empresas.urls_onboarding')),

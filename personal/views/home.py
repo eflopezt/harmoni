@@ -510,6 +510,19 @@ def home(request):
         except Exception:
             pass
 
+    # ── Datos de empresa incompletos (admin) — rompen archivos SUNAT ──
+    if request.user.is_superuser:
+        try:
+            from empresas.completitud import datos_pendientes
+            emp = getattr(request, 'empresa_actual', None)
+            if emp is not None:
+                _estado = datos_pendientes(emp)
+                if _estado['criticos']:
+                    context['datos_empresa_criticos'] = len(_estado['criticos'])
+                    context['datos_empresa_pk'] = emp.pk
+        except Exception:
+            pass
+
     # ── Alertas RRHH activas (admin) ──
     if request.user.is_superuser:
         try:

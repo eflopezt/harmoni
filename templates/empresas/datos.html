@@ -1,0 +1,190 @@
+{% extends "base_v2.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block body %}
+<div class="container py-4" style="max-width:980px">
+  <h1 class="h3 fw-bold mb-1"><i class="fas fa-building-circle-check me-2 text-teal"></i>Datos de tu empresa</h1>
+  <p class="text-muted mb-4" style="font-size:.9rem">
+    Estos datos van en tus archivos SUNAT (T-Registro, PLAME), boletas de pago y contratos.
+    Complétalos una sola vez y todos los documentos saldrán correctos.
+  </p>
+
+  <div class="row g-4">
+    {# ── Checklist de pendientes ── #}
+    <div class="col-lg-4 order-lg-2">
+      {% if estado.completo and not estado.recomendados %}
+      <div class="card border-success">
+        <div class="card-body text-center">
+          <i class="fas fa-check-circle text-success" style="font-size:2rem"></i>
+          <div class="fw-bold mt-2">Ficha completa</div>
+          <div class="text-muted" style="font-size:.85rem">SUNAT, boletas y contratos tienen todo lo que necesitan.</div>
+        </div>
+      </div>
+      {% else %}
+      {% if estado.criticos %}
+      <div class="card border-danger mb-3">
+        <div class="card-header bg-danger text-white py-2" style="font-size:.85rem">
+          <i class="fas fa-triangle-exclamation me-1"></i>Faltan datos críticos ({{ estado.criticos|length }})
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for item in estado.criticos %}
+          <li class="list-group-item py-2">
+            <div class="fw-semibold" style="font-size:.85rem">{{ item.label }}</div>
+            <div class="text-muted" style="font-size:.78rem">{{ item.motivo }}</div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% if estado.recomendados %}
+      <div class="card border-warning">
+        <div class="card-header py-2" style="font-size:.85rem;background:#fef3c7">
+          <i class="fas fa-circle-info me-1"></i>Recomendados ({{ estado.recomendados|length }})
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for item in estado.recomendados %}
+          <li class="list-group-item py-2">
+            <div class="fw-semibold" style="font-size:.85rem">{{ item.label }}</div>
+            <div class="text-muted" style="font-size:.78rem">{{ item.motivo }}</div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% endif %}
+    </div>
+
+    {# ── Formulario ── #}
+    <div class="col-lg-8 order-lg-1">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="card mb-3">
+          <div class="card-header fw-semibold text-muted" style="font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">
+            <i class="fas fa-stamp me-2"></i>Identidad fiscal
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">RUC <span class="text-danger">*</span></label>
+                <input type="text" name="ruc" value="{{ empresa.ruc|default:'' }}" class="form-control"
+                       maxlength="11" pattern="\d{11}" placeholder="20XXXXXXXXX">
+              </div>
+              <div class="col-md-8">
+                <label class="form-label fw-semibold">Razón social <span class="text-danger">*</span></label>
+                <input type="text" name="razon_social" value="{{ empresa.razon_social|default:'' }}" class="form-control">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Nombre comercial</label>
+                <input type="text" name="nombre_comercial" value="{{ empresa.nombre_comercial|default:'' }}" class="form-control"
+                       placeholder="Si es diferente a la razón social">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Actividad económica (CIIU)</label>
+                <input type="text" name="actividad_economica" value="{{ empresa.actividad_economica|default:'' }}" class="form-control"
+                       placeholder="Ej. Restaurantes y servicio de comidas">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <div class="card-header fw-semibold text-muted" style="font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">
+            <i class="fas fa-location-dot me-2"></i>Domicilio fiscal
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label fw-semibold">Dirección <span class="text-danger">*</span></label>
+                <input type="text" name="direccion" value="{{ empresa.direccion|default:'' }}" class="form-control"
+                       placeholder="Av. / Jr. / Calle, número, urbanización">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Ubigeo</label>
+                <input type="text" name="ubigeo" value="{{ empresa.ubigeo|default:'' }}" class="form-control"
+                       maxlength="6" pattern="\d{6}" placeholder="150101">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Distrito</label>
+                <input type="text" name="distrito" value="{{ empresa.distrito|default:'' }}" class="form-control">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Provincia</label>
+                <input type="text" name="provincia" value="{{ empresa.provincia|default:'' }}" class="form-control">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Departamento</label>
+                <input type="text" name="departamento" value="{{ empresa.departamento|default:'' }}" class="form-control">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <div class="card-header fw-semibold text-muted" style="font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">
+            <i class="fas fa-user-tie me-2"></i>Representante legal
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nombre completo <span class="text-danger">*</span></label>
+                <input type="text" name="representante_legal" value="{{ empresa.representante_legal|default:'' }}" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Cargo</label>
+                <input type="text" name="cargo_representante" value="{{ empresa.cargo_representante|default:'' }}" class="form-control"
+                       placeholder="Gerente General">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Tipo de documento</label>
+                <select name="tipo_doc_representante" class="form-select">
+                  {% for val, label in tipo_doc_choices %}
+                  <option value="{{ val }}" {% if empresa.tipo_doc_representante == val %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Nro. documento <span class="text-danger">*</span></label>
+                <input type="text" name="nro_doc_representante" value="{{ empresa.nro_doc_representante|default:'' }}" class="form-control">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <div class="card-header fw-semibold text-muted" style="font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">
+            <i class="fas fa-image me-2"></i>Contacto y marca
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Teléfono</label>
+                <input type="text" name="telefono" value="{{ empresa.telefono|default:'' }}" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Email RRHH</label>
+                <input type="email" name="email_rrhh" value="{{ empresa.email_rrhh|default:'' }}" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Logotipo</label>
+                <input type="file" name="logo" class="form-control" accept="image/*">
+                {% if empresa.logo %}
+                <div class="text-muted mt-1" style="font-size:.75rem"><i class="fas fa-check text-success me-1"></i>Logo cargado</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-save me-2"></i>Guardar datos
+          </button>
+          <a href="{% url 'empresas_panel' %}" class="btn btn-outline-secondary">Volver</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

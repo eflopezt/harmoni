@@ -73,7 +73,7 @@ def _check_empresa(empresa):
         checks.append(_check(
             CAT_EMPRESA, 'RUC inválido o vacío',
             'El RUC es obligatorio para boletas, PLAME y T-Registro.',
-            'error', link=f'/admin/empresas/empresa/{empresa.pk}/change/', peso=80,
+            'error', link=f'/empresas/{empresa.pk}/datos/', peso=80,
         ))
 
     if empresa.razon_social:
@@ -82,7 +82,7 @@ def _check_empresa(empresa):
         checks.append(_check(
             CAT_EMPRESA, 'Razón social vacía',
             'Aparecerá en blanco en boletas y reportes.',
-            'error', link=f'/admin/empresas/empresa/{empresa.pk}/change/', peso=70,
+            'error', link=f'/empresas/{empresa.pk}/datos/', peso=70,
         ))
 
     if empresa.representante_legal:
@@ -95,7 +95,7 @@ def _check_empresa(empresa):
         checks.append(_check(
             CAT_EMPRESA, 'Representante legal sin configurar',
             'Necesario para boletas (firma) y contratos.',
-            'warn', link=f'/admin/empresas/empresa/{empresa.pk}/change/', peso=40,
+            'warn', link=f'/empresas/{empresa.pk}/datos/', peso=40,
         ))
 
     if empresa.logo:
@@ -104,7 +104,7 @@ def _check_empresa(empresa):
         checks.append(_check(
             CAT_EMPRESA, 'Sin logo',
             'Las boletas y reportes se verán genéricas. Sube el logo en la ficha de empresa.',
-            'warn', link=f'/admin/empresas/empresa/{empresa.pk}/change/', peso=25,
+            'warn', link=f'/empresas/{empresa.pk}/datos/', peso=25,
         ))
 
     if empresa.direccion:
@@ -113,7 +113,7 @@ def _check_empresa(empresa):
         checks.append(_check(
             CAT_EMPRESA, 'Sin dirección fiscal',
             'Requerida por SUNAT en boletas y T-Registro.',
-            'warn', link=f'/admin/empresas/empresa/{empresa.pk}/change/', peso=30,
+            'warn', link=f'/empresas/{empresa.pk}/datos/', peso=30,
         ))
 
     return checks
