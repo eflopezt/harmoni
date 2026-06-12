@@ -37,6 +37,13 @@ logger = logging.getLogger('harmoni.ai.nominas')
 # Casos masivos se evalúan antes del reintegro individual.
 INTENTS = [
     {
+        'name': 'aprobaciones_pendientes',
+        'patterns': [
+            r'(pendiente|por aprobar|aprobaci[oó]n|aprobaciones|bandeja|qu[eé] (tengo|debo|hay))',
+        ],
+        'tool': 'listar_aprobaciones_pendientes',
+    },
+    {
         'name': 'reintegro_masivo',
         'patterns': [
             r'(olvid[eé]|no pagu[eé]|no pague|falt[oó] pagar|aument[eo]|subir|incrementar)',
@@ -84,6 +91,43 @@ def _detectar_intent(mensaje: str) -> str:
         return 'general'
     # El de más matches gana
     return max(matches_por_intent.items(), key=lambda x: x[1][0])[0]
+
+
+_NOMBRES_BLOQUE = {
+    'papeletas':                  '📋 Papeletas',
+    'solicitudes_he':             '⏱️ Solicitudes de horas extra',
+    'justificaciones_no_marcaje': '🕓 Justificaciones de no-marcaje',
+    'roster':                     '🗓️ Cambios de roster',
+    'prestamos_y_adelantos':      '💵 Préstamos y adelantos de sueldo',
+    'descuentos_planilla':        '📉 Descuentos por planilla',
+    'vacaciones':                 '🏖️ Solicitudes de vacaciones',
+    'reintegros_agente':          '🤖 Reintegros propuestos por el agente',
+}
+
+
+def _formatear_aprobaciones_response(resultado: dict) -> str:
+    """Formatea el consolidado de aprobaciones pendientes en markdown."""
+    total = resultado.get('total_pendientes', 0)
+    bloques = resultado.get('bloques', {})
+    if not total:
+        return ('✅ **No tienes nada pendiente de aprobar.** Papeletas, horas extra, '
+                'préstamos, descuentos y vacaciones están al día.')
+
+    lineas = [f'**Tienes {total} aprobación(es) pendiente(s):**\n']
+    for key, b in bloques.items():
+        if not isinstance(b, dict) or not b.get('total'):
+            continue
+        nombre = _NOMBRES_BLOQUE.get(key, key)
+        lineas.append(f"- {nombre}: **{b['total']}** → [revisar y aprobar]({b['donde_aprobar']})")
+        for d in (b.get('detalle') or [])[:3]:
+            quien = d.get('trabajador', '')
+            extra = d.get('causal') or d.get('tipo') or ''
+            monto = f" S/ {d['monto']:,.2f}" if d.get('monto') else ''
+            ewa = ' (adelanto de sueldo)' if d.get('es_adelanto_ewa') else ''
+            lineas.append(f'    - {quien}{" — " + extra if extra else ""}{monto}{ewa}')
+    lineas.append('\n_La aprobación se ejecuta en la pantalla de cada módulo, '
+                  'con tus permisos de siempre — yo solo te ahorro buscarlas._')
+    return '\n'.join(lineas)
 
 
 def _formatear_normativa_response(resultados: list) -> str:
@@ -225,6 +269,25 @@ def _procesar_heuristico(conversacion, texto_usuario: str, usuario=None, ip=None
         )
 
         respuesta_texto = _formatear_normativa_response(tool_result.get('resultados', []))
+
+    elif intent == 'aprobaciones_pendientes':
+        tool_result = ejecutar_tool('listar_aprobaciones_pendientes', {})
+        tools_llamadas.append({
+            'name': 'listar_aprobaciones_pendientes', 'args': {}, 'result': tool_result,
+        })
+        MensajeAgenteIA.objects.create(
+            conversacion=conversacion, rol='tool',
+            contenido='Consolidado de aprobaciones pendientes',
+            tool_name='listar_aprobaciones_pendientes',
+            tool_args={}, tool_result=tool_result,
+        )
+        AuditAgenteIA.objects.create(
+            conversacion=conversacion, usuario=usuario,
+            accion='CONSULTA_PENDIENTES',
+            detalle={'total': tool_result.get('total_pendientes', 0)},
+            ip=ip,
+        )
+        respuesta_texto = _formatear_aprobaciones_response(tool_result)
 
     elif intent == 'reintegro_masivo':
         # Modo heurístico no puede ejecutar la tool masiva sin parámetros estructurados,

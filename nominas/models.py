@@ -1099,6 +1099,7 @@ class AuditAgenteIA(models.Model):
         ('APLICAR_REINTEGRO',   'Aplicación de reintegro (genera LineaNomina)'),
         ('REVERTIR_REINTEGRO',  'Reversión de reintegro'),
         ('CONVERSACION',        'Mensaje conversacional (sin tool)'),
+        ('CONSULTA_PENDIENTES', 'Consolidado de aprobaciones pendientes'),
         ('ERROR',               'Error / rechazo'),
     ]
 

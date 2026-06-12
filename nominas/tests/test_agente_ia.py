@@ -168,6 +168,46 @@ class ToolsAgenteTests(TestCase):
         # Con régimen ONP, neto debería ser 500 - 65 = 435
         self.assertEqual(r['monto_neto'], 435.00)
 
+    def test_tool_aprobaciones_pendientes_vacio(self):
+        from nominas.agente_ia.tools import tool_listar_aprobaciones_pendientes
+        r = tool_listar_aprobaciones_pendientes()
+        self.assertEqual(r['total_pendientes'], 0)
+        self.assertIn('nota', r)
+
+    def test_tool_aprobaciones_pendientes_consolida_modulos(self):
+        from descuentos.models import DescuentoPlanilla
+        from prestamos.models import Prestamo, TipoPrestamo
+        from nominas.agente_ia.tools import tool_listar_aprobaciones_pendientes
+
+        tipo = TipoPrestamo.objects.create(
+            nombre='Adelanto test', codigo='adelanto-sueldo-ewa', max_cuotas=1)
+        Prestamo.objects.create(
+            personal=self.personal, tipo=tipo,
+            monto_solicitado=Decimal('300'), num_cuotas=1, estado='PENDIENTE')
+        DescuentoPlanilla.objects.create(
+            personal=self.personal, causal='ROTURA_HERRAMIENTA',
+            detalle='x', monto_total=Decimal('100'), num_cuotas=1,
+            estado='PENDIENTE')
+
+        r = tool_listar_aprobaciones_pendientes()
+        self.assertEqual(r['total_pendientes'], 2)
+        self.assertEqual(r['bloques']['prestamos_y_adelantos']['total'], 1)
+        self.assertTrue(r['bloques']['prestamos_y_adelantos']['detalle'][0]['es_adelanto_ewa'])
+        self.assertEqual(r['bloques']['descuentos_planilla']['total'], 1)
+        self.assertIn('donde_aprobar', r['bloques']['descuentos_planilla'])
+
+    def test_intent_aprobaciones_y_respuesta_heuristica(self):
+        from nominas.agente_ia.orquestador import _detectar_intent, _procesar_heuristico
+        self.assertEqual(_detectar_intent('¿qué tengo pendiente de aprobar?'),
+                         'aprobaciones_pendientes')
+
+        conv = ConversacionAgenteIA.objects.create(usuario=self.user)
+        resultado = _procesar_heuristico(conv, '¿qué aprobaciones tengo pendientes?',
+                                         usuario=self.user)
+        self.assertEqual(resultado['intent_detectado'], 'aprobaciones_pendientes')
+        self.assertIn('No tienes nada pendiente', resultado['respuesta'])
+        self.assertTrue(AuditAgenteIA.objects.filter(accion='CONSULTA_PENDIENTES').exists())
+
     def test_tool_proponer_reintegro_crea_propuesto(self):
         from nominas.agente_ia.tools import tool_proponer_reintegro
         r = tool_proponer_reintegro(

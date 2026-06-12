@@ -160,6 +160,19 @@ TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        'name': 'listar_aprobaciones_pendientes',
+        'description': (
+            'Lista TODO lo que espera aprobación humana en el sistema: papeletas, '
+            'solicitudes de horas extra, justificaciones de no-marcaje, roster, '
+            'préstamos y adelantos de sueldo, descuentos por planilla y solicitudes '
+            'de vacaciones. Úsala cuando pregunten "¿qué tengo pendiente?", '
+            '"¿qué debo aprobar?" o similares. Devuelve conteos, detalle resumido '
+            'y el link de la pantalla donde se aprueba cada cosa (la aprobación '
+            'SIEMPRE la ejecuta el humano en esa pantalla, nunca esta tool).'
+        ),
+        'parameters': {'type': 'object', 'properties': {}},
+    },
 ]
 
 
@@ -453,6 +466,125 @@ def tool_listar_reintegros_pendientes(personal_id: int = None):
     }
 
 
+def tool_listar_aprobaciones_pendientes():
+    """Vista consolidada de TODO lo que espera aprobación humana.
+
+    Solo LECTURA: el agente informa y enlaza la pantalla de aprobación de
+    cada módulo; quien aprueba es el humano en esa pantalla (con sus
+    propios permisos). Cada bloque es best-effort: si un módulo falla,
+    se omite sin romper el resto.
+    """
+    pendientes = {}
+
+    def _bloque(nombre, builder):
+        try:
+            data = builder()
+            if data and data.get('total'):
+                pendientes[nombre] = data
+        except Exception as e:
+            pendientes[nombre] = {'error': f'No disponible: {e}'}
+
+    def _papeletas():
+        from asistencia.models import RegistroPapeleta
+        qs = RegistroPapeleta.objects.filter(estado='PENDIENTE').select_related('personal')
+        return {
+            'total': qs.count(),
+            'donde_aprobar': '/aprobaciones/?tab=papeletas',
+            'detalle': [
+                {'trabajador': str(p.personal), 'tipo': getattr(p, 'tipo', ''),
+                 'fecha': p.fecha.isoformat() if getattr(p, 'fecha', None) else None}
+                for p in qs[:5]
+            ],
+        }
+
+    def _solicitudes_he():
+        from asistencia.models import SolicitudHE
+        qs = SolicitudHE.objects.filter(estado='PENDIENTE').select_related('personal')
+        return {
+            'total': qs.count(),
+            'donde_aprobar': '/aprobaciones/?tab=solicitudes',
+            'detalle': [
+                {'trabajador': str(s.personal),
+                 'fecha': s.fecha.isoformat() if getattr(s, 'fecha', None) else None}
+                for s in qs[:5]
+            ],
+        }
+
+    def _justificaciones():
+        from asistencia.models import JustificacionNoMarcaje
+        qs = JustificacionNoMarcaje.objects.filter(estado='PENDIENTE')
+        return {'total': qs.count(), 'donde_aprobar': '/aprobaciones/?tab=justificaciones'}
+
+    def _roster():
+        from personal.models import Roster
+        qs = Roster.objects.filter(estado='pendiente')
+        return {'total': qs.count(), 'donde_aprobar': '/aprobaciones/?tab=roster'}
+
+    def _prestamos():
+        from prestamos.models import Prestamo
+        qs = Prestamo.objects.filter(estado='PENDIENTE').select_related('personal', 'tipo')
+        return {
+            'total': qs.count(),
+            'donde_aprobar': '/prestamos/',
+            'detalle': [
+                {'trabajador': str(p.personal), 'tipo': str(p.tipo),
+                 'monto': float(p.monto_solicitado),
+                 'es_adelanto_ewa': p.tipo.codigo == 'adelanto-sueldo-ewa'}
+                for p in qs[:5]
+            ],
+        }
+
+    def _descuentos():
+        from descuentos.models import DescuentoPlanilla
+        qs = DescuentoPlanilla.objects.filter(estado='PENDIENTE').select_related('personal')
+        return {
+            'total': qs.count(),
+            'donde_aprobar': '/descuentos/',
+            'detalle': [
+                {'trabajador': str(d.personal), 'causal': d.get_causal_display(),
+                 'monto': float(d.monto_total)}
+                for d in qs[:5]
+            ],
+        }
+
+    def _vacaciones():
+        from vacaciones.models import SolicitudVacacion
+        qs = SolicitudVacacion.objects.filter(estado='PENDIENTE').select_related('personal')
+        return {
+            'total': qs.count(),
+            'donde_aprobar': '/vacaciones/',
+            'detalle': [
+                {'trabajador': str(s.personal),
+                 'desde': s.fecha_inicio.isoformat() if getattr(s, 'fecha_inicio', None) else None}
+                for s in qs[:5]
+            ],
+        }
+
+    def _reintegros():
+        from ..models import ReintegroNomina
+        qs = ReintegroNomina.objects.filter(estado='PROPUESTO')
+        return {'total': qs.count(), 'donde_aprobar': '/nominas/reintegros/'}
+
+    _bloque('papeletas', _papeletas)
+    _bloque('solicitudes_he', _solicitudes_he)
+    _bloque('justificaciones_no_marcaje', _justificaciones)
+    _bloque('roster', _roster)
+    _bloque('prestamos_y_adelantos', _prestamos)
+    _bloque('descuentos_planilla', _descuentos)
+    _bloque('vacaciones', _vacaciones)
+    _bloque('reintegros_agente', _reintegros)
+
+    total = sum(
+        b.get('total', 0) for b in pendientes.values() if isinstance(b, dict)
+    )
+    return {
+        'total_pendientes': total,
+        'bloques': pendientes,
+        'nota': ('La aprobación la ejecuta el usuario en la pantalla indicada en '
+                 'donde_aprobar de cada bloque; este agente no aprueba nada.'),
+    }
+
+
 def tool_consultar_normativa(query: str):
     """RAG search sobre normativa peruana (versión simple, sin embeddings aún)."""
     from .rag import buscar_normativa
@@ -601,6 +733,7 @@ def tool_reintegro_masivo(monto_aumento: float, anio: int, mes: int,
 # ════════════════════════════════════════════════════════════════════════
 
 TOOL_IMPLEMENTATIONS = {
+    'listar_aprobaciones_pendientes':        tool_listar_aprobaciones_pendientes,
     'consultar_normativa':                   tool_consultar_normativa,
     'buscar_trabajador':                     tool_buscar_trabajador,
     'obtener_boleta':                        tool_obtener_boleta,
