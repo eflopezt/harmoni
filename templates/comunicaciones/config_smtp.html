@@ -32,7 +32,8 @@
                         <div class="col-6 mb-3">
                             <label class="form-label">Contrase&ntilde;a SMTP</label>
                             <input type="password" name="smtp_password" class="form-control"
-                                   value="{{ config.smtp_password }}" autocomplete="off">
+                                   value="" autocomplete="off"
+                                   placeholder="{% if config.smtp_password %}••••••••  configurada — dejar vacío para mantener{% endif %}">
                         </div>
                     </div>
                     <div class="row">

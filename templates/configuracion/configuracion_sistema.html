@@ -622,8 +622,8 @@
         <div class="col-md-9">
           <label class="form-label">ZapSign API Key</label>
           <input type="password" name="zapsign_api_key" class="form-control font-monospace"
-                 value="{{ config.zapsign_api_key }}"
-                 placeholder="Dejar vacío para mantener el actual"
+                 value=""
+                 placeholder="{% if config.zapsign_api_key %}••••••••  configurada — dejar vacío para mantener{% else %}Pega aquí tu API key de ZapSign{% endif %}"
                  autocomplete="new-password">
           <div class="form-text">
             Obtener en: <a href="https://app.zapsign.com.br/settings/tokens" target="_blank">
@@ -646,8 +646,8 @@
         <div class="col-md-7">
           <label class="form-label">Token del Bot de Telegram</label>
           <input type="password" name="telegram_bot_token" class="form-control font-monospace"
-                 value="{{ config.telegram_bot_token }}"
-                 placeholder="123456:ABC-DEFGhijklmnop..."
+                 value=""
+                 placeholder="{% if config.telegram_bot_token %}••••••••  configurado — dejar vacío para mantener{% else %}123456:ABC-DEFGhijklmnop...{% endif %}"
                  autocomplete="new-password">
           <div class="form-text">
             Obtenlo desde <a href="https://t.me/BotFather" target="_blank">@BotFather</a>
@@ -694,8 +694,8 @@
         <div class="col-md-8">
           <label class="form-label">Access Token (token del sistema)</label>
           <input type="password" name="whatsapp_access_token" class="form-control font-monospace"
-                 value="{{ config.whatsapp_access_token }}"
-                 placeholder="EAAxxxxx... (dejar vacío para mantener el actual)"
+                 value=""
+                 placeholder="{% if config.whatsapp_access_token %}••••••••  configurado — dejar vacío para mantener{% else %}EAAxxxxx...{% endif %}"
                  autocomplete="new-password">
           <div class="form-text">
             Token permanente de la app. Usar <em>System User Token</em> (nunca token de usuario temporal).

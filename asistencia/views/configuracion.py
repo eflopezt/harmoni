@@ -138,11 +138,17 @@ def configuracion_view(request):
 
         # IA — Multi-Provider (Fase 4.4)
         config.ia_provider    = request.POST.get('ia_provider', config.ia_provider)
-        config.ia_api_key     = request.POST.get('ia_api_key', getattr(config, 'ia_api_key', '')).strip()
+        # API keys: el form ya NO ecoa el secreto (enmascarado); campo vacío
+        # significa "conservar la clave actual", no borrarla.
+        _ia_key = request.POST.get('ia_api_key', '').strip()
+        if _ia_key:
+            config.ia_api_key = _ia_key
         config.ia_endpoint    = request.POST.get('ia_endpoint', config.ia_endpoint).strip()
         config.ia_modelo      = request.POST.get('ia_modelo', config.ia_modelo).strip()
         config.ia_ocr_provider    = request.POST.get('ia_ocr_provider', getattr(config, 'ia_ocr_provider', 'NINGUNO'))
-        config.ia_gemini_api_key  = request.POST.get('ia_gemini_api_key', getattr(config, 'ia_gemini_api_key', '')).strip()
+        _gemini_key = request.POST.get('ia_gemini_api_key', '').strip()
+        if _gemini_key:
+            config.ia_gemini_api_key = _gemini_key
         config.ia_mapeo_activo    = request.POST.get('ia_mapeo_activo') == '1'
 
         # S10

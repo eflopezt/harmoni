@@ -444,6 +444,10 @@ def config_smtp(request):
                        'email_from', 'email_reply_to', 'firma_html']
         for campo in campos_str:
             nuevo = request.POST.get(campo, '')
+            # La contraseña ya no se ecoa en el form (enmascarada): campo
+            # vacío = conservar la actual, no borrarla.
+            if campo == 'smtp_password' and not nuevo:
+                continue
             viejo = getattr(config, campo)
             if nuevo != viejo:
                 cambios[campo] = {

@@ -692,14 +692,14 @@
                     <label><i class="fas fa-key me-1 text-warning"></i>API Key</label>
                     <div class="input-group">
                         <input type="password" class="form-control" name="ia_api_key" id="iaApiKey"
-                               value="{{ config.ia_api_key|default:'' }}"
-                               placeholder="sk-... / AIza... / dsk-...">
+                               value=""
+                               placeholder="{% if config.ia_api_key %}••••••••  configurada — escribe solo para reemplazar{% else %}sk-... / AIza... / dsk-...{% endif %}">
                         <button class="btn btn-outline-secondary" type="button" id="btnToggleKey"
                                 onclick="toggleApiKeyVisibility()" title="Mostrar/ocultar key">
                             <i class="fas fa-eye" id="iconEye"></i>
                         </button>
                     </div>
-                    <div class="help-text mt-1">Se guarda encriptada. Nunca visible en logs.</div>
+                    <div class="help-text mt-1">Se guarda encriptada y no se vuelve a mostrar. Déjala vacía para conservar la actual.</div>
                 </div>
 
                 <!-- Endpoint (Ollama / DeepSeek custom) -->
@@ -799,8 +799,8 @@
                         <div class="input-group">
                             <input type="password" class="form-control" name="ia_gemini_api_key"
                                    id="iaGeminiOcrKey"
-                                   value="{{ config.ia_gemini_api_key|default:'' }}"
-                                   placeholder="AIza... (si usas DeepSeek + Gemini OCR)">
+                                   value=""
+                                   placeholder="{% if config.ia_gemini_api_key %}••••••••  configurada — escribe solo para reemplazar{% else %}AIza... (si usas DeepSeek + Gemini OCR){% endif %}">
                             <button class="btn btn-outline-secondary" type="button"
                                     onclick="toggleFieldVisibility('iaGeminiOcrKey','iconEyeOcr')" title="Mostrar/ocultar">
                                 <i class="fas fa-eye" id="iconEyeOcr"></i>
