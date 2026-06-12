@@ -32,6 +32,12 @@
         <a href="{% url 'documentos_faltantes' %}" class="btn btn-outline-warning btn-sm">
             <i class="fas fa-exclamation-triangle me-1"></i>Faltantes
         </a>
+        {% if request.user.is_superuser %}
+        <a href="{% url 'documentos_inspeccion_sunafil' %}" class="btn btn-outline-danger btn-sm"
+           title="Paquete de inspección laboral: boletas + planillas + asistencia + contratos en un ZIP">
+            <i class="fas fa-balance-scale me-1"></i>Modo SUNAFIL
+        </a>
+        {% endif %}
         <a href="{% url 'documentos_tipos' %}" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-cog me-1"></i>Tipos
         </a>

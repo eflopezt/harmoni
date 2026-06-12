@@ -6,10 +6,15 @@ from documentos import views
 from documentos import views_firma
 from documentos import views_firma_interna
 from documentos import views_cese
+from documentos import views_inspeccion
 
 urlpatterns = [
     # Panel principal (admin)
     path('', views.panel_documentos, name='documentos_panel'),
+
+    # Modo SUNAFIL — paquete de inspección laboral (ZIP)
+    path('inspeccion/', views_inspeccion.inspeccion_sunafil,
+         name='documentos_inspeccion_sunafil'),
 
     # Legajo de un trabajador
     path('legajo/<int:personal_id>/', views.legajo_trabajador, name='documentos_legajo'),

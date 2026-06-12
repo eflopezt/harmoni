@@ -1,0 +1,71 @@
+{% extends "base_v2.html" %}
+{% block title %}Modo SUNAFIL — paquete de inspección{% endblock %}
+
+{% block hero %}
+<section class="hm-hero">
+  <div class="greet"><span class="hex"></span>Inspección laboral</div>
+  <h1>Modo <span class="accent">SUNAFIL</span></h1>
+  <p style="font-size:14.5px;color:var(--hm-slate-500);margin:6px 0 0;max-width:760px;line-height:1.5;">
+    Arma en un clic el paquete que pide el inspector: boletas, planillas, asistencia y contratos del rango de fechas, en un ZIP ordenado con índice.
+  </p>
+</section>
+{% endblock %}
+
+{% block body %}
+<div style="max-width:680px;margin:0 auto;">
+  <div class="card" style="border:1px solid #e2e8f0;border-radius:12px;">
+    <div class="card-body" style="padding:26px;">
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Desde</label>
+            <input type="date" name="desde" class="form-control" value="{{ default_desde|date:'Y-m-d' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Hasta</label>
+            <input type="date" name="hasta" class="form-control" value="{{ default_hasta|date:'Y-m-d' }}" required>
+          </div>
+        </div>
+
+        <label class="form-label">Qué incluir</label>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="boletas" id="chk-bol" checked>
+          <label class="form-check-label" for="chk-bol">
+            <strong>Boletas de pago</strong> — PDF por trabajador y mes (períodos aprobados/cerrados)
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="planillas" id="chk-pla" checked>
+          <label class="form-check-label" for="chk-pla">
+            <strong>Planillas resumen</strong> — CSV por período (días, HE, ingresos, descuentos, neto)
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="tareo" id="chk-tar" checked>
+          <label class="form-check-label" for="chk-tar">
+            <strong>Control de asistencia</strong> — tareo diario CSV por mes
+          </label>
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="contratos" id="chk-con" checked>
+          <label class="form-check-label" for="chk-con">
+            <strong>Contratos</strong> — PDF adjuntos del personal activo
+          </label>
+        </div>
+
+        <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:12px 16px;font-size:.85rem;color:#115e59;margin-bottom:18px;">
+          <i class="fas fa-info-circle me-1"></i>
+          Máximo 12 meses por paquete. La generación puede tardar
+          (una boleta PDF por trabajador y mes). La descarga queda registrada
+          en el log de auditoría.
+        </div>
+
+        <button type="submit" class="btn btn-success w-100">
+          <i class="fas fa-file-archive me-1"></i>Generar paquete de inspección
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
