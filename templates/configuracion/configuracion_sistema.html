@@ -667,6 +667,20 @@
           </div>
         </div>
 
+        <div class="col-md-5">
+          <label class="form-label">Chat ID para aprobaciones</label>
+          <input type="text" name="telegram_chat_aprobaciones" class="form-control"
+                 value="{{ config.telegram_chat_aprobaciones }}"
+                 placeholder="2071138853">
+          <div class="form-text">
+            Solicitudes de vacaciones y préstamos/adelantos llegan a este chat
+            con botones <strong>Aprobar/Rechazar</strong>. Obtén tu chat ID con
+            <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>.
+            Requiere además <code>TELEGRAM_WEBHOOK_SECRET</code> en el servidor
+            y registrar el webhook (<code>manage.py telegram_registrar_webhook</code>).
+          </div>
+        </div>
+
         {# ── WhatsApp Business Cloud API ── #}
         <div class="col-12">
           <h5 class="fw-bold text-muted border-bottom pb-2 mt-2">

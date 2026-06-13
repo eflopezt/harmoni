@@ -1066,6 +1066,7 @@ def configuracion_sistema(request):
                 if tg_token:
                     config.telegram_bot_token = tg_token
                 config.telegram_channel_id = request.POST.get('telegram_channel_id', '').strip()
+                config.telegram_chat_aprobaciones = request.POST.get('telegram_chat_aprobaciones', '').strip()
                 # WhatsApp Business Cloud API
                 wa_phone_id = request.POST.get('whatsapp_phone_number_id', '').strip()
                 wa_token    = request.POST.get('whatsapp_access_token', '').strip()

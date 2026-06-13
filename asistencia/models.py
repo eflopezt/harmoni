@@ -1644,6 +1644,12 @@ class ConfiguracionSistema(models.Model):
         max_length=100, blank=True, default='',
         verbose_name="ID / Username del Canal",
         help_text="@username para canales públicos o -100XXXXXXX para privados.")
+    telegram_chat_aprobaciones = models.CharField(
+        max_length=100, blank=True, default='',
+        verbose_name="Chat ID para aprobaciones",
+        help_text="Chat ID del admin que recibe solicitudes con botones "
+                  "Aprobar/Rechazar (vacaciones, préstamos/adelantos). "
+                  "Distinto del canal de vacantes. Obtén el tuyo con @userinfobot.")
 
     # ── Integraciones: WhatsApp Business Cloud API ───────────────────────────
     WHATSAPP_PROVIDER_CHOICES = [

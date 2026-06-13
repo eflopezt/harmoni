@@ -5,8 +5,13 @@ from django.urls import path
 from . import views
 from . import views_notif
 from . import views_whatsapp
+from . import views_telegram
 
 urlpatterns = [
+    # ── Webhook Telegram (aprobaciones con botones inline) ──
+    path('telegram/webhook/', views_telegram.telegram_webhook,
+         name='com_telegram_webhook'),
+
     # ── Admin: Notificaciones ──
     path('', views.notificaciones_panel, name='com_notificaciones_panel'),
 
