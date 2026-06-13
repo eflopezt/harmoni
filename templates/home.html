@@ -341,41 +341,64 @@
   {% endif %}
 </div>
 
-{# ── Primeros pasos — guía para cuentas nuevas (sin empleados) ────── #}
+{# ── Checklist de activación — 5 pasos hasta la primera planilla ──── #}
 {% if primeros_pasos %}
 <div style="background:linear-gradient(135deg,#ecfeff,#f0fdfa);border:1px solid #a5f3fc;border-radius:14px;padding:20px 22px;margin-bottom:1.25rem;">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-    <i class="fas fa-rocket" style="color:#0891b2;font-size:1.15rem;"></i>
-    <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#0f2926;">Primeros pasos en Harmoni</h3>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <i class="fas fa-rocket" style="color:#0891b2;font-size:1.15rem;"></i>
+      <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#0f2926;">Activa tu cuenta — {{ primeros_pasos.completados }}/5</h3>
+    </div>
+    <div style="flex:1;max-width:260px;min-width:140px;background:#cffafe;border-radius:99px;height:8px;overflow:hidden;">
+      <div style="height:8px;border-radius:99px;background:linear-gradient(90deg,#0891b2,#0f766e);width:{% widthratio primeros_pasos.completados 5 100 %}%;"></div>
+    </div>
   </div>
-  <p style="color:#475569;font-size:.9rem;margin:0 0 14px;">Configura tu cuenta en 3 pasos y cierra tu primera planilla.</p>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+  <p style="color:#475569;font-size:.9rem;margin:0 0 14px;">La meta: ver tu <strong>primera planilla calculada con tus números</strong>. Sigue los pasos en orden.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;">
     {# 1 — Empresa #}
     <a href="{% if primeros_pasos.empresa_pk %}{% url 'configuracion_empresa' primeros_pasos.empresa_pk %}{% else %}{% url 'empresas_panel' %}{% endif %}"
-       style="text-decoration:none;background:#fff;border:1px solid #cdeee8;border-radius:11px;padding:14px;display:block;{% if primeros_pasos.rep_ok %}opacity:.7;{% endif %}">
+       style="text-decoration:none;background:#fff;border:1px solid #cdeee8;border-radius:11px;padding:13px;display:block;{% if primeros_pasos.rep_ok %}opacity:.65;{% endif %}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-        <span style="width:26px;height:26px;border-radius:50%;background:{% if primeros_pasos.rep_ok %}#16a34a{% else %}#0891b2{% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;">{% if primeros_pasos.rep_ok %}<i class="fas fa-check"></i>{% else %}1{% endif %}</span>
-        <strong style="color:#0f2926;font-size:.9rem;">Configura tu empresa</strong>
+        <span style="width:25px;height:25px;border-radius:50%;flex-shrink:0;background:{% if primeros_pasos.rep_ok %}#16a34a{% else %}#0891b2{% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;">{% if primeros_pasos.rep_ok %}<i class="fas fa-check"></i>{% else %}1{% endif %}</span>
+        <strong style="color:#0f2926;font-size:.85rem;">Tu empresa</strong>
       </div>
-      <p style="margin:0;color:#64748b;font-size:.76rem;">Representante legal, dirección y logo (para los archivos SUNAT).</p>
+      <p style="margin:0;color:#64748b;font-size:.74rem;">Rep. legal y dirección (van a los archivos SUNAT).</p>
     </a>
     {# 2 — Empleados #}
     <a href="{% url 'personal_import' %}"
-       style="text-decoration:none;background:#fff;border:1.5px solid #5eead4;border-radius:11px;padding:14px;display:block;box-shadow:0 4px 12px rgba(15,118,110,.12);">
+       style="text-decoration:none;background:#fff;border:{% if not primeros_pasos.empleados_ok %}1.5px solid #5eead4;box-shadow:0 4px 12px rgba(15,118,110,.12);{% else %}1px solid #cdeee8;{% endif %}border-radius:11px;padding:13px;display:block;{% if primeros_pasos.empleados_ok %}opacity:.65;{% endif %}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-        <span style="width:26px;height:26px;border-radius:50%;background:#0891b2;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;">2</span>
-        <strong style="color:#0f2926;font-size:.9rem;">Carga tus empleados</strong>
+        <span style="width:25px;height:25px;border-radius:50%;flex-shrink:0;background:{% if primeros_pasos.empleados_ok %}#16a34a{% else %}#0891b2{% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;">{% if primeros_pasos.empleados_ok %}<i class="fas fa-check"></i>{% else %}2{% endif %}</span>
+        <strong style="color:#0f2926;font-size:.85rem;">Tus empleados</strong>
       </div>
-      <p style="margin:0;color:#64748b;font-size:.76rem;">Importa desde Excel o agrégalos uno a uno. <span style="color:#0891b2;font-weight:700;">Empieza aquí →</span></p>
+      <p style="margin:0;color:#64748b;font-size:.74rem;">Importa el Excel con revisión previa de errores.</p>
     </a>
     {# 3 — Conceptos #}
     <a href="{% url 'conceptos_templates' %}"
-       style="text-decoration:none;background:#fff;border:1px solid #cdeee8;border-radius:11px;padding:14px;display:block;{% if primeros_pasos.conceptos_ok %}opacity:.7;{% endif %}">
+       style="text-decoration:none;background:#fff;border:1px solid #cdeee8;border-radius:11px;padding:13px;display:block;{% if primeros_pasos.conceptos_ok %}opacity:.65;{% endif %}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-        <span style="width:26px;height:26px;border-radius:50%;background:{% if primeros_pasos.conceptos_ok %}#16a34a{% else %}#0891b2{% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;">{% if primeros_pasos.conceptos_ok %}<i class="fas fa-check"></i>{% else %}3{% endif %}</span>
-        <strong style="color:#0f2926;font-size:.9rem;">Revisa los conceptos</strong>
+        <span style="width:25px;height:25px;border-radius:50%;flex-shrink:0;background:{% if primeros_pasos.conceptos_ok %}#16a34a{% else %}#0891b2{% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;">{% if primeros_pasos.conceptos_ok %}<i class="fas fa-check"></i>{% else %}3{% endif %}</span>
+        <strong style="color:#0f2926;font-size:.85rem;">Conceptos</strong>
       </div>
-      <p style="margin:0;color:#64748b;font-size:.76rem;">Sueldo, AFP/ONP, IR 5ta, gratificación, CTS — plantillas SUNAT listas.</p>
+      <p style="margin:0;color:#64748b;font-size:.74rem;">Sueldo, AFP/ONP, IR 5ta — plantillas SUNAT listas.</p>
+    </a>
+    {# 4 — Primera planilla (el aha-moment) #}
+    <a href="{% url 'workflow_mes' %}"
+       style="text-decoration:none;background:#fff;border:{% if primeros_pasos.empleados_ok and not primeros_pasos.planilla_ok %}1.5px solid #5eead4;box-shadow:0 4px 12px rgba(15,118,110,.12);{% else %}1px solid #cdeee8;{% endif %}border-radius:11px;padding:13px;display:block;{% if primeros_pasos.planilla_ok %}opacity:.65;{% endif %}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+        <span style="width:25px;height:25px;border-radius:50%;flex-shrink:0;background:{% if primeros_pasos.planilla_ok %}#16a34a{% else %}#0891b2{% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;">{% if primeros_pasos.planilla_ok %}<i class="fas fa-check"></i>{% else %}4{% endif %}</span>
+        <strong style="color:#0f2926;font-size:.85rem;">Primera planilla</strong>
+      </div>
+      <p style="margin:0;color:#64748b;font-size:.74rem;">Genera un período de prueba y mira las boletas.</p>
+    </a>
+    {# 5 — Portal #}
+    <a href="{% url 'personal_list' %}"
+       style="text-decoration:none;background:#fff;border:1px solid #cdeee8;border-radius:11px;padding:13px;display:block;{% if primeros_pasos.portal_ok %}opacity:.65;{% endif %}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+        <span style="width:25px;height:25px;border-radius:50%;flex-shrink:0;background:{% if primeros_pasos.portal_ok %}#16a34a{% else %}#0891b2{% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;">{% if primeros_pasos.portal_ok %}<i class="fas fa-check"></i>{% else %}5{% endif %}</span>
+        <strong style="color:#0f2926;font-size:.85rem;">Invita al portal</strong>
+      </div>
+      <p style="margin:0;color:#64748b;font-size:.74rem;">Crea el acceso de un trabajador y muéstrale su boleta.</p>
     </a>
   </div>
 </div>

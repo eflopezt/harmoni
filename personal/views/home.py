@@ -260,20 +260,30 @@ def home(request):
         ).count(),
     }
 
-    # ── Primeros pasos — guía para cuentas NUEVAS (aún sin empleados) ──
-    # Evita que un trial recién registrado caiga en un dashboard vacío sin saber
-    # qué hacer. Se muestra solo mientras no haya empleados cargados.
-    if total_activos == 0 and (request.user.is_superuser or gerencias_filtradas.exists()):
+    # ── Checklist de activación (5 pasos) ──────────────────────────────
+    # Patrón SaaS líder: checklist persistente con progreso que guía hasta
+    # el aha-moment ("tu primera planilla calculada con TUS números").
+    # Se muestra a admins hasta completar los 5 pasos; luego desaparece.
+    if request.user.is_superuser or gerencias_filtradas.exists():
         try:
             emp = getattr(request, 'empresa_actual', None) \
                 or getattr(getattr(request.user, 'personal_data', None), 'empresa', None)
-            from nominas.models import ConceptoRemunerativo
-            context['primeros_pasos'] = {
+            from nominas.models import ConceptoRemunerativo, PeriodoNomina
+            pasos = {
                 'empresa_pk':   emp.pk if emp else None,
                 'rep_ok':       bool(emp and getattr(emp, 'representante_legal', '')
                                      and getattr(emp, 'direccion', '')),
+                'empleados_ok': total_activos > 0,
                 'conceptos_ok': ConceptoRemunerativo.objects.filter(activo=True).count() >= 5,
+                'planilla_ok':  PeriodoNomina.objects.exists(),
+                'portal_ok':    Personal.objects.filter(usuario__isnull=False).exists(),
             }
+            completados = sum(1 for k in (
+                'rep_ok', 'empleados_ok', 'conceptos_ok', 'planilla_ok', 'portal_ok',
+            ) if pasos[k])
+            if completados < 5:
+                pasos['completados'] = completados
+                context['primeros_pasos'] = pasos
         except Exception:
             pass
 
