@@ -508,130 +508,68 @@ def personal_export(request):
 
 @login_required
 def personal_import(request):
-    """Importar personal desde Excel."""
+    """Importar personal desde Excel — 2 pasos: PREVIEW con errores por fila → confirmar.
+
+    Nada se escribe en BD hasta que el admin confirma lo que vio en el
+    preview. Las filas con error se omiten; las advertencias no bloquean.
+    """
+    from ..import_preview import (
+        aplicar_importacion, borrar_tmp, guardar_archivo_tmp,
+        parsear_excel_personal, ruta_tmp,
+    )
+
+    # ── Paso 2: confirmar (viene del preview con el token del archivo) ──
+    if request.method == 'POST' and request.POST.get('confirmar_token'):
+        token = request.POST['confirmar_token']
+        path = ruta_tmp(token)
+        if not path:
+            messages.error(request, 'La importación expiró — vuelve a subir el archivo.')
+            return redirect('personal_import')
+        parse = parsear_excel_personal(path)
+        borrar_tmp(token)
+        if parse['error_global']:
+            messages.error(request, parse['error_global'])
+            return redirect('personal_import')
+        resultado = aplicar_importacion(parse)
+        import logging
+        logging.getLogger(__name__).info(
+            'Importación de personal por %s: %s creados, %s actualizados, %s omitidos',
+            request.user.get_username(), resultado['creados'],
+            resultado['actualizados'], resultado['omitidos'],
+        )
+        if resultado['creados']:
+            messages.success(request, f"✓ {resultado['creados']} personas creadas")
+        if resultado['actualizados']:
+            messages.info(request, f"ℹ {resultado['actualizados']} personas actualizadas")
+        if resultado['omitidos']:
+            messages.warning(
+                request,
+                f"{resultado['omitidos']} fila(s) con error se omitieron — "
+                "corrígelas en el Excel y vuelve a importar solo esas si hace falta."
+            )
+        return redirect('personal_list')
+
+    # ── Paso 1: subir archivo → parsear → mostrar preview ──
     if request.method == 'POST':
         form = ImportExcelForm(request.POST, request.FILES)
         if form.is_valid():
-            archivo = request.FILES['archivo']
-
-            try:
-                # Leer Excel forzando NroDoc como texto para preservar ceros a la izquierda
-                df = pd.read_excel(
-                    archivo,
-                    sheet_name='Personal',
-                    dtype={'NroDoc': str, 'CodigoFotocheck': str, 'Celular': str}
-                )
-
-                columnas_requeridas = ['NroDoc', 'ApellidosNombres']
-                if not all(col in df.columns for col in columnas_requeridas):
-                    messages.error(request, 'El archivo debe contener: NroDoc, ApellidosNombres')
-                    return redirect('personal_import')
-
-                creados = 0
-                actualizados = 0
-                errores = []
-
-                for idx, row in df.iterrows():
-                    try:
-                        # Procesar DNI - asegurar que se mantienen ceros a la izquierda
-                        nro_doc_raw = row['NroDoc']
-                        if pd.isna(nro_doc_raw):
-                            continue
-
-                        # Si es número, convertir a string sin notación científica
-                        if isinstance(nro_doc_raw, (int, float)):
-                            nro_doc = str(int(nro_doc_raw)).strip()
-                        else:
-                            nro_doc = str(nro_doc_raw).strip()
-
-                        if not nro_doc or nro_doc == 'nan':
-                            continue
-
-                        apellidos_nombres = str(row['ApellidosNombres']).strip()
-
-                        # Buscar área
-                        subarea = None
-                        if 'SubArea' in row and pd.notna(row['SubArea']):
-                            try:
-                                area = SubArea.objects.get(nombre=str(row['SubArea']).strip())
-                            except SubArea.DoesNotExist:
-                                pass
-
-                        # Preparar datos
-                        datos = {
-                            'apellidos_nombres': apellidos_nombres,
-                            'tipo_doc': row.get('TipoDoc', 'DNI') if pd.notna(row.get('TipoDoc')) else 'DNI',
-                            'codigo_fotocheck': row.get('CodigoFotocheck', '') if pd.notna(row.get('CodigoFotocheck')) else '',
-                            'cargo': row.get('Cargo', '') if pd.notna(row.get('Cargo')) else '',
-                            'tipo_trab': row.get('TipoTrabajador', 'Empleado') if pd.notna(row.get('TipoTrabajador')) else 'Empleado',
-                            'subarea': subarea,
-                            'estado': row.get('Estado', 'Activo') if pd.notna(row.get('Estado')) else 'Activo',
-                            'sexo': row.get('Sexo', '') if pd.notna(row.get('Sexo')) else '',
-                            'celular': row.get('Celular', '') if pd.notna(row.get('Celular')) else '',
-                            'correo_personal': row.get('CorreoPersonal', '') if pd.notna(row.get('CorreoPersonal')) else '',
-                            'correo_corporativo': row.get('CorreoCorporativo', '') if pd.notna(row.get('CorreoCorporativo')) else '',
-                            'direccion': row.get('Direccion', '') if pd.notna(row.get('Direccion')) else '',
-                            'ubigeo': row.get('Ubigeo', '') if pd.notna(row.get('Ubigeo')) else '',
-                            'regimen_laboral': row.get('RegimenLaboral', '') if pd.notna(row.get('RegimenLaboral')) else '',
-                            'regimen_turno': row.get('RegimenTurno', '') if pd.notna(row.get('RegimenTurno')) else '',
-                            'observaciones': row.get('Observaciones', '') if pd.notna(row.get('Observaciones')) else '',
-                        }
-
-                        # Fechas
-                        if 'FechaAlta' in row and pd.notna(row['FechaAlta']):
-                            try:
-                                datos['fecha_alta'] = pd.to_datetime(row['FechaAlta']).date()
-                            except (ValueError, TypeError):
-                                pass
-
-                        if 'FechaCese' in row and pd.notna(row['FechaCese']):
-                            try:
-                                datos['fecha_cese'] = pd.to_datetime(row['FechaCese']).date()
-                            except (ValueError, TypeError):
-                                pass
-
-                        if 'FechaNacimiento' in row and pd.notna(row['FechaNacimiento']):
-                            try:
-                                datos['fecha_nacimiento'] = pd.to_datetime(row['FechaNacimiento']).date()
-                            except (ValueError, TypeError):
-                                pass
-
-                        # Decimales
-                        if 'DiasLibresCorte2025' in row and pd.notna(row['DiasLibresCorte2025']):
-                            try:
-                                datos['dias_libres_corte_2025'] = Decimal(str(row['DiasLibresCorte2025']))
-                            except (ValueError, TypeError, InvalidOperation):
-                                pass
-
-                        # Crear o actualizar (DNI es la clave única)
-                        personal_obj, created = Personal.objects.update_or_create(
-                            nro_doc=nro_doc,
-                            defaults=datos
-                        )
-
-                        if created:
-                            creados += 1
-                        else:
-                            actualizados += 1
-
-                    except Exception as e:
-                        errores.append(f"Fila {idx + 2}: {str(e)}")
-
-                if creados > 0:
-                    messages.success(request, f'✓ {creados} personas creadas')
-                if actualizados > 0:
-                    messages.info(request, f'ℹ {actualizados} personas actualizadas')
-                if errores:
-                    for error in errores[:10]:
-                        messages.warning(request, error)
-
-                return redirect('personal_list')
-
-            except Exception as e:
-                messages.error(request, f'Error al procesar el archivo: {str(e)}')
-                import logging
-                logging.getLogger(__name__).exception('Error importando personal desde Excel')
+            token = guardar_archivo_tmp(request.FILES['archivo'])
+            parse = parsear_excel_personal(ruta_tmp(token))
+            if parse['error_global']:
+                borrar_tmp(token)
+                messages.error(request, parse['error_global'])
                 return redirect('personal_import')
+            if not parse['filas']:
+                borrar_tmp(token)
+                messages.warning(request, 'El archivo no tiene filas con DNI.')
+                return redirect('personal_import')
+            context = {
+                'parse': parse,
+                'token': token,
+                'titulo': 'Revisar importación',
+            }
+            context.update(get_context_usuario(request.user))
+            return render(request, 'personal/import_preview.html', context)
     else:
         form = ImportExcelForm()
 

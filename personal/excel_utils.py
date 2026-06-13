@@ -153,6 +153,11 @@ def crear_plantilla_personal(personal_queryset=None):
                 'Ubigeo': p.ubigeo,
                 'RegimenLaboral': p.regimen_laboral,
                 'RegimenTurno': p.regimen_turno,
+                'SueldoBase': float(p.sueldo_base or 0),
+                'RegimenPension': p.regimen_pension,
+                'AFP': p.afp,
+                'Banco': p.banco,
+                'CuentaCCI': p.cuenta_cci,
                 'DiasLibresCorte2025': float(p.dias_libres_corte_2025),
                 'Observaciones': p.observaciones,
             })
@@ -178,6 +183,11 @@ def crear_plantilla_personal(personal_queryset=None):
             'Ubigeo': '',
             'RegimenLaboral': '',
             'RegimenTurno': '21x7',
+            'SueldoBase': 1130,
+            'RegimenPension': 'ONP',
+            'AFP': '',
+            'Banco': 'BCP',
+            'CuentaCCI': '',
             'DiasLibresCorte2025': 0,
             'Observaciones': '',
         }]
@@ -195,6 +205,12 @@ def crear_plantilla_personal(personal_queryset=None):
         }),
         'CAT_TipoTrabajador': pd.DataFrame({
             'TipoTrabajador': ['Empleado', 'Obrero']
+        }),
+        'CAT_RegimenPension': pd.DataFrame({
+            'RegimenPension': ['AFP', 'ONP', 'SIN_PENSION'],
+        }),
+        'CAT_AFP': pd.DataFrame({
+            'AFP': ['Habitat', 'Integra', 'Prima', 'Profuturo'],
         }),
         'CAT_Estado': pd.DataFrame({
             'Estado': ['Activo', 'Inactivo', 'Suspendido', 'Cesado']

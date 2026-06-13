@@ -1,0 +1,91 @@
+{% extends "base_v2.html" %}
+{% block title %}Revisar importación de personal{% endblock %}
+
+{% block body %}
+<div style="max-width:1000px;margin:0 auto;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h2 style="margin:0;color:#0d2b27;font-weight:800;">
+        <i class="fas fa-clipboard-list me-2" style="color:#0f766e;"></i>Revisa antes de importar
+      </h2>
+      <p style="margin:4px 0 0;color:#64748b;">Nada se ha guardado todavía. Las filas con error se omitirán.</p>
+    </div>
+    <a href="{% url 'personal_import' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Subir otro archivo
+    </a>
+  </div>
+
+  <!-- Resumen -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+    <div style="background:#f0fdf4;padding:14px 18px;border-radius:10px;border:1px solid #bbf7d0;">
+      <div style="font-size:.72rem;color:#15803d;text-transform:uppercase;">A crear</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#15803d;">{{ parse.a_crear }}</div>
+    </div>
+    <div style="background:#eff6ff;padding:14px 18px;border-radius:10px;border:1px solid #bfdbfe;">
+      <div style="font-size:.72rem;color:#1d4ed8;text-transform:uppercase;">A actualizar</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#1d4ed8;">{{ parse.a_actualizar }}</div>
+    </div>
+    <div style="background:#fffbeb;padding:14px 18px;border-radius:10px;border:1px solid #fde68a;">
+      <div style="font-size:.72rem;color:#b45309;text-transform:uppercase;">Con advertencias</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#b45309;">{{ parse.con_warning }}</div>
+    </div>
+    <div style="background:#fef2f2;padding:14px 18px;border-radius:10px;border:1px solid #fecaca;">
+      <div style="font-size:.72rem;color:#dc2626;text-transform:uppercase;">Con errores (se omiten)</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#dc2626;">{{ parse.con_error }}</div>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card" style="border:1px solid #e2e8f0;border-radius:12px;margin-bottom:18px;">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr style="color:#475569;font-size:.78rem;text-transform:uppercase;">
+            <th style="padding-left:14px;">Fila</th>
+            <th>DNI</th>
+            <th>Apellidos y Nombres</th>
+            <th>Acción</th>
+            <th>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in parse.filas %}
+          <tr style="{% if f.errores %}background:#fef2f2;{% elif f.warnings %}background:#fffbeb;{% endif %}">
+            <td style="padding-left:14px;color:#94a3b8;">{{ f.n }}</td>
+            <td><code>{{ f.nro_doc }}</code></td>
+            <td>{{ f.nombre|default:'—' }}</td>
+            <td>
+              {% if f.errores %}
+                <span class="badge bg-danger">SE OMITE</span>
+              {% elif f.accion == 'CREAR' %}
+                <span class="badge bg-success">Crear</span>
+              {% else %}
+                <span class="badge bg-primary">Actualizar</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.82rem;">
+              {% for e in f.errores %}<div style="color:#dc2626;"><i class="fas fa-times-circle me-1"></i>{{ e }}</div>{% endfor %}
+              {% for w in f.warnings %}<div style="color:#b45309;"><i class="fas fa-exclamation-triangle me-1"></i>{{ w }}</div>{% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Confirmar -->
+  <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:30px;">
+    <a href="{% url 'personal_import' %}" class="btn btn-outline-secondary">Cancelar</a>
+    <form method="post" action="{% url 'personal_import' %}">
+      {% csrf_token %}
+      <input type="hidden" name="confirmar_token" value="{{ token }}">
+      <button type="submit" class="btn btn-success"
+              {% if not parse.a_crear and not parse.a_actualizar %}disabled{% endif %}>
+        <i class="fas fa-check me-1"></i>
+        Confirmar importación ({{ parse.a_crear }} + {{ parse.a_actualizar }})
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
