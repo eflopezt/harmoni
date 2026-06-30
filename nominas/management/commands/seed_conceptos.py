@@ -60,9 +60,9 @@ CONCEPTOS = [
 
     # ── APORTES EMPLEADOR ─────────────────────────────────────────
     ('essalud',             'EsSalud 9% (Empleador)',       'APORTE_EMPLEADOR','REMUNERATIVO','ESSALUD',     9,    False,False,False,False, 50),
-    ('sctr-pension',        'SCTR Pensión (Empleador)',     'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('1.30'), False,False,False,False, 51),
-    ('sctr-salud',          'SCTR Salud (Empleador)',       'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('1.55'), False,False,False,False, 52),
-    ('vida-ley',            'Seguro Vida Ley (D.Leg. 688)', 'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('0.53'), False,False,False,False, 54),
+    ('sctr-pension',        'SCTR Pensión (Empleador)',     'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('0.73'), False,False,False,False, 51),
+    ('sctr-salud',          'SCTR Salud (Empleador)',       'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('0.80'), False,False,False,False, 52),
+    ('vida-ley',            'Seguro Vida Ley (D.Leg. 688)', 'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('0.71'), False,False,False,False, 54),
 ]
 
 # Códigos PLAME (SUNAT Tabla 22) para conceptos que los necesitan al exportar.

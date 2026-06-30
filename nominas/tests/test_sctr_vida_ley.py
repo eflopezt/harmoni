@@ -56,10 +56,21 @@ def _mock_conceptos():
     return qs
 
 
+_RIESGO_DEFAULT = {
+    'sctr_activo': True, 'sctr_salud_tasa': Decimal('0.80'),
+    'sctr_pension_tasa': Decimal('0.73'), 'vida_ley_activo': True,
+    'vida_ley_tasa': Decimal('0.71'),
+}
+
+
 @pytest.fixture(autouse=True)
 def _patch_config():
+    # Parchea las tasas de riesgo a los referenciales por defecto para que los
+    # montos sean deterministas (sin depender de la fila ConfiguracionSistema
+    # que pueda persistir en la test-DB con --keepdb).
     with patch('nominas.engine._get_uit', return_value=UIT), \
-         patch('nominas.engine._get_rmv', return_value=RMV):
+         patch('nominas.engine._get_rmv', return_value=RMV), \
+         patch('nominas.engine._get_aportes_riesgo', return_value=dict(_RIESGO_DEFAULT)):
         yield
 
 
@@ -69,8 +80,8 @@ class TestSCTR:
     def test_afecto_sctr_calcula_salud_y_pension(self):
         res = calcular_registro(_make_registro(afecto_sctr=True), _mock_conceptos())
         rem = res['rem_computable']
-        assert res['aporte_sctr_salud'] == _r(rem * Decimal('0.0155'))
-        assert res['aporte_sctr_pension'] == _r(rem * Decimal('0.0130'))
+        assert res['aporte_sctr_salud'] == _r(rem * Decimal('0.0080'))
+        assert res['aporte_sctr_pension'] == _r(rem * Decimal('0.0073'))
 
     def test_no_afecto_sctr_es_cero(self):
         res = calcular_registro(_make_registro(afecto_sctr=False), _mock_conceptos())
@@ -97,7 +108,7 @@ class TestVidaLey:
     def test_vida_ley_aplica_a_todos(self):
         res = calcular_registro(_make_registro(afecto_sctr=False), _mock_conceptos())
         rem = res['rem_computable']
-        assert res['aporte_vida_ley'] == _r(rem * Decimal('0.0053'))
+        assert res['aporte_vida_ley'] == _r(rem * Decimal('0.0071'))
 
     def test_vida_ley_desactivado(self):
         params = {
@@ -117,9 +128,9 @@ class TestCostoEmpresa:
         res = calcular_registro(_make_registro(afecto_sctr=True), _mock_conceptos())
         rem = res['rem_computable']
         essalud = _r(rem * Decimal('0.09'))
-        sctr_s = _r(rem * Decimal('0.0155'))
-        sctr_p = _r(rem * Decimal('0.0130'))
-        vida = _r(rem * Decimal('0.0053'))
+        sctr_s = _r(rem * Decimal('0.0080'))
+        sctr_p = _r(rem * Decimal('0.0073'))
+        vida = _r(rem * Decimal('0.0071'))
         base_g = res['rem_computable']  # sin asig familiar
         prov_g = _r(base_g / Decimal('6'))
         prov_c = _r((base_g + prov_g) / Decimal('12'))

@@ -56,9 +56,9 @@ ESSALUD_TASA  = Decimal('9.00')    # % aporte empleador
 #   SCTR: Ley 26790 + DS 003-98-SA. Solo trabajadores en actividad de riesgo
 #         (Anexo 5 DS 009-97-SA) → gobernado por Personal.afecto_sctr.
 #   Vida Ley: D.Leg. 688 + Ley 31408 — todos los trabajadores desde el día 1.
-SCTR_SALUD_TASA   = Decimal('1.55')   # % aporte empleador (referencial)
-SCTR_PENSION_TASA = Decimal('1.30')   # % aporte empleador (referencial)
-VIDA_LEY_TASA     = Decimal('0.53')   # % prima empleador (referencial)
+SCTR_SALUD_TASA   = Decimal('0.80')   # % aporte empleador (referencial; ≈ Nivel III combinado 1.53%)
+SCTR_PENSION_TASA = Decimal('0.73')   # % aporte empleador (referencial)
+VIDA_LEY_TASA     = Decimal('0.71')   # % prima empleador (referencial de mercado)
 
 # Tope de Remuneración Máxima Asegurable (RMA) — Q2 2026.
 # La prima de seguro AFP se calcula HASTA este monto. Si el trabajador

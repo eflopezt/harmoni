@@ -1512,12 +1512,14 @@ class ConfiguracionSistema(models.Model):
         help_text="Si está activo, calcula SCTR Salud y Pensión a los trabajadores "
                   "marcados como 'Afecto SCTR' (actividad de riesgo). No afecta al resto.")
     sctr_salud_tasa = models.DecimalField(
-        max_digits=6, decimal_places=4, default=Decimal('1.55'),
+        max_digits=6, decimal_places=4, default=Decimal('0.80'),
         verbose_name="Tasa SCTR Salud (%)",
-        help_text="% sobre remuneración computable, aporte empleador. Referencial; "
-                  "ajustar a la prima real de tu póliza (Anexo 5 DS 009-97-SA).")
+        help_text="% sobre remuneración computable, aporte empleador. SCTR no tiene "
+                  "tasa fija: se negocia por nivel de riesgo. Referencia combinada "
+                  "(salud+pensión) por nivel: I 0.63% · II 1.23% · III 1.53% · IV 1.83%. "
+                  "Ajustar a la prima real de tu póliza (Anexo 5 DS 009-97-SA).")
     sctr_pension_tasa = models.DecimalField(
-        max_digits=6, decimal_places=4, default=Decimal('1.30'),
+        max_digits=6, decimal_places=4, default=Decimal('0.73'),
         verbose_name="Tasa SCTR Pensión (%)",
         help_text="% sobre remuneración computable, aporte empleador (invalidez/sepelio). "
                   "Referencial; ajustar a la prima real de tu póliza.")
@@ -1531,10 +1533,11 @@ class ConfiguracionSistema(models.Model):
         help_text="Si está activo, calcula la prima de Vida Ley (D.Leg. 688) para "
                   "todos los trabajadores como costo del empleador.")
     vida_ley_tasa = models.DecimalField(
-        max_digits=6, decimal_places=4, default=Decimal('0.53'),
+        max_digits=6, decimal_places=4, default=Decimal('0.71'),
         verbose_name="Tasa Vida Ley (%)",
         help_text="% sobre remuneración mensual, prima a cargo del empleador. "
-                  "Referencial (~0.53%); ajustar a la prima real de tu póliza.")
+                  "Vida Ley no tiene tasa fija (es prima de seguro); referencial de "
+                  "mercado ~0.71%. Ajustar a la prima real de tu póliza (tope RMA).")
 
     # ── Synkro (nombres de hojas) ──
     synkro_hoja_reloj = models.CharField(

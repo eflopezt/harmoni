@@ -746,16 +746,17 @@ class TestEdgeCases:
         sueldo = Decimal('5000.00')
         registro = _make_registro(sueldo_base=sueldo, asignacion_familiar=True)
         result = calcular_registro(registro, _mock_conceptos())
-        # Manually compute
+        # Manually compute (vida_ley/sctr se leen del resultado para no depender
+        # de la tasa configurada).
         rem = result['rem_computable']
         essalud = _r(rem * Decimal('0.09'))
-        vida_ley = _r(rem * Decimal('0.0053'))
+        vida_ley = result['aporte_vida_ley']
         base_g = sueldo + _r(RMV * Decimal('0.10'))
         prov_g = _r(base_g / Decimal('6'))
         prov_c = _r((base_g + prov_g) / Decimal('12'))
         expected = _r(result['total_ingresos'] + essalud + vida_ley + prov_g + prov_c)
-        assert result['aporte_sctr_salud'] == Decimal('0')
-        assert result['aporte_vida_ley'] == vida_ley
+        assert result['aporte_sctr_salud'] == Decimal('0')  # trabajador no afecto_sctr
+        assert result['aporte_vida_ley'] > Decimal('0')      # Vida Ley aplica a todos
         assert result['costo_total_empresa'] == expected
 
     def test_zero_salary_zero_everything(self):
