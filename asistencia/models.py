@@ -1501,6 +1501,41 @@ class ConfiguracionSistema(models.Model):
         verbose_name="Vigencia tasas AFP",
         help_text="Cuatrimestre de vigencia (ej. 'Q2-2026' o '2026-04 a 2026-07').")
 
+    # ── SCTR — Seguro Complementario de Trabajo de Riesgo (Ley 26790, DS 003-98-SA) ──
+    # Aporte del EMPLEADOR, obligatorio SOLO para trabajadores en actividades de
+    # alto riesgo (Anexo 5 DS 009-97-SA). Por eso se gobierna además por el flag
+    # Personal.afecto_sctr: solo se calcula a quienes están marcados afectos.
+    # Las tasas varían por nivel de riesgo y aseguradora (0.66%–3.22%); estos son
+    # valores referenciales editables aquí sin redeploy.
+    sctr_activo = models.BooleanField(
+        default=True, verbose_name="SCTR activo",
+        help_text="Si está activo, calcula SCTR Salud y Pensión a los trabajadores "
+                  "marcados como 'Afecto SCTR' (actividad de riesgo). No afecta al resto.")
+    sctr_salud_tasa = models.DecimalField(
+        max_digits=6, decimal_places=4, default=Decimal('1.55'),
+        verbose_name="Tasa SCTR Salud (%)",
+        help_text="% sobre remuneración computable, aporte empleador. Referencial; "
+                  "ajustar a la prima real de tu póliza (Anexo 5 DS 009-97-SA).")
+    sctr_pension_tasa = models.DecimalField(
+        max_digits=6, decimal_places=4, default=Decimal('1.30'),
+        verbose_name="Tasa SCTR Pensión (%)",
+        help_text="% sobre remuneración computable, aporte empleador (invalidez/sepelio). "
+                  "Referencial; ajustar a la prima real de tu póliza.")
+
+    # ── Seguro Vida Ley (D.Leg. 688, Ley 31408) ──
+    # Obligatorio para TODOS los trabajadores desde el inicio del vínculo (no solo
+    # a partir del 4° año desde 2020). Es prima de seguro a cargo del empleador,
+    # NO se declara en PLAME (no es aporte a SUNAT) pero SÍ es costo empresa.
+    vida_ley_activo = models.BooleanField(
+        default=True, verbose_name="Seguro Vida Ley activo",
+        help_text="Si está activo, calcula la prima de Vida Ley (D.Leg. 688) para "
+                  "todos los trabajadores como costo del empleador.")
+    vida_ley_tasa = models.DecimalField(
+        max_digits=6, decimal_places=4, default=Decimal('0.53'),
+        verbose_name="Tasa Vida Ley (%)",
+        help_text="% sobre remuneración mensual, prima a cargo del empleador. "
+                  "Referencial (~0.53%); ajustar a la prima real de tu póliza.")
+
     # ── Synkro (nombres de hojas) ──
     synkro_hoja_reloj = models.CharField(
         max_length=60, default='Reloj',

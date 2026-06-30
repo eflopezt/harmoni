@@ -6,6 +6,8 @@ Uso:
     python manage.py seed_conceptos
     python manage.py seed_conceptos --reset
 """
+from decimal import Decimal
+
 from django.core.management.base import BaseCommand
 from nominas.models import ConceptoRemunerativo
 
@@ -58,9 +60,17 @@ CONCEPTOS = [
 
     # ── APORTES EMPLEADOR ─────────────────────────────────────────
     ('essalud',             'EsSalud 9% (Empleador)',       'APORTE_EMPLEADOR','REMUNERATIVO','ESSALUD',     9,    False,False,False,False, 50),
-    ('sctr-pension',        'SCTR Pensión (Empleador)',     'APORTE_EMPLEADOR','REMUNERATIVO','MANUAL',      0,    False,False,False,False, 51),
-    ('sctr-salud',          'SCTR Salud (Empleador)',       'APORTE_EMPLEADOR','REMUNERATIVO','MANUAL',      0,    False,False,False,False, 52),
+    ('sctr-pension',        'SCTR Pensión (Empleador)',     'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('1.30'), False,False,False,False, 51),
+    ('sctr-salud',          'SCTR Salud (Empleador)',       'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('1.55'), False,False,False,False, 52),
+    ('vida-ley',            'Seguro Vida Ley (D.Leg. 688)', 'APORTE_EMPLEADOR','REMUNERATIVO','PORCENTAJE',  Decimal('0.53'), False,False,False,False, 54),
 ]
+
+# Códigos PLAME (SUNAT Tabla 22) para conceptos que los necesitan al exportar.
+# Vida Ley no se declara en PLAME (prima de seguro, no aporte a SUNAT).
+CODIGO_PLAME = {
+    'sctr-salud':   '0812',
+    'sctr-pension': '0813',
+}
 
 
 class Command(BaseCommand):
@@ -101,6 +111,13 @@ class Command(BaseCommand):
                 creados += 1
             else:
                 existentes += 1
+
+        # Asegurar códigos PLAME en los conceptos que los requieren (idempotente,
+        # también corrige instalaciones previas donde quedaron en blanco).
+        for codigo, cod_plame in CODIGO_PLAME.items():
+            ConceptoRemunerativo.objects.filter(
+                codigo=codigo,
+            ).exclude(codigo_plame=cod_plame).update(codigo_plame=cod_plame)
 
         self.stdout.write(self.style.SUCCESS(
             f'Seed conceptos: {creados} creados, {existentes} ya existían. '

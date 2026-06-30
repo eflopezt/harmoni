@@ -483,6 +483,17 @@ class Personal(models.Model):
             "(Art. 46° TUO LIR). Cero si el empleador asume el 100% de la prima."
         )
     )
+    # SCTR — actividad de alto riesgo (Anexo 5 DS 009-97-SA). Solo a estos
+    # trabajadores se les calcula el aporte SCTR Salud/Pensión del empleador.
+    afecto_sctr = models.BooleanField(
+        default=False,
+        verbose_name="Afecto SCTR (actividad de riesgo)",
+        help_text=(
+            "Marca a los trabajadores en actividades de alto riesgo (construcción, "
+            "minería, etc., Anexo 5 DS 009-97-SA). El empleador aporta SCTR Salud y "
+            "Pensión solo por ellos. El personal administrativo NO debe marcarse."
+        )
+    )
     # Viáticos fijos — monto mensual no remunerativo (excluido de IR 5ta)
     viaticos_mensual = models.DecimalField(
         max_digits=9,

@@ -51,6 +51,15 @@ AFP_APORTE    = Decimal('10.00')   # % obligatorio sobre rem. asegurable
 ONP_TASA      = Decimal('13.00')   # % — DL 19990, sin tope
 ESSALUD_TASA  = Decimal('9.00')    # % aporte empleador
 
+# Aportes/primas de riesgo del empleador — fallbacks (editables en
+# ConfiguracionSistema sin redeploy).
+#   SCTR: Ley 26790 + DS 003-98-SA. Solo trabajadores en actividad de riesgo
+#         (Anexo 5 DS 009-97-SA) → gobernado por Personal.afecto_sctr.
+#   Vida Ley: D.Leg. 688 + Ley 31408 — todos los trabajadores desde el día 1.
+SCTR_SALUD_TASA   = Decimal('1.55')   # % aporte empleador (referencial)
+SCTR_PENSION_TASA = Decimal('1.30')   # % aporte empleador (referencial)
+VIDA_LEY_TASA     = Decimal('0.53')   # % prima empleador (referencial)
+
 # Tope de Remuneración Máxima Asegurable (RMA) — Q2 2026.
 # La prima de seguro AFP se calcula HASTA este monto. Si el trabajador
 # gana más, la prima se trunca al tope (la aseguradora no cubre por
@@ -101,6 +110,10 @@ def snapshot_parametros_legales() -> dict:
         'essalud_tasa': str(ESSALUD_TASA),
         'afp_aporte': str(AFP_APORTE),
         'afp_tope_rma': str(_get_tope_rma()),
+        'aportes_riesgo': {
+            k: (str(v) if isinstance(v, Decimal) else v)
+            for k, v in _get_aportes_riesgo().items()
+        },
         'afp_tasas': {
             nombre: {
                 'comision_flujo': str(_get_tasas_afp(nombre)['comision_flujo']),
@@ -109,6 +122,36 @@ def snapshot_parametros_legales() -> dict:
             for nombre in AFP_TASAS
         },
     }
+
+
+def _get_aportes_riesgo() -> dict:
+    """
+    Lee los parámetros de SCTR y Vida Ley desde ConfiguracionSistema, con
+    fallback a las constantes del engine. Devuelve flags de activación y tasas.
+    """
+    params = {
+        'sctr_activo':       True,
+        'sctr_salud_tasa':   SCTR_SALUD_TASA,
+        'sctr_pension_tasa': SCTR_PENSION_TASA,
+        'vida_ley_activo':   True,
+        'vida_ley_tasa':     VIDA_LEY_TASA,
+    }
+    try:
+        from asistencia.models import ConfiguracionSistema
+        cfg = ConfiguracionSistema.get()
+        params['sctr_activo']     = bool(getattr(cfg, 'sctr_activo', True))
+        params['vida_ley_activo'] = bool(getattr(cfg, 'vida_ley_activo', True))
+        for k, attr in (
+            ('sctr_salud_tasa', 'sctr_salud_tasa'),
+            ('sctr_pension_tasa', 'sctr_pension_tasa'),
+            ('vida_ley_tasa', 'vida_ley_tasa'),
+        ):
+            v = getattr(cfg, attr, None)
+            if v is not None:
+                params[k] = Decimal(str(v))
+    except Exception:
+        pass
+    return params
 
 
 def _get_tope_rma() -> Decimal:
@@ -815,6 +858,20 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     # ── 10. Aportes empleador (costo empresa) ──
     essalud = _redondear(rem_computable * ESSALUD_TASA / Decimal('100'))
 
+    # ── 10b. Aportes/primas de riesgo del empleador ──
+    # SCTR (Ley 26790): solo trabajadores en actividad de riesgo (afecto_sctr).
+    # Vida Ley (D.Leg. 688): todos los trabajadores. Base: remuneración computable.
+    _riesgo = _get_aportes_riesgo()
+    _afecto_sctr = bool(getattr(getattr(p, 'personal', None), 'afecto_sctr', False))
+    sctr_salud   = Decimal('0')
+    sctr_pension = Decimal('0')
+    vida_ley     = Decimal('0')
+    if _riesgo['sctr_activo'] and _afecto_sctr:
+        sctr_salud   = _redondear(rem_computable * _riesgo['sctr_salud_tasa'] / Decimal('100'))
+        sctr_pension = _redondear(rem_computable * _riesgo['sctr_pension_tasa'] / Decimal('100'))
+    if _riesgo['vida_ley_activo']:
+        vida_ley = _redondear(rem_computable * _riesgo['vida_ley_tasa'] / Decimal('100'))
+
     # ── 11. Provisiones (informativas en planilla regular) ──
     # Gratificación = 1/6 de (sueldo + asig_fam) — HE no computan (Ley 27735)
     base_gratif = sueldo_prop + asig_fam
@@ -823,7 +880,9 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     prov_cts    = _redondear((base_gratif + prov_gratif) / Decimal('12'))
 
     # ── 12. Costo total empresa ──
-    costo_empresa = _redondear(total_ingresos_bruto + essalud + prov_gratif + prov_cts)
+    costo_empresa = _redondear(
+        total_ingresos_bruto + essalud + sctr_salud + sctr_pension + vida_ley
+        + prov_gratif + prov_cts)
 
     # ── Construir lista de líneas ──
     lineas = []
@@ -896,10 +955,77 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
 
     # Aportes empleador
     _agregar('essalud',             rem_computable, ESSALUD_TASA, essalud)
+    if sctr_salud > 0:
+        _agregar('sctr-salud',      rem_computable, _riesgo['sctr_salud_tasa'],   sctr_salud,
+                 'SCTR Salud (Ley 26790)')
+    if sctr_pension > 0:
+        _agregar('sctr-pension',    rem_computable, _riesgo['sctr_pension_tasa'], sctr_pension,
+                 'SCTR Pensión (invalidez/sepelio)')
+    if vida_ley > 0:
+        _agregar('vida-ley',        rem_computable, _riesgo['vida_ley_tasa'],     vida_ley,
+                 'Seguro Vida Ley (D.Leg. 688)')
 
     # Provisiones (informativas)
     _agregar('prov-gratificacion',  rem_computable, Decimal('0'), prov_gratif,   '1/6 sueldo mensual')
     _agregar('prov-cts',            rem_computable, Decimal('0'), prov_cts,      '1/12 (sueldo+gratif)')
+
+    # ── Pase genérico fórmula-driven (conceptos marcados "aplicar_automatico") ──
+    # Históricamente el engine solo emitía conceptos por lista blanca de códigos,
+    # así que cualquier concepto activado por el admin nacía en 0. Este pase emite
+    # los conceptos activos con aplicar_automatico=True y fórmula PORCENTAJE/FIJO
+    # que no se hayan emitido arriba, calculándolos sobre la remuneración
+    # computable (PORCENTAJE) o su monto_fijo (FIJO). Opt-in por concepto para no
+    # alterar planillas existentes. SCTR/Vida Ley se manejan explícitamente arriba.
+    _emitidos = {l['concepto'].codigo for l in lineas}
+    _ing_auto = Decimal('0')
+    _desc_auto = Decimal('0')
+    _aporte_auto = Decimal('0')
+    try:
+        for c in conceptos_activos:
+            if not getattr(c, 'aplicar_automatico', False):
+                continue
+            if c.codigo in _emitidos:
+                continue
+            if c.formula == 'PORCENTAJE' and (c.porcentaje or 0) > 0:
+                _monto = _redondear(rem_computable * Decimal(str(c.porcentaje)) / Decimal('100'))
+                _pct = Decimal(str(c.porcentaje))
+                _base = rem_computable
+            elif c.formula == 'FIJO' and (c.monto_fijo or 0) > 0:
+                _monto = _redondear(Decimal(str(c.monto_fijo)))
+                _pct = Decimal('0')
+                _base = Decimal('0')
+            else:
+                continue
+            if _monto <= 0:
+                continue
+            lineas.append({
+                'concepto': c, 'base_calculo': _base,
+                'porcentaje_aplicado': _pct, 'monto': _monto,
+                'observacion': 'Automático (configuración del concepto)',
+            })
+            _emitidos.add(c.codigo)
+            if c.tipo == 'INGRESO':
+                _ing_auto += _monto
+            elif c.tipo == 'DESCUENTO':
+                _desc_auto += _monto
+            elif c.tipo == 'APORTE_EMPLEADOR':
+                _aporte_auto += _monto
+    except Exception:
+        logger.warning('Pase genérico de conceptos automáticos falló', exc_info=True)
+        _ing_auto = Decimal('0')
+        _desc_auto = Decimal('0')
+        _aporte_auto = Decimal('0')
+
+    # Reflejar los conceptos automáticos en los totales (ingresos suben el bruto y
+    # el neto; descuentos bajan el neto). Los aportes empleador automáticos no
+    # tocan el neto del trabajador pero sí el costo empresa.
+    if _ing_auto:
+        total_ingresos_bruto += _ing_auto
+        neto = _redondear(neto + _ing_auto)
+    if _desc_auto:
+        total_desc_trabajador += _desc_auto
+        neto = _redondear(neto - _desc_auto)
+    costo_empresa = _redondear(costo_empresa + _ing_auto + _aporte_auto)
 
     return {
         'lineas':             lineas,
@@ -907,6 +1033,9 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         'total_descuentos':   total_desc_trabajador,
         'neto_a_pagar':       neto,
         'aporte_essalud':     essalud,
+        'aporte_sctr_salud':  sctr_salud,
+        'aporte_sctr_pension': sctr_pension,
+        'aporte_vida_ley':    vida_ley,
         'costo_total_empresa': costo_empresa,
         'rem_computable':     rem_computable,
     }
@@ -1276,6 +1405,9 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
                 registro.total_descuentos    = resultado['total_descuentos']
                 registro.neto_a_pagar        = resultado['neto_a_pagar']
                 registro.aporte_essalud      = resultado['aporte_essalud']
+                registro.aporte_sctr_salud   = resultado.get('aporte_sctr_salud', Decimal('0'))
+                registro.aporte_sctr_pension = resultado.get('aporte_sctr_pension', Decimal('0'))
+                registro.aporte_vida_ley     = resultado.get('aporte_vida_ley', Decimal('0'))
                 registro.costo_total_empresa = resultado['costo_total_empresa']
                 registro.estado = 'CALCULADO'
                 registro.save()

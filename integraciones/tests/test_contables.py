@@ -298,6 +298,45 @@ class TestConcarCSV:
         # Cuadre dentro de tolerancia (centavos)
         assert abs(debe - haber) < Decimal("0.05"), f"DEBE={debe} != HABER={haber}"
 
+    @patch("integraciones.contables._get_totales_periodo")
+    def test_concar_cuadre_con_sctr_y_vida_ley(self, mock_totales):
+        """El asiento sigue cuadrando con SCTR y Vida Ley en el costo empresa."""
+        mock_totales.return_value = {
+            "bruto":        Decimal("100000.00"),
+            "neto":         Decimal("80000.00"),
+            "essalud":      Decimal("9000.00"),
+            "sctr_salud":   Decimal("1550.00"),
+            "sctr_pension": Decimal("1300.00"),
+            "vida_ley":     Decimal("530.00"),
+            "afp":          Decimal("11000.00"),
+            "onp":          Decimal("0"),
+            "ir5ta":        Decimal("0"),
+            "gratif_prov":  Decimal("16667.00"),
+        }
+        from integraciones.contables import generar_asiento_concar
+        contenido, _ = generar_asiento_concar(_mock_periodo())
+        debe = haber = Decimal("0")
+        cuentas_debe = []
+        for l in contenido.split("\n")[1:]:
+            if not l.strip():
+                continue
+            cols = l.split(",")
+            if len(cols) < 14:
+                continue
+            try:
+                monto = Decimal(cols[13])
+            except Exception:
+                continue
+            if cols[10] == "D":
+                debe += monto
+                cuentas_debe.append(cols[3])
+            elif cols[10] == "H":
+                haber += monto
+        assert abs(debe - haber) < Decimal("0.05"), f"DEBE={debe} != HABER={haber}"
+        # Las cuentas de SCTR (6273) y Vida Ley (6274) aparecen en el debe
+        assert "6273" in cuentas_debe
+        assert "6274" in cuentas_debe
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # 5. Asiento Siscont — estructura Excel

@@ -435,7 +435,10 @@ TEMPLATES_CONCEPTOS = {
         'descripcion': 'Descuento mensual para afiliados a sindicato. Por convenio colectivo o autorización individual escrita.',
         'categoria': 'DESCUENTO', 'tipo': 'DESCUENTO', 'subtipo': 'NO_REMUNERATIVO',
         'formula': 'PORCENTAJE',
-        'codigo_plame': '0804',
+        # 0702 = descuento sindical. Antes apuntaba a 0804 (= EsSalud aporte
+        # empleador): un error que declaraba el descuento del trabajador bajo el
+        # código de un aporte patronal.
+        'codigo_plame': '0702',
     },
     'seguro_vida_ley': {
         'codigo': 'seguro_vida_ley', 'nombre': 'Seguro de Vida Ley (DL 688)',

@@ -120,6 +120,17 @@ class ConceptoRemunerativo(models.Model):
     )
 
     es_sistema = models.BooleanField(default=False, help_text='Protegido — no eliminar.')
+    # Cálculo automático para TODOS los trabajadores activos: si está marcado y la
+    # fórmula es PORCENTAJE o FIJO, el engine emite este concepto por sí solo (sobre
+    # la remuneración computable / monto_fijo) sin necesidad de cargarlo a mano por
+    # trabajador. Default False para no alterar planillas existentes. Pensado para
+    # conceptos universales (ej. una bonificación general). Los conceptos que aplican
+    # solo a algunos (cuota sindical, comisiones) se siguen cargando por trabajador.
+    aplicar_automatico = models.BooleanField(
+        default=False,
+        verbose_name='Aplicar automáticamente a todos',
+        help_text='Si está activo y la fórmula es Porcentaje o Monto fijo, se calcula '
+                  'para todos los trabajadores sin cargarlo manualmente.')
     activo     = models.BooleanField(default=True)
     orden      = models.PositiveSmallIntegerField(default=0)
     creado_en  = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -307,7 +318,14 @@ class RegistroNomina(models.Model):
     total_descuentos      = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     neto_a_pagar          = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     aporte_essalud        = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
-    costo_total_empresa   = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    # Aportes de riesgo del empleador (Ley 26790 / D.Leg. 688). SCTR solo se
+    # puebla para personal afecto_sctr; Vida Ley para todos si está activo.
+    aporte_sctr_salud     = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    aporte_sctr_pension   = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    aporte_vida_ley       = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
+    costo_total_empresa   = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text='Bruto + EsSalud + SCTR (salud+pensión) + Vida Ley + provisiones (gratif+CTS).')
 
     estado        = models.CharField(max_length=12, choices=ESTADO_CHOICES, default='CALCULADO')
     observaciones = models.TextField(blank=True)
@@ -1420,6 +1438,45 @@ class LiquidacionLaboral(models.Model):
                 AFP_APORTE + tasas['comision_flujo'] + tasas['seguro']
             ) / Decimal('100')
         self.descuento_pension = descto_pension.quantize(Decimal('0.01'), ROUND_HALF_UP)
+
+        # ── 7b. Embargo / pensión alimenticia al cese ─────────────────────
+        # Antes self.embargo nunca se poblaba (quedaba 0) → un cesado con embargo
+        # o pensión vigente no lo veía descontado en su liquidación. Se leen los
+        # DescuentoPlanilla judiciales (APROBADO/EN_CURSO) igual que el engine
+        # mensual, con tope legal sobre la remuneración afecta (sueldo del mes).
+        # Solo sobrescribe si no se ingresó a mano.
+        if self.embargo == Decimal('0'):
+            try:
+                from descuentos.models import DescuentoPlanilla
+                from .engine import (calcular_pension_alimenticia,
+                                     calcular_embargo_civil)
+                _uit = Decimal(str(UIT_2026))
+                try:
+                    from asistencia.models import ConfiguracionSistema
+                    _uit = Decimal(str(ConfiguracionSistema.get().uit_valor or UIT_2026))
+                except Exception:
+                    pass
+                _base = self.sueldo_mes_curso
+                _emb = Decimal('0')
+                for d in DescuentoPlanilla.objects.filter(
+                        personal=personal, estado__in=['APROBADO', 'EN_CURSO'],
+                        causal__in=['EMBARGO_JUDICIAL', 'PENSION_ALIMENTICIA']):
+                    _cuota = Decimal(str(d.cuota_mensual or 0))
+                    _saldo = Decimal(str(getattr(d, 'saldo_pendiente', None) or _cuota))
+                    if _saldo > 0:
+                        _cuota = min(_cuota, _saldo)
+                    if _cuota <= 0:
+                        continue
+                    if d.causal == 'PENSION_ALIMENTICIA':
+                        _tope = calcular_pension_alimenticia(
+                            _base, self.descuento_pension, Decimal('60'))['monto']
+                    else:
+                        _tope = calcular_embargo_civil(
+                            _base, uit=_uit)['monto_max_embargo']
+                    _emb += min(_cuota, _tope)
+                self.embargo = _emb.quantize(Decimal('0.01'), ROUND_HALF_UP)
+            except Exception:
+                pass
 
         # ── 8. Totales ────────────────────────────────────────────────────
         self.total_bruto = (

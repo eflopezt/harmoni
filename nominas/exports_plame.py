@@ -293,6 +293,8 @@ def generar_plame_remuneraciones(periodo: PeriodoNomina) -> tuple[str, int]:
     25    | Indicador de situacion (1=activo, 2=baja en periodo)
     26    | Categoria trabajador (01=normal, 02=confianza, 03=direccion)
     27    | Tipo trabajador (01=empleado, 02=obrero)
+    28    | SCTR Salud empleador (0812)
+    29    | SCTR Pension empleador (0813)
 
     Returns:
         Tuple (contenido_texto, numero_registros)
@@ -361,7 +363,7 @@ def generar_plame_remuneraciones(periodo: PeriodoNomina) -> tuple[str, int]:
             ap_materno[:40],                                      # 5. Ap materno
             nombres[:60],                                         # 6. Nombres
             str(reg.dias_trabajados),                             # 7. Dias laborados
-            str(reg.dias_falta + reg.dias_descanso),              # 8. Dias no laborados
+            str(reg.dias_falta),                                  # 8. Dias no laborados (faltas/subsidios; el descanso semanal es pagado, no se declara aquí)
             str(int(reg.dias_trabajados * 8)),                    # 9. Horas ordinarias
             _monto(sueldo_prop or reg.sueldo_base),               # 10. Rem basica (0100)
             _monto(asig_fam),                                     # 11. Asig familiar (0201)
@@ -381,6 +383,8 @@ def generar_plame_remuneraciones(periodo: PeriodoNomina) -> tuple[str, int]:
             situacion,                                            # 25. Situacion
             CATEGORIA_SUNAT.get(getattr(p, 'categoria', 'NORMAL'), '01'),  # 26. Categoria
             TIPO_TRAB_SUNAT.get(getattr(p, 'tipo_trab', 'Empleado'), '01'),  # 27. Tipo trab
+            _monto(reg.aporte_sctr_salud or Decimal('0')),        # 28. SCTR Salud (0812)
+            _monto(reg.aporte_sctr_pension or Decimal('0')),      # 29. SCTR Pension (0813)
         ]
         output.write(_nfc('|'.join(row)) + '\r\n')
         count += 1

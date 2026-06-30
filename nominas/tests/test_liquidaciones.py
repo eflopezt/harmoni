@@ -129,6 +129,51 @@ class TestModelo:
         assert liq.total_neto == liq.total_bruto - liq.descuento_pension
 
 
+# ─── 1b. Embargo / pensión judicial al cese ──────────────────────────────────
+
+class TestEmbargoLiquidacion:
+    def test_embargo_aprobado_se_descuenta(self, worker_activo):
+        """Un embargo APROBADO vigente puebla liq.embargo y reduce el neto.
+
+        Antes liq.embargo quedaba siempre en 0 → el cesado no lo veía descontado.
+        """
+        from descuentos.models import DescuentoPlanilla
+        DescuentoPlanilla.objects.create(
+            personal=worker_activo,
+            causal='EMBARGO_JUDICIAL',
+            detalle='Embargo por orden judicial',
+            monto_total=Decimal('5000.00'),
+            num_cuotas=10,            # cuota 500/mes
+            estado='APROBADO',
+            requiere_consentimiento=False,
+        )
+        liq = LiquidacionLaboral.objects.create(
+            personal=worker_activo,
+            fecha_cese=date(2026, 6, 30),
+            motivo_cese='RENUNCIA',
+        )
+        liq.calcular()
+
+        # El embargo se pobla, capado por el tope legal (≤ cuota mensual).
+        assert liq.embargo > Decimal('0')
+        assert liq.embargo <= Decimal('500.00')
+        # El neto refleja el embargo además del descuento pensionario.
+        assert liq.total_neto == (
+            liq.total_bruto - liq.descuento_pension - liq.embargo
+            - liq.prestamos_pendientes - liq.adelantos_pendientes
+            - liq.otros_descuentos
+        )
+
+    def test_sin_embargo_queda_en_cero(self, worker_activo):
+        liq = LiquidacionLaboral.objects.create(
+            personal=worker_activo,
+            fecha_cese=date(2026, 6, 30),
+            motivo_cese='RENUNCIA',
+        )
+        liq.calcular()
+        assert liq.embargo == Decimal('0.00')
+
+
 # ─── 2. Signal: auto-genera al cesar ─────────────────────────────────────────
 
 class TestSignalAutoGenera:

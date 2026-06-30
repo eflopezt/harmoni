@@ -40,6 +40,12 @@ PLAN_CUENTAS_DEFAULT = {
     "gratif_pagar_haber":  ("4151", "Gratificaciones por pagar"),
     "bonif_9_debe":        ("6294", "Bonificacion extraordinaria Ley 29351"),
     "bonif_9_pagar_haber": ("4118", "Bonificacion extraordinaria por pagar"),
+    # Aportes/primas de riesgo del empleador (PCGE 627x / por pagar)
+    "sctr_salud_debe":     ("6273", "SCTR Salud - aporte empleador"),
+    "sctr_pension_debe":   ("6273", "SCTR Pension - aporte empleador"),
+    "vida_ley_debe":       ("6274", "Seguro Vida Ley - prima empleador"),
+    "sctr_pagar_haber":    ("4039", "SCTR por pagar"),
+    "vida_ley_pagar_haber":("4699", "Primas de seguros por pagar"),
 }
 
 
@@ -118,8 +124,16 @@ def _get_totales_periodo(periodo, empresa=None):
     neto_pre  = (periodo.total_neto  or Decimal("0")) if empresa is None else Decimal("0")
 
     if bruto_pre > 0:
-        agg = reg_qs.aggregate(essalud=Sum("aporte_essalud"))
+        agg = reg_qs.aggregate(
+            essalud=Sum("aporte_essalud"),
+            sctr_salud=Sum("aporte_sctr_salud"),
+            sctr_pension=Sum("aporte_sctr_pension"),
+            vida_ley=Sum("aporte_vida_ley"),
+        )
         essalud = (agg["essalud"] or Decimal("0")).quantize(Decimal("0.01"))
+        sctr_salud   = (agg["sctr_salud"]   or Decimal("0")).quantize(Decimal("0.01"))
+        sctr_pension = (agg["sctr_pension"] or Decimal("0")).quantize(Decimal("0.01"))
+        vida_ley     = (agg["vida_ley"]     or Decimal("0")).quantize(Decimal("0.01"))
 
         afp_total = linea_qs.filter(
             concepto__formula__in=["AFP_APORTE", "AFP_COMISION", "AFP_SEGURO"],
@@ -139,6 +153,9 @@ def _get_totales_periodo(periodo, empresa=None):
             "bruto":       bruto_pre.quantize(Decimal("0.01")),
             "neto":        neto_pre.quantize(Decimal("0.01")),
             "essalud":     essalud,
+            "sctr_salud":  sctr_salud,
+            "sctr_pension": sctr_pension,
+            "vida_ley":    vida_ley,
             "afp":         afp_total.quantize(Decimal("0.01")),
             "onp":         onp_total.quantize(Decimal("0.01")),
             "ir5ta":       ir5ta_total.quantize(Decimal("0.01")),
@@ -150,11 +167,17 @@ def _get_totales_periodo(periodo, empresa=None):
         bruto=Sum("total_ingresos"),
         neto=Sum("neto_a_pagar"),
         essalud=Sum("aporte_essalud"),
+        sctr_salud=Sum("aporte_sctr_salud"),
+        sctr_pension=Sum("aporte_sctr_pension"),
+        vida_ley=Sum("aporte_vida_ley"),
     )
 
     bruto   = agg["bruto"]   or Decimal("0")
     neto    = agg["neto"]    or Decimal("0")
     essalud = agg["essalud"] or Decimal("0")
+    sctr_salud   = agg["sctr_salud"]   or Decimal("0")
+    sctr_pension = agg["sctr_pension"] or Decimal("0")
+    vida_ley     = agg["vida_ley"]     or Decimal("0")
 
     afp_total = linea_qs.filter(
         concepto__formula__in=["AFP_APORTE", "AFP_COMISION", "AFP_SEGURO"],
@@ -174,6 +197,9 @@ def _get_totales_periodo(periodo, empresa=None):
         "bruto":       bruto.quantize(Decimal("0.01")),
         "neto":        neto.quantize(Decimal("0.01")),
         "essalud":     essalud.quantize(Decimal("0.01")),
+        "sctr_salud":  sctr_salud.quantize(Decimal("0.01")),
+        "sctr_pension": sctr_pension.quantize(Decimal("0.01")),
+        "vida_ley":    vida_ley.quantize(Decimal("0.01")),
         "afp":         afp_total.quantize(Decimal("0.01")),
         "onp":         onp_total.quantize(Decimal("0.01")),
         "ir5ta":       ir5ta_total.quantize(Decimal("0.01")),
@@ -248,9 +274,18 @@ def generar_asiento_concar(periodo, empresa=None):
             "N", "", "", "MN",
         ]
 
+    _sctr_t = tots.get("sctr_salud", Decimal("0")) + tots.get("sctr_pension", Decimal("0"))
+    _vida_t = tots.get("vida_ley", Decimal("0"))
+
     # DEBE
     writer.writerow(row("sueldos_debe", "D", tots["bruto"]))
     writer.writerow(row("essalud_debe", "D", tots["essalud"]))
+    if tots.get("sctr_salud", Decimal("0")) > 0:
+        writer.writerow(row("sctr_salud_debe", "D", tots["sctr_salud"]))
+    if tots.get("sctr_pension", Decimal("0")) > 0:
+        writer.writerow(row("sctr_pension_debe", "D", tots["sctr_pension"]))
+    if _vida_t > 0:
+        writer.writerow(row("vida_ley_debe", "D", _vida_t))
     writer.writerow(row("gratif_debe",  "D", tots["gratif_prov"]))
 
     # HABER
@@ -262,6 +297,10 @@ def generar_asiento_concar(periodo, empresa=None):
     if tots.get("ir5ta", Decimal("0")) > 0:
         writer.writerow(row("ir5ta_pagar_haber", "H", tots["ir5ta"]))
     writer.writerow(row("essalud_pagar_haber", "H", tots["essalud"]))
+    if _sctr_t > 0:
+        writer.writerow(row("sctr_pagar_haber", "H", _sctr_t))
+    if _vida_t > 0:
+        writer.writerow(row("vida_ley_pagar_haber", "H", _vida_t))
 
     # Cuadre: el residuo (provisión de gratificaciones + descuentos no
     # clasificados arriba) va a 4151 Gratificaciones por pagar.
@@ -319,6 +358,9 @@ def generar_asiento_sigo(periodo, empresa=None):
             cc_field, "PL", num_asiento, "MN", "1.000", "C",
         ]
 
+    _sctr_t = tots.get("sctr_salud", Decimal("0")) + tots.get("sctr_pension", Decimal("0"))
+    _vida_t = tots.get("vida_ley", Decimal("0"))
+
     filas = [
         linea("sueldos_debe",        tots["bruto"],       Decimal("0")),
         linea("essalud_debe",        tots["essalud"],     Decimal("0")),
@@ -326,6 +368,15 @@ def generar_asiento_sigo(periodo, empresa=None):
         linea("rem_pagar_haber",     Decimal("0"),        tots["neto"]),
         linea("essalud_pagar_haber", Decimal("0"),        tots["essalud"]),
     ]
+    if tots.get("sctr_salud", Decimal("0")) > 0:
+        filas.append(linea("sctr_salud_debe", tots["sctr_salud"], Decimal("0")))
+    if tots.get("sctr_pension", Decimal("0")) > 0:
+        filas.append(linea("sctr_pension_debe", tots["sctr_pension"], Decimal("0")))
+    if _sctr_t > 0:
+        filas.append(linea("sctr_pagar_haber", Decimal("0"), _sctr_t))
+    if _vida_t > 0:
+        filas.append(linea("vida_ley_debe", _vida_t, Decimal("0")))
+        filas.append(linea("vida_ley_pagar_haber", Decimal("0"), _vida_t))
     if tots["afp"] > 0:
         filas.append(linea("afp_pagar_haber", Decimal("0"), tots["afp"]))
     if tots["onp"] > 0:
@@ -408,6 +459,17 @@ def generar_asiento_sap_excel(periodo, empresa=None):
         (plan["onp_pagar_haber"][0],     plan["onp_pagar_haber"][1],     Decimal("0"),         tots["onp"]),
         (plan["essalud_pagar_haber"][0], plan["essalud_pagar_haber"][1], Decimal("0"),         tots["essalud"]),
     ]
+    _sctr_t = tots.get("sctr_salud", Decimal("0")) + tots.get("sctr_pension", Decimal("0"))
+    _vida_t = tots.get("vida_ley", Decimal("0"))
+    if tots.get("sctr_salud", Decimal("0")) > 0:
+        filas_asiento.append((plan["sctr_salud_debe"][0], plan["sctr_salud_debe"][1], tots["sctr_salud"], Decimal("0")))
+    if tots.get("sctr_pension", Decimal("0")) > 0:
+        filas_asiento.append((plan["sctr_pension_debe"][0], plan["sctr_pension_debe"][1], tots["sctr_pension"], Decimal("0")))
+    if _sctr_t > 0:
+        filas_asiento.append((plan["sctr_pagar_haber"][0], plan["sctr_pagar_haber"][1], Decimal("0"), _sctr_t))
+    if _vida_t > 0:
+        filas_asiento.append((plan["vida_ley_debe"][0], plan["vida_ley_debe"][1], _vida_t, Decimal("0")))
+        filas_asiento.append((plan["vida_ley_pagar_haber"][0], plan["vida_ley_pagar_haber"][1], Decimal("0"), _vida_t))
     if tots.get("ir5ta", Decimal("0")) > 0:
         filas_asiento.insert(6, (
             plan["ir5ta_pagar_haber"][0], plan["ir5ta_pagar_haber"][1],
@@ -561,6 +623,9 @@ def generar_sire_libro_diario(periodo, empresa=None):
             "1",
         ]
 
+    _sctr_t = tots.get("sctr_salud", Decimal("0")) + tots.get("sctr_pension", Decimal("0"))
+    _vida_t = tots.get("vida_ley", Decimal("0"))
+
     asientos = [
         ("sueldos_debe",        tots["bruto"],       Decimal("0")),
         ("essalud_debe",        tots["essalud"],     Decimal("0")),
@@ -568,6 +633,15 @@ def generar_sire_libro_diario(periodo, empresa=None):
         ("rem_pagar_haber",     Decimal("0"),        tots["neto"]),
         ("essalud_pagar_haber", Decimal("0"),        tots["essalud"]),
     ]
+    if tots.get("sctr_salud", Decimal("0")) > 0:
+        asientos.append(("sctr_salud_debe", tots["sctr_salud"], Decimal("0")))
+    if tots.get("sctr_pension", Decimal("0")) > 0:
+        asientos.append(("sctr_pension_debe", tots["sctr_pension"], Decimal("0")))
+    if _sctr_t > 0:
+        asientos.append(("sctr_pagar_haber", Decimal("0"), _sctr_t))
+    if _vida_t > 0:
+        asientos.append(("vida_ley_debe", _vida_t, Decimal("0")))
+        asientos.append(("vida_ley_pagar_haber", Decimal("0"), _vida_t))
     if tots["afp"] > 0:
         asientos.append(("afp_pagar_haber", Decimal("0"), tots["afp"]))
     if tots["onp"] > 0:
@@ -642,6 +716,9 @@ def generar_asiento_siscont(periodo, empresa=None):
             float(debe), float(haber), cc_field, "", nro_comp,
         ]
 
+    _sctr_t = tots.get("sctr_salud", Decimal("0")) + tots.get("sctr_pension", Decimal("0"))
+    _vida_t = tots.get("vida_ley", Decimal("0"))
+
     filas = [
         row_data("sueldos_debe",        tots["bruto"],       Decimal("0")),
         row_data("essalud_debe",        tots["essalud"],     Decimal("0")),
@@ -649,6 +726,15 @@ def generar_asiento_siscont(periodo, empresa=None):
         row_data("rem_pagar_haber",     Decimal("0"),        tots["neto"]),
         row_data("essalud_pagar_haber", Decimal("0"),        tots["essalud"]),
     ]
+    if tots.get("sctr_salud", Decimal("0")) > 0:
+        filas.append(row_data("sctr_salud_debe", tots["sctr_salud"], Decimal("0")))
+    if tots.get("sctr_pension", Decimal("0")) > 0:
+        filas.append(row_data("sctr_pension_debe", tots["sctr_pension"], Decimal("0")))
+    if _sctr_t > 0:
+        filas.append(row_data("sctr_pagar_haber", Decimal("0"), _sctr_t))
+    if _vida_t > 0:
+        filas.append(row_data("vida_ley_debe", _vida_t, Decimal("0")))
+        filas.append(row_data("vida_ley_pagar_haber", Decimal("0"), _vida_t))
     if tots["afp"] > 0:
         filas.append(row_data("afp_pagar_haber", Decimal("0"), tots["afp"]))
     if tots["onp"] > 0:
@@ -883,16 +969,24 @@ def generar_asiento_excel_universal(periodo, empresa=None):
     )
     cc_field    = cc or ""
 
+    _sctr_t = tots.get("sctr_salud", Decimal("0")) + tots.get("sctr_pension", Decimal("0"))
+    _vida_t = tots.get("vida_ley", Decimal("0"))
+
     filas = [
         # (cuenta_key, debe, haber)
         ("sueldos_debe",        tots["bruto"],       Decimal("0")),
         ("essalud_debe",        tots["essalud"],     Decimal("0")),
+        ("sctr_salud_debe",     tots.get("sctr_salud", Decimal("0")), Decimal("0")),
+        ("sctr_pension_debe",   tots.get("sctr_pension", Decimal("0")), Decimal("0")),
+        ("vida_ley_debe",       _vida_t,             Decimal("0")),
         ("gratif_debe",         tots["gratif_prov"], Decimal("0")),
         ("rem_pagar_haber",     Decimal("0"),        tots["neto"]),
         ("afp_pagar_haber",     Decimal("0"),        tots["afp"]),
         ("onp_pagar_haber",     Decimal("0"),        tots["onp"]),
         ("ir5ta_pagar_haber",   Decimal("0"),        tots.get("ir5ta", Decimal("0"))),
         ("essalud_pagar_haber", Decimal("0"),        tots["essalud"]),
+        ("sctr_pagar_haber",    Decimal("0"),        _sctr_t),
+        ("vida_ley_pagar_haber", Decimal("0"),       _vida_t),
     ]
 
     # Cuadre: residuo (provisión gratificaciones + descuentos no clasificados) al haber (4151)

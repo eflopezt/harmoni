@@ -738,17 +738,24 @@ class TestEdgeCases:
         assert last[1] == Decimal('30')
 
     def test_costo_empresa_includes_essalud_and_provisions(self):
-        """costo_empresa = ingresos_bruto + essalud + prov_gratif + prov_cts."""
+        """costo_empresa = ingresos_bruto + essalud + vida_ley + prov_gratif + prov_cts.
+
+        Vida Ley (D.Leg. 688) está activo por defecto para todos los trabajadores.
+        SCTR es 0 aquí porque el trabajador mock no está marcado afecto_sctr.
+        """
         sueldo = Decimal('5000.00')
         registro = _make_registro(sueldo_base=sueldo, asignacion_familiar=True)
         result = calcular_registro(registro, _mock_conceptos())
         # Manually compute
         rem = result['rem_computable']
         essalud = _r(rem * Decimal('0.09'))
+        vida_ley = _r(rem * Decimal('0.0053'))
         base_g = sueldo + _r(RMV * Decimal('0.10'))
         prov_g = _r(base_g / Decimal('6'))
         prov_c = _r((base_g + prov_g) / Decimal('12'))
-        expected = _r(result['total_ingresos'] + essalud + prov_g + prov_c)
+        expected = _r(result['total_ingresos'] + essalud + vida_ley + prov_g + prov_c)
+        assert result['aporte_sctr_salud'] == Decimal('0')
+        assert result['aporte_vida_ley'] == vida_ley
         assert result['costo_total_empresa'] == expected
 
     def test_zero_salary_zero_everything(self):
