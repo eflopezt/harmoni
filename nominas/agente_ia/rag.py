@@ -653,6 +653,97 @@ La tasa exacta la fija la aseguradora según nivel de riesgo del puesto (CIIU + 
 **Conservación**: boletas deben guardarse 5 años (Art. 18 — plazo SUNAT/MTPE).
 """,
     },
+
+    # ─── Construcción Civil: categorías y jornales ───────────────
+    {
+        'titulo':      'Construcción Civil — categorías y jornal básico',
+        'base_legal':  'Convención Colectiva CAPECO-FTCCP',
+        'tags':        ['construccion', 'construccion civil', 'rcc', 'jornal', 'categoria'],
+        'keywords':    ['construcción', 'construccion', 'civil', 'rcc', 'jornal', 'operario',
+                        'oficial', 'peón', 'peon', 'capeco', 'ftccp', 'categoria', 'categoría',
+                        'obra', 'albañil', 'albanil'],
+        'descripcion': """\
+**Régimen de Construcción Civil** (Convención Colectiva CAPECO-FTCCP):
+- El sueldo NO es libre: sale de una **tabla de jornal básico diario por categoría**, negociada cada año.
+- Categorías: **Operario**, **Oficial**, **Peón**.
+- Pago **semanal** (no mensual).
+
+**Jornal básico diario vigente 01.01.2026 – 31.12.2026:**
+- Operario: **S/ 89.30**
+- Oficial:  **S/ 69.75**
+- Peón:     **S/ 62.80**
+
+Tabla anterior 2024-2025 (R.M. 139-2024-TR): Operario 87.30 · Oficial 68.50 · Peón 61.65.
+
+Jornal semanal = jornal básico × días trabajados (6 días = 1 semana completa).
+""",
+    },
+
+    # ─── Construcción Civil: conceptos remunerativos ─────────────
+    {
+        'titulo':      'Construcción Civil — BUC, dominical, movilidad, HHEE, altura',
+        'base_legal':  'Convención Colectiva CAPECO-FTCCP',
+        'tags':        ['construccion', 'buc', 'dominical', 'movilidad', 'horas extra'],
+        'keywords':    ['buc', 'bonificación unificada', 'bonificacion unificada', 'dominical',
+                        'movilidad', 'bae', 'altura', 'altitud', 'horas extra', 'hhee',
+                        'construcción', 'construccion', 'bonificacion construccion'],
+        'descripcion': """\
+**Conceptos remunerativos de Construcción Civil:**
+- **Jornal básico** = jornal diario × días trabajados.
+- **Dominical** (DSO): descanso semanal remunerado. Si trabaja los 6 días = 1 jornal; si trabaja menos, DSO = jornal × días ÷ 6.
+- **BUC (Bonificación Unificada de Construcción)**: % del jornal básico según categoría — **Operario 32%**, **Oficial y Peón 30%**. Compensa herramientas, ropa y desgaste.
+- **Bonificación por movilidad**: monto fijo diario (S/ 8.60/día en 2024-2026, igual para las 3 categorías) × días. Es **no remunerativa**.
+- **Horas extra**: se pagan al **60%** (primeras) y **100%**. Valor hora = jornal ÷ 8; monto = valor_hora × (1 + factor) × horas. Ej. Operario 2026: HE 60% = S/ 17.86/h, HE 100% = S/ 22.33/h.
+- **BAE (Bonificación por Alta Especialización)**: adicional para operarios especializados.
+- **Bono por altura**: 8% del jornal básico (2026), por trabajo en altura.
+- **Bonificación por altitud**: monto de convenio por laborar en zonas de gran altitud geográfica (distinto del bono por altura).
+""",
+    },
+
+    # ─── Construcción Civil: CTS, gratificación, asig. escolar ───
+    {
+        'titulo':      'Construcción Civil — CTS 15%, gratificación 40 jornales, asignación escolar',
+        'base_legal':  'Convención Colectiva CAPECO-FTCCP',
+        'tags':        ['construccion', 'cts', 'gratificacion', 'asignacion escolar', 'vacaciones'],
+        'keywords':    ['cts construcción', 'cts construccion', 'gratificación construcción',
+                        'gratificacion construccion', '40 jornales', 'asignación escolar',
+                        'asignacion escolar', 'vacaciones construcción', 'compensación vacacional'],
+        'descripcion': """\
+**Beneficios sociales de Construcción Civil:**
+- **CTS**: **15%** del total de jornales básicos percibidos (incluye 3% de utilidades). Es distinta al D.Leg. 650 general. En el cómputo NO entran descansos ni dominical.
+- **Gratificación**: **40 jornales** básicos por gratificación (Fiestas Patrias y Navidad), a razón de 1/5 (o 1/7 según semestre) por mes laborado. Recibe además la **bonificación extraordinaria 9%** (Ley 29351) sobre la gratificación.
+- **Asignación escolar**: **30 jornales/año por hijo** en edad escolar. Es no remunerativa.
+- **Compensación vacacional**: **10%** del jornal básico por día efectivo trabajado.
+""",
+    },
+
+    # ─── Construcción Civil: descuentos y afectaciones ───────────
+    {
+        'titulo':      'Construcción Civil — descuentos, CONAFOVICER y conceptos afectos/no afectos',
+        'base_legal':  'Convención Colectiva CAPECO-FTCCP + normativa laboral',
+        'tags':        ['construccion', 'conafovicer', 'afectaciones', 'base computable', 'onp', 'essalud'],
+        'keywords':    ['conafovicer', 'afecto', 'no afecto', 'base computable', 'aportes construcción',
+                        'onp construcción', 'essalud construcción', 'sctr construcción',
+                        'descuentos construcción', 'afectaciones construccion'],
+        'descripcion': """\
+**Descuentos y aportes en Construcción Civil:**
+- **ONP 13%** o **AFP** — se calcula sobre la **base computable**.
+- **CONAFOVICER 2%** (descuento del trabajador): aporte al fondo de vivienda, sobre **jornal básico + dominical**.
+- **SCTR** obligatorio (actividad de riesgo): salud + pensión (≈0.65% c/u en pólizas típicas).
+- **ESSALUD 9%**, **Vida Ley** y **Fondo de Capacitación** (0.45%) — aportes del empleador.
+
+**Base computable (conceptos AFECTOS a ESSALUD/AFP/ONP/SCTR):**
+jornal básico + dominical + horas extra + BUC + bonif. altura/altitud + compensación vacacional.
+
+**Conceptos NO afectos (fuera de la base computable):**
+- **Movilidad** (no remunerativa).
+- **Gratificación** (inafecta a aportes por Ley 29351; el 9% se paga como bonif. extraordinaria).
+- **CTS** (beneficio social).
+- **Asignación escolar** (no remunerativa).
+
+Regla clave: la CTS y la gratificación se calculan solo sobre jornal básico (no sobre BUC, dominical ni HHEE).
+""",
+    },
 ]
 
 
