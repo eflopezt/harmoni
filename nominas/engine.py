@@ -1382,6 +1382,22 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
                     _defaults['horas_extra_25']  = _t['he25'] or Decimal('0')
                     _defaults['horas_extra_35']  = _t['he35'] or Decimal('0')
                     _defaults['horas_extra_100'] = _t['he100'] or Decimal('0')
+                elif tipo not in ('GRATIFICACION', 'CTS'):
+                    # Sin marcación real (foráneos 14x7): usar el Roster (proyección)
+                    # como fuente de días. Guardado: solo aplica si el trabajador
+                    # TIENE roster en el período; si no, queda el default (30 días).
+                    try:
+                        from nominas.services.asistencia_link import resumen_asistencia_roster
+                        _rs = resumen_asistencia_roster(
+                            emp, periodo.fecha_inicio, periodo.fecha_fin)
+                        _con = (_rs['trabajados'] + _rs['descanso'] + _rs['falta']
+                                + _rs['vacaciones'] + _rs['licencia'])
+                        if _con > 0:
+                            _defaults['dias_falta']      = _rs['falta']
+                            _defaults['dias_trabajados'] = max(0, dias_default - _rs['falta'])
+                    except Exception:
+                        logger.warning('No se pudo poblar días desde el Roster (emp %s)',
+                                       getattr(emp, 'pk', '?'), exc_info=True)
                 # Cuota de préstamo del mes (auto desde el cronograma).
                 if tipo not in ('GRATIFICACION', 'CTS'):
                     _defaults['descuento_prestamo'] = prestamo_map.get(emp.pk, Decimal('0')) or Decimal('0')
