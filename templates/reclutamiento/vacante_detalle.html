@@ -87,6 +87,44 @@
     </div>
 </div>
 
+<!-- Requisición / Aprobación -->
+<div class="card shadow-sm mb-4" style="border-left:5px solid {% if vacante.aprobada_por %}#22c55e{% elif vacante.estado == 'POR_APROBAR' %}#f59e0b{% else %}#94a3b8{% endif %}">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <div class="fw-bold mb-1"><i class="fas fa-clipboard-check me-1"></i>Requisición de personal</div>
+            {% if vacante.estado == 'POR_APROBAR' %}
+                <span class="badge bg-warning text-dark">Pendiente de aprobación</span>
+            {% elif vacante.aprobada_por %}
+                <span class="badge bg-success">Aprobada</span>
+                <small class="text-muted ms-1">por {{ vacante.aprobada_por.get_full_name|default:vacante.aprobada_por.username }} · {{ vacante.fecha_aprobacion|date:"d/m/Y H:i" }}</small>
+            {% else %}
+                <span class="badge bg-secondary">Sin aprobación</span>
+            {% endif %}
+            {% if vacante.justificacion %}<div class="text-muted mt-1" style="font-size:.82rem;white-space:pre-line">{{ vacante.justificacion }}</div>{% endif %}
+        </div>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            {% if vacante.estado == 'BORRADOR' and not vacante.aprobada_por %}
+            <form method="post" action="{% url 'vacante_solicitar_aprobacion' vacante.pk %}" class="d-flex gap-2">
+                {% csrf_token %}
+                <input type="text" name="justificacion" class="form-control form-control-sm" placeholder="Justificación (opcional)" style="min-width:200px" value="{{ vacante.justificacion }}">
+                <button class="btn btn-sm btn-warning"><i class="fas fa-paper-plane me-1"></i>Solicitar aprobación</button>
+            </form>
+            {% elif vacante.estado == 'POR_APROBAR' %}
+                {% if puede_ver_admin %}
+                <form method="post" action="{% url 'vacante_aprobar' vacante.pk %}">{% csrf_token %}
+                    <button class="btn btn-sm btn-success"><i class="fas fa-check me-1"></i>Aprobar</button>
+                </form>
+                <form method="post" action="{% url 'vacante_rechazar' vacante.pk %}">{% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-times me-1"></i>Rechazar</button>
+                </form>
+                {% else %}
+                <span class="text-muted small">Esperando aprobación de RRHH</span>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 <!-- Info de la vacante -->
 <div class="row g-3 mb-4">
     <div class="col-md-8">
@@ -96,6 +134,7 @@
                     <div class="col-3"><strong>Estado:</strong></div>
                     <div class="col-9">
                         {% if vacante.estado == 'PUBLICADA' %}<span class="badge bg-success">Publicada</span>
+                        {% elif vacante.estado == 'POR_APROBAR' %}<span class="badge bg-warning text-dark">Por aprobar</span>
                         {% elif vacante.estado == 'EN_PROCESO' %}<span class="badge bg-warning text-dark">En Proceso</span>
                         {% elif vacante.estado == 'CUBIERTA' %}<span class="badge bg-info">Cubierta</span>
                         {% elif vacante.estado == 'CANCELADA' %}<span class="badge bg-danger">Cancelada</span>

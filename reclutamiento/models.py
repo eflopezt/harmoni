@@ -43,6 +43,7 @@ class Vacante(models.Model):
 
     ESTADO_CHOICES = [
         ('BORRADOR', 'Borrador'),
+        ('POR_APROBAR', 'Por aprobar'),
         ('PUBLICADA', 'Publicada'),
         ('EN_PROCESO', 'En Proceso'),
         ('CUBIERTA', 'Cubierta'),
@@ -107,7 +108,7 @@ class Vacante(models.Model):
         verbose_name="Moneda"
     )
     estado = models.CharField(
-        max_length=12,
+        max_length=20,
         choices=ESTADO_CHOICES,
         default='BORRADOR',
         verbose_name="Estado"
@@ -144,6 +145,24 @@ class Vacante(models.Model):
         default=False,
         verbose_name="Visible en Portal de Empleo",
         help_text="Si esta marcada, aparece en la pagina publica de empleo"
+    )
+
+    # ── Aprobación de requisición (paso previo a publicar) ──
+    justificacion = models.TextField(
+        blank=True,
+        verbose_name="Justificación del requerimiento",
+        help_text="Necesidad que sustenta la vacante (para aprobación)"
+    )
+    aprobada_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='vacantes_aprobadas',
+        verbose_name="Aprobada por"
+    )
+    fecha_aprobacion = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Fecha de aprobación"
     )
 
     creado_en = models.DateTimeField(auto_now_add=True)

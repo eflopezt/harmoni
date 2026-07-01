@@ -3,6 +3,7 @@ URLs del modulo de Reclutamiento y Seleccion.
 """
 from django.urls import path
 from . import views
+from . import views_requisicion
 
 urlpatterns = [
     # ── Admin: Vacantes ──
@@ -10,6 +11,11 @@ urlpatterns = [
     path('nueva/', views.vacante_crear, name='vacante_crear'),
     path('<int:pk>/', views.vacante_detalle, name='vacante_detalle'),
     path('<int:pk>/editar/', views.vacante_editar, name='vacante_editar'),
+
+    # ── Aprobación de requisición ──
+    path('<int:pk>/solicitar-aprobacion/', views_requisicion.vacante_solicitar_aprobacion, name='vacante_solicitar_aprobacion'),
+    path('<int:pk>/aprobar/', views_requisicion.vacante_aprobar, name='vacante_aprobar'),
+    path('<int:pk>/rechazar/', views_requisicion.vacante_rechazar, name='vacante_rechazar'),
 
     # ── Admin: Postulaciones ──
     path('<int:vacante_pk>/postulacion/nueva/', views.postulacion_crear, name='postulacion_crear'),
