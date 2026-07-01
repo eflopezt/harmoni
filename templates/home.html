@@ -245,10 +245,33 @@
 .hfd-chip{display:inline-flex;align-items:center;gap:6px;text-decoration:none;background:#f0fdfa;border:1px solid #cdeee8;color:#0f5d57;font-size:.78rem;font-weight:600;padding:6px 12px;border-radius:999px;transition:background .12s,border-color .12s,transform .12s;}
 .hfd-chip:hover{background:#ccfbf1;border-color:#5eead4;color:#0f5d57;transform:translateY(-1px);}
 .hfd-chip i{font-size:.72rem;color:#0f766e;}
+@media(max-width:560px){
+  .hfd{border-radius:12px;padding:15px 14px;margin-bottom:1rem;}
+  .hfd-head h2{font-size:1.12rem;letter-spacing:0;}
+  .hfd-head p{font-size:.78rem;line-height:1.38;margin-bottom:12px;}
+  .hfd-steps{grid-template-columns:repeat(3,1fr);gap:7px;}
+  .hfd-step{border-radius:10px;padding:10px 8px 9px;min-height:88px;}
+  .hfd-ico{width:30px;height:30px;border-radius:9px;font-size:.82rem;margin-bottom:7px;}
+  .hfd-step h3{font-size:.7rem;line-height:1.15;margin-bottom:0;}
+  .hfd-step p{display:none;}
+  .hfd-num{top:8px;right:9px;font-size:.64rem;}
+  .hfd-band{margin-top:12px;padding-top:11px;}
+  .hfd-band-label{font-size:.66rem;margin-bottom:7px;}
+  .hfd-chips{gap:6px;max-height:38px;overflow:hidden;}
+  .hfd-chip{font-size:.68rem;padding:5px 9px;}
+  .hfd-cta{gap:8px;margin-top:12px;}
+  .hfd-btn{width:100%;justify-content:center;font-size:.78rem;padding:10px 12px;border-radius:9px;}
+}
+/* Colapsable: por defecto cerrado para no competir con el trabajo del admin. */
+.hfd summary{cursor:pointer;font-size:1.35rem;font-weight:800;color:#0f2926;letter-spacing:-.02em;list-style:none;display:flex;align-items:center;gap:8px;}
+.hfd summary::-webkit-details-marker{display:none;}
+.hfd summary::after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;font-size:.8rem;color:#94a3b8;margin-left:auto;transition:transform .2s;}
+.hfd[open] summary::after{transform:rotate(180deg);}
+@media(max-width:560px){.hfd summary{font-size:1.1rem;}}
 </style>
-<div class="hfd">
-  <div class="hfd-head">
-    <h2><i class="fas fa-route me-2" style="color:#0f766e"></i>Así funciona Harmoni</h2>
+<details class="hfd">
+  <summary><i class="fas fa-route" style="color:#0f766e"></i>Así funciona Harmoni</summary>
+  <div class="hfd-head" style="margin-top:14px">
     <p>Todo el ciclo de tu equipo, conectado en un solo lugar — del primer candidato hasta la salida, más la gestión continua del talento. Sin planillas en Excel ni datos sueltos. Haz clic en cualquier etapa para verla.</p>
   </div>
   <div class="hfd-steps">
@@ -280,7 +303,7 @@
       <i class="fas fa-mobile-screen me-2"></i>Probar el portal del trabajador
     </a>
   </div>
-</div>
+</details>
 {% endif %}
 
 {# ── Welcome — Hero greeting Notion-style (handoff Cockpit) ────── #}
