@@ -1,0 +1,153 @@
+{% extends 'base_v2.html' %}
+
+{% block title %}Control Tower - Ciclo de Vida{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ct-head { margin-bottom: 18px; }
+    .ct-head h2 { margin: 0; font-weight: 800; color: #0f2926; }
+    .ct-head p { margin: 4px 0 0; color: #64748b; font-size: .9rem; }
+
+    .ct-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .ct-card {
+        display: block;
+        padding: 14px 16px;
+        border: 1px solid #e2e8f0;
+        border-left: 5px solid var(--et, #cbd5e1);
+        border-radius: 12px;
+        background: #fff;
+        text-decoration: none;
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .ct-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15,41,38,.08); }
+    .ct-card.active { box-shadow: 0 0 0 2px var(--et); }
+    .ct-card-top {
+        display: flex; align-items: center; gap: 8px;
+        color: var(--et); font-size: .78rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: .02em;
+    }
+    .ct-card-num {
+        margin-top: 6px; color: #0f2926;
+        font-size: 1.9rem; font-weight: 900; line-height: 1;
+        font-variant-numeric: tabular-nums;
+    }
+    .ct-card.candidatos { border-left-color: #94a3b8; }
+
+    .ct-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 3px 10px; border-radius: 999px;
+        color: #fff; font-size: .74rem; font-weight: 800;
+    }
+    .ct-table td { vertical-align: middle; }
+    .ct-detalle { color: #64748b; font-size: .82rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="ct-head">
+    <h2><i class="fas fa-satellite-dish me-2 text-info"></i>Control Tower del empleado</h2>
+    <p>En qué etapa del ciclo está cada persona y qué falta para avanzar. La etapa se calcula sola desde contrato, onboarding, nómina y cese.</p>
+</div>
+
+<!-- Tarjetas por etapa -->
+<div class="ct-cards">
+    <a href="?" class="ct-card candidatos" style="--et:#94a3b8">
+        <div class="ct-card-top"><i class="fas fa-user-plus"></i> Candidatos</div>
+        <div class="ct-card-num">{{ candidatos }}</div>
+    </a>
+    {% for t in tarjetas %}
+    <a href="?etapa={{ t.code }}{% if area_id %}&area={{ area_id }}{% endif %}{% if buscar %}&buscar={{ buscar }}{% endif %}"
+       class="ct-card {% if etapa_filtro == t.code %}active{% endif %}" style="--et:{{ t.color }}">
+        <div class="ct-card-top"><i class="fas {{ t.icono }}"></i> {{ t.label }}</div>
+        <div class="ct-card-num">{{ t.total }}</div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            {% if etapa_filtro %}<input type="hidden" name="etapa" value="{{ etapa_filtro }}">{% endif %}
+            <div class="col-md-4">
+                <label class="form-label mb-1">Buscar</label>
+                <input type="text" name="buscar" class="form-control form-control-sm"
+                       placeholder="Nombre o DNI..." value="{{ buscar }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label mb-1">SubÁrea</label>
+                <select name="area" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                    {% for a in areas %}
+                    <option value="{{ a.id }}" {% if area_id == a.id|stringformat:"s" %}selected{% endif %}>
+                        {{ a.área.nombre }} - {{ a.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="fas fa-filter me-1"></i>Filtrar
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'control_tower' %}" class="btn btn-outline-secondary btn-sm w-100">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 ct-table">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Empleado</th>
+                        <th>Área</th>
+                        <th>Etapa</th>
+                        <th>Qué falta / qué sigue</th>
+                        <th class="pe-3 text-end">Ficha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in filas %}
+                    <tr>
+                        <td class="ps-3">
+                            <strong>{{ f.p.apellidos_nombres }}</strong><br>
+                            <small class="text-muted">{{ f.p.nro_doc }}</small>
+                        </td>
+                        <td class="text-muted" style="font-size:.85rem">
+                            {{ f.p.subarea.área.nombre|default:"-" }}{% if f.p.subarea %} / {{ f.p.subarea.nombre }}{% endif %}
+                        </td>
+                        <td>
+                            <span class="ct-badge" style="background:{{ f.etapa.color }}">
+                                <i class="fas {{ f.etapa.icono }}"></i>{{ f.etapa.label }}
+                            </span>
+                        </td>
+                        <td class="ct-detalle">{{ f.detalle }}</td>
+                        <td class="pe-3 text-end">
+                            <a href="{% url 'personal_detail' f.p.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            No hay empleados para este filtro.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

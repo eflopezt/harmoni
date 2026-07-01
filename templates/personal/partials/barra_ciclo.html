@@ -1,0 +1,43 @@
+{# Barra de estado del ciclo de vida. Requiere `empleado` (Personal) en contexto. #}
+<style>
+    .barra-ciclo {
+        display: flex; align-items: flex-start; flex-wrap: nowrap;
+        overflow-x: auto; gap: 0; padding: 14px 12px;
+        border: 1px solid #e2e8f0; border-radius: 12px; background: #fff;
+    }
+    .bc-node {
+        display: flex; flex-direction: column; align-items: center;
+        min-width: 84px; text-align: center;
+    }
+    .bc-dot {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 34px; height: 34px; border-radius: 50%;
+        color: #fff; font-size: .85rem; background: #cbd5e1;
+        box-shadow: inset 0 0 0 2px rgba(255,255,255,.6);
+    }
+    .bc-label {
+        margin-top: 6px; font-size: .72rem; font-weight: 700; color: #94a3b8;
+        line-height: 1.1;
+    }
+    .bc-line {
+        flex: 1 1 auto; min-width: 18px; height: 3px; margin-top: 15px;
+        background: #e2e8f0; border-radius: 2px;
+    }
+    .bc-node.bc-pasado .bc-label { color: #334155; }
+    .bc-node.bc-actual .bc-dot {
+        box-shadow: 0 0 0 4px rgba(20,184,166,.22), inset 0 0 0 2px rgba(255,255,255,.6);
+        transform: scale(1.08);
+    }
+    .bc-node.bc-actual .bc-label { color: #0f2926; font-weight: 800; }
+</style>
+<div class="barra-ciclo">
+    {% for n in empleado.etapa_ciclo_barra %}
+    <div class="bc-node bc-{{ n.estado }}">
+        <span class="bc-dot" {% if n.estado != 'futuro' %}style="background:{{ n.color }}"{% endif %}>
+            <i class="fas {{ n.icono }}"></i>
+        </span>
+        <span class="bc-label">{{ n.label }}</span>
+    </div>
+    {% if not forloop.last %}<span class="bc-line" {% if n.estado == 'pasado' %}style="background:{{ n.color }}"{% endif %}></span>{% endif %}
+    {% endfor %}
+</div>

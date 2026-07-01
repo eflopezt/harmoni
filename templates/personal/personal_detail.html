@@ -115,6 +115,11 @@
     </div>
 </div>
 
+<!-- Barra de estado del ciclo de vida -->
+<div class="mb-4">
+    {% include 'personal/partials/barra_ciclo.html' with empleado=personal %}
+</div>
+
 <!-- ── Modal Dar de Baja ─────────────────────────────────────────── -->
 {% if personal.estado == 'Activo' %}
 <div class="modal fade" id="modalDarBaja" tabindex="-1" aria-labelledby="modalDarBajaLabel" aria-hidden="true">

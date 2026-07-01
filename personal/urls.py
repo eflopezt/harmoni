@@ -72,6 +72,7 @@ urlpatterns = [
     
     # Personal
     path('personal/', views.personal_list, name='personal_list'),
+    path('personal/control-tower/', views.control_tower, name='control_tower'),
     path('personal/eventual/nuevo/',
          __import__('personal.views.eventuales', fromlist=['eventual_nuevo']).eventual_nuevo,
          name='personal_eventual_nuevo'),

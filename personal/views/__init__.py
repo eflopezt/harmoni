@@ -21,6 +21,8 @@ from .empleados import (
     personal_drawer_data, personal_inline_edit, personal_cesar_batch,
 )
 
+from .control_tower import control_tower
+
 from .roster import (
     roster_list, roster_matricial, roster_create, roster_update,
     roster_export, roster_import, roster_update_cell,

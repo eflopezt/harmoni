@@ -318,7 +318,10 @@
                 <div class="nav-section-body">
 
                     <div class="nav-subheader"><i class="fas fa-user-friends"></i><span>Equipo</span></div>
-                    <a href="{% url 'personal_list' %}" class="nav-item" data-match="/personal/">
+                    <a href="{% url 'control_tower' %}" class="nav-item" data-match="^/personal/control-tower">
+                        <i class="fas fa-satellite-dish"></i><span>Control Tower</span>
+                    </a>
+                    <a href="{% url 'personal_list' %}" class="nav-item" data-match="^/personal/$">
                         <i class="fas fa-users"></i><span>Empleados</span>
                     </a>
                     <a href="{% url 'personal_create_express' %}" class="nav-item" data-match="/personal/express">

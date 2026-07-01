@@ -1075,6 +1075,51 @@ class Personal(models.Model):
         delta = self.fecha_fin_contrato - timezone.localdate()
         return delta.days
 
+    @property
+    def etapa_ciclo(self):
+        """Etapa del ciclo de vida (CALCULADA, sin campo en BD).
+
+        Devuelve un code: contratado|onboarding|activo|cese|cerrado.
+        ('candidato' aplica a Postulacion sin convertir, no a un Personal.)
+        Orden de decisión: cese > onboarding > contrato > activo.
+        """
+        estado = (self.estado or '').strip()
+        if estado == 'Cesado':
+            try:
+                from nominas.models import LiquidacionLaboral
+                liq = LiquidacionLaboral.objects.filter(personal=self).first()
+                if liq and liq.estado in ('PAGADA', 'CERRADA'):
+                    return 'cerrado'
+            except Exception:
+                pass
+            return 'cese'
+        # Onboarding en curso tiene prioridad sobre "activo".
+        try:
+            if self.procesos_onboarding.filter(estado='EN_CURSO').exists():
+                return 'onboarding'
+        except Exception:
+            pass
+        # ¿Contrato vigente?
+        try:
+            tiene_contrato = self.contratos.filter(estado='VIGENTE').exists()
+        except Exception:
+            tiene_contrato = False
+        if estado == 'Inactivo' or not tiene_contrato:
+            return 'contratado'
+        return 'activo'
+
+    @property
+    def etapa_ciclo_info(self):
+        """Metadata (label/color/icono) de la etapa actual, para templates."""
+        from personal.ciclo import etapa_info
+        return etapa_info(self.etapa_ciclo)
+
+    @property
+    def etapa_ciclo_barra(self):
+        """Nodos de la barra de estado (pasado/actual/futuro), para templates."""
+        from personal.ciclo import barra_etapas
+        return barra_etapas(self.etapa_ciclo)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONTRATOS LABORALES
