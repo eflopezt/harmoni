@@ -146,6 +146,51 @@ class ConceptoRemunerativo(models.Model):
 
 
 # ══════════════════════════════════════════════════════════════════════
+# JORNALES CONSTRUCCIÓN CIVIL (CAPECO-FTCCP) — versionados por vigencia
+# ══════════════════════════════════════════════════════════════════════
+
+class JornalConstruccion(models.Model):
+    """Jornal básico + BUC por categoría del régimen de construcción civil.
+
+    Los valores cambian cada año por convención colectiva CAPECO-FTCCP; se
+    guardan con vigencia para que cada planilla histórica use el jornal correcto
+    de su fecha. Fuente 2026: R.M. 197-2025-TR.
+    """
+    CATEGORIA_CHOICES = [
+        ('OPERARIO', 'Operario'),
+        ('OFICIAL', 'Oficial'),
+        ('PEON', 'Peón'),
+    ]
+    categoria       = models.CharField(max_length=10, choices=CATEGORIA_CHOICES)
+    jornal_diario   = models.DecimalField(
+        max_digits=8, decimal_places=2, help_text='Jornal básico diario (S/).')
+    buc_pct         = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        help_text='BUC (Bonificación Unificada de Construcción) como % del jornal básico. Ej: 32.')
+    bono_altura_pct = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal('0'),
+        help_text='Bono por altura como % del jornal básico (ej: 8). 0 si no aplica.')
+    vigencia_desde  = models.DateField()
+    vigencia_hasta  = models.DateField(null=True, blank=True)
+    fuente          = models.CharField(max_length=120, default='CAPECO-FTCCP')
+    creado_en       = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Jornal Construcción Civil'
+        verbose_name_plural = 'Jornales Construcción Civil'
+        ordering = ['-vigencia_desde', 'categoria']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['categoria', 'vigencia_desde'],
+                name='jornal_cc_unique_cat_vigencia',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.categoria} S/{self.jornal_diario} (desde {self.vigencia_desde})'
+
+
+# ══════════════════════════════════════════════════════════════════════
 # PERÍODO DE NÓMINA
 # ══════════════════════════════════════════════════════════════════════
 

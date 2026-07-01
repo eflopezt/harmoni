@@ -637,6 +637,21 @@ class Personal(models.Model):
         help_text="Determina la estrategia de cálculo de planilla "
                   "(CONSTRUCCION y MINERIA tienen reglas propias)."
     )
+    # Categoría de construcción civil (solo si regimen_laboral='CONSTRUCCION').
+    # Determina el jornal básico desde la tabla CAPECO-FTCCP (JornalConstruccion).
+    CATEGORIA_CONSTRUCCION_CHOICES = [
+        ('OPERARIO', 'Operario'),
+        ('OFICIAL', 'Oficial'),
+        ('PEON', 'Peón'),
+    ]
+    categoria_construccion = models.CharField(
+        max_length=10,
+        blank=True,
+        choices=CATEGORIA_CONSTRUCCION_CHOICES,
+        verbose_name="Categoría Construcción Civil",
+        help_text="Operario / Oficial / Peón. Solo aplica al régimen de "
+                  "construcción civil; fija el jornal básico (tabla CAPECO)."
+    )
     regimen_turno = models.CharField(
         max_length=30,
         blank=True,
