@@ -10,6 +10,40 @@
 
 {% block portal_content %}
 
+<style>
+    .roster-cal { width: 100%; }
+    .roster-cal-head, .roster-cal-row {
+        display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    }
+    .roster-cal-head { margin-bottom: 4px; }
+    .roster-cal-head > div {
+        text-align: center; font-size: .72rem; font-weight: 700;
+        color: #64748b; text-transform: uppercase; letter-spacing: .02em;
+    }
+    .roster-cal-row { margin-bottom: 4px; }
+    .roster-cal-cell {
+        position: relative; min-height: 54px; border: 1px solid #e5e7eb;
+        border-radius: 8px; padding: 4px; display: flex; flex-direction: column;
+        align-items: center; background: #fff;
+    }
+    .roster-cal-cell.fuera { background: #f8fafc; opacity: .45; }
+    .roster-cal-cell.hoy {
+        border-color: #14b8a6; box-shadow: 0 0 0 2px rgba(20,184,166,.25);
+    }
+    .roster-cal-cell .rc-dia {
+        font-size: .72rem; color: #94a3b8; align-self: flex-end; line-height: 1;
+    }
+    .roster-cal-cell .rc-cod {
+        margin-top: auto; margin-bottom: 3px; font-size: .8rem; font-weight: 700;
+        color: #fff; padding: 3px 8px; border-radius: 6px; min-width: 28px; text-align: center;
+    }
+    @media (max-width: 576px) {
+        .roster-cal-cell { min-height: 44px; padding: 2px; }
+        .roster-cal-cell .rc-cod { font-size: .7rem; padding: 2px 5px; min-width: 22px; }
+        .roster-cal-head > div { font-size: .62rem; }
+    }
+</style>
+
 {% if not empleado %}
 <div class="alert alert-warning">Tu usuario no está vinculado a un empleado. Contacta a RRHH o TI.</div>
 {% else %}
@@ -20,7 +54,7 @@
         <form method="get" class="row g-2 align-items-end">
             <div class="col-auto">
                 <label class="form-label mb-1" style="font-size:.8rem">Mes</label>
-                <select name="mes" class="form-select form-select-sm">
+                <select name="mes" class="form-select form-select-sm" style="min-width:8.5rem">
                     {% for num, nombre in meses %}
                     <option value="{{ num }}" {% if num == mes_sel %}selected{% endif %}>{{ nombre }}</option>
                     {% endfor %}
@@ -28,7 +62,7 @@
             </div>
             <div class="col-auto">
                 <label class="form-label mb-1" style="font-size:.8rem">Año</label>
-                <select name="anio" class="form-select form-select-sm">
+                <select name="anio" class="form-select form-select-sm" style="min-width:6rem">
                     {% for a in anios %}
                     <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}>{{ a }}</option>
                     {% endfor %}
@@ -43,52 +77,83 @@
     </div>
 </div>
 
-<!-- Tabla de roster -->
+<!-- Calendario del mes -->
 <div class="dash-card">
-    <div class="dash-card-header">
-        <span><i class="fas fa-calendar-alt me-2 text-warning"></i>Programación — {{ mes_nombre|capfirst }}</span>
-    </div>
-    <div class="dash-card-body p-0">
-        {% if registros %}
-        <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-3">Fecha</th>
-                        <th>Día</th>
-                        <th>Código</th>
-                        <th>Observación</th>
-                        <th class="pe-3">Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in registros %}
-                    <tr {% if r.fecha == hoy %}style="background:#f0fdf4"{% endif %}>
-                        <td class="ps-3">
-                            {{ r.fecha|date:"d/m/Y" }}
-                            {% if r.fecha == hoy %}<span class="badge bg-success ms-1" style="font-size:.65rem">Hoy</span>{% endif %}
-                        </td>
-                        <td class="text-muted" style="font-size:.8rem">{{ r.fecha|date:"D" }}</td>
-                        <td>
-                            {% if r.codigo %}
-                            <span class="badge bg-light text-dark border fw-semibold">{{ r.codigo }}</span>
-                            {% else %}—{% endif %}
-                        </td>
-                        <td class="text-muted" style="font-size:.85rem">{{ r.observaciones|default:"—" }}</td>
-                        <td class="pe-3">
-                            {% if r.estado == 'aprobado' %}
-                                <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:.7rem">Aprobado</span>
-                            {% elif r.estado == 'pendiente' %}
-                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning" style="font-size:.7rem">Pendiente</span>
-                            {% else %}
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary border" style="font-size:.7rem">{{ r.estado|capfirst }}</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="dash-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fas fa-calendar-alt me-2 text-warning"></i>{{ mes_nombre|capfirst }}</span>
+        {% if leyenda %}
+        <div class="d-flex flex-wrap gap-1 align-items-center">
+            {% for l in leyenda %}
+            <span class="badge" style="background:{{ l.color }};color:#fff;font-weight:600">{{ l.codigo }}</span>
+            {% endfor %}
         </div>
+        {% endif %}
+    </div>
+    <div class="dash-card-body">
+        {% if semanas %}
+        <div class="roster-cal">
+            <div class="roster-cal-head">
+                <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+            </div>
+            {% for semana in semanas %}
+            <div class="roster-cal-row">
+                {% for c in semana %}
+                <div class="roster-cal-cell{% if not c.en_mes %} fuera{% endif %}{% if c.es_hoy %} hoy{% endif %}"
+                     {% if c.obs %}title="{{ c.obs }}"{% endif %}>
+                    <span class="rc-dia">{{ c.dia }}</span>
+                    {% if c.codigo %}
+                    <span class="rc-cod" style="background:{{ c.color }}">{{ c.codigo }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <details class="mt-3">
+            <summary class="text-muted" style="cursor:pointer;font-size:.85rem">
+                <i class="fas fa-list me-1"></i>Ver como lista
+            </summary>
+            <div class="table-responsive mt-2">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Fecha</th>
+                            <th>Día</th>
+                            <th>Código</th>
+                            <th>Observación</th>
+                            <th class="pe-3">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in registros %}
+                        <tr {% if r.fecha == hoy %}style="background:#f0fdf4"{% endif %}>
+                            <td class="ps-3">
+                                {{ r.fecha|date:"d/m/Y" }}
+                                {% if r.fecha == hoy %}<span class="badge bg-success ms-1" style="font-size:.65rem">Hoy</span>{% endif %}
+                            </td>
+                            <td class="text-muted" style="font-size:.8rem">{{ r.fecha|date:"D" }}</td>
+                            <td>
+                                {% if r.codigo %}
+                                <span class="badge bg-light text-dark border fw-semibold">{{ r.codigo }}</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="text-muted" style="font-size:.85rem">{{ r.observaciones|default:"—" }}</td>
+                            <td class="pe-3">
+                                {% if r.estado == 'aprobado' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:.7rem">Aprobado</span>
+                                {% elif r.estado == 'pendiente' %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning" style="font-size:.7rem">Pendiente</span>
+                                {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border" style="font-size:.7rem">{{ r.estado|capfirst }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </details>
         {% else %}
         <div class="text-center text-muted py-5">
             <i class="fas fa-calendar-times fa-2x mb-2 d-block opacity-25"></i>

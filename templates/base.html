@@ -346,7 +346,7 @@
                     {% if mod_roster or user.is_superuser or user.is_staff %}
                     <div class="nav-subheader"><i class="fas fa-calendar"></i><span>Planificación</span></div>
                     {% if mod_roster %}
-                    <a href="{% url 'roster_matricial' %}" class="nav-item" data-match="/roster">
+                    <a href="{% url 'roster_matricial' %}" class="nav-item" data-match="^/roster/matricial">
                         <i class="fas fa-calendar-alt"></i><span>Roster Matricial</span>
                     </a>
                     {% endif %}

@@ -481,6 +481,12 @@ def mi_roster(request):
     empleado = _get_empleado(request.user)
     context = {'empleado': empleado}
 
+    MESES = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre'),
+    ]
+
     if empleado:
         hoy = date.today()
         anio = _safe_int(request.GET.get('anio', hoy.year), hoy.year)
@@ -500,18 +506,52 @@ def mi_roster(request):
         ).order_by('fecha').first()
         anio_inicio = primer_roster.fecha.year if primer_roster else hoy.year
 
+        # --- Calendario mensual visual (semanas x 7 dias) ---
+        reg_por_fecha = {r.fecha: r for r in registros}
+        # Colores estables por codigo: sirve para cualquier empresa/rubro.
+        _PALETA = ['#14b8a6', '#0ea5e9', '#f59e0b', '#a855f7', '#ef4444',
+                   '#22c55e', '#ec4899', '#84cc16', '#f97316', '#6366f1']
+        _DESCANSO = {'D', 'DL', 'DLA', 'DOL', 'DESC', 'LIBRE', 'OFF', 'L'}
+        codigos_distintos = sorted({r.codigo for r in registros if r.codigo})
+        color_por_codigo, _pi = {}, 0
+        for c in codigos_distintos:
+            if c.upper() in _DESCANSO:
+                color_por_codigo[c] = '#94a3b8'   # gris = descanso
+            else:
+                color_por_codigo[c] = _PALETA[_pi % len(_PALETA)]
+                _pi += 1
+
+        cal = calendar.Calendar(firstweekday=0)   # 0 = lunes
+        semanas = []
+        for semana in cal.monthdatescalendar(anio, mes):
+            fila = []
+            for d in semana:
+                r = reg_por_fecha.get(d)
+                cod = r.codigo if r else ''
+                fila.append({
+                    'dia': d.day,
+                    'fecha': d,
+                    'en_mes': d.month == mes,
+                    'es_hoy': d == hoy,
+                    'codigo': cod,
+                    'color': color_por_codigo.get(cod, ''),
+                    'estado': r.estado if r else '',
+                    'obs': (r.observaciones if r else '') or '',
+                })
+            semanas.append(fila)
+
+        leyenda = [{'codigo': c, 'color': color_por_codigo[c]} for c in codigos_distintos]
+
         context.update({
             'registros': registros,
+            'semanas': semanas,
+            'leyenda': leyenda,
             'anio_sel': anio,
             'mes_sel': mes,
-            'mes_nombre': fecha_inicio.strftime('%B %Y'),
+            'mes_nombre': f"{dict(MESES)[mes]} {anio}",
             'hoy': hoy,
             'anios': range(anio_inicio, hoy.year + 1),
-            'meses': [
-                (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
-                (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
-                (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre'),
-            ],
+            'meses': MESES,
         })
 
     return render(request, 'portal/mi_roster.html', context)
