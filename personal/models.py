@@ -616,10 +616,26 @@ class Personal(models.Model):
     )
 
     # --- Régimen laboral ---
+    # Códigos canónicos (alineados con importar_maestro_empleados y la
+    # plantilla del maestro). El motor de planilla usa CONSTRUCCION y MINERIA
+    # para estrategias de cálculo propias; el resto se calcula con el régimen
+    # general. La normalización a estrategia vive en nominas/regimenes.py.
+    REGIMEN_LABORAL_CHOICES = [
+        ('GENERAL', 'Régimen General (D.Leg. 728)'),
+        ('MICROEMPRESA', 'Microempresa (REMYPE)'),
+        ('PEQUEÑA', 'Pequeña Empresa (REMYPE)'),
+        ('AGRARIO', 'Agrario (Ley 31110)'),
+        ('CONSTRUCCION', 'Construcción Civil (CAPECO-FTCCP)'),
+        ('MINERIA', 'Minería (D.S. 030-89-TR)'),
+    ]
     regimen_laboral = models.CharField(
         max_length=50,
         blank=True,
-        verbose_name="Régimen Laboral"
+        choices=REGIMEN_LABORAL_CHOICES,
+        default='GENERAL',
+        verbose_name="Régimen Laboral",
+        help_text="Determina la estrategia de cálculo de planilla "
+                  "(CONSTRUCCION y MINERIA tienen reglas propias)."
     )
     regimen_turno = models.CharField(
         max_length=30,
