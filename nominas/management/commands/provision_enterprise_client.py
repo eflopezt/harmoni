@@ -62,6 +62,10 @@ class Command(BaseCommand):
         parser.add_argument('--sentry-dsn', default='')
         parser.add_argument('--output', default='', help='Dir de salida (default: ./provisioning/<slug>/)')
         parser.add_argument('--apply', action='store_true', help='Ejecutar comandos reales (default: dry-run)')
+        from core.rubros import RUBRO_CHOICES
+        parser.add_argument('--rubro', default='GENERAL',
+                            choices=[c[0] for c in RUBRO_CHOICES],
+                            help='Rubro del cliente (preconfigura módulos: construcción/minería → Roster).')
 
     def handle(self, *args, **opts):
         slug = opts['slug'].lower().strip()
@@ -94,6 +98,7 @@ class Command(BaseCommand):
             '__SECRET_KEY__':    secret_key,
             '__REDIS_DB__':      str(redis_db),
             '__CUSTOM_DOMAIN__': opts['custom_domain'] or '',
+            '__RUBRO__':         opts['rubro'],
             '__SMTP_HOST__':     opts['smtp_host'],
             '__SMTP_USER__':     opts['smtp_user'],
             '__SMTP_PASS__':     opts['smtp_pass'],
@@ -196,6 +201,8 @@ sudo docker-compose exec web python manage.py createsuperuser
 ### 8. Seed inicial
 ```bash
 sudo docker-compose exec web python manage.py seed_conceptos_base
+# Rubro del cliente (preconfigura módulos: construcción/minería encienden el Roster):
+sudo docker-compose exec web python manage.py configurar_rubro --rubro __RUBRO__
 ```
 
 ### 9. Verificar

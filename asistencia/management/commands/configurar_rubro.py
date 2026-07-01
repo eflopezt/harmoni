@@ -24,20 +24,18 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         from asistencia.models import ConfiguracionSistema
-        from core.rubros import preset_rubro
+        from core.rubros import aplicar_preset
 
         rubro = opts['rubro']
         config = ConfiguracionSistema.get()
-        config.rubro = rubro
-        cambios = ['rubro']
 
-        if not opts['no_preset']:
-            for campo, valor in preset_rubro(rubro).items():
-                if hasattr(config, campo):
-                    setattr(config, campo, valor)
-                    cambios.append(campo)
+        if opts['no_preset']:
+            config.rubro = rubro
+            cambios = ['rubro']
+        else:
+            cambios = aplicar_preset(config, rubro)
 
-        config.save(update_fields=list(dict.fromkeys(cambios)))
+        config.save(update_fields=cambios)
         self.stdout.write(self.style.SUCCESS(
             f'Rubro fijado en {rubro}. Roster activo: {config.roster_activo()}. '
             f'Campos actualizados: {", ".join(dict.fromkeys(cambios))}.'

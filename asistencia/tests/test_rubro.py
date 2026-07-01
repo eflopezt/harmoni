@@ -25,6 +25,30 @@ def test_rubro_requiere_roster():
     assert not rubros.rubro_requiere_roster('AUDIOVISUAL')
 
 
+def test_regimen_default_por_rubro():
+    assert rubros.regimen_default('CONSTRUCCION') == 'CONSTRUCCION'
+    assert rubros.regimen_default('MINERIA') == 'MINERIA'
+    assert rubros.regimen_default('GASTRONOMIA') == 'GENERAL'
+    assert rubros.regimen_default('GENERAL') == 'GENERAL'
+
+
+class _FakeConfig:
+    rubro = 'GENERAL'
+    mod_roster = False
+    mod_viaticos = False
+    roster_aplica_a = 'FORANEOS'
+
+
+def test_aplicar_preset_construccion():
+    c = _FakeConfig()
+    cambios = rubros.aplicar_preset(c, 'CONSTRUCCION')
+    assert c.rubro == 'CONSTRUCCION'
+    assert c.mod_roster is True
+    assert c.roster_aplica_a == 'FORANEOS'
+    assert c.mod_viaticos is True
+    assert 'rubro' in cambios and 'mod_roster' in cambios
+
+
 # ── roster_activo (DB) ─────────────────────────────────────────────
 
 @pytest.mark.django_db
