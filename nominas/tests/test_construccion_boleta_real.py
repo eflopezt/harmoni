@@ -86,3 +86,33 @@ def test_bonif_extraordinaria_9pct_de_gratificacion():
     # Bonif. Extraord. Ley 29714 = 9% de la gratificación (119.07 → 10.72)
     grati = Decimal('119.07')
     assert (grati * Decimal('9') / Decimal('100')).quantize(Decimal('0.01')) == Decimal('10.72')
+
+
+def test_base_computable_por_afectaciones():
+    """La base computable (afectos) = 1,238.24, y valida ESSALUD/AFP/SCTR.
+
+    Solo entran los conceptos afectos; movilidad, gratif, bonif. extraord. y CTS
+    quedan fuera. Reconcilia contra la boleta real.
+    """
+    lineas = {
+        'cc-jornal-basico':  Decimal('535.80'),
+        'cc-dominical':      Decimal('89.30'),
+        'cc-hhee-60':        Decimal('214.32'),
+        'cc-hhee-100':       Decimal('44.65'),
+        'cc-hhee-100-dom':   Decimal('111.63'),
+        'cc-buc':            Decimal('171.46'),
+        'cc-bono-altitud':   Decimal('17.50'),
+        'cc-comp-vacacional': Decimal('53.58'),
+        # NO computables (deben quedar fuera):
+        'cc-movilidad':      Decimal('60.20'),
+        'cc-gratif-julio':   Decimal('119.07'),
+        'cc-bonif-extraord': Decimal('10.72'),
+        'cc-cts':            Decimal('112.18'),
+    }
+    base = cc.base_computable(lineas)
+    assert base == Decimal('1238.24')
+
+    # Cargas sobre la base computable (verificadas contra la boleta):
+    assert (base * Decimal('9') / Decimal('100')).quantize(Decimal('0.01')) == Decimal('111.44')   # ESSALUD
+    assert (base * Decimal('10') / Decimal('100')).quantize(Decimal('0.01')) == Decimal('123.82')  # AFP aporte 10%
+    assert (base * Decimal('0.65') / Decimal('100')).quantize(Decimal('0.01')) == Decimal('8.05')  # SCTR salud 0.65%

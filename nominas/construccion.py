@@ -107,3 +107,52 @@ def compensacion_vacacional(jornal_diario: Decimal, dias_trabajados: int) -> Dec
 def conafovicer(base: Decimal) -> Decimal:
     """CONAFOVICER = 2% (descuento) sobre básico + dominical."""
     return _r(Decimal(base) * CONAFOVICER_PCT / Decimal('100'))
+
+
+# ── Afectaciones ───────────────────────────────────────────────────
+#
+# Matriz derivada de una boleta real (Consorcio Stiler-Ripconciv-Tecnoedil,
+# sem 2026-10) + convención CAPECO-FTCCP:
+#
+#   Concepto            ESSALUD/AFP/ONP/SCTR   CTS   Gratif
+#   ------------------  --------------------   ---   ------
+#   Jornal básico              ✔                ✔      ✔
+#   Dominical                  ✔                ✘      ✘
+#   Horas extra (60/100)       ✔                ✘      ✘
+#   BUC                        ✔                ✘      ✘
+#   Bonif. altitud             ✔                ✘      ✘
+#   Compensación vacacional    ✔                ✘      ✘
+#   Movilidad                  ✘  (no remun.)   ✘      ✘
+#   Gratificación              ✘  (Ley 29351)   ✘      —
+#   Bonif. extraordinaria      ✘                ✘      ✘
+#   CTS                        ✘                —      ✘
+#
+# La base computable (para ESSALUD 9%, AFP/ONP, SCTR, Vida Ley, Fondo Capacit.)
+# es la suma de los conceptos afectos a ESSALUD.
+
+# Códigos de concepto afectos a la base computable (afecto ESSALUD/AFP/ONP/SCTR).
+CODIGOS_COMPUTABLES = {
+    'cc-jornal-basico', 'cc-dominical',
+    'cc-hhee-60', 'cc-hhee-100', 'cc-hhee-100-dom',
+    'cc-buc', 'cc-bae', 'cc-bono-altura', 'cc-bono-altitud',
+    'cc-comp-vacacional',
+}
+# Conceptos NO afectos (fuera de la base computable).
+CODIGOS_NO_COMPUTABLES = {
+    'cc-movilidad', 'cc-gratif-julio', 'cc-bonif-extraord',
+    'cc-cts', 'cc-asig-escolar',
+}
+
+
+def base_computable(lineas: dict) -> Decimal:
+    """Suma los conceptos afectos (ESSALUD/AFP/ONP/SCTR).
+
+    Args:
+        lineas: dict {codigo_concepto: monto}.
+    Returns:
+        Suma de los montos cuyos códigos están en CODIGOS_COMPUTABLES.
+    """
+    return _r(sum(
+        (Decimal(m) for cod, m in lineas.items() if cod in CODIGOS_COMPUTABLES),
+        Decimal('0'),
+    ))

@@ -29,39 +29,56 @@ JORNALES_2026 = {
 }
 VIGENCIA_2026 = date(2026, 6, 1)  # convención CAPECO-FTCCP 2026 (jun 2026–may 2027)
 
-# codigo: dict de campos de ConceptoRemunerativo
+# Afectaciones (verificadas contra boleta real + CAPECO-FTCCP; ver
+# nominas/construccion.py::CODIGOS_COMPUTABLES).
+#   computable = afecto a ESSALUD / AFP / ONP / SCTR (entra a la base computable)
+#   cts / gratif = afecto a CTS / gratificación
+#   renta = afecto a IR 5ta (sin ser computable para aportes)
+def _c(codigo, nombre, categoria, tipo, orden, *, subtipo='REMUNERATIVO',
+       computable=False, cts=False, gratif=False, renta=False):
+    return dict(
+        codigo=codigo, nombre=nombre, categoria=categoria, tipo=tipo, orden=orden,
+        subtipo=subtipo, formula='MANUAL',
+        afecto_essalud=computable, afecto_afp=computable, afecto_onp=computable,
+        afecto_renta=(computable or renta), afecto_cts=cts, afecto_gratif=gratif,
+    )
+
+
 CONCEPTOS_CC = [
-    dict(codigo='cc-jornal-basico', nombre='Jornal Básico (Construcción)',
-         categoria='SUELDO', tipo='INGRESO', formula='MANUAL', orden=10,
-         afecto_essalud=True, afecto_afp=True, afecto_onp=True, afecto_renta=True,
-         afecto_cts=True, afecto_gratif=True, afecto_vacaciones=True),
-    dict(codigo='cc-dominical', nombre='Dominical (Construcción)',
-         categoria='SUELDO', tipo='INGRESO', formula='MANUAL', orden=11,
-         afecto_essalud=True, afecto_afp=True, afecto_onp=True, afecto_renta=True,
-         afecto_cts=True, afecto_gratif=True),
-    dict(codigo='cc-buc', nombre='BUC — Bonificación Unificada de Construcción',
-         categoria='BONIFICACION', tipo='INGRESO', formula='MANUAL', orden=12,
-         afecto_essalud=True, afecto_afp=True, afecto_onp=True, afecto_renta=True),
-    dict(codigo='cc-bae', nombre='BAE — Bonificación por Alta Especialización',
-         categoria='BONIFICACION', tipo='INGRESO', formula='MANUAL', orden=13,
-         afecto_essalud=True, afecto_afp=True, afecto_onp=True, afecto_renta=True),
-    dict(codigo='cc-bono-altura', nombre='Bono por Altura (Construcción)',
-         categoria='BONIFICACION', tipo='INGRESO', formula='MANUAL', orden=14,
-         afecto_essalud=True, afecto_afp=True, afecto_onp=True, afecto_renta=True),
-    dict(codigo='cc-asig-escolar', nombre='Asignación Escolar (Construcción)',
-         categoria='FAMILIAR', tipo='INGRESO', formula='MANUAL', orden=15,
-         subtipo='NO_REMUNERATIVO'),
-    dict(codigo='cc-comp-vacacional', nombre='Compensación Vacacional (Construcción)',
-         categoria='SUELDO', tipo='INGRESO', formula='MANUAL', orden=16,
-         afecto_essalud=True, afecto_afp=True, afecto_onp=True, afecto_renta=True),
-    dict(codigo='cc-conafovicer', nombre='CONAFOVICER (2%)',
-         categoria='DESCUENTO', tipo='DESCUENTO', formula='MANUAL', orden=60),
-    dict(codigo='cc-prov-gratif', nombre='Provisión Gratificación (Construcción)',
-         categoria='PROVISION', tipo='APORTE_EMPLEADOR', subtipo='PROVISION',
-         formula='MANUAL', orden=80),
-    dict(codigo='cc-prov-cts', nombre='Provisión CTS 15% (Construcción)',
-         categoria='PROVISION', tipo='APORTE_EMPLEADOR', subtipo='PROVISION',
-         formula='MANUAL', orden=81),
+    # ── Afectos a la base computable (ESSALUD/AFP/ONP/SCTR) ──
+    _c('cc-jornal-basico', 'Jornal Básico (Construcción)', 'SUELDO', 'INGRESO', 10,
+       computable=True, cts=True, gratif=True),
+    _c('cc-dominical', 'Dominical (Construcción)', 'SUELDO', 'INGRESO', 11,
+       computable=True),
+    _c('cc-hhee-60', 'Horas Extra 60% (Construcción)', 'SUELDO', 'INGRESO', 20,
+       computable=True),
+    _c('cc-hhee-100', 'Horas Extra 100% (Construcción)', 'SUELDO', 'INGRESO', 21,
+       computable=True),
+    _c('cc-hhee-100-dom', 'Horas Extra 100% Dominical (Construcción)', 'SUELDO', 'INGRESO', 22,
+       computable=True),
+    _c('cc-buc', 'BUC — Bonificación Unificada de Construcción', 'BONIFICACION', 'INGRESO', 12,
+       computable=True),
+    _c('cc-bae', 'BAE — Bonificación por Alta Especialización', 'BONIFICACION', 'INGRESO', 13,
+       computable=True),
+    _c('cc-bono-altura', 'Bono por Altura (Construcción)', 'BONIFICACION', 'INGRESO', 14,
+       computable=True),
+    _c('cc-bono-altitud', 'Bonificación por Altitud', 'BONIFICACION', 'INGRESO', 15,
+       computable=True),
+    _c('cc-comp-vacacional', 'Compensación Vacacional (Construcción)', 'SUELDO', 'INGRESO', 16,
+       computable=True),
+    # ── NO computables ──
+    _c('cc-movilidad', 'Movilidad Acumulada (Construcción)', 'MOVILIDAD', 'INGRESO', 30,
+       subtipo='NO_REMUNERATIVO'),
+    _c('cc-gratif-julio', 'Gratificación (Construcción)', 'GRATIFICACION', 'INGRESO', 40,
+       renta=True),                              # inafecta a ESSALUD/AFP/ONP (Ley 29351)
+    _c('cc-bonif-extraord', 'Bonif. Extraordinaria Ley 29351 (9%)', 'BONIFICACION', 'INGRESO', 41,
+       renta=True),
+    _c('cc-cts', 'CTS 15% (Construcción)', 'PROVISION', 'INGRESO', 50,
+       subtipo='PROVISION'),                     # beneficio social, inafecto a todo
+    _c('cc-asig-escolar', 'Asignación Escolar (Construcción)', 'FAMILIAR', 'INGRESO', 17,
+       subtipo='NO_REMUNERATIVO'),
+    # ── Descuento ──
+    _c('cc-conafovicer', 'CONAFOVICER (2%)', 'DESCUENTO', 'DESCUENTO', 60),
 ]
 
 

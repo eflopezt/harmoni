@@ -84,4 +84,39 @@ def test_seed_idempotente():
     call_command('seed_construccion', verbosity=0)
 
     assert JornalConstruccion.objects.filter(vigencia_desde=date(2026, 6, 1)).count() == 3
-    assert ConceptoRemunerativo.objects.filter(codigo__startswith='cc-').count() == 10
+    assert ConceptoRemunerativo.objects.filter(codigo__startswith='cc-').count() == 16
+
+
+@pytest.mark.django_db
+def test_afectaciones_conceptos():
+    """Las afectaciones sembradas coinciden con la matriz real."""
+    from django.core.management import call_command
+    from nominas.models import ConceptoRemunerativo
+    call_command('seed_construccion', verbosity=0)
+
+    def _c(cod):
+        return ConceptoRemunerativo.objects.get(codigo=cod)
+
+    # Jornal: computable y afecto a CTS y gratificación
+    j = _c('cc-jornal-basico')
+    assert j.afecto_essalud and j.afecto_afp and j.afecto_onp
+    assert j.afecto_cts and j.afecto_gratif
+
+    # BUC: computable pero NO afecto a CTS ni gratificación
+    b = _c('cc-buc')
+    assert b.afecto_essalud and b.afecto_afp
+    assert not b.afecto_cts and not b.afecto_gratif
+
+    # Movilidad: NO remunerativa (fuera de todo)
+    m = _c('cc-movilidad')
+    assert not m.afecto_essalud and not m.afecto_afp and not m.afecto_onp
+    assert m.subtipo == 'NO_REMUNERATIVO'
+
+    # Gratificación: inafecta a ESSALUD/AFP/ONP, afecta a IR 5ta
+    g = _c('cc-gratif-julio')
+    assert not g.afecto_essalud and not g.afecto_afp and not g.afecto_onp
+    assert g.afecto_renta
+
+    # CTS: beneficio social, inafecto a todo
+    c = _c('cc-cts')
+    assert not (c.afecto_essalud or c.afecto_afp or c.afecto_onp or c.afecto_renta)
