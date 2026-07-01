@@ -1294,8 +1294,13 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
         _calcular = calcular_cts
         dias_default = 6   # Asume semestre completo
     else:
-        _calcular = calcular_registro
+        from nominas.estrategias import calcular_por_regimen
+        _calcular = calcular_por_regimen   # enruta por régimen (general/construcción/minería)
         dias_default = 30  # Mes completo
+
+    # Mapa codigo→concepto para persistir líneas de estrategias que devuelven
+    # 'codigo' (construcción/minería) en lugar del objeto 'concepto'.
+    _cmap = {c.codigo: c for c in ConceptoRemunerativo.objects.all()}
 
     # ── Consolidación de ASISTENCIA → NÓMINA (solo planilla REGULAR) ──────
     # Ciclo de tareo 22→21 (MES_CORTE, el mismo que el banco de horas). Por cada
@@ -1391,13 +1396,14 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
                 LineaNomina.objects.bulk_create([
                     LineaNomina(
                         registro=registro,
-                        concepto=l['concepto'],
+                        concepto=l.get('concepto') or _cmap.get(l.get('codigo')),
                         base_calculo=l['base_calculo'],
                         porcentaje_aplicado=l['porcentaje_aplicado'],
                         monto=l['monto'],
                         observacion=l['observacion'],
                     )
                     for l in resultado['lineas']
+                    if l.get('concepto') or _cmap.get(l.get('codigo'))
                 ])
 
                 # Actualizar totales
