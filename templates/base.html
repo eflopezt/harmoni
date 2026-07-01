@@ -200,7 +200,7 @@
                     </a>
 
                     <div class="nav-subheader"><i class="fas fa-paper-plane"></i><span>Solicitudes</span></div>
-                    <a href="{% url 'mis_vacaciones' %}" class="nav-item" data-match="/vacaciones/mis">
+                    <a href="{% url 'portal_mis_vacaciones' %}" class="nav-item" data-match="/mi-portal/mis-vacaciones">
                         <i class="fas fa-umbrella-beach"></i><span>Mis Vacaciones</span>
                     </a>
                     <a href="{% url 'mis_permisos' %}" class="nav-item" data-match="/vacaciones/mis-permisos">
@@ -218,7 +218,7 @@
 
                     {% if mod_documentos %}
                     <div class="nav-subheader"><i class="fas fa-folder-open"></i><span>Mis Documentos</span></div>
-                    <a href="{% url 'mis_boletas' %}" class="nav-item" data-match="/documentos/boletas/mis">
+                    <a href="{% url 'portal_mi_nomina' %}" class="nav-item" data-match="/mi-portal/mi-nomina">
                         <i class="fas fa-file-invoice-dollar"></i><span>Mis Boletas</span>
                     </a>
                     <a href="{% url 'mis_constancias' %}" class="nav-item" data-match="/documentos/constancias/mis">
@@ -2435,7 +2435,7 @@ window.cmdClose = close;
         <i class="fas fa-fingerprint"></i>
         <span>Asistencia</span>
     </a>
-    <a href="{% url 'mis_vacaciones' %}" class="bottom-nav-item{% if '/vacaciones/' in request.path %} active{% endif %}" data-match="/vacaciones">
+    <a href="{% url 'portal_mis_vacaciones' %}" class="bottom-nav-item{% if '/mi-portal/mis-vacaciones' in request.path %} active{% endif %}" data-match="/mi-portal/mis-vacaciones">
         <i class="fas fa-umbrella-beach"></i>
         <span>Vacaciones</span>
     </a>
