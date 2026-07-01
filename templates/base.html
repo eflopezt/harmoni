@@ -45,7 +45,7 @@
 
     <!-- Harmoni ERP CSS -->
     <link rel="stylesheet" href="{% static 'css/harmoni.css' %}?v=8">
-    <link rel="stylesheet" href="{% static 'css/harmoni-ai.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/harmoni-ai.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/portal-polish.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'css/responsive-mobile.css' %}?v=2">
 
@@ -92,8 +92,8 @@
         </a>
     </div>
 
-    <!-- ── Empresa selector (multi-empresa) ── -->
-    {% if empresas_disponibles|length > 1 %}
+    <!-- ── Empresa selector (multi-empresa) — solo RRHH/admin ── -->
+    {% if puede_ver_admin and empresas_disponibles|length > 1 %}
     <div class="px-3 pb-2" style="border-bottom:1px solid var(--sidebar-border);">
       <form method="post" action="{% url 'empresa_seleccionar' %}" id="empresaSelectorForm">
         {% csrf_token %}
@@ -1128,7 +1128,8 @@
         <div class="topbar-title">
             {% block page_title %}{% endblock %}
         </div>
-        <!-- Global Search -->
+        {% if puede_ver_admin %}
+        <!-- Global Search — solo RRHH/admin -->
         <div class="global-search" id="globalSearch">
             <div class="global-search-input-wrap">
                 <i class="fas fa-search global-search-icon"></i>
@@ -1139,6 +1140,7 @@
             </div>
             <div class="global-search-results" id="globalSearchResults" style="display:none"></div>
         </div>
+        {% endif %}
         <div class="topbar-actions">
             {% if cambios_pendientes > 0 %}
             <a href="{% url 'dashboard_aprobaciones' %}" class="topbar-notification" title="{{ cambios_pendientes }} aprobación(es) pendiente(s)">
@@ -2401,7 +2403,8 @@ window.cmdClose = close;
 // Mostrar hint en el header la primera vez
 (function showHint() {
     const seen = localStorage.getItem('harmoni_cmd_hint');
-    if (!seen) {
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    if (!seen && isDesktop) {
         setTimeout(() => {
             const hint = document.createElement('div');
             hint.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f766e;color:#fff;padding:8px 18px;border-radius:20px;font-size:.8rem;z-index:9998;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:cmdFadeIn .3s ease;';
@@ -2417,8 +2420,8 @@ window.cmdClose = close;
 </script>
 {% endif %}
 
-{% if user.is_authenticated %}
-<!-- ═══ Mobile Bottom Navigation ═══ -->
+{% if user.is_authenticated and es_trabajador_puro %}
+<!-- ═══ Mobile Bottom Navigation (trabajador; el portal usa la suya) ═══ -->
 <nav class="harmoni-bottom-nav" id="harmoniBottomNav">
     <a href="{% url 'home' %}" class="bottom-nav-item{% if request.path == '/' %} active{% endif %}" data-match="^/$">
         <i class="fas fa-th-large"></i>

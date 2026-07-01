@@ -3,6 +3,31 @@ Context processors de Harmoni.
 """
 
 
+def _puede_ver_admin(request) -> bool:
+    """True si el usuario puede ver controles de RRHH/admin (no es trabajador puro).
+
+    Misma lógica que core/middleware_worker_access: staff/superuser o perfil con
+    responsabilidad/aprobación. Los trabajadores puros NO ven selector de empresa,
+    búsqueda global ni navegación de gestión.
+    """
+    u = getattr(request, 'user', None)
+    if not u or not getattr(u, 'is_authenticated', False):
+        return False
+    if u.is_superuser or u.is_staff:
+        return True
+    perfil = getattr(u, 'perfil_acceso', None)
+    return bool(perfil and (
+        getattr(perfil, 'es_responsable', False)
+        or getattr(perfil, 'puede_aprobar', False)
+    ))
+
+
+def rol_context(request):
+    """Flags de rol para templates (admin vs trabajador puro)."""
+    puede = _puede_ver_admin(request)
+    return {'puede_ver_admin': puede, 'es_trabajador_puro': not puede}
+
+
 def plan_starter_context(request):
     """
     Inyecta info del plan y flags de ocultación de módulos a TODOS los templates,

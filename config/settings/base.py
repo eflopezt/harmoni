@@ -119,6 +119,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'personal.context_processors.harmoni_context',
                 'core.context_processors.plan_starter_context',
+                'core.context_processors.rol_context',
                 'nominas.context_processors.nominas_alerts',
             ],
         },

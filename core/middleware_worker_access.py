@@ -145,10 +145,11 @@ class WorkerAccessRestrictionMiddleware:
         if any(p.match(path) for p in WORKER_ALLOWED_COMPILED):
             return self.get_response(request)
 
-        # URL no permitida — redirect a portal
-        messages.warning(
+        # URL no permitida para el trabajador — lo llevamos a su portal.
+        # Nota: mensaje neutro (el trabajador pudo llegar por un enlace); no lo
+        # tratamos de "intruso".
+        messages.info(
             request,
-            'Esa sección es solo para administradores. '
-            'Si necesitas ayuda contacta a RRHH.',
+            'Esa sección no está disponible en tu portal. Te llevamos a tu inicio.',
         )
         return redirect('/mi-portal/')

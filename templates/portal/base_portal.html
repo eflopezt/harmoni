@@ -13,6 +13,10 @@
 
 {% block extra_css %}
 <style>
+/* El portal del trabajador usa su propia bottom-nav (.portal-bottom-nav).
+   Ocultar la bottom-nav heredada de base.html para no mostrar DOS a la vez. */
+.harmoni-bottom-nav { display: none !important; }
+
 /* ═══════════════════════════════════════════════════════════
    Portal Mobile Enhancements
    Applied only on screens < 992px (below Bootstrap lg)
