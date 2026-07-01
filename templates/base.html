@@ -125,7 +125,7 @@
     <!-- ── Category tabs (admin only) ── -->
     {% if user.is_superuser or user.is_staff or es_responsable %}
     <div class="sidebar-tabs" id="sidebarTabs">
-        {% if modulos.portal %}
+        {% if modulos.portal and es_trabajador_puro %}
         <button class="sidebar-tab" data-tab="portal" title="Mi Portal">
             <i class="fas fa-user-circle"></i>
             <span>Portal</span>
@@ -165,8 +165,8 @@
                 </a>
             </div>
 
-            <!-- ══ MI PORTAL ══ (reorganizado en sub-secciones temáticas) -->
-            {% if tiene_empleado %}
+            <!-- ══ MI PORTAL ══ (autoservicio del trabajador; NO para el usuario admin de la empresa) -->
+            {% if tiene_empleado and es_trabajador_puro %}
             <div class="nav-section" data-section="miportal" data-group="portal">
                 <button class="nav-section-toggle" type="button">
                     <i class="fas fa-user-circle section-icon"></i>
@@ -1465,7 +1465,7 @@
     // ── Sidebar category tabs ────────────────────────────────
     (function initSidebarTabs() {
         var TAB_KEY   = 'harmoni_tab_v1';
-        var DEFAULT   = 'portal';
+        var DEFAULT   = 'personal';
         var tabsEl    = document.getElementById('sidebarTabs');
 
         // Auto-detect tab from active nav-item
@@ -1507,8 +1507,17 @@
             });
         });
 
-        // Initial render: active-page group wins, else saved, else default
-        showTab(autoGroup || loadTab());
+        // Initial render: active-page group wins, else saved, else default.
+        // Validar que el grupo tenga tab visible (el admin ya no tiene "portal").
+        function grupoValido(g) {
+            return !!(g && tabsEl.querySelector('.sidebar-tab[data-tab="' + g + '"]'));
+        }
+        var target = autoGroup || loadTab();
+        if (!grupoValido(target)) {
+            var primera = tabsEl.querySelector('.sidebar-tab[data-tab]');
+            target = primera ? primera.getAttribute('data-tab') : 'personal';
+        }
+        showTab(target);
     })();
 
     // ── Collapsible nav sections ─────────────────────────────
