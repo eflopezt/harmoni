@@ -82,6 +82,23 @@ def test_roster_activo_por_regimen_acumulativo():
 
 
 @pytest.mark.django_db
+def test_personalform_regimen_default_por_rubro():
+    """R5: al crear un trabajador nuevo, regimen_laboral viene del rubro."""
+    from asistencia.models import ConfiguracionSistema
+    from personal.forms import PersonalForm
+
+    c = ConfiguracionSistema.get()
+    c.rubro = 'CONSTRUCCION'; c.save()
+    assert PersonalForm().initial.get('regimen_laboral') == 'CONSTRUCCION'
+
+    c.rubro = 'MINERIA'; c.save()
+    assert PersonalForm().initial.get('regimen_laboral') == 'MINERIA'
+
+    c.rubro = 'GENERAL'; c.save()
+    assert PersonalForm().initial.get('regimen_laboral') == 'GENERAL'
+
+
+@pytest.mark.django_db
 def test_comando_configurar_rubro_aplica_preset():
     from django.core.management import call_command
     from asistencia.models import ConfiguracionSistema

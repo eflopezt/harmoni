@@ -260,6 +260,22 @@
                 Activa solo los m&oacute;dulos que necesitas. Los m&oacute;dulos desactivados se ocultan del men&uacute; lateral
                 y no consumen recursos. Puedes activarlos en cualquier momento.
             </p>
+
+            <!-- Rubro / Industria: preconfigura módulos según el giro -->
+            <div class="mb-4">
+                <label class="form-label fw-bold"><i class="fas fa-industry me-1"></i>Rubro / Industria</label>
+                <select class="form-select" name="rubro" style="max-width:420px">
+                    {% for val, label in rubro_choices %}
+                    <option value="{{ val }}" {% if config.rubro == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <div class="text-muted small mt-1">
+                    Al <strong>cambiar de rubro</strong> se activan los m&oacute;dulos t&iacute;picos del giro
+                    (ej. construcci&oacute;n/miner&iacute;a encienden el <strong>Roster Matricial</strong> y v&iacute;aticos).
+                    Los toggles de abajo se pueden ajustar manualmente despu&eacute;s.
+                </div>
+            </div>
+
             <div class="row g-3">
                 <!-- Asistencia y Personal siempre activos -->
                 <div class="col-md-6">

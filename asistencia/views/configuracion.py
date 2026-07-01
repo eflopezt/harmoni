@@ -47,6 +47,7 @@ def parametros_view(request):
 def configuracion_view(request):
     """Vista de configuración del sistema (ConfiguracionSistema)."""
     from asistencia.models import ConfiguracionSistema
+    from core.rubros import RUBRO_CHOICES
 
     config = ConfiguracionSistema.get()
 
@@ -97,6 +98,16 @@ def configuracion_view(request):
         config.mod_capacitaciones = request.POST.get('mod_capacitaciones') == '1'
         config.mod_reclutamiento = request.POST.get('mod_reclutamiento') == '1'
         config.mod_encuestas = request.POST.get('mod_encuestas') == '1'
+
+        # Rubro: al CAMBIAR de rubro se aplica su preset de módulos (enciende
+        # Roster/viáticos según el giro). Si no cambia, se respetan los toggles
+        # de arriba. Ver core/rubros.py.
+        nuevo_rubro = request.POST.get('rubro', config.rubro)
+        if nuevo_rubro and nuevo_rubro != config.rubro:
+            from core.rubros import aplicar_preset
+            aplicar_preset(config, nuevo_rubro)
+        else:
+            config.rubro = nuevo_rubro or config.rubro
 
         # Exportación
         config.export_incluir_sueldo = request.POST.get('export_incluir_sueldo') == '1'
@@ -195,6 +206,7 @@ def configuracion_view(request):
             (4, 'Viernes'), (5, 'Sábado'), (6, 'Domingo'),
         ],
         'knowledge_stats': knowledge_stats,
+        'rubro_choices': RUBRO_CHOICES,
     }
     return render(request, 'asistencia/configuracion.html', context)
 

@@ -126,6 +126,18 @@ class PersonalForm(forms.ModelForm):
                 self.initial['fecha_inicio_contrato'] = self.instance.fecha_inicio_contrato.strftime('%Y-%m-%d')
             if self.instance.fecha_fin_contrato:
                 self.initial['fecha_fin_contrato'] = self.instance.fecha_fin_contrato.strftime('%Y-%m-%d')
+        else:
+            # Nuevo trabajador: régimen laboral por defecto según el rubro de la
+            # instancia (construcción/minería → su régimen; resto → GENERAL).
+            try:
+                from asistencia.models import ConfiguracionSistema
+                from core.rubros import regimen_default
+                self.initial.setdefault(
+                    'regimen_laboral',
+                    regimen_default(ConfiguracionSistema.get().rubro),
+                )
+            except Exception:
+                pass
 
         # No usar crispy Layout — incompatible con Python 3.14 (context.__copy__).
         # El template personal_form.html renderiza los campos manualmente con Bootstrap.
