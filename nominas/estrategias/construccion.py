@@ -9,9 +9,12 @@ alterar el cálculo de trabajadores mal etiquetados.
 """
 from __future__ import annotations
 
-from .regimen_general import EstrategiaRegimenGeneral
+from .base import EstrategiaCalculo
 
 
-class EstrategiaConstructor(EstrategiaRegimenGeneral):
+class EstrategiaConstructor(EstrategiaCalculo):
     codigo = 'CONSTRUCCION'
-    # F3 sobreescribe calcular() con las reglas de construcción civil.
+
+    def calcular(self, registro, conceptos_activos=None) -> dict:
+        from nominas.construccion import calcular_boleta_construccion
+        return calcular_boleta_construccion(registro)

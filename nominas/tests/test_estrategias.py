@@ -42,9 +42,11 @@ def test_calcular_por_regimen_delega_al_motor():
     assert out == {'neto_a_pagar': 123}
 
 
-def test_construccion_hoy_delega_al_general():
-    """F2: construcción aún no tiene reglas propias; hereda del general."""
+def test_construccion_usa_su_propia_estrategia():
+    """F3: construcción tiene reglas propias (NO delega al motor general)."""
     reg = _registro('CONSTRUCCION')
-    with patch('nominas.engine.calcular_registro', return_value={'ok': True}) as m:
-        calcular_por_regimen(reg)
+    with patch('nominas.construccion.calcular_boleta_construccion',
+               return_value={'neto_a_pagar': 1}) as m:
+        out = calcular_por_regimen(reg)
     m.assert_called_once()
+    assert out == {'neto_a_pagar': 1}

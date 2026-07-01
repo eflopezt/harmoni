@@ -15,10 +15,59 @@ Estos asserts fijan las BASES de cálculo verificadas contra la realidad, para
 que la implementación de EstrategiaConstructor no se desvíe.
 """
 from decimal import Decimal
+from types import SimpleNamespace
 
 from nominas import construccion as cc
 
 JORNAL = Decimal('89.30')
+
+
+def _registro_boleta():
+    """RegistroNomina simulado con los datos de la boleta real."""
+    return SimpleNamespace(
+        sueldo_base=Decimal('89.30'),     # jornal diario
+        dias_trabajados=6,
+        regimen_pension='AFP',
+        personal=SimpleNamespace(categoria_construccion=''),  # usa sueldo_base
+        periodo=None,
+        conceptos_manuales={
+            'cc-hhee-60':       '214.32',
+            'cc-hhee-100':      '44.65',
+            'cc-hhee-100-dom':  '111.63',
+            'cc-movilidad':     '60.20',
+            'cc-bono-altitud':  '17.50',
+            'cc-gratif-julio':  '119.07',
+            'cc-bonif-extraord': '10.72',
+            'cc-cts':           '112.18',
+            'cc-ir-5ta':        '92.96',
+            'cc-afp-comseg':    '16.96',
+            'cc-cuota-sindical': '10.00',
+        },
+    )
+
+
+def test_boleta_completa_reconcilia_al_centimo():
+    """calcular_boleta_construccion reproduce la boleta real exacta."""
+    r = cc.calcular_boleta_construccion(_registro_boleta())
+    assert r['total_ingresos'] == Decimal('1540.41')
+    assert r['total_descuentos'] == Decimal('256.24')
+    assert r['neto_a_pagar'] == Decimal('1284.17')
+    assert r['rem_computable'] == Decimal('1238.24')
+    assert r['aporte_essalud'] == Decimal('111.44')
+    assert r['aporte_sctr_salud'] == Decimal('8.05')
+    assert r['aporte_sctr_pension'] == Decimal('8.05')
+    assert r['aporte_vida_ley'] == Decimal('5.57')
+    assert r['aporte_fondo_capacitacion'] == Decimal('2.81')
+    assert r['total_aportaciones'] == Decimal('140.92')
+
+
+def test_estrategia_constructor_usa_reglas_cc():
+    """El dispatcher enruta a EstrategiaConstructor y reproduce la boleta."""
+    from nominas.estrategias import calcular_por_regimen
+    r = _registro_boleta()
+    r.personal = SimpleNamespace(categoria_construccion='', regimen_laboral='CONSTRUCCION')
+    out = calcular_por_regimen(r)
+    assert out['neto_a_pagar'] == Decimal('1284.17')
 
 
 def test_jornal_semanal_6_dias():
