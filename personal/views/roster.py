@@ -18,7 +18,8 @@ import re
 from ..models import SubArea, Personal, Roster
 from ..forms import RosterForm, ImportExcelForm
 from ..permissions import (
-    filtrar_personal, puede_editar_roster, get_context_usuario, es_responsable_area
+    filtrar_personal, filtrar_personal_por_request,
+    puede_editar_roster, get_context_usuario, es_responsable_area
 )
 
 
@@ -118,7 +119,9 @@ def roster_matricial(request):
         fecha_actual += timedelta(days=1)
 
     # Obtener personal activo con filtros según usuario
-    personal_qs = filtrar_personal(request.user).filter(estado='Activo').select_related('subarea', 'subarea__area')
+    # Empresa-aware: en consolidado muestra todos; al elegir una empresa (ej. Minera
+    # Demo) el roster se acota a esa empresa. El default consolidado evita vacíos.
+    personal_qs = filtrar_personal_por_request(request).filter(estado='Activo').select_related('subarea', 'subarea__area')
 
     # Filtrar por roster_aplica_a: solo foráneos o todos
     roster_aplica_a = config.roster_aplica_a
