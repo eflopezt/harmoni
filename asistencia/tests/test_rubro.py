@@ -109,3 +109,17 @@ def test_comando_configurar_rubro_aplica_preset():
     assert c.mod_roster is True
     assert c.mod_viaticos is True
     assert c.roster_aplica_a == 'FORANEOS'
+
+
+@pytest.mark.django_db
+def test_seed_demo_rubro_construccion():
+    """R4: seed_demo_rubro configura rubro + corre el seed del giro."""
+    from django.core.management import call_command
+    from asistencia.models import ConfiguracionSistema
+    from nominas.models import JornalConstruccion
+
+    call_command('seed_demo_rubro', '--rubro', 'CONSTRUCCION', verbosity=0)
+    c = ConfiguracionSistema.get()
+    assert c.rubro == 'CONSTRUCCION'
+    assert c.mod_roster is True
+    assert JornalConstruccion.objects.count() > 0   # corrió seed_construccion
