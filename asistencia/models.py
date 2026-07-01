@@ -1406,13 +1406,20 @@ class ConfiguracionSistema(models.Model):
         help_text="Preconfigura módulos según el giro (ej. construcción/minería "
                   "encienden el Roster Matricial por jornada atípica).")
 
-    def roster_activo(self) -> bool:
+    def roster_activo(self, rubro=None) -> bool:
         """El Roster Matricial se muestra si: está encendido explícitamente, el
         rubro lo requiere (jornada atípica), o hay regímenes de turno
-        acumulativos configurados (14x7/21x7)."""
+        acumulativos configurados (14x7/21x7).
+
+        `rubro` opcional: si se pasa (ej. el de la empresa seleccionada en un
+        demo multi-rubro), se usa en lugar del rubro de la instancia."""
         if self.mod_roster:
             return True
         from core.rubros import rubro_requiere_roster
+        if rubro is not None:
+            # Rubro explícito (empresa seleccionada en demo multi-rubro):
+            # decide SOLO por ese rubro, sin el fallback global de regímenes.
+            return rubro_requiere_roster(rubro)
         if rubro_requiere_roster(self.rubro):
             return True
         try:

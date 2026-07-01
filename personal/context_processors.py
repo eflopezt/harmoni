@@ -73,6 +73,17 @@ def harmoni_context(request):
     base['empresas_disponibles'] = _get_empresas_disponibles()
     base['modo_consolidado'] = getattr(request, 'modo_consolidado', False)
 
+    # Demo por rubro: si hay UNA empresa seleccionada con rubro, la vista refleja
+    # SU rubro (elegir "Constructora Demo" enciende el Roster de construcción, etc.).
+    emp = base['empresa_actual']
+    if emp is not None and getattr(emp, 'rubro', None):
+        try:
+            from asistencia.models import ConfiguracionSistema
+            base['rubro'] = emp.rubro
+            base['mod_roster'] = ConfiguracionSistema.get().roster_activo(rubro=emp.rubro)
+        except Exception:
+            pass
+
     # Workflows — badge de pendientes
     base['pendientes_workflow'] = _get_workflow_pendientes(user)
 

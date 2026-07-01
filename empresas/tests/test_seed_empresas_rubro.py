@@ -22,6 +22,14 @@ def test_seed_crea_una_empresa_por_rubro():
 
     assert 'CONSTRUCTORA' in Empresa.objects.get(ruc='20600000011').razon_social.upper()
 
+    # Cada empresa tiene trabajadores demo → aparece en el selector.
+    from personal.models import Personal
+    constr = Empresa.objects.get(ruc='20600000011')
+    assert Personal.objects.filter(empresa=constr).count() == 3
+    assert Personal.objects.filter(empresa=constr, categoria_construccion='OPERARIO').exists()
+    minera = Empresa.objects.get(ruc='20600000029')
+    assert Personal.objects.filter(empresa=minera, regimen_turno='14x7').count() == 3
+
 
 @pytest.mark.django_db
 def test_seed_solo_filtra():
