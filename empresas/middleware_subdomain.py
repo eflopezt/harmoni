@@ -16,10 +16,12 @@ from django.http import Http404
 
 logger = logging.getLogger(__name__)
 
-# Subdomains that should never be treated as tenant identifiers
+# Subdomains that should never be treated as tenant identifiers.
+# 'demo'/'app' son de showcase/infra, no tenants: en demo.harmoni.pe queremos
+# la vista consolidada (todas las empresas), no forzar una empresa por subdominio.
 RESERVED_SUBDOMAINS = frozenset({
     'www', 'admin', 'api', 'static', 'media', 'mail', 'smtp',
-    'ftp', 'ssh', 'ns1', 'ns2', 'cdn', 'staging', 'dev',
+    'ftp', 'ssh', 'ns1', 'ns2', 'cdn', 'staging', 'dev', 'demo', 'app', 'test',
 })
 
 # Root domains where subdomain routing is active.
