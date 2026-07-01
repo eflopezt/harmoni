@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.shortcuts import render
 
 from ..models import Personal, Contrato
-from ..permissions import filtrar_personal_por_request
+from ..permissions import filtrar_personal
 from ..ciclo import ETAPAS_ORDEN, etapa_info
 
 
@@ -41,7 +41,10 @@ def control_tower(request):
     area_id = (request.GET.get('area') or '').strip()
     buscar = (request.GET.get('buscar') or '').strip()
 
-    qs = filtrar_personal_por_request(request).select_related(
+    # Torre de control = vista org-wide (como roster_matricial): filtrar_personal
+    # respeta el scope del responsable, y el superuser ve todo. NO se acota por
+    # empresa_actual para no salir vacío cuando la principal no tiene personal.
+    qs = filtrar_personal(request.user).select_related(
         'subarea', 'subarea__area', 'empresa'
     )
     if area_id:
