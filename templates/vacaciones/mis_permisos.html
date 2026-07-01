@@ -1,9 +1,9 @@
-{% extends "base_v2.html" %}
+{% extends 'portal/base_portal.html' %}
 {% load humanize %}
 
 {% block title %}Mis Permisos{% endblock %}
 
-{% block body %}
+{% block portal_content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0"><i class="fas fa-clipboard-list text-secondary me-2"></i>{{ titulo }}</h2>
@@ -74,7 +74,7 @@
 {% endif %}
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_js %}{{ block.super }}
 <script>
 function anular(pk) {
     if(!confirm('¿Anular esta solicitud de permiso?')) return;

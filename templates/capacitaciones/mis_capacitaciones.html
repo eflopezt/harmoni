@@ -1,9 +1,9 @@
-{% extends "base_v2.html" %}
+{% extends 'portal/base_portal.html' %}
 {% load humanize %}
 
 {% block title %}Mis Capacitaciones{% endblock %}
 
-{% block body %}
+{% block portal_content %}
 <h2 class="mb-3"><i class="fas fa-chalkboard-teacher text-secondary me-2"></i>{{ titulo }}</h2>
 
 {% if not empleado %}

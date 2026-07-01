@@ -1,0 +1,74 @@
+{% extends 'portal/base_portal.html' %}
+{% load humanize %}
+
+{% block title %}Mis Descuentos{% endblock %}
+{% block mobile_title %}Mis Descuentos{% endblock %}
+
+{% block portal_content %}
+<div class="dash-card mb-3">
+    <div class="dash-card-body d-flex flex-wrap gap-4 justify-content-between">
+        <div>
+            <small class="text-muted d-block">Descuentos activos</small>
+            <div class="fs-4 fw-bold">{{ en_curso_count }}</div>
+        </div>
+        <div>
+            <small class="text-muted d-block">Saldo pendiente</small>
+            <div class="fs-4 fw-bold">S/ {{ saldo|default:0|floatformat:2|intcomma }}</div>
+        </div>
+        <div>
+            <small class="text-muted d-block">Cuota de este mes</small>
+            <div class="fs-4 fw-bold">S/ {{ cuota_mes|default:0|floatformat:2|intcomma }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="dash-card">
+    <div class="dash-card-header">
+        <span><i class="fas fa-minus-circle me-2 text-warning"></i>Mis descuentos</span>
+    </div>
+    <div class="dash-card-body p-0">
+        {% if descuentos %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Concepto</th>
+                        <th>Cuota</th>
+                        <th>Cuotas</th>
+                        <th>Saldo</th>
+                        <th class="pe-3">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in descuentos %}
+                    <tr>
+                        <td class="ps-3">
+                            {{ d.get_causal_display|default:d.causal|default:"Descuento" }}
+                            {% if d.descripcion %}<br><small class="text-muted">{{ d.descripcion }}</small>{% endif %}
+                        </td>
+                        <td>S/ {{ d.cuota_mensual|default:0|floatformat:2 }}</td>
+                        <td>{{ d.num_cuotas|default:"-" }}</td>
+                        <td>S/ {{ d.saldo_pendiente|default:0|floatformat:2 }}</td>
+                        <td class="pe-3">
+                            {% if d.estado == 'EN_CURSO' or d.estado == 'APROBADO' %}
+                                <span class="badge bg-warning text-dark">{{ d.get_estado_display|default:d.estado }}</span>
+                            {% elif d.estado == 'PAGADO' %}
+                                <span class="badge bg-success">Pagado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ d.get_estado_display|default:d.estado }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-check-circle fa-2x mb-2 d-block opacity-25"></i>
+            No tienes descuentos registrados
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

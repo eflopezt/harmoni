@@ -1,9 +1,9 @@
-{% extends "base_v2.html" %}
+{% extends 'portal/base_portal.html' %}
 {% load humanize %}
 
 {% block title %}Mis Vacaciones{% endblock %}
 
-{% block body %}
+{% block portal_content %}
 <h2><i class="fas fa-umbrella-beach"></i>{{ titulo }}</h2>
 <p class="page-subtitle">Consulta tus saldos vacacionales y gestiona tus solicitudes de descanso.</p>
 
@@ -111,7 +111,7 @@
 {% endif %}
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_js %}{{ block.super }}
 <script>
 function anular(tipo, pk) {
     if(!confirm('¿Anular esta solicitud?')) return;
