@@ -218,9 +218,6 @@
 
                     {% if mod_documentos %}
                     <div class="nav-subheader"><i class="fas fa-folder-open"></i><span>Mis Documentos</span></div>
-                    <a href="{% url 'portal_mi_nomina' %}" class="nav-item" data-match="/mi-portal/mi-nomina">
-                        <i class="fas fa-file-invoice-dollar"></i><span>Mis Boletas</span>
-                    </a>
                     <a href="{% url 'mis_constancias' %}" class="nav-item" data-match="/documentos/constancias/mis">
                         <i class="fas fa-file-signature"></i><span>Mis Constancias</span>
                     </a>
@@ -237,7 +234,7 @@
 
                     <div class="nav-subheader"><i class="fas fa-money-bill-wave"></i><span>Nómina y Beneficios</span></div>
                     <a href="{% url 'portal_mi_nomina' %}" class="nav-item" data-match="/(nominas/mis-recibos|mi-portal/mi-nomina)">
-                        <i class="fas fa-receipt"></i><span>Mis Recibos</span>
+                        <i class="fas fa-file-invoice-dollar"></i><span>Mis Boletas</span>
                     </a>
                     {% if mod_prestamos %}
                     <a href="{% url 'mis_prestamos' %}" class="nav-item" data-match="/prestamos/mis">

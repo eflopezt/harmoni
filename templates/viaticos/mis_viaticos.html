@@ -1,9 +1,10 @@
-{% extends "base_v2.html" %}
+{% extends 'portal/base_portal.html' %}
 {% load humanize %}
 
 {% block title %}Mis Viáticos{% endblock %}
+{% block mobile_title %}Mis Viáticos{% endblock %}
 
-{% block body %}
+{% block portal_content %}
 
 {% if not empleado %}
 <div class="alert alert-warning">
