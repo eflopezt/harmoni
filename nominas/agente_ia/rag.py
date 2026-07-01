@@ -744,6 +744,61 @@ jornal básico + dominical + horas extra + BUC + bonif. altura/altitud + compens
 Regla clave: la CTS y la gratificación se calculan solo sobre jornal básico (no sobre BUC, dominical ni HHEE).
 """,
     },
+
+    # ─── Régimen Minero: ingreso mínimo, jornada, jubilación ─────
+    {
+        'titulo':      'Régimen Minero — ingreso mínimo minero, jornada 14x7, jubilación',
+        'base_legal':  'D.S. 030-89-TR + Ley 25009 + D.S. 014-92-EM',
+        'tags':        ['mineria', 'minero', 'ingreso minimo minero', 'jornada', 'jubilacion'],
+        'keywords':    ['minería', 'mineria', 'minero', 'mina', 'socavón', 'socavon', 'subsuelo',
+                        'ingreso mínimo minero', 'imm', '14x7', 'jornada acumulativa', 'atípica',
+                        'jubilación minera', 'jubilacion minera', 'tajo abierto'],
+        'descripcion': """\
+**Régimen Minero** — es el **régimen general** con añadidos del sector:
+
+**Ingreso Mínimo Minero (IMM)** (D.S. 030-89-TR):
+- Piso remunerativo = **RMV + 25%** (RMV × 1.25). Ej. RMV S/ 1,130 → IMM S/ 1,412.50.
+- Aplica a empleados y obreros mineros, incluidos contratistas/subcontratistas.
+- Si la remuneración computable es menor al IMM, se nivela.
+
+**Jornada atípica / acumulativa** (14x7 típico):
+- 14 días de trabajo (12 h/día) × 7 de descanso. 168 h ÷ 21 días = **8 h/día promedio**.
+- El **promedio del ciclo** no puede exceder 8 h/día ni 48 h/semana; las HHEE solo proceden si el promedio del ciclo supera el tope. Los días y horas los aporta el Roster.
+
+**Vivienda y alimentación en zonas alejadas** (D.S. 014-92-EM): el titular minero debe dar vivienda, alimentación y asistencia médica a trabajadores a más de 30 km / 60 min. Son **condición de trabajo** (no remunerativas).
+
+**Jubilación minera anticipada** (Ley 25009): minería subterránea 45 años, tajo abierto 50 años.
+
+SCTR obligatorio (actividad de alto riesgo, Anexo 5 D.S. 009-97-SA).
+""",
+    },
+
+    # ─── Régimen Minero: FCJMMS, bonos y afectaciones ────────────
+    {
+        'titulo':      'Régimen Minero — FCJMMS 0.5%, bonos de convenio y afectaciones',
+        'base_legal':  'Ley 29741 + D.S. 006-2012-TR + convenios colectivos',
+        'tags':        ['mineria', 'fcjmms', 'jubilacion minera', 'bonos', 'afectaciones'],
+        'keywords':    ['fcjmms', 'fondo complementario', 'jubilación minera', 'jubilacion minera',
+                        'bono altitud', 'bono socavón', 'bono profundidad', 'bono riesgo minero',
+                        'alimentación minera', 'hospedaje minero', 'convenio minero'],
+        'descripcion': """\
+**FCJMMS — Fondo Complementario de Jubilación Minera, Metalúrgica y Siderúrgica** (Ley 29741, D.S. 006-2012-TR):
+- **Trabajador**: descuento de **0.5% de la remuneración bruta mensual** (va en la boleta).
+- **Empleador**: 0.5% de la renta neta anual antes de impuestos (a nivel empresa, NO en la boleta mensual).
+
+**Bonos de convenio colectivo** (varían por empresa minera; se pactan por sindicato):
+- Bonificación por **altitud** (gran altura geográfica).
+- Bonificación por **trabajo en socavón / subsuelo**.
+- Bonificación por **profundidad**.
+- Bonificación por **riesgo**.
+- Estas bonificaciones por condición de riesgo son **remunerativas (afectas)**.
+
+**Alimentación / vivienda / movilidad** como condición de trabajo → **no remunerativas**.
+
+El resto del cálculo (sueldo, HHEE, AFP/ONP, IR 5ta, EsSalud, SCTR, gratificación, CTS)
+sigue las reglas del **régimen general** (D.Leg. 728).
+""",
+    },
 ]
 
 

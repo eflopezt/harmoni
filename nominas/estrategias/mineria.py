@@ -8,9 +8,12 @@ Implementación completa en F4. Hasta entonces hereda del régimen general.
 """
 from __future__ import annotations
 
-from .regimen_general import EstrategiaRegimenGeneral
+from .base import EstrategiaCalculo
 
 
-class EstrategiaMinero(EstrategiaRegimenGeneral):
+class EstrategiaMinero(EstrategiaCalculo):
     codigo = 'MINERIA'
-    # F4 sobreescribe calcular() con el piso minero y los bonos de convenio.
+
+    def calcular(self, registro, conceptos_activos=None) -> dict:
+        from nominas.mineria import calcular_boleta_minera
+        return calcular_boleta_minera(registro, conceptos_activos)
