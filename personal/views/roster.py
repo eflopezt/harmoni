@@ -81,8 +81,8 @@ def roster_matricial(request):
     from asistencia.models import ConfiguracionSistema
     config = ConfiguracionSistema.get()
 
-    # Guard: si el módulo está desactivado, redirigir
-    if not config.mod_roster and not request.user.is_superuser:
+    # Guard: si el módulo está desactivado (por rubro/toggle/jornada), redirigir
+    if not config.roster_activo() and not request.user.is_superuser:
         messages.warning(request, 'El módulo Roster no está activo en esta empresa.')
         return redirect('home')
 

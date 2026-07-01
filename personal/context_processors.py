@@ -158,9 +158,11 @@ def _get_config_context(user) -> dict:
                 'mod_reclutamiento':  config.mod_reclutamiento,
                 'mod_encuestas':      config.mod_encuestas,
                 'mod_salarios':       config.mod_salarios,
-                # Roster: solo activo si la empresa lo necesita (foráneos/turnos)
-                'mod_roster':         config.mod_roster,
+                # Roster: activo por toggle, por rubro (construcción/minería/
+                # gastronomía) o si hay régimen de turno acumulativo (14x7/21x7).
+                'mod_roster':         config.roster_activo(),
                 'roster_aplica_a':    config.roster_aplica_a,
+                'rubro':              config.rubro,
             }
             cache.set(cache_key, cfg_data, _TTL_CONFIG)
         except Exception:

@@ -1396,6 +1396,31 @@ class ConfiguracionSistema(models.Model):
             "'Todos' si el turno rotativo aplica también a personal Lima/Local."
         ))
 
+    # ── Rubro / industria de la empresa ──
+    # Preconfigura qué módulos vienen encendidos (ver core/rubros.py). El plan
+    # sigue siendo el techo; el admin puede override toggles puntuales.
+    from core.rubros import RUBRO_CHOICES as _RUBRO_CHOICES
+    rubro = models.CharField(
+        max_length=20, choices=_RUBRO_CHOICES, default='GENERAL',
+        verbose_name="Rubro / Industria",
+        help_text="Preconfigura módulos según el giro (ej. construcción/minería "
+                  "encienden el Roster Matricial por jornada atípica).")
+
+    def roster_activo(self) -> bool:
+        """El Roster Matricial se muestra si: está encendido explícitamente, el
+        rubro lo requiere (jornada atípica), o hay regímenes de turno
+        acumulativos configurados (14x7/21x7)."""
+        if self.mod_roster:
+            return True
+        from core.rubros import rubro_requiere_roster
+        if rubro_requiere_roster(self.rubro):
+            return True
+        try:
+            return RegimenTurno.objects.filter(
+                jornada_tipo='ACUMULATIVA', activo=True).exists()
+        except Exception:
+            return False
+
     # ── Formato de Exportación ──
     export_incluir_sueldo = models.BooleanField(
         default=False, verbose_name="Incluir Sueldo Base en exportación")
