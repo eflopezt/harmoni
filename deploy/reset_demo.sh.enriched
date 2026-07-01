@@ -78,7 +78,7 @@ docker exec $EXEC_ENV harmoni-demo-web python manage.py shell -c "
 from django.contrib.auth import get_user_model
 U = get_user_model()
 u, _ = U.objects.get_or_create(username='demo', defaults={'email':'demo@demo.com'})
-u.set_password('demo'); u.is_superuser=True; u.is_staff=True; u.is_active=True; u.save()
+u.set_password('demo123'); u.is_superuser=True; u.is_staff=True; u.is_active=True; u.save()
 " >> $LOG 2>&1
 docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_presentacion >> $LOG 2>&1
 docker exec $EXEC_ENV harmoni-demo-web python manage.py seed_demo_completar >> $LOG 2>&1

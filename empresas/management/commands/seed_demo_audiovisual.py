@@ -192,11 +192,11 @@ class Command(BaseCommand):
                 'is_superuser': True,       # Necesario para que entre al app, pero middleware bloquea features avanzadas
             },
         )
-        if created or not u.check_password('demo'):
-            u.set_password('demo')
+        if created or not u.check_password('demo123'):
+            u.set_password('demo123')
             u.save()
         self.stdout.write(self.style.SUCCESS(
-            f"{'✓ Creado' if created else '~ Actualizado'}: usuario demo2/demo"
+            f"{'✓ Creado' if created else '~ Actualizado'}: usuario demo2/demo123"
         ))
 
         # ── 5. Asistencia últimos 30 días (papeletas + tardanzas) ──

@@ -34,7 +34,7 @@ DEMOS = {
         'trabajadores': 25,
         'empresas':     1,
         'usuario':      'demo2',
-        'password':     'demo',
+        'password':     'demo123',
         'features': [
             'Personal (CRUD básico)',
             'Asistencia + papeletas (admin)',
