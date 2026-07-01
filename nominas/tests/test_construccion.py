@@ -62,17 +62,21 @@ def test_seed_y_jornal_vigente():
     from django.core.management import call_command
     call_command('seed_construccion', verbosity=0)
 
+    # Tabla 2026 (vigente 01.01.2026–31.12.2026)
     op = cc.jornal_vigente('OPERARIO', date(2026, 7, 15))
     assert op is not None
-    assert op.jornal_diario == Decimal('87.30')
+    assert op.jornal_diario == Decimal('89.30')
     assert op.buc_pct == Decimal('32.00')
     assert op.bono_altura_pct == Decimal('8.00')
 
-    peon = cc.jornal_vigente('PEON', date(2026, 12, 1))
-    assert peon.jornal_diario == Decimal('61.65')
+    assert cc.jornal_vigente('PEON', date(2026, 12, 1)).jornal_diario == Decimal('62.80')
+    assert cc.jornal_vigente('OFICIAL', date(2026, 3, 1)).jornal_diario == Decimal('69.75')
 
-    # Antes de la vigencia no hay jornal
-    assert cc.jornal_vigente('OPERARIO', date(2026, 1, 1)) is None
+    # Tabla anterior 2024-2025
+    assert cc.jornal_vigente('OPERARIO', date(2024, 9, 1)).jornal_diario == Decimal('87.30')
+
+    # Antes de toda vigencia no hay jornal
+    assert cc.jornal_vigente('OPERARIO', date(2024, 1, 1)) is None
 
 
 @pytest.mark.django_db
@@ -83,8 +87,20 @@ def test_seed_idempotente():
     call_command('seed_construccion', verbosity=0)
     call_command('seed_construccion', verbosity=0)
 
-    assert JornalConstruccion.objects.filter(vigencia_desde=date(2026, 6, 1)).count() == 3
+    assert JornalConstruccion.objects.filter(vigencia_desde=date(2026, 1, 1)).count() == 3
+    assert JornalConstruccion.objects.count() == 6   # 2 vigencias × 3 categorías
     assert ConceptoRemunerativo.objects.filter(codigo__startswith='cc-').count() == 16
+
+
+def test_movilidad_diaria():
+    # 8.60/día × 6 = 51.60 (tabla CAPECO)
+    assert cc.movilidad(6) == Decimal('51.60')
+
+
+def test_hora_extra_60_y_100_operario_2026():
+    # Operario jornal 89.30 → hora 60% = 17.86, hora 100% = 22.33 (tabla CAPECO 2026)
+    assert cc.hora_extra(Decimal('89.30'), Decimal('1'), Decimal('0.60')) == Decimal('17.86')
+    assert cc.hora_extra(Decimal('89.30'), Decimal('1'), Decimal('1.00')) == Decimal('22.33')
 
 
 @pytest.mark.django_db

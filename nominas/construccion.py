@@ -104,6 +104,34 @@ def compensacion_vacacional(jornal_diario: Decimal, dias_trabajados: int) -> Dec
     return _r(Decimal(jornal_diario) * COMP_VACACIONAL_PCT / Decimal('100') * Decimal(dias_trabajados))
 
 
+# Bonificación por movilidad: tarifa diaria fija (CAPECO 2024-2026: S/ 8.60/día,
+# igual para las tres categorías). No es porcentaje del jornal.
+MOVILIDAD_DIARIA = Decimal('8.60')
+
+
+def movilidad(dias_trabajados: int, diaria: Decimal = MOVILIDAD_DIARIA) -> Decimal:
+    """Bonificación por movilidad = tarifa diaria × días trabajados."""
+    return _r(Decimal(diaria) * Decimal(dias_trabajados))
+
+
+def valor_hora(jornal_diario: Decimal) -> Decimal:
+    """Valor de la hora ordinaria = jornal diario / 8."""
+    return Decimal(jornal_diario) / Decimal('8')
+
+
+def hora_extra(jornal_diario: Decimal, horas: Decimal, factor: Decimal) -> Decimal:
+    """Monto de horas extra en construcción.
+
+    En construcción las HHEE se pagan al 60% (primeras) y 100%. El recargo se
+    aplica sobre el valor hora ordinario (jornal/8):
+        monto = (jornal/8) × (1 + factor) × horas
+    factor: 0.60 para HE 60%, 1.00 para HE 100%.
+
+    Verificado contra tabla CAPECO 2026 (Operario: hora 60% = 17.86, 100% = 22.33).
+    """
+    return _r(valor_hora(jornal_diario) * (Decimal('1') + Decimal(str(factor))) * Decimal(horas))
+
+
 def conafovicer(base: Decimal) -> Decimal:
     """CONAFOVICER = 2% (descuento) sobre básico + dominical."""
     return _r(Decimal(base) * CONAFOVICER_PCT / Decimal('100'))

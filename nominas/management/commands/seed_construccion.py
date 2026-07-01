@@ -21,13 +21,24 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 
 
+# Tablas de jornales por vigencia. Fuente: CAPECO-FTCCP.
 # categoria: (jornal_diario, buc_pct, bono_altura_pct)
-JORNALES_2026 = {
-    'OPERARIO': (Decimal('87.30'), Decimal('32'), Decimal('8')),
-    'OFICIAL':  (Decimal('68.50'), Decimal('30'), Decimal('8')),
-    'PEON':     (Decimal('61.65'), Decimal('30'), Decimal('8')),
-}
-VIGENCIA_2026 = date(2026, 6, 1)  # convención CAPECO-FTCCP 2026 (jun 2026–may 2027)
+# TABLAS: (vigencia_desde, vigencia_hasta, fuente, {categoria: (...)})
+VIGENCIA_2026 = date(2026, 1, 1)  # usado por el default de jornal_vigente
+TABLAS_JORNAL = [
+    # Vigente 01.01.2026 – 31.12.2026 (CAPECO-FTCCP 2026)
+    (date(2026, 1, 1), date(2026, 12, 31), 'CAPECO-FTCCP 2026', {
+        'OPERARIO': (Decimal('89.30'), Decimal('32'), Decimal('8')),
+        'OFICIAL':  (Decimal('69.75'), Decimal('30'), Decimal('8')),
+        'PEON':     (Decimal('62.80'), Decimal('30'), Decimal('8')),
+    }),
+    # Vigente 2024-2025 (R.M. 139-2024-TR)
+    (date(2024, 6, 1), date(2025, 12, 31), 'CAPECO-FTCCP 2024-2025 (R.M. 139-2024-TR)', {
+        'OPERARIO': (Decimal('87.30'), Decimal('32'), Decimal('8')),
+        'OFICIAL':  (Decimal('68.50'), Decimal('30'), Decimal('8')),
+        'PEON':     (Decimal('61.65'), Decimal('30'), Decimal('8')),
+    }),
+]
 
 # Afectaciones (verificadas contra boleta real + CAPECO-FTCCP; ver
 # nominas/construccion.py::CODIGOS_COMPUTABLES).
@@ -93,19 +104,21 @@ class Command(BaseCommand):
         from nominas.models import JornalConstruccion, ConceptoRemunerativo
 
         if opts['reset']:
-            n = JornalConstruccion.objects.filter(vigencia_desde=VIGENCIA_2026).delete()[0]
-            self.stdout.write(self.style.WARNING(f'Borrados {n} jornales de {VIGENCIA_2026}.'))
+            desdes = [t[0] for t in TABLAS_JORNAL]
+            n = JornalConstruccion.objects.filter(vigencia_desde__in=desdes).delete()[0]
+            self.stdout.write(self.style.WARNING(f'Borrados {n} jornales.'))
 
-        # Jornales
+        # Jornales (múltiples vigencias)
         jn = 0
-        for categoria, (jornal, buc, altura) in JORNALES_2026.items():
-            _, created = JornalConstruccion.objects.update_or_create(
-                categoria=categoria, vigencia_desde=VIGENCIA_2026,
-                defaults=dict(jornal_diario=jornal, buc_pct=buc,
-                              bono_altura_pct=altura, fuente='CAPECO-FTCCP 2026 (R.M. 197-2025-TR)'),
-            )
-            jn += 1
-        self.stdout.write(self.style.SUCCESS(f'Jornales 2026: {jn} categorías.'))
+        for desde, hasta, fuente, cats in TABLAS_JORNAL:
+            for categoria, (jornal, buc, altura) in cats.items():
+                JornalConstruccion.objects.update_or_create(
+                    categoria=categoria, vigencia_desde=desde,
+                    defaults=dict(jornal_diario=jornal, buc_pct=buc,
+                                  bono_altura_pct=altura, vigencia_hasta=hasta, fuente=fuente),
+                )
+                jn += 1
+        self.stdout.write(self.style.SUCCESS(f'Jornales: {jn} filas ({len(TABLAS_JORNAL)} vigencias).'))
 
         # Conceptos
         cn = 0
