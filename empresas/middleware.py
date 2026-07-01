@@ -48,12 +48,19 @@ class EmpresaMiddleware:
                 if not request.empresa_actual:
                     try:
                         from empresas.models import Empresa
-                        request.empresa_actual = Empresa.objects.filter(
+                        principal = Empresa.objects.filter(
                             activa=True, es_principal=True
                         ).first()
-                        if request.empresa_actual:
-                            request.session['empresa_actual_id']     = request.empresa_actual.pk
-                            request.session['empresa_actual_nombre'] = request.empresa_actual.nombre_display
+                        # Si la principal no tiene personal (instancia recién
+                        # sembrada / demo), arrancar en modo CONSOLIDADO en vez
+                        # de mostrar "Empleados" y demás vistas vacías.
+                        if principal and principal.personal.exists():
+                            request.empresa_actual = principal
+                            request.session['empresa_actual_id']     = principal.pk
+                            request.session['empresa_actual_nombre'] = principal.nombre_display
+                        else:
+                            request.modo_consolidado = True
+                            request.empresa_actual = None
                     except Exception:
                         pass
 

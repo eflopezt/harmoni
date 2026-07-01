@@ -8,6 +8,7 @@ from . import views_onboarding_validator
 from . import views_mi_dia
 from . import views_calculadora
 from . import views_workflow_mes
+from . import views_pre_planilla
 from . import views_anomalias
 from . import views_variance
 from . import views_reporte_mes
@@ -65,6 +66,8 @@ urlpatterns = [
                                       name='mi_dia_nominas'),
     path('workflow-mes/',             views_workflow_mes.workflow_mes,
                                       name='workflow_mes'),
+    path('pre-planilla/',             views_pre_planilla.pre_planilla,
+                                      name='pre_planilla'),
     path('anomalias/<int:pk>/',       views_anomalias.anomalias_periodo,
                                       name='nominas_anomalias_periodo'),
     path('periodos/<int:pk>/revision/', views_variance.periodo_revision,
