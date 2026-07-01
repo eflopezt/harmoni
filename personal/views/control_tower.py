@@ -124,7 +124,7 @@ def control_tower(request):
 
     from ..permissions import filtrar_subareas
     try:
-        areas = filtrar_subareas(request.user).select_related('área')
+        areas = filtrar_subareas(request.user).select_related('area')
     except Exception:
         areas = []
 

@@ -85,7 +85,7 @@
                     <option value="">Todas</option>
                     {% for a in areas %}
                     <option value="{{ a.id }}" {% if area_id == a.id|stringformat:"s" %}selected{% endif %}>
-                        {{ a.área.nombre }} - {{ a.nombre }}
+                        {{ a.area.nombre }} - {{ a.nombre }}
                     </option>
                     {% endfor %}
                 </select>
@@ -124,7 +124,7 @@
                             <small class="text-muted">{{ f.p.nro_doc }}</small>
                         </td>
                         <td class="text-muted" style="font-size:.85rem">
-                            {{ f.p.subarea.área.nombre|default:"-" }}{% if f.p.subarea %} / {{ f.p.subarea.nombre }}{% endif %}
+                            {{ f.p.subarea.area.nombre|default:"-" }}{% if f.p.subarea %} / {{ f.p.subarea.nombre }}{% endif %}
                         </td>
                         <td>
                             <span class="ct-badge" style="background:{{ f.etapa.color }}">
