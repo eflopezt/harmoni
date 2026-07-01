@@ -55,6 +55,13 @@ class Empresa(models.Model):
     regimen_laboral     = models.CharField(max_length=12, choices=REGIMEN_CHOICES, default='GENERAL')
     sector              = models.CharField(max_length=10, choices=SECTOR_CHOICES, default='PRIVADO')
     actividad_economica = models.CharField(max_length=200, blank=True, help_text='CIIU')
+    # Rubro operativo (giro): preconfigura módulos y régimen de cálculo.
+    from core.rubros import RUBRO_CHOICES as _RUBRO_CHOICES
+    rubro = models.CharField(
+        max_length=20, choices=_RUBRO_CHOICES, default='GENERAL',
+        verbose_name='Rubro / Giro',
+        help_text='Giro operativo de la empresa (construcción, minería, gastronomía…). '
+                  'Distinto del sector legal (CIIU).')
 
     # SUNAT / PLAME
     codigo_empleador = models.CharField(
