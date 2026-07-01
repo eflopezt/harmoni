@@ -306,6 +306,9 @@
             </div>
             {% endif %}
 
+            {% if puede_ver_admin %}
+            {# Secciones de GESTIÓN (RRHH/admin). El trabajador puro solo ve "Mi Portal"
+               arriba; así no ve enlaces admin que lo rebotarían con un mensaje. #}
             <!-- ══ PERSONAL ══ -->
             <div class="nav-section" data-section="personal" data-group="personal">
                 <button class="nav-section-toggle" type="button">
@@ -1104,6 +1107,7 @@
             </ul>
         </div>
     </div>
+    {% endif %}{# fin secciones de gestión (puede_ver_admin) #}
 
 </aside>
 
