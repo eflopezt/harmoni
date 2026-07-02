@@ -154,6 +154,8 @@
                 <select name="estado" class="form-select form-select-sm" style="width:140px">
                     <option value="">Todos</option>
                     <option value="BORRADOR" {% if filtro_estado == 'BORRADOR' %}selected{% endif %}>Borrador</option>
+                    <option value="POR_APROBAR" {% if filtro_estado == 'POR_APROBAR' %}selected{% endif %}>Por aprobar</option>
+                    <option value="APROBADA" {% if filtro_estado == 'APROBADA' %}selected{% endif %}>Aprobada</option>
                     <option value="PUBLICADA" {% if filtro_estado == 'PUBLICADA' %}selected{% endif %}>Publicada</option>
                     <option value="EN_PROCESO" {% if filtro_estado == 'EN_PROCESO' %}selected{% endif %}>En Proceso</option>
                     <option value="CUBIERTA" {% if filtro_estado == 'CUBIERTA' %}selected{% endif %}>Cubierta</option>

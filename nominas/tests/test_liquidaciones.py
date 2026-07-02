@@ -405,3 +405,45 @@ class TestVistaDetalle:
         assert resp.status_code == 302
         liq.refresh_from_db()
         assert liq.estado == 'APROBADA'
+
+
+# ─── Bloqueo por activos sin devolver ────────────────────────────────────────
+
+class TestAprobarBloqueadaPorActivos:
+    def _asignar_laptop(self, worker):
+        from personal.models import ActivoAsignado
+        return ActivoAsignado.objects.create(
+            personal=worker, tipo='LAPTOP',
+            descripcion='Dell Latitude 5520', estado='ASIGNADO',
+            fecha_asignacion=date(2025, 1, 10),
+        )
+
+    def test_activo_pendiente_bloquea_aprobacion(self, client_logged, worker_cesado):
+        self._asignar_laptop(worker_cesado)
+        liq = LiquidacionLaboral.objects.get(personal=worker_cesado)
+        url = reverse('nominas_liquidacion_laboral_aprobar', args=[liq.pk])
+        resp = client_logged.post(url)
+        assert resp.status_code == 302
+        liq.refresh_from_db()
+        assert liq.estado != 'APROBADA'  # bloqueada
+
+    def test_forzar_aprueba_con_activos_pendientes(self, client_logged, worker_cesado, admin_user):
+        self._asignar_laptop(worker_cesado)
+        liq = LiquidacionLaboral.objects.get(personal=worker_cesado)
+        url = reverse('nominas_liquidacion_laboral_aprobar', args=[liq.pk])
+        resp = client_logged.post(url, {'forzar': '1'})
+        assert resp.status_code == 302
+        liq.refresh_from_db()
+        assert liq.estado == 'APROBADA'
+        assert liq.aprobada_por == admin_user
+
+    def test_activo_devuelto_no_bloquea(self, client_logged, worker_cesado):
+        activo = self._asignar_laptop(worker_cesado)
+        activo.estado = 'DEVUELTO'
+        activo.fecha_devolucion = date(2026, 3, 30)
+        activo.save()
+        liq = LiquidacionLaboral.objects.get(personal=worker_cesado)
+        url = reverse('nominas_liquidacion_laboral_aprobar', args=[liq.pk])
+        client_logged.post(url)
+        liq.refresh_from_db()
+        assert liq.estado == 'APROBADA'

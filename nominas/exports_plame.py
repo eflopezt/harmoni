@@ -167,6 +167,8 @@ CONCEPTO_PLAME = {
     'cuota-sindical':      '0702',   # Cuota sindical autorizada
     'retencion-judicial':  '0703',   # Descuento por mandato judicial
     'embargo-judicial':    '0703',   # idem
+    'pension-alimenticia': '0703',   # idem (mandato judicial de alimentos)
+    'descuento-interno':   '0706',   # Descuentos internos autorizados (no deducibles)
     'descto-tardanza':     '0704',   # Tardanzas
     'descto-falta':        '0705',   # Inasistencias / licencias sin goce
     'otros-descuentos':    '0706',   # Otros descuentos no deducibles de base imponible

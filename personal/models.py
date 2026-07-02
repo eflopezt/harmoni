@@ -7,6 +7,8 @@ from django.core.validators import MinValueValidator
 from django.utils.functional import cached_property
 from decimal import Decimal
 
+from .motivos_cese import MOTIVO_CESE_CHOICES as MOTIVOS_CESE_CANONICOS
+
 
 class Area(models.Model):
     """
@@ -190,24 +192,8 @@ class Personal(models.Model):
         ('Cesado', 'Cesado'),
     ]
 
-    MOTIVO_CESE_CHOICES = [
-        # Voluntarios
-        ('RENUNCIA',        'Renuncia voluntaria'),
-        ('MUTUO_ACUERDO',   'Mutuo acuerdo'),
-        ('JUBILACION',      'Jubilacion'),
-        # Por el empleador (DS 003-97-TR)
-        ('VENCIMIENTO',     'Vencimiento de contrato'),
-        ('TERMINO_CONTRATO', 'Termino de contrato'),
-        ('NO_RENOVACION',   'No renovacion'),
-        ('DESPIDO_CAUSA',   'Despido con causa justificada'),
-        ('CESE_COLECTIVO',  'Cese colectivo'),
-        ('LIQUIDACION',     'Liquidacion / Disolucion empresa'),
-        # Especiales
-        ('FALLECIMIENTO',   'Fallecimiento'),
-        ('INVALIDEZ',       'Invalidez permanente'),
-        ('ABANDONO',        'Abandono de trabajo'),
-        ('OTRO',            'Otro'),
-    ]
+    # Catálogo canónico compartido — ver personal/motivos_cese.py (única fuente)
+    MOTIVO_CESE_CHOICES = MOTIVOS_CESE_CANONICOS
 
     AFP_CHOICES = [
         ('Habitat', 'Habitat'),

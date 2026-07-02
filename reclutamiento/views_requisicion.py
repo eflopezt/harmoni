@@ -1,12 +1,13 @@
 """
 Aprobación de requisición de vacante (paso previo a publicar).
 
-Flujo aditivo, NO bloqueante:
-    BORRADOR --[solicitar]--> POR_APROBAR --[aprobar]--> BORRADOR (+ aprobada_por)
+Flujo:
+    BORRADOR --[solicitar]--> POR_APROBAR --[aprobar]--> APROBADA (+ aprobada_por)
                                           --[rechazar]--> BORRADOR (sin aprobar)
 
-Publicar sigue funcionando como antes; la aprobación agrega una traza de
-gobierno (quién y cuándo aprobó) y un semáforo en el detalle de la vacante.
+Una vacante que nunca pasó por aprobación puede publicarse igual (flujo
+aditivo para vacantes simples), pero mientras está POR_APROBAR queda
+bloqueada para publicar hasta que el aprobador decida.
 """
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -52,7 +53,7 @@ def vacante_aprobar(request, pk):
         messages.error(request, 'No tienes permisos para aprobar requisiciones.')
         return redirect('vacante_detalle', pk=pk)
     if v.estado == 'POR_APROBAR':
-        v.estado = 'BORRADOR'
+        v.estado = 'APROBADA'
         v.aprobada_por = request.user
         v.fecha_aprobacion = timezone.now()
         v.save(update_fields=['estado', 'aprobada_por', 'fecha_aprobacion',

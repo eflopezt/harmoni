@@ -1788,6 +1788,12 @@ def publicar_en_plataformas(request, pk):
     logs = LogPublicacionVacante.objects.filter(vacante=vacante).order_by('-creado_en')[:20]
 
     if request.method == 'POST':
+        if vacante.estado == 'POR_APROBAR':
+            messages.warning(
+                request,
+                'La requisición está pendiente de aprobación: no se puede '
+                'publicar hasta que el aprobador decida.')
+            return redirect('vacante_detalle', pk=pk)
         plataformas_sel = request.POST.getlist('plataformas')
 
         if not plataformas_sel:
@@ -2394,6 +2400,13 @@ def publicar_oferta(request, pk):
     """
     vacante = get_object_or_404(Vacante, pk=pk)
     estado_anterior = vacante.estado
+
+    if estado_anterior == 'POR_APROBAR':
+        messages.warning(
+            request,
+            'La requisición está pendiente de aprobación: no se puede '
+            'publicar hasta que el aprobador decida.')
+        return redirect('vacante_detalle', pk=pk)
 
     vacante.estado = 'PUBLICADA'
     if not vacante.fecha_publicacion:

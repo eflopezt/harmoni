@@ -44,6 +44,7 @@ class Vacante(models.Model):
     ESTADO_CHOICES = [
         ('BORRADOR', 'Borrador'),
         ('POR_APROBAR', 'Por aprobar'),
+        ('APROBADA', 'Aprobada'),
         ('PUBLICADA', 'Publicada'),
         ('EN_PROCESO', 'En Proceso'),
         ('CUBIERTA', 'Cubierta'),

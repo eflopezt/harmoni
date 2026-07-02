@@ -20,6 +20,7 @@ from django.db import models
 from django.db.models import Q
 
 from personal.models import Personal
+from personal.motivos_cese import MOTIVOS_LIQUIDACION
 
 
 # ── Constantes Legales Perú 2026 ─────────────────────────────────────
@@ -1235,16 +1236,8 @@ class LiquidacionLaboral(models.Model):
         BORRADOR → CALCULADA → APROBADA → FIRMADA → PAGADA → CERRADA
     """
 
-    MOTIVO_CESE_CHOICES = [
-        ('RENUNCIA',        'Renuncia voluntaria'),
-        ('DESPIDO',         'Despido (causa justa)'),
-        ('DESPIDO_ARB',     'Despido arbitrario (indemnización)'),
-        ('MUTUO',           'Mutuo disenso'),
-        ('CADUCIDAD',       'Caducidad de contrato'),
-        ('JUBILACION',      'Jubilación'),
-        ('FALLECIMIENTO',   'Fallecimiento'),
-        ('PERIODO_PRUEBA',  'No supera período de prueba'),
-    ]
+    # Vista de cálculo legal del catálogo canónico — ver personal/motivos_cese.py
+    MOTIVO_CESE_CHOICES = MOTIVOS_LIQUIDACION
 
     ESTADO_CHOICES = [
         ('BORRADOR',  'Borrador'),

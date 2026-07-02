@@ -849,10 +849,47 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
             judicial_total = Decimal('0')
             judicial_lineas = []
 
+    # ── 8c. Descuentos internos (herramienta/uniforme/multa/etc.) ──
+    # Mismo patrón que 8b pero para causales NO judiciales de DescuentoPlanilla.
+    # Requisito legal (DS 003-97-TR): consentimiento escrito del trabajador,
+    # salvo que el descuento esté marcado como no-requerido. Sin consentimiento
+    # firmado el descuento NO entra a planilla. Cap por saldo pendiente; la
+    # aplicación se registra al cierre (descuentos.services).
+    interno_total = Decimal('0')
+    interno_lineas = []  # (monto, observacion)
+    if _pers is not None and getattr(_pers, 'pk', None):
+        try:
+            from django.db.models import Q as _Q
+
+            from descuentos.models import DescuentoPlanilla
+            _fin_periodo = getattr(getattr(p, 'periodo', None), 'fecha_fin', None)
+            _qs_int = (DescuentoPlanilla.objects
+                       .filter(personal=_pers, estado__in=['APROBADO', 'EN_CURSO'])
+                       .exclude(causal__in=['EMBARGO_JUDICIAL', 'PENSION_ALIMENTICIA'])
+                       .filter(_Q(requiere_consentimiento=False)
+                               | _Q(consentimiento_firmado=True)))
+            if _fin_periodo is not None:
+                _qs_int = _qs_int.filter(
+                    _Q(fecha_inicio_descuento__isnull=True)
+                    | _Q(fecha_inicio_descuento__lte=_fin_periodo))
+            for d in _qs_int:
+                _cuota = _redondear(d.cuota_mensual or 0)
+                _saldo = _redondear(getattr(d, 'saldo_pendiente', None) or _cuota)
+                if _saldo > 0:
+                    _cuota = min(_cuota, _saldo)
+                if _cuota <= 0:
+                    continue
+                interno_total += _cuota
+                interno_lineas.append((_cuota, d.get_causal_display()))
+        except Exception:
+            logger.warning('No se pudieron consolidar descuentos internos', exc_info=True)
+            interno_total = Decimal('0')
+            interno_lineas = []
+
     # ── 9. Totales ──
     total_desc_trabajador = (afp_aporte + afp_comision + afp_seguro + onp + ir_5ta
                              + descto_prestamo + otros_descuentos + judicial_total
-                             + cm_desc_total)
+                             + interno_total + cm_desc_total)
     neto                  = _redondear(total_ingresos_bruto - total_desc_trabajador)
 
     # ── 10. Aportes empleador (costo empresa) ──
@@ -943,6 +980,9 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     # Descuentos judiciales (embargo/pensión) — código PLAME 0703 vía concepto.
     for _cod, _monto, _obs in judicial_lineas:
         _agregar(_cod, Decimal('0'), Decimal('0'), _monto, _obs)
+    # Descuentos internos consolidados desde DescuentoPlanilla (causal en obs).
+    for _monto, _obs in interno_lineas:
+        _agregar('descuento-interno', Decimal('0'), Decimal('0'), _monto, _obs)
 
     # Conceptos manuales tipo DESCUENTO
     for cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():

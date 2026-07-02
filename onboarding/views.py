@@ -559,9 +559,21 @@ def paso_off_completar(request, pk):
 
     proceso = paso.proceso
     pendientes = proceso.pasos.exclude(estado__in=['COMPLETADO', 'OMITIDO']).count()
+    advertencia_activos = ''
     if pendientes == 0:
         proceso.estado = 'COMPLETADO'
         proceso.save(update_fields=['estado', 'actualizado_en'])
+        # El offboarding se completó pero ¿quedaron activos sin devolver?
+        # No bloqueamos (el bloqueo duro vive en la aprobación de la
+        # liquidación), pero avisamos aquí para corregir a tiempo.
+        from personal.models import ActivoAsignado
+        _pend = ActivoAsignado.objects.filter(
+            personal=proceso.personal, estado='ASIGNADO').count()
+        if _pend:
+            advertencia_activos = (
+                f'Atención: el trabajador aún tiene {_pend} activo(s) '
+                'asignado(s) sin devolver. La liquidación quedará bloqueada '
+                'hasta registrar la devolución.')
 
     return JsonResponse({
         'ok': True,
@@ -570,6 +582,7 @@ def paso_off_completar(request, pk):
         'completado_por': request.user.get_full_name() or request.user.username,
         'fecha_completado': paso.fecha_completado.strftime('%d/%m/%Y %H:%M'),
         'proceso_completado': pendientes == 0,
+        'advertencia_activos': advertencia_activos,
         'porcentaje': proceso.porcentaje_avance,
     })
 

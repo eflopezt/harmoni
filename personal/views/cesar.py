@@ -29,32 +29,13 @@ from personal.models import Personal
 solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
 
 
-# Motivos visibles en el wizard — los 8 oficiales de LiquidacionLaboral
-# (más completos que los de Personal para fines de cálculo legal).
-MOTIVOS_WIZARD = [
-    ('RENUNCIA',       'Renuncia voluntaria'),
-    ('DESPIDO',        'Despido (causa justa)'),
-    ('DESPIDO_ARB',    'Despido arbitrario (indemnización)'),
-    ('MUTUO',          'Mutuo disenso'),
-    ('CADUCIDAD',      'Caducidad de contrato'),
-    ('JUBILACION',     'Jubilación'),
-    ('FALLECIMIENTO',  'Fallecimiento'),
-    ('PERIODO_PRUEBA', 'No supera período de prueba'),
-]
-
-
-# Mapeo inverso: LiquidacionLaboral motive → Personal.motivo_cese
-# Necesario porque al guardar Personal, el signal hace el mapeo opuesto.
-_MAP_LIQ_A_PERSONAL = {
-    'RENUNCIA':       'RENUNCIA',
-    'DESPIDO':        'DESPIDO_CAUSA',
-    'DESPIDO_ARB':    'DESPIDO_CAUSA',   # signal lo mapeará a DESPIDO; sobrescribimos LL después
-    'MUTUO':          'MUTUO_ACUERDO',
-    'CADUCIDAD':      'VENCIMIENTO',
-    'JUBILACION':     'JUBILACION',
-    'FALLECIMIENTO':  'FALLECIMIENTO',
-    'PERIODO_PRUEBA': 'DESPIDO_CAUSA',
-}
+# Catálogo y mapeos centralizados en personal/motivos_cese.py (única fuente).
+# El wizard muestra los 8 motivos de liquidación (distinguen efecto de cálculo
+# legal, ej. DESPIDO_ARB → indemnización) y persiste el canónico en Personal.
+from personal.motivos_cese import (          # noqa: E402
+    LIQUIDACION_A_PERSONAL as _MAP_LIQ_A_PERSONAL,
+    MOTIVOS_LIQUIDACION as MOTIVOS_WIZARD,
+)
 
 
 def _validar_form(request) -> tuple[date | None, str, str, str | None]:

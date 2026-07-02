@@ -16,24 +16,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
 from personal.models import Personal
-
-
-# ─── Mapa motivo Personal ↔ motivo ProcesoOffboarding ─────────────────────────
-# ProcesoOffboarding.MOTIVO_CHOICES solo tiene 5 opciones; mapeamos los 12 de Personal
-_MOTIVO_OFF_MAP = {
-    'RENUNCIA':       'RENUNCIA',
-    'MUTUO_ACUERDO':  'MUTUO_ACUERDO',
-    'JUBILACION':     'JUBILACION',
-    'VENCIMIENTO':    'FIN_CONTRATO',
-    'NO_RENOVACION':  'FIN_CONTRATO',
-    'DESPIDO_CAUSA':  'DESPIDO',
-    'CESE_COLECTIVO': 'DESPIDO',
-    'LIQUIDACION':    'MUTUO_ACUERDO',
-    'FALLECIMIENTO':  'FIN_CONTRATO',
-    'INVALIDEZ':      'FIN_CONTRATO',
-    'ABANDONO':       'DESPIDO',
-    'OTRO':           'FIN_CONTRATO',
-}
+# Mapeo canónico → offboarding centralizado en personal/motivos_cese.py
+from personal.motivos_cese import PERSONAL_A_OFFBOARDING as _MOTIVO_OFF_MAP
 
 
 @login_required

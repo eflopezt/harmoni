@@ -153,6 +153,103 @@ class TestRegistrarAplicacionesCierre:
         assert AplicacionDescuento.objects.count() == 0
 
 
+def _interno(trabajador, **extra):
+    base = dict(
+        personal=trabajador, causal="ROTURA_HERRAMIENTA",
+        detalle="Taladro dañado", monto_total=Decimal("400.00"),
+        num_cuotas=2, cuota_mensual=Decimal("200.00"), estado="APROBADO",
+        consentimiento_firmado=True,
+    )
+    base.update(extra)
+    return DescuentoPlanilla.objects.create(**base)
+
+
+class TestEngineDescuentosInternos:
+    """8c: causales NO judiciales entran solas al cálculo si hay consentimiento."""
+
+    def test_interno_con_consentimiento_se_descuenta(self, registro, trabajador):
+        from nominas.engine import calcular_registro
+        sin = calcular_registro(registro)
+        _interno(trabajador)
+        con = calcular_registro(registro)
+        assert con["total_descuentos"] == sin["total_descuentos"] + Decimal("200.00")
+
+    def test_interno_sin_consentimiento_no_se_descuenta(self, registro, trabajador):
+        from nominas.engine import calcular_registro
+        sin = calcular_registro(registro)
+        _interno(trabajador, consentimiento_firmado=False)
+        con = calcular_registro(registro)
+        assert con["total_descuentos"] == sin["total_descuentos"]
+
+    def test_interno_no_requiere_consentimiento_se_descuenta(self, registro, trabajador):
+        from nominas.engine import calcular_registro
+        sin = calcular_registro(registro)
+        _interno(trabajador, consentimiento_firmado=False,
+                 requiere_consentimiento=False)
+        con = calcular_registro(registro)
+        assert con["total_descuentos"] == sin["total_descuentos"] + Decimal("200.00")
+
+    def test_interno_fecha_inicio_futura_no_se_descuenta(self, registro, trabajador):
+        from nominas.engine import calcular_registro
+        sin = calcular_registro(registro)
+        _interno(trabajador, fecha_inicio_descuento=date(2026, 8, 1))
+        con = calcular_registro(registro)
+        assert con["total_descuentos"] == sin["total_descuentos"]
+
+    def test_interno_capado_por_saldo(self, registro, trabajador):
+        from nominas.engine import calcular_registro
+        sin = calcular_registro(registro)
+        d = _interno(trabajador, estado="EN_CURSO")
+        # Ya se aplicó una cuota: queda saldo 200; y una cuota "gorda" de 300
+        d.cuota_mensual = Decimal("300.00")
+        d.save(update_fields=["cuota_mensual"])
+        AplicacionDescuento.objects.create(
+            descuento=d, periodo_anio=2026, periodo_mes=5,
+            monto_aplicado=Decimal("200.00"),
+        )
+        con = calcular_registro(registro)
+        assert con["total_descuentos"] == sin["total_descuentos"] + Decimal("200.00")
+
+
+class TestCierreDescuentosInternos:
+    def test_interno_crea_aplicacion_y_transiciona(self, registro, periodo, trabajador):
+        d = _interno(trabajador, estado="APROBADO")
+        _linea_judicial(registro, "descuento-interno", "200.00")
+
+        creadas = registrar_aplicaciones_cierre(periodo)
+        assert creadas == 1
+        d.refresh_from_db()
+        assert d.estado == "EN_CURSO"
+        assert d.saldo_pendiente == Decimal("200.00")
+
+    def test_interno_completa_y_pasa_a_pagado(self, registro, periodo, trabajador):
+        d = _interno(trabajador, estado="EN_CURSO")
+        AplicacionDescuento.objects.create(
+            descuento=d, periodo_anio=2026, periodo_mes=5,
+            monto_aplicado=Decimal("200.00"),
+        )
+        _linea_judicial(registro, "descuento-interno", "200.00")
+
+        registrar_aplicaciones_cierre(periodo)
+        d.refresh_from_db()
+        assert d.saldo_pendiente == Decimal("0")
+        assert d.estado == "PAGADO"
+
+    def test_interno_reparte_entre_varias_causales(self, registro, periodo, trabajador):
+        d1 = _interno(trabajador, causal="ROTURA_HERRAMIENTA")
+        d2 = _interno(trabajador, causal="REPOSICION_UNIFORME",
+                      monto_total=Decimal("100.00"), num_cuotas=1,
+                      cuota_mensual=Decimal("100.00"))
+        # El engine emitió una línea por cada descuento bajo el mismo concepto
+        _linea_judicial(registro, "descuento-interno", "200.00")
+        _linea_judicial(registro, "descuento-interno", "100.00")
+
+        creadas = registrar_aplicaciones_cierre(periodo)
+        assert creadas == 2
+        assert AplicacionDescuento.objects.get(descuento=d1).monto_aplicado == Decimal("200.00")
+        assert AplicacionDescuento.objects.get(descuento=d2).monto_aplicado == Decimal("100.00")
+
+
 class TestCierreEndToEnd:
     def test_periodo_cerrar_registra_aplicaciones(self, client, registro, periodo, trabajador):
         from django.contrib.auth.models import User

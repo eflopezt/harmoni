@@ -1,13 +1,14 @@
 """
 Integración descuentos ↔ cierre de planilla.
 
-El engine descuenta los judiciales (embargo/pensión) en cada cálculo, pero
-hasta ahora NADA registraba la aplicación: `saldo_pendiente` nunca bajaba y
-un embargo de monto fijo se descontaba indefinidamente (mismo anti-patrón
-que las cuotas de préstamo antes del marcado al cierre).
+El engine descuenta los judiciales (embargo/pensión) y los internos
+(herramienta, uniforme, multa, etc. con consentimiento firmado) en cada
+cálculo, pero hasta ahora NADA registraba la aplicación: `saldo_pendiente`
+nunca bajaba y un embargo de monto fijo se descontaba indefinidamente (mismo
+anti-patrón que las cuotas de préstamo antes del marcado al cierre).
 
 `registrar_aplicaciones_cierre(periodo)` se llama desde periodo_cerrar
-(planilla REGULAR) y, por cada registro del período con líneas judiciales:
+(planilla REGULAR) y, por cada registro del período con líneas de descuento:
 
   1. crea `AplicacionDescuento` (idempotente: unique descuento+período),
   2. transiciona APROBADO → EN_CURSO en la primera aplicación,
@@ -31,10 +32,18 @@ CODIGO_A_CAUSAL = {
     'embargo-judicial':    'EMBARGO_JUDICIAL',
 }
 
+# Código genérico bajo el que el engine emite TODOS los descuentos internos
+# (causales no judiciales); la causal específica viaja en la observación.
+CODIGO_INTERNO = 'descuento-interno'
+CAUSALES_JUDICIALES = tuple(CODIGO_A_CAUSAL.values())
+
+# Marcador de grupo para "cualquier causal interna" en el reparto por persona.
+_INTERNO = '__INTERNO__'
+
 
 @transaction.atomic
 def registrar_aplicaciones_cierre(periodo):
-    """Registra las aplicaciones de descuentos judiciales del período.
+    """Registra las aplicaciones de descuentos (judiciales e internos) del período.
 
     Devuelve la cantidad de AplicacionDescuento creadas. Re-ejecutar sobre
     un período ya procesado no duplica (get_or_create por descuento+período).
@@ -43,17 +52,17 @@ def registrar_aplicaciones_cierre(periodo):
 
     from .models import AplicacionDescuento, DescuentoPlanilla
 
+    codigos = list(CODIGO_A_CAUSAL.keys()) + [CODIGO_INTERNO]
     lineas = (
         LineaNomina.objects
-        .filter(registro__periodo=periodo,
-                concepto__codigo__in=CODIGO_A_CAUSAL.keys())
+        .filter(registro__periodo=periodo, concepto__codigo__in=codigos)
         .select_related('registro', 'concepto')
     )
 
-    # (personal_id, causal) → [(registro, monto_linea), ...]
+    # (personal_id, causal | _INTERNO) → [(registro, monto_linea), ...]
     por_persona = {}
     for linea in lineas:
-        causal = CODIGO_A_CAUSAL[linea.concepto.codigo]
+        causal = CODIGO_A_CAUSAL.get(linea.concepto.codigo, _INTERNO)
         key = (linea.registro.personal_id, causal)
         por_persona.setdefault(key, []).append((linea.registro, linea.monto))
 
@@ -63,9 +72,13 @@ def registrar_aplicaciones_cierre(periodo):
         restante = sum((m for _, m in items), Decimal('0'))
 
         descuentos = DescuentoPlanilla.objects.filter(
-            personal_id=personal_id, causal=causal,
+            personal_id=personal_id,
             estado__in=['APROBADO', 'EN_CURSO'],
         )  # mismo ordering del engine (Meta.ordering)
+        if causal == _INTERNO:
+            descuentos = descuentos.exclude(causal__in=CAUSALES_JUDICIALES)
+        else:
+            descuentos = descuentos.filter(causal=causal)
 
         for d in descuentos:
             if restante <= 0:

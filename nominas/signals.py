@@ -26,28 +26,13 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from personal.models import Personal
+# Mapeo canónico → liquidación centralizado en personal/motivos_cese.py
+from personal.motivos_cese import PERSONAL_A_LIQUIDACION as _MAP_MOTIVO_PERSONAL_A_LIQ
 
 
 logger = logging.getLogger('nominas.signals')
 
 OFFBOARDING_FLUJO_NOMBRE = 'Offboarding Trabajador'
-
-
-_MAP_MOTIVO_PERSONAL_A_LIQ = {
-    'RENUNCIA':         'RENUNCIA',
-    'MUTUO_ACUERDO':    'MUTUO',
-    'JUBILACION':       'JUBILACION',
-    'VENCIMIENTO':      'CADUCIDAD',
-    'TERMINO_CONTRATO': 'CADUCIDAD',
-    'NO_RENOVACION':    'CADUCIDAD',
-    'DESPIDO_CAUSA':    'DESPIDO',
-    'CESE_COLECTIVO':   'CADUCIDAD',
-    'LIQUIDACION':      'CADUCIDAD',
-    'FALLECIMIENTO':    'FALLECIMIENTO',
-    'INVALIDEZ':        'JUBILACION',
-    'ABANDONO':         'DESPIDO',
-    'OTRO':             'RENUNCIA',
-}
 
 
 @receiver(post_save, sender=Personal)

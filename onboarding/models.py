@@ -10,6 +10,7 @@ from django.db import models
 from django.utils import timezone
 
 from personal.models import Personal, Area
+from personal.motivos_cese import MOTIVOS_OFFBOARDING
 
 
 # ══════════════════════════════════════════════════════════════
@@ -450,13 +451,8 @@ class PasoPlantillaOff(models.Model):
 class ProcesoOffboarding(models.Model):
     """Proceso de offboarding activo para un trabajador."""
     ESTADO_CHOICES = ProcesoOnboarding.ESTADO_CHOICES
-    MOTIVO_CHOICES = [
-        ('RENUNCIA', 'Renuncia Voluntaria'),
-        ('DESPIDO', 'Despido'),
-        ('MUTUO_ACUERDO', 'Mutuo Acuerdo'),
-        ('FIN_CONTRATO', 'Fin de Contrato'),
-        ('JUBILACION', 'Jubilación'),
-    ]
+    # Vista reducida del catálogo canónico — ver personal/motivos_cese.py
+    MOTIVO_CHOICES = MOTIVOS_OFFBOARDING
 
     personal = models.ForeignKey(
         Personal, on_delete=models.CASCADE,

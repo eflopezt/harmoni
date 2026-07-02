@@ -57,6 +57,8 @@ CONCEPTOS = [
     ('embargo-judicial',    'Embargo Judicial',             'DESCUENTO','REMUNERATIVO',   'MANUAL',          0,    False,False,False,False, 40),
     ('retencion-judicial',  'Retención por Mandato Judicial','DESCUENTO','REMUNERATIVO',  'MANUAL',          0,    False,False,False,False, 41),
     ('cuota-sindical',      'Cuota Sindical',               'DESCUENTO','REMUNERATIVO',   'MANUAL',          0,    False,False,False,False, 42),
+    ('pension-alimenticia', 'Pensión Alimenticia (Judicial)','DESCUENTO','REMUNERATIVO',  'MANUAL',          0,    False,False,False,False, 43),
+    ('descuento-interno',   'Descuento Interno por Planilla','DESCUENTO','REMUNERATIVO',  'MANUAL',          0,    False,False,False,False, 44),
 
     # ── APORTES EMPLEADOR ─────────────────────────────────────────
     ('essalud',             'EsSalud 9% (Empleador)',       'APORTE_EMPLEADOR','REMUNERATIVO','ESSALUD',     9,    False,False,False,False, 50),

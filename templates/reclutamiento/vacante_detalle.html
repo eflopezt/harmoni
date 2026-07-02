@@ -135,6 +135,7 @@
                     <div class="col-9">
                         {% if vacante.estado == 'PUBLICADA' %}<span class="badge bg-success">Publicada</span>
                         {% elif vacante.estado == 'POR_APROBAR' %}<span class="badge bg-warning text-dark">Por aprobar</span>
+                        {% elif vacante.estado == 'APROBADA' %}<span class="badge bg-success">Aprobada</span>
                         {% elif vacante.estado == 'EN_PROCESO' %}<span class="badge bg-warning text-dark">En Proceso</span>
                         {% elif vacante.estado == 'CUBIERTA' %}<span class="badge bg-info">Cubierta</span>
                         {% elif vacante.estado == 'CANCELADA' %}<span class="badge bg-danger">Cancelada</span>

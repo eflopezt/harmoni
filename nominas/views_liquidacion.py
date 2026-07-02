@@ -15,6 +15,7 @@ Flujo:
 """
 from __future__ import annotations
 
+import logging
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -28,6 +29,8 @@ from django.views.decorators.http import require_POST
 
 from personal.models import Personal
 from .models import PeriodoNomina, RegistroNomina
+
+logger = logging.getLogger(__name__)
 
 # ── constantes (fallbacks — se sobreescriben con snapshot del período) ───────
 RMV        = Decimal('1130.00')
@@ -522,10 +525,40 @@ def liquidacion_laboral_detalle(request, liquidacion_id):
 @login_required
 @require_POST
 def liquidacion_laboral_aprobar(request, liquidacion_id):
-    """POST /nominas/liquidacion/<id>/aprobar/ → estado APROBADA + aprobada_por."""
+    """POST /nominas/liquidacion/<id>/aprobar/ → estado APROBADA + aprobada_por.
+
+    Bloquea la aprobación si el trabajador aún tiene activos ASIGNADOS
+    (laptop, celular, EPP, etc.) sin devolver — el pago de la liquidación es
+    la última palanca real para recuperarlos. Se puede forzar explícitamente
+    con el parámetro POST `forzar=1` (queda registrado quién forzó).
+    """
+    from personal.models import ActivoAsignado
+
     from .models import LiquidacionLaboral
 
     liq = get_object_or_404(LiquidacionLaboral, pk=liquidacion_id)
+
+    if liq.estado not in ('APROBADA', 'FIRMADA', 'PAGADA', 'CERRADA'):
+        activos_pendientes = list(ActivoAsignado.objects.filter(
+            personal=liq.personal, estado='ASIGNADO'))
+        forzar = request.POST.get('forzar') in ('1', 'true', 'on')
+        if activos_pendientes and not forzar:
+            detalle = ', '.join(
+                f'{a.get_tipo_display()}: {a.descripcion}'[:60]
+                for a in activos_pendientes[:5])
+            messages.error(
+                request,
+                f'No se puede aprobar: {liq.personal.apellidos_nombres} tiene '
+                f'{len(activos_pendientes)} activo(s) sin devolver ({detalle}). '
+                'Registra la devolución en Personal → Activos, o vuelve a '
+                'aprobar marcando "forzar" si procede igual.')
+            return redirect('nominas_liquidacion_laboral_detalle',
+                            liquidacion_id=liq.pk)
+        if activos_pendientes and forzar:
+            logger.warning(
+                'Liquidación %s aprobada por %s con %s activos sin devolver',
+                liq.pk, request.user, len(activos_pendientes))
+
     if liq.estado in ('APROBADA', 'FIRMADA', 'PAGADA', 'CERRADA'):
         messages.info(request, 'La liquidación ya fue aprobada.')
     else:
