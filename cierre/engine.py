@@ -214,8 +214,14 @@ def _paso_asegurar_banco(periodo):
 
 
 def _paso_generar_carga_s10(periodo):
+    """Genera de verdad el archivo CargaS10 (antes solo reportaba stats) para
+    validar que la exportación funciona con los datos del período, y expone
+    la URL de descarga."""
     from asistencia.models import RegistroTareo, ConfiguracionSistema
-    from django.db.models import Sum, Count, Q
+    from asistencia.services.exporters import CargaS10Exporter
+    from django.db.models import Sum, Count
+    from django.urls import reverse
+
     config = ConfiguracionSistema.get()
     inicio_he, fin_he = config.get_ciclo_he(periodo.anio, periodo.mes)
 
@@ -235,21 +241,49 @@ def _paso_generar_carga_s10(periodo):
         (rco_stats['he100'] or Decimal('0'))
     )
 
+    descarga_url = (
+        reverse('asistencia_exportar_s10')
+        + f'?anio={periodo.anio}&mes={periodo.mes}'
+    )
+
+    try:
+        exporter = CargaS10Exporter(periodo.anio, periodo.mes, config)
+        buffer = exporter.generar()
+        tam_kb = len(buffer.getvalue()) / 1024
+        filas = getattr(exporter, 'total_filas', 0)
+    except Exception as exc:
+        return {
+            'estado': 'ERROR',
+            'mensaje': f'La CargaS10 no se pudo generar: {exc}',
+            'detalles': [
+                f'Período HE: {inicio_he.strftime("%d/%m/%Y")} → {fin_he.strftime("%d/%m/%Y")}',
+                'Corrige el error antes de cerrar el período.',
+            ],
+            'datos': {},
+        }
+
+    estado = 'OK' if filas else 'ADVERTENCIA'
+    mensaje = (
+        f'Carga S10 generada — {filas} trabajadores, {he_total:.1f}h HE'
+        if filas else
+        'CargaS10 generada sin filas: no hay tareo RCO en el período.'
+    )
     return {
-        'estado': 'OK',
-        'mensaje': f'Carga S10 lista — {rco_stats["personas"] or 0} trabajadores RCO, {he_total:.1f}h HE',
+        'estado': estado,
+        'mensaje': mensaje,
         'detalles': [
             f'Período HE: {inicio_he.strftime("%d/%m/%Y")} → {fin_he.strftime("%d/%m/%Y")}',
-            f'Trabajadores RCO: {rco_stats["personas"] or 0}',
+            f'Filas en el archivo: {filas} ({tam_kb:.1f} KB)',
+            f'Trabajadores RCO con tareo: {rco_stats["personas"] or 0}',
             f'HE 25%: {rco_stats["he25"] or 0:.2f}h',
             f'HE 35%: {rco_stats["he35"] or 0:.2f}h',
             f'HE 100%: {rco_stats["he100"] or 0:.2f}h',
-            f'HE Total: {he_total:.2f}h',
-            'Descarga disponible desde: Asistencia → Exportar → Carga S10',
         ],
         'datos': {
             'personas': rco_stats['personas'] or 0,
             'he_total': float(he_total),
+            'filas': filas,
+            'descarga_url': descarga_url,
         },
     }
 

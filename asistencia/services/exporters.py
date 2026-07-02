@@ -189,6 +189,8 @@ class CargaS10Exporter:
         pids_todos = (set(he_por_persona.keys()) | set(conceptos_dias.keys()))
         personal_qs = (Personal.objects.filter(id__in=pids_todos)
                        .order_by('apellidos_nombres'))
+        # Expuesto para validadores (paso GENERAR_CARGA_S10 del cierre)
+        self.total_filas = personal_qs.count()
 
         # ── Construir Excel ────────────────────────────────────
         wb = openpyxl.Workbook()

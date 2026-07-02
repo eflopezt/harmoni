@@ -114,6 +114,7 @@ def cierre_ejecutar_paso(request, pk, codigo):
         'estado':   resultado['estado'],
         'mensaje':  resultado['mensaje'],
         'detalles': resultado['detalles'],
+        'datos':    resultado.get('datos', {}),
         'avance':   periodo.porcentaje_avance,
         'periodo_estado': periodo.estado,
     })
