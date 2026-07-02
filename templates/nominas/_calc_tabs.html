@@ -1,0 +1,37 @@
+{% comment %}
+Tabs de navegación entre calculadoras — el menú lateral tiene UNA sola
+entrada "Calculadoras"; el cambio entre ellas vive aquí (menú por tarea).
+Uso: incluir con calc_activa='simulador|reversa|gratificacion|cts|liquidacion|afp'
+{% endcomment %}
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+  <a href="{% url 'calculadora_planilla' %}"
+     style="padding:6px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;
+            {% if calc_activa == 'simulador' %}background:#0f766e;color:#fff;{% else %}background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;{% endif %}">
+    <i class="fas fa-calculator me-1"></i>Simulador
+  </a>
+  <a href="{% url 'calc_reversa' %}"
+     style="padding:6px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;
+            {% if calc_activa == 'reversa' %}background:#0f766e;color:#fff;{% else %}background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;{% endif %}">
+    <i class="fas fa-exchange-alt me-1"></i>Reversa
+  </a>
+  <a href="{% url 'calc_gratificacion' %}"
+     style="padding:6px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;
+            {% if calc_activa == 'gratificacion' %}background:#0f766e;color:#fff;{% else %}background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;{% endif %}">
+    <i class="fas fa-gift me-1"></i>Gratificación
+  </a>
+  <a href="{% url 'calc_cts' %}"
+     style="padding:6px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;
+            {% if calc_activa == 'cts' %}background:#0f766e;color:#fff;{% else %}background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;{% endif %}">
+    <i class="fas fa-piggy-bank me-1"></i>CTS
+  </a>
+  <a href="{% url 'calc_liquidacion' %}"
+     style="padding:6px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;
+            {% if calc_activa == 'liquidacion' %}background:#0f766e;color:#fff;{% else %}background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;{% endif %}">
+    <i class="fas fa-door-open me-1"></i>Liquidación
+  </a>
+  <a href="{% url 'calculadora_afp' %}"
+     style="padding:6px 14px;border-radius:20px;font-size:.82rem;font-weight:600;text-decoration:none;
+            {% if calc_activa == 'afp' %}background:#0f766e;color:#fff;{% else %}background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;{% endif %}">
+    <i class="fas fa-trophy me-1"></i>AFP
+  </a>
+</div>

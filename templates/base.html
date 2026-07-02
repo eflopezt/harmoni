@@ -475,39 +475,15 @@
                         <i class="fas fa-coins"></i><span>Propinas</span>
                     </a>
 
-                    <div class="nav-subheader"><i class="fas fa-cogs"></i><span>Configuración</span></div>
+                    <div class="nav-subheader"><i class="fas fa-cogs"></i><span>Herramientas</span></div>
                     <a href="{% url 'onboarding_validador' %}" class="nav-item" data-match="/nominas/onboarding">
                         <i class="fas fa-clipboard-check"></i><span>Validador Onboarding</span>
                     </a>
                     <a href="{% url 'nominas_saldos_apertura' %}" class="nav-item" data-match="/nominas/apertura">
                         <i class="fas fa-rocket"></i><span>Saldos de Apertura</span>
                     </a>
-                    <a href="{% url 'conceptos_lista' %}" class="nav-item" data-match="/nominas/conceptos">
-                        <i class="fas fa-tags"></i><span>Conceptos</span>
-                    </a>
-                    <a href="{% url 'nominas_planes' %}" class="nav-item" data-match="/nominas/planes">
-                        <i class="fas fa-clipboard-list"></i><span>Planes de Plantilla</span>
-                    </a>
-                    <a href="{% url 'config_tasas_afp' %}" class="nav-item" data-match="/nominas/config/tasas-afp">
-                        <i class="fas fa-percentage"></i><span>Tasas AFP (SBS)</span>
-                    </a>
-                    <a href="{% url 'calculadora_planilla' %}" class="nav-item" data-match="^/nominas/calculadora/$">
-                        <i class="fas fa-calculator"></i><span>Calculadora Simulador</span>
-                    </a>
-                    <a href="{% url 'calc_reversa' %}" class="nav-item" data-match="/nominas/calculadora/reversa">
-                        <i class="fas fa-exchange-alt"></i><span>Calc Reversa (neto→bruto)</span>
-                    </a>
-                    <a href="{% url 'calc_gratificacion' %}" class="nav-item" data-match="/nominas/calculadora/gratificacion">
-                        <i class="fas fa-gift"></i><span>Calc Gratificación</span>
-                    </a>
-                    <a href="{% url 'calc_cts' %}" class="nav-item" data-match="/nominas/calculadora/cts">
-                        <i class="fas fa-piggy-bank"></i><span>Calc CTS</span>
-                    </a>
-                    <a href="{% url 'calc_liquidacion' %}" class="nav-item" data-match="/nominas/calculadora/liquidacion">
-                        <i class="fas fa-door-open"></i><span>Calc Liquidación</span>
-                    </a>
-                    <a href="{% url 'calculadora_afp' %}" class="nav-item" data-match="/nominas/calculadora/afp">
-                        <i class="fas fa-trophy"></i><span>AFP Recomendador</span>
+                    <a href="{% url 'calculadora_planilla' %}" class="nav-item" data-match="/nominas/calculadora">
+                        <i class="fas fa-calculator"></i><span>Calculadoras</span>
                     </a>
 
                     <div class="nav-subheader"><i class="fas fa-chart-line"></i><span>Análisis</span></div>
@@ -570,9 +546,6 @@
                     <div class="nav-subheader"><i class="fas fa-folder-open"></i><span>Legajo</span></div>
                     <a href="{% url 'documentos_panel' %}" class="nav-item" data-match="^/documentos/$">
                         <i class="fas fa-folder-open"></i><span>Legajo Digital</span>
-                    </a>
-                    <a href="{% url 'documentos_tipos' %}" class="nav-item" data-match="/documentos/tipos">
-                        <i class="fas fa-file-alt"></i><span>Tipos de Documento</span>
                     </a>
                     <a href="{% url 'documentos_faltantes' %}" class="nav-item" data-match="/documentos/faltantes">
                         <i class="fas fa-exclamation-triangle"></i><span>Faltantes</span>
@@ -644,11 +617,6 @@
                     <a href="{% url 'stats_reclutadores' %}" class="nav-item" data-match="/reclutamiento/stats-reclutadores">
                         <i class="fas fa-trophy"></i><span>Stats Reclutadores</span>
                     </a>
-                    {% if user.is_superuser %}
-                    <a href="{% url 'etapas_config' %}" class="nav-item" data-match="/reclutamiento/etapas">
-                        <i class="fas fa-layer-group"></i><span>Etapas Config</span>
-                    </a>
-                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -669,9 +637,6 @@
                     </a>
                     <a href="{% url 'offboarding_panel' %}" class="nav-item" data-match="/onboarding/offboarding">
                         <i class="fas fa-user-minus"></i><span>Offboarding</span>
-                    </a>
-                    <a href="{% url 'plantillas_onboarding' %}" class="nav-item" data-match="/onboarding/plantillas">
-                        <i class="fas fa-clipboard-list"></i><span>Plantillas</span>
                     </a>
                 </div>
             </div>
@@ -711,13 +676,6 @@
                         <i class="fas fa-route"></i><span>Planes Desarrollo</span>
                     </a>
 
-                    <div class="nav-subheader"><i class="fas fa-clipboard-list"></i><span>Configuración</span></div>
-                    <a href="{% url 'competencias_panel' %}" class="nav-item" data-match="/evaluaciones/competencias">
-                        <i class="fas fa-puzzle-piece"></i><span>Competencias</span>
-                    </a>
-                    <a href="{% url 'plantillas_panel' %}" class="nav-item" data-match="/evaluaciones/plantillas">
-                        <i class="fas fa-clipboard-list"></i><span>Plantillas</span>
-                    </a>
                 </div>
             </div>
             {% endif %}
@@ -780,9 +738,6 @@
                     <a href="{% url 'disciplinaria_panel' %}" class="nav-item" data-match="^/disciplinaria/$">
                         <i class="fas fa-gavel"></i><span>Medidas</span>
                     </a>
-                    <a href="{% url 'tipos_falta' %}" class="nav-item" data-match="/disciplinaria/tipos-falta">
-                        <i class="fas fa-list-ul"></i><span>Tipos de Falta</span>
-                    </a>
                 </div>
             </div>
 
@@ -799,12 +754,6 @@
                     </a>
                     <a href="{% url 'com_comunicados_panel' %}" class="nav-item" data-match="/comunicaciones/comunicados">
                         <i class="fas fa-bullhorn"></i><span>Comunicados</span>
-                    </a>
-                    <a href="{% url 'com_plantillas_panel' %}" class="nav-item" data-match="/comunicaciones/plantillas">
-                        <i class="fas fa-file-code"></i><span>Plantillas</span>
-                    </a>
-                    <a href="{% url 'com_config_smtp' %}" class="nav-item" data-match="/comunicaciones/config-smtp">
-                        <i class="fas fa-server"></i><span>Config SMTP</span>
                     </a>
                 </div>
             </div>
@@ -1015,6 +964,68 @@
                     </a>
                     <a href="{% url 'audit_log' %}" class="nav-item" data-match="/sistema/auditoria">
                         <i class="fas fa-history"></i><span>Auditoría</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ══ CONFIGURACIÓN (catálogos y plantillas por dominio) ══ -->
+            {% if puede_ver_admin or user.is_staff %}
+            <div class="nav-section" data-section="configuracion" data-group="gestion">
+                <button class="nav-section-toggle" type="button">
+                    <i class="fas fa-sliders-h section-icon"></i>
+                    <span>Configuración</span>
+                    <i class="fas fa-chevron-right toggle-chevron"></i>
+                </button>
+                <div class="nav-section-body">
+
+                    <div class="nav-subheader"><i class="fas fa-file-invoice-dollar"></i><span>Nóminas</span></div>
+                    <a href="{% url 'conceptos_lista' %}" class="nav-item" data-match="/nominas/conceptos">
+                        <i class="fas fa-tags"></i><span>Conceptos</span>
+                    </a>
+                    <a href="{% url 'nominas_planes' %}" class="nav-item" data-match="/nominas/planes">
+                        <i class="fas fa-clipboard-list"></i><span>Planes de Plantilla</span>
+                    </a>
+                    <a href="{% url 'config_tasas_afp' %}" class="nav-item" data-match="/nominas/config/tasas-afp">
+                        <i class="fas fa-percentage"></i><span>Tasas AFP (SBS)</span>
+                    </a>
+
+                    <div class="nav-subheader"><i class="fas fa-sitemap"></i><span>Catálogos</span></div>
+                    {% if mod_documentos %}
+                    <a href="{% url 'documentos_tipos' %}" class="nav-item" data-match="/documentos/tipos">
+                        <i class="fas fa-file-alt"></i><span>Tipos de Documento</span>
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'tipos_falta' %}" class="nav-item" data-match="/disciplinaria/tipos-falta">
+                        <i class="fas fa-list-ul"></i><span>Tipos de Falta</span>
+                    </a>
+                    {% if mod_reclutamiento and not es_plan_starter and user.is_superuser %}
+                    <a href="{% url 'etapas_config' %}" class="nav-item" data-match="/reclutamiento/etapas">
+                        <i class="fas fa-layer-group"></i><span>Etapas Pipeline</span>
+                    </a>
+                    {% endif %}
+                    {% if mod_evaluaciones %}
+                    <a href="{% url 'competencias_panel' %}" class="nav-item" data-match="/evaluaciones/competencias">
+                        <i class="fas fa-puzzle-piece"></i><span>Competencias</span>
+                    </a>
+                    {% endif %}
+
+                    <div class="nav-subheader"><i class="fas fa-clipboard-list"></i><span>Plantillas</span></div>
+                    <a href="{% url 'plantillas_onboarding' %}" class="nav-item" data-match="/onboarding/plantillas">
+                        <i class="fas fa-user-plus"></i><span>Onboarding</span>
+                    </a>
+                    {% if mod_evaluaciones %}
+                    <a href="{% url 'plantillas_panel' %}" class="nav-item" data-match="/evaluaciones/plantillas">
+                        <i class="fas fa-star"></i><span>Evaluaciones</span>
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'com_plantillas_panel' %}" class="nav-item" data-match="/comunicaciones/plantillas">
+                        <i class="fas fa-file-code"></i><span>Emails / Comunicaciones</span>
+                    </a>
+                    {% if user.is_superuser %}
+                    <a href="{% url 'com_config_smtp' %}" class="nav-item" data-match="/comunicaciones/config-smtp">
+                        <i class="fas fa-server"></i><span>Config SMTP</span>
                     </a>
                     {% endif %}
                 </div>
