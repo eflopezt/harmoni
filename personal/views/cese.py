@@ -16,8 +16,6 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
 from personal.models import Personal
-# Mapeo canónico → offboarding centralizado en personal/motivos_cese.py
-from personal.motivos_cese import PERSONAL_A_OFFBOARDING as _MOTIVO_OFF_MAP
 
 
 @login_required
@@ -72,32 +70,18 @@ def personal_dar_baja(request, pk):
         personal.observaciones = f'{existing}{sep}[CESE {fecha_cese}] {observaciones}'
     personal.save(update_fields=['estado', 'fecha_cese', 'motivo_cese', 'observaciones'])
 
-    # ── 2. Crear ProcesoOffboarding automático ─────────────────────────
+    # ── 2. ProcesoOffboarding: lo crea el signal _handle_cese ──────────
     proceso_off = None
     try:
-        from onboarding.models import PlantillaOffboarding, ProcesoOffboarding, PasoOffboarding, PasoPlantillaOff
-        plantilla = PlantillaOffboarding.objects.filter(activa=True).first()
-        if plantilla:
-            motivo_off = _MOTIVO_OFF_MAP.get(motivo_cese, 'FIN_CONTRATO')
-            proceso_off = ProcesoOffboarding.objects.create(
-                personal=personal,
-                plantilla=plantilla,
-                motivo_cese=motivo_off,
-                fecha_cese=fecha_cese,
-                iniciado_por=request.user,
-            )
-            # Generar pasos desde la plantilla
-            for paso_tmpl in PasoPlantillaOff.objects.filter(plantilla=plantilla).order_by('orden'):
-                PasoOffboarding.objects.create(
-                    proceso=proceso_off,
-                    nombre=paso_tmpl.nombre,
-                    descripcion=paso_tmpl.descripcion,
-                    tipo=paso_tmpl.tipo,
-                    orden=paso_tmpl.orden,
-                    responsable=paso_tmpl.responsable_default,
-                )
+        from onboarding.models import ProcesoOffboarding
+        proceso_off = (ProcesoOffboarding.objects
+                       .filter(personal=personal, estado='EN_CURSO')
+                       .order_by('-pk').first())
+        if proceso_off and not proceso_off.iniciado_por:
+            proceso_off.iniciado_por = request.user
+            proceso_off.save(update_fields=['iniciado_por'])
     except Exception:
-        pass  # Si no hay plantilla o hay error, continúa sin offboarding
+        pass
 
     # ── 3. Notificación (usar servicio existente si está disponible) ───
     try:

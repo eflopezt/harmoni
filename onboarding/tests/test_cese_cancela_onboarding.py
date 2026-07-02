@@ -70,6 +70,32 @@ def test_cese_no_toca_onboarding_completado(personal_activo, plantilla):
     assert proceso.estado == 'COMPLETADO'
 
 
+def test_cese_crea_proceso_offboarding(personal_activo):
+    """El signal crea el ProcesoOffboarding desde la plantilla activa,
+    para cualquier camino de cese (wizard o programático)."""
+    from onboarding.models import (
+        PasoPlantillaOff, PlantillaOffboarding, ProcesoOffboarding,
+    )
+    plantilla_off = PlantillaOffboarding.objects.create(
+        nombre='Offboarding Estándar', activa=True)
+    PasoPlantillaOff.objects.create(
+        plantilla=plantilla_off, titulo='Entrega de activos', orden=1)
+
+    personal_activo.estado = 'Cesado'
+    personal_activo.fecha_cese = date(2026, 7, 1)
+    personal_activo.motivo_cese = 'RENUNCIA'
+    personal_activo.save()
+
+    proceso = ProcesoOffboarding.objects.get(personal=personal_activo)
+    assert proceso.estado == 'EN_CURSO'
+    assert proceso.pasos.count() == 1
+
+    # Idempotente: re-guardar no duplica
+    personal_activo.save()
+    assert ProcesoOffboarding.objects.filter(
+        personal=personal_activo).count() == 1
+
+
 def test_cese_no_toca_onboarding_de_otro_trabajador(personal_activo, plantilla):
     otro = Personal.objects.create(
         nro_doc='75555555',

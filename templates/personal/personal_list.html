@@ -1026,20 +1026,19 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       if (act === 'cesar') {
-        if (!confirm(`¿Cesar ${ids.length} trabajador${ids.length>1?'es':''}? Esta acción los marcará como Cesado. La fecha y motivo se confirmarán en el siguiente paso.`)) return;
-        // Redirige a una vista batch (si no existe, al primer cese)
+        if (!confirm(`¿Cesar ${ids.length} trabajador${ids.length>1?'es':''}? Se abrirá el wizard de cese (fecha, motivo y preview de liquidación).`)) return;
         if (ids.length === 1) {
-          window.location.href = `/personal/${ids[0]}/dar-baja/`;
+          window.location.href = `/personal/${ids[0]}/cesar/`;
         } else {
-          // Sin endpoint batch implementado todavía → fallback
+          // El cese requiere preview de liquidación por persona → uno a uno
           if (window.Harmoni && window.Harmoni.toast) {
             window.Harmoni.toast({
-              title: 'Cese masivo en desarrollo',
-              detail: `Por ahora cesa uno a uno. Empezando por el primero seleccionado.`,
+              title: 'El cese se procesa uno a uno',
+              detail: `Cada cese requiere su preview de liquidación. Empezando por el primero seleccionado.`,
               kind: 'info',
             });
           }
-          setTimeout(() => { window.location.href = `/personal/${ids[0]}/dar-baja/`; }, 1500);
+          setTimeout(() => { window.location.href = `/personal/${ids[0]}/cesar/`; }, 1500);
         }
         return;
       }

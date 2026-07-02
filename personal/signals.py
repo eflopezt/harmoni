@@ -259,6 +259,54 @@ def _handle_cese(personal):
     _generar_constancia_cese(personal)
     _email_cese_empleado(personal)
     _cancelar_onboarding_en_curso(personal)
+    _crear_proceso_offboarding(personal)
+
+
+def _crear_proceso_offboarding(personal):
+    """Crea el ProcesoOffboarding con los pasos de la plantilla activa.
+
+    Vive en el signal para que TODO camino de cese (wizard, dar-baja
+    programático, admin) lo genere. Idempotente: no duplica si ya hay un
+    proceso EN_CURSO para el trabajador.
+    """
+    try:
+        from onboarding.models import (
+            PasoOffboarding, PasoPlantillaOff,
+            PlantillaOffboarding, ProcesoOffboarding,
+        )
+        from personal.motivos_cese import PERSONAL_A_OFFBOARDING
+
+        if ProcesoOffboarding.objects.filter(
+                personal=personal, estado='EN_CURSO').exists():
+            return
+
+        plantilla = PlantillaOffboarding.objects.filter(activa=True).first()
+        if not plantilla:
+            return
+
+        from datetime import date as _date, timedelta as _td
+        fecha_cese = personal.fecha_cese or _date.today()
+        proceso = ProcesoOffboarding.objects.create(
+            personal=personal,
+            plantilla=plantilla,
+            motivo_cese=PERSONAL_A_OFFBOARDING.get(
+                personal.motivo_cese, 'FIN_CONTRATO'),
+            fecha_cese=fecha_cese,
+        )
+        for paso_tmpl in PasoPlantillaOff.objects.filter(
+                plantilla=plantilla).order_by('orden'):
+            PasoOffboarding.objects.create(
+                proceso=proceso,
+                paso_plantilla=paso_tmpl,
+                orden=paso_tmpl.orden,
+                titulo=paso_tmpl.titulo,
+                estado='PENDIENTE',
+                fecha_limite=fecha_cese + _td(days=paso_tmpl.dias_plazo),
+            )
+        logger.info('[Signal Cese] ProcesoOffboarding #%s creado para %s',
+                    proceso.pk, personal.nro_doc)
+    except Exception as e:
+        logger.warning('[Signal Cese] Error creando offboarding: %s', e)
 
 
 def _cancelar_onboarding_en_curso(personal):
