@@ -6,6 +6,9 @@ Responsabilidades:
     SolicitudVacacion o SolicitudPermiso.
   - Cuando se aprueba una SolicitudPermiso de tipo bajada (codigo=bajada-dl / bajada-dla),
     crear automáticamente las entradas de Roster correspondientes.
+  - Cuando se aprueba una SolicitudVacacion, crear la RegistroPapeleta
+    VACACIONES (fuente única de ausencias: el signal de asistencia la aplica
+    al tareo) y marcar el Roster con código VAC.
 """
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
@@ -82,14 +85,109 @@ def _invalidar_badge_superusers():
 # ── Solicitudes de Vacación ────────────────────────────────────────────────────
 
 @receiver(post_save, sender='vacaciones.SolicitudVacacion')
-def badge_solicitud_vacacion(sender, instance, **kwargs):
+def badge_solicitud_vacacion(sender, instance, created=False, **kwargs):
     """Invalida badge al crear/modificar una solicitud de vacación.
-    También dispara notif IN_APP al trabajador en transiciones de estado.
+    También dispara notif IN_APP al trabajador en transiciones de estado
+    y sincroniza papeleta + roster al quedar APROBADA.
     """
     _invalidar_badge_superusers()
     estado_anterior = _estados_previos.pop(instance.pk, None)
     if estado_anterior and estado_anterior != instance.estado:
         _notif_trabajador_vacacion(instance, estado_anterior)
+
+    aprobada_ahora = instance.estado == 'APROBADA' and (
+        created or (estado_anterior and estado_anterior != 'APROBADA')
+    )
+    if aprobada_ahora:
+        _sincronizar_vacacion_aprobada(instance)
+
+
+def _sincronizar_vacacion_aprobada(solicitud):
+    """Papeleta como fuente única de ausencias: al aprobar vacaciones se crea
+    la RegistroPapeleta VACACIONES (su signal en asistencia la aplica al
+    RegistroTareo del rango) y el Roster queda con código VAC.
+
+    Idempotente (no duplica si ya hay papeleta VACACIONES solapada) y
+    best-effort (un fallo no bloquea la aprobación).
+    """
+    _crear_papeleta_vacaciones(solicitud)
+    _crear_roster_vacaciones(solicitud)
+
+
+def _crear_papeleta_vacaciones(solicitud):
+    try:
+        from asistencia.models import RegistroPapeleta
+        solapada = RegistroPapeleta.objects.filter(
+            personal=solicitud.personal,
+            tipo_permiso='VACACIONES',
+            estado__in=['APROBADA', 'EJECUTADA'],
+            fecha_inicio__lte=solicitud.fecha_fin,
+            fecha_fin__gte=solicitud.fecha_inicio,
+        ).exists()
+        if solapada:
+            logger.info(
+                'Papeleta VAC ya existente para %s (%s→%s): no se duplica.',
+                solicitud.personal.nro_doc,
+                solicitud.fecha_inicio, solicitud.fecha_fin,
+            )
+            return
+        RegistroPapeleta.objects.create(
+            origen='SISTEMA',
+            personal=solicitud.personal,
+            dni=solicitud.personal.nro_doc,
+            nombre_archivo=solicitud.personal.apellidos_nombres,
+            tipo_permiso='VACACIONES',
+            iniciales='VAC',
+            fecha_inicio=solicitud.fecha_inicio,
+            fecha_fin=solicitud.fecha_fin,
+            detalle=f'Auto: SolicitudVacacion #{solicitud.pk} aprobada',
+            dias_habiles=solicitud.dias_habiles,
+            estado='APROBADA',
+            creado_por=solicitud.aprobado_por,
+            aprobado_por=solicitud.aprobado_por,
+            fecha_aprobacion=solicitud.fecha_aprobacion,
+        )
+        logger.info(
+            'Papeleta VAC auto-creada desde SolicitudVacacion #%s (%s, %s→%s)',
+            solicitud.pk, solicitud.personal.nro_doc,
+            solicitud.fecha_inicio, solicitud.fecha_fin,
+        )
+    except Exception as e:
+        logger.warning('Error creando papeleta VAC desde solicitud #%s: %s',
+                       solicitud.pk, e)
+
+
+def _crear_roster_vacaciones(solicitud):
+    """Marca VAC en el Roster para el rango aprobado (mismo patrón que las
+    bajadas DL/DLA). Solo si el módulo roster está activo."""
+    try:
+        from asistencia.models import ConfiguracionSistema
+        if not ConfiguracionSistema.get().mod_roster:
+            return
+    except Exception:
+        return
+
+    try:
+        from personal.models import Roster
+        from datetime import timedelta
+
+        fecha = solicitud.fecha_inicio
+        while fecha <= solicitud.fecha_fin:
+            Roster.objects.update_or_create(
+                personal=solicitud.personal,
+                fecha=fecha,
+                defaults={
+                    'codigo':       'VAC',
+                    'estado':       'aprobado',
+                    'fuente':       f'SolicitudVacacion #{solicitud.pk}',
+                    'observaciones': (solicitud.motivo or '')[:200],
+                    'aprobado_por': solicitud.aprobado_por,
+                },
+            )
+            fecha += timedelta(days=1)
+    except Exception as e:
+        logger.warning('Error marcando VAC en roster desde solicitud #%s: %s',
+                       solicitud.pk, e)
 
 
 # ── Solicitudes de Permiso ─────────────────────────────────────────────────────
