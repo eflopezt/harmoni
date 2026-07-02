@@ -68,13 +68,10 @@ urlpatterns = [
     # ── Admin: Agendar entrevista (standalone) ──
     path('postulaciones/<int:pk>/entrevista/', views.entrevista_agendar, name='entrevista_agendar'),
 
-    # ── Admin: Mover etapa AJAX ──
-    path('postulaciones/<int:pk>/mover/', views.mover_etapa, name='mover_etapa'),
-
     # ── Admin: Publicar oferta (accion rapida) ──
     path('<int:pk>/publicar-rapido/', views.publicar_oferta, name='vacante_publicar'),
 
-    # ── Admin: Dashboard de reclutamiento ──
+    # ── Admin: Dashboard de reclutamiento (legacy → redirect a Mi Día) ──
     path('dashboard/', views.dashboard_reclutamiento, name='reclutamiento_dashboard'),
 
     # ── Publico: Portal de Empleo ──

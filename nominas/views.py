@@ -1041,13 +1041,9 @@ def registro_editar(request, pk):
 @login_required
 @solo_admin
 def conceptos_panel(request):
-    """Panel de conceptos remunerativos."""
-    conceptos = ConceptoRemunerativo.objects.all().order_by('tipo', 'orden', 'nombre')
-    return render(request, 'nominas/conceptos.html', {
-        'titulo': 'Conceptos Remunerativos',
-        'conceptos': conceptos,
-        'tipo_choices': ConceptoRemunerativo.TIPO_CHOICES,
-    })
+    """Panel legacy retirado del menú (P10): la gestión de conceptos vive en
+    /nominas/conceptos/configurar/. La URL se conserva por bookmarks."""
+    return redirect('conceptos_lista')
 
 
 @login_required

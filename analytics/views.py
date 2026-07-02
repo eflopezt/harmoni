@@ -264,7 +264,7 @@ def dashboard(request):
         'value': vac_open_count,
         'icon': 'fas fa-briefcase',
         'color': '#2563eb',
-        'url': 'reclutamiento_dashboard',
+        'url': 'vacantes_panel',
     })
 
     # ── Próximos cumpleaños (personal activo, próximos 30 días) ──

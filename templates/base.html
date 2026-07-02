@@ -482,7 +482,7 @@
                     <a href="{% url 'nominas_saldos_apertura' %}" class="nav-item" data-match="/nominas/apertura">
                         <i class="fas fa-rocket"></i><span>Saldos de Apertura</span>
                     </a>
-                    <a href="{% url 'nominas_conceptos' %}" class="nav-item" data-match="/nominas/conceptos">
+                    <a href="{% url 'conceptos_lista' %}" class="nav-item" data-match="/nominas/conceptos">
                         <i class="fas fa-tags"></i><span>Conceptos</span>
                     </a>
                     <a href="{% url 'nominas_planes' %}" class="nav-item" data-match="/nominas/planes">
@@ -643,9 +643,6 @@
                     </a>
                     <a href="{% url 'stats_reclutadores' %}" class="nav-item" data-match="/reclutamiento/stats-reclutadores">
                         <i class="fas fa-trophy"></i><span>Stats Reclutadores</span>
-                    </a>
-                    <a href="{% url 'reclutamiento_dashboard' %}" class="nav-item" data-match="/reclutamiento/dashboard">
-                        <i class="fas fa-chart-bar"></i><span>Dashboard Legacy</span>
                     </a>
                     {% if user.is_superuser %}
                     <a href="{% url 'etapas_config' %}" class="nav-item" data-match="/reclutamiento/etapas">
