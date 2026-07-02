@@ -249,6 +249,8 @@ def procesar_importacion_synkro(self, importacion_id: int, ruta_archivo: str,
         if not dry_run:
             processor = TareoProcessor(importacion)
             resultado = processor.procesar(registros_reloj, papeletas, grupo_default)
+            from asistencia.services.postproceso import postprocesar_importacion
+            resultado['postproceso'] = postprocesar_importacion(importacion)
         else:
             resultado = {
                 'simulado': True,

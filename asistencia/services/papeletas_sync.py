@@ -257,7 +257,11 @@ def revertir_papeleta(pap: RegistroPapeleta) -> dict:
 # ── helpers de caché ───────────────────────────────────────────────
 _imp_cache = {'imp': None}
 def _get_or_create_imp() -> TareoImportacion:
-    if _imp_cache['imp'] is None or _imp_cache['imp'].pk is None:
+    imp = _imp_cache['imp']
+    # El pk cacheado puede apuntar a una fila que ya no existe (rollback de
+    # transacción en tests, borrado manual): validar contra la BD.
+    if imp is None or imp.pk is None or \
+            not TareoImportacion.objects.filter(pk=imp.pk).exists():
         _imp_cache['imp'] = TareoImportacion.objects.create(
             archivo_nombre='papeletas_sync_auto',
             tipo='RELOJ',

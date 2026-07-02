@@ -747,6 +747,15 @@ class Command(BaseCommand):
             f"Advertencias: {len(advertencias)}"
         )
 
+        if not dry_run:
+            from asistencia.services.postproceso import postprocesar_importacion
+            post = postprocesar_importacion(importacion)
+            if post.get('faltas_creadas') is not None:
+                self.stdout.write(
+                    f"  ✓ Post-proceso: {post['faltas_creadas']} faltas/DS automáticos, "
+                    f"cruce Tareo-Roster actualizado."
+                )
+
         return {
             'ok': ok,
             'errores': errores,

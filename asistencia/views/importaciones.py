@@ -289,6 +289,9 @@ def importar_synkro_view(request):
                 importacion.advertencias = (importacion.advertencias or []) + todas_adv
                 importacion.save(update_fields=['advertencias'])
 
+            from asistencia.services.postproceso import postprocesar_importacion
+            post = postprocesar_importacion(importacion)
+
             fmt_str = ', '.join(set(hojas_fmt.values()))
             msg = (
                 f'Importacion completada ({fmt_str}): '
@@ -298,6 +301,10 @@ def importar_synkro_view(request):
             )
             if papeletas:
                 msg += f' Papeletas: {len(papeletas)}.'
+            if post.get('faltas_creadas'):
+                msg += f' Faltas/DS automáticos: {post["faltas_creadas"]}.'
+            if post.get('cruce') is not None:
+                msg += ' Cruce Tareo-Roster actualizado.'
             if res_proc.get('errores'):
                 messages.warning(request, msg)
             else:

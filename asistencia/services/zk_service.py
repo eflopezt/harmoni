@@ -578,6 +578,11 @@ class ZKService:
                 .update(procesado=True, importacion=importacion)
             )
 
+            # 6. Post-proceso: faltas automáticas + cruce Tareo-Roster
+            from asistencia.services.postproceso import postprocesar_importacion
+            post = postprocesar_importacion(
+                importacion, fecha_ini=fecha_inicio, fecha_fin=fecha_fin)
+
             return {
                 'ok': True,
                 'importacion_id': importacion.pk,
@@ -586,6 +591,7 @@ class ZKService:
                 'sin_match': resultado.get('sin_match', 0),
                 'errores': resultado.get('errores', []),
                 'advertencias': resultado.get('advertencias', []),
+                'postproceso': post,
                 'error': '',
             }
 

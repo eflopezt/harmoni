@@ -25,7 +25,7 @@ _ROSTER_LICENCIA  = {'L', 'P', 'DM', 'FC'}
 # Códigos de RegistroTareo.codigo_dia (marcación real ya procesada).
 _TAREO_TRABAJO    = {'A', 'NOR', 'T', 'TR', 'CHE'}
 _TAREO_DESCANSO   = {'DL', 'DS', 'DLA', 'D'}
-_TAREO_FALTA      = {'F', 'FL'}
+_TAREO_FALTA      = {'F', 'FL', 'FA', 'FI'}
 _TAREO_VACACIONES = {'VAC', 'V'}
 _TAREO_LICENCIA   = {'L', 'DM', 'P'}
 

@@ -258,6 +258,22 @@ def _handle_cese(personal):
     _notificar_admins_cese(personal)
     _generar_constancia_cese(personal)
     _email_cese_empleado(personal)
+    _cancelar_onboarding_en_curso(personal)
+
+
+def _cancelar_onboarding_en_curso(personal):
+    """Un cesado no debe seguir con onboarding activo (ej. cese en período
+    de prueba): se cancela el proceso, no se borra el avance."""
+    try:
+        from onboarding.models import ProcesoOnboarding
+        n = ProcesoOnboarding.objects.filter(
+            personal=personal, estado='EN_CURSO',
+        ).update(estado='CANCELADO')
+        if n:
+            logger.info('[Signal Cese] %s proceso(s) de onboarding cancelado(s) para %s',
+                        n, personal.nro_doc)
+    except Exception as e:
+        logger.warning('[Signal Cese] Error cancelando onboarding: %s', e)
 
 
 def _notificar_admins_cese(personal):
