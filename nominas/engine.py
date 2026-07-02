@@ -110,6 +110,7 @@ def snapshot_parametros_legales() -> dict:
         'essalud_tasa': str(ESSALUD_TASA),
         'afp_aporte': str(AFP_APORTE),
         'afp_tope_rma': str(_get_tope_rma()),
+        'usar_metodo_sunat_ir5ta': _get_usar_metodo_sunat_ir5ta(),
         'aportes_riesgo': {
             k: (str(v) if isinstance(v, Decimal) else v)
             for k, v in _get_aportes_riesgo().items()
@@ -191,6 +192,70 @@ def _get_usar_metodo_sunat_ir5ta() -> bool:
         return bool(getattr(ConfiguracionSistema.get(), 'usar_metodo_sunat_ir5ta', False))
     except Exception:
         return False
+
+
+def _snap_legal(periodo) -> dict:
+    """parametros_snapshot del período (dict vacío si no hay o no aplica)."""
+    if periodo is None:
+        return {}
+    snap = getattr(periodo, 'parametros_snapshot', None)
+    return snap if isinstance(snap, dict) and snap else {}
+
+
+def _param_snap_decimal(periodo, clave, fallback_fn) -> Decimal:
+    """Lee un parámetro Decimal del snapshot congelado; fallback a lectura live.
+
+    P12: el snapshot es LA fuente durante el cálculo — un recálculo de un
+    período ya generado no debe cambiar de montos porque el admin editó
+    tasas en ConfiguracionSistema después.
+    """
+    v = _snap_legal(periodo).get(clave)
+    if v is not None:
+        try:
+            return Decimal(str(v))
+        except Exception:
+            pass
+    return fallback_fn()
+
+
+def _tasas_afp_efectivas(afp_nombre: str, periodo=None) -> dict:
+    """Tasas AFP desde el snapshot del período; fallback a live/hardcoded."""
+    snap = _snap_legal(periodo).get('afp_tasas') or {}
+    t = snap.get(afp_nombre)
+    if t:
+        try:
+            return {
+                'comision_flujo': Decimal(str(t['comision_flujo'])),
+                'seguro': Decimal(str(t['seguro'])),
+            }
+        except Exception:
+            pass
+    return _get_tasas_afp(afp_nombre)
+
+
+def _aportes_riesgo_efectivos(periodo=None) -> dict:
+    """SCTR/Vida Ley desde el snapshot del período; fallback a live."""
+    snap = _snap_legal(periodo).get('aportes_riesgo')
+    if snap:
+        try:
+            return {
+                'sctr_activo':       bool(snap.get('sctr_activo', True)),
+                'sctr_salud_tasa':   Decimal(str(snap.get('sctr_salud_tasa', SCTR_SALUD_TASA))),
+                'sctr_pension_tasa': Decimal(str(snap.get('sctr_pension_tasa', SCTR_PENSION_TASA))),
+                'vida_ley_activo':   bool(snap.get('vida_ley_activo', True)),
+                'vida_ley_tasa':     Decimal(str(snap.get('vida_ley_tasa', VIDA_LEY_TASA))),
+            }
+        except Exception:
+            pass
+    return _get_aportes_riesgo()
+
+
+def _usar_sunat_efectivo(periodo=None) -> bool:
+    """Método IR 5ta congelado en el snapshot; fallback al flag live."""
+    v = _snap_legal(periodo).get('usar_metodo_sunat_ir5ta')
+    if v is not None:
+        return bool(v)
+    return _get_usar_metodo_sunat_ir5ta()
 
 
 def _rmv_efectivo(periodo=None) -> Decimal:
@@ -753,12 +818,15 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     afp_seguro   = Decimal('0')
     onp          = Decimal('0')
 
+    # Tasas efectivas: snapshot congelado del período > override live > hardcoded
+    afp_aporte_tasa = _param_snap_decimal(periodo, 'afp_aporte', lambda: AFP_APORTE)
+    onp_tasa        = _param_snap_decimal(periodo, 'onp_tasa', lambda: ONP_TASA)
+
     if pension == 'AFP':
-        # Tasas dinámicas (override por ConfiguracionSistema o hardcoded fallback)
-        tasas = _get_tasas_afp(afp_nombre)
-        tope_rma = _get_tope_rma()
+        tasas = _tasas_afp_efectivas(afp_nombre, periodo)
+        tope_rma = _param_snap_decimal(periodo, 'afp_tope_rma', _get_tope_rma)
         # Aporte obligatorio 10% — sin tope, sobre remuneración asegurable total
-        afp_aporte   = _redondear(rem_computable * AFP_APORTE / Decimal('100'))
+        afp_aporte   = _redondear(rem_computable * afp_aporte_tasa / Decimal('100'))
         # Comisión por flujo — sin tope, sobre remuneración total
         afp_comision = _redondear(rem_computable * tasas['comision_flujo'] / Decimal('100'))
         # Prima de seguro — CON tope de Remuneración Máxima Asegurable (RMA)
@@ -768,13 +836,13 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         afp_seguro   = _redondear(base_seguro * tasas['seguro'] / Decimal('100'))
     elif pension == 'ONP':
         # ONP 13% — sin tope, sobre remuneración total (DL 19990)
-        onp = _redondear(rem_computable * ONP_TASA / Decimal('100'))
+        onp = _redondear(rem_computable * onp_tasa / Decimal('100'))
 
     # ── 7. IR 5ta categoría ──
     # Dos métodos disponibles:
     #   - SUNAT (default opt-in): proyección con fija + variables percibidas
     #   - Legacy: rem × 14 (sobre-estima con HE variables o cese a mitad de año)
-    usar_sunat = _get_usar_metodo_sunat_ir5ta()
+    usar_sunat = _usar_sunat_efectivo(periodo)
     if usar_sunat and periodo is not None:
         # Variables percibidas: HE + otros_ing del mes actual (proxy mínimo;
         # el caller puede pasar lo acumulado-año por otro canal en el futuro).
@@ -893,12 +961,13 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     neto                  = _redondear(total_ingresos_bruto - total_desc_trabajador)
 
     # ── 10. Aportes empleador (costo empresa) ──
-    essalud = _redondear(rem_computable * ESSALUD_TASA / Decimal('100'))
+    essalud_tasa = _param_snap_decimal(periodo, 'essalud_tasa', lambda: ESSALUD_TASA)
+    essalud = _redondear(rem_computable * essalud_tasa / Decimal('100'))
 
     # ── 10b. Aportes/primas de riesgo del empleador ──
     # SCTR (Ley 26790): solo trabajadores en actividad de riesgo (afecto_sctr).
     # Vida Ley (D.Leg. 688): todos los trabajadores. Base: remuneración computable.
-    _riesgo = _get_aportes_riesgo()
+    _riesgo = _aportes_riesgo_efectivos(periodo)
     _afecto_sctr = bool(getattr(getattr(p, 'personal', None), 'afecto_sctr', False))
     sctr_salud   = Decimal('0')
     sctr_pension = Decimal('0')
@@ -961,16 +1030,15 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
                 'observacion': 'Importado / edición manual',
             })
 
-    # Descuentos trabajador
+    # Descuentos trabajador (las tasas mostradas son las EFECTIVAS del cálculo)
     if afp_aporte > 0:
-        _agregar('afp-aporte',      rem_computable, AFP_APORTE,   afp_aporte,    f'AFP {afp_nombre}')
+        _agregar('afp-aporte',      rem_computable, afp_aporte_tasa, afp_aporte,  f'AFP {afp_nombre}')
     if afp_comision > 0:
-        tasas2 = AFP_TASAS.get(afp_nombre, AFP_TASAS['Prima'])
-        _agregar('afp-comision',    rem_computable, tasas2['comision_flujo'], afp_comision, f'AFP {afp_nombre}')
+        _agregar('afp-comision',    rem_computable, tasas['comision_flujo'], afp_comision, f'AFP {afp_nombre}')
     if afp_seguro > 0:
-        _agregar('afp-seguro',      rem_computable, tasas2['seguro'], afp_seguro, f'AFP {afp_nombre}')
+        _agregar('afp-seguro',      rem_computable, tasas['seguro'], afp_seguro, f'AFP {afp_nombre}')
     if onp > 0:
-        _agregar('onp',             rem_computable, ONP_TASA,     onp)
+        _agregar('onp',             rem_computable, onp_tasa,     onp)
     if ir_5ta > 0:
         _agregar('ir-5ta',          rem_anual,      Decimal('0'), ir_5ta,        'Retención mensual')
     if descto_prestamo > 0:
@@ -994,7 +1062,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
             })
 
     # Aportes empleador
-    _agregar('essalud',             rem_computable, ESSALUD_TASA, essalud)
+    _agregar('essalud',             rem_computable, essalud_tasa, essalud)
     if sctr_salud > 0:
         _agregar('sctr-salud',      rem_computable, _riesgo['sctr_salud_tasa'],   sctr_salud,
                  'SCTR Salud (Ley 26790)')
