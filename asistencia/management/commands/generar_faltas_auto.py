@@ -51,12 +51,9 @@ class Command(BaseCommand):
         fecha_fin = date.fromisoformat(opts['fecha_fin'])
         dry = opts['dry_run']
 
-        # Feriados del período
-        feriados = set(
-            FeriadoCalendario.objects.filter(
-                fecha__gte=fecha_ini, fecha__lte=fecha_fin, activo=True
-            ).values_list('fecha', flat=True)
-        )
+        # Feriados del período (con traslados de CompensacionFeriado)
+        from asistencia.services.feriados import feriados_efectivos
+        feriados = feriados_efectivos(fecha_ini, fecha_fin)
 
         # Personal que estuvo activo en el período (fecha_alta <= fin Y (fecha_cese >= ini OR null))
         personal_qs = Personal.objects.filter(

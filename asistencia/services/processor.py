@@ -135,12 +135,9 @@ class TareoProcessor:
         self.importacion = importacion
         self.config = config or ConfiguracionSistema.get()
 
-        # Cargar feriados del período
-        self._feriados: set[date] = set(
-            FeriadoCalendario.objects
-            .filter(activo=True)
-            .values_list('fecha', flat=True)
-        )
+        # Cargar feriados (con traslados de CompensacionFeriado aplicados)
+        from asistencia.services.feriados import feriados_efectivos
+        self._feriados: set[date] = feriados_efectivos()
 
         # Cargar homologaciones (código_origen → HomologacionCodigo)
         self._homologaciones = {

@@ -438,24 +438,15 @@ class Command(BaseCommand):
         # ── 2. Configuración y feriados ───────────────────────────────────────
         config = ConfiguracionSistema.get()
 
-        # Feriados activos del período
-        feriados = set(
-            FeriadoCalendario.objects.filter(
-                fecha__gte=fecha_ini, fecha__lte=fecha_fin, activo=True,
-            ).values_list('fecha', flat=True)
-        )
-
-        # Aplicar compensaciones: el día original deja de ser feriado,
-        # el día compensado pasa a serlo (para todo el año, no solo el período)
-        compensaciones = CompensacionFeriado.objects.filter(activo=True)
-        for comp in compensaciones:
-            feriados.discard(comp.fecha_feriado)
-            if fecha_ini <= comp.fecha_compensada <= fecha_fin:
-                feriados.add(comp.fecha_compensada)
+        # Feriados activos del período (traslados de CompensacionFeriado
+        # aplicados por el helper único)
+        from asistencia.services.feriados import feriados_efectivos
+        feriados = feriados_efectivos(fecha_ini, fecha_fin)
+        hay_comp = CompensacionFeriado.objects.filter(activo=True).exists()
 
         self.stdout.write(
             f'  Feriados en período : {len(feriados)}'
-            f'{" (con compensaciones)" if compensaciones.exists() else ""}\n'
+            f'{" (con compensaciones)" if hay_comp else ""}\n'
             f'  Jornada LOCAL L-V   : {config.jornada_local_horas}h\n'
             f'  Jornada LOCAL Sáb   : {JORNADA_SABADO_LOCAL}h\n'
             f'  Jornada FORÁNEO L-S : {JORNADA_DIA_FORANEO}h (efectiva, sin almuerzo)\n'
