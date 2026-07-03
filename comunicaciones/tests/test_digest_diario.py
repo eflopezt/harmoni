@@ -66,7 +66,43 @@ class TestDigestDiario:
         assert notif is not None
         assert "pendiente" in notif.asunto.lower()
         assert "Préstamos" in notif.cuerpo
-        assert "/prestamos/" in notif.cuerpo
+        # El link apunta a la bandeja unificada (F2/F3), no al módulo suelto
+        assert "/aprobaciones/?tab=prestamos" in notif.cuerpo
+
+    def test_tool_incluye_permisos_y_workflows(self, trabajador):
+        """F3: la tool consolidada cubre también permisos y workflows,
+        con deep-link a la bandeja unificada."""
+        from django.contrib.contenttypes.models import ContentType
+        from nominas.agente_ia.tools import tool_listar_aprobaciones_pendientes
+        from vacaciones.models import SolicitudPermiso, TipoPermiso
+        from workflows.models import EtapaFlujo, FlujoTrabajo, InstanciaFlujo
+
+        tipo = TipoPermiso.objects.create(nombre="Permiso Digest", codigo="perm-digest")
+        SolicitudPermiso.objects.create(
+            personal=trabajador, tipo=tipo,
+            fecha_inicio=date(2026, 8, 3), fecha_fin=date(2026, 8, 3),
+            estado="PENDIENTE",
+        )
+        ct = ContentType.objects.get_for_model(User)
+        flujo = FlujoTrabajo.objects.create(
+            nombre="Flujo Digest", content_type=ct,
+            campo_trigger="first_name", valor_trigger="P",
+            campo_resultado="first_name",
+            valor_aprobado="A", valor_rechazado="R",
+        )
+        etapa = EtapaFlujo.objects.create(
+            flujo=flujo, orden=1, nombre="E1", tipo_aprobador="SUPERUSER")
+        solicitante = User.objects.create_user("sol.digest", "sd@test.pe", "x")
+        InstanciaFlujo.objects.create(
+            flujo=flujo, content_type=ct, object_id=solicitante.pk,
+            etapa_actual=etapa, estado="EN_PROCESO", solicitante=solicitante,
+        )
+
+        res = tool_listar_aprobaciones_pendientes()
+        assert res["bloques"]["permisos"]["total"] == 1
+        assert res["bloques"]["permisos"]["donde_aprobar"] == "/aprobaciones/?tab=permisos"
+        assert res["bloques"]["workflows"]["total"] == 1
+        assert res["bloques"]["workflows"]["donde_aprobar"] == "/aprobaciones/?tab=workflows"
 
     def test_sin_pendientes_no_envia(self, admin_con_email):
         resultado = enviar_digest_diario_admins()

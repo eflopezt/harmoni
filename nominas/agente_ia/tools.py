@@ -525,7 +525,7 @@ def tool_listar_aprobaciones_pendientes():
         qs = Prestamo.objects.filter(estado='PENDIENTE').select_related('personal', 'tipo')
         return {
             'total': qs.count(),
-            'donde_aprobar': '/prestamos/',
+            'donde_aprobar': '/aprobaciones/?tab=prestamos',
             'detalle': [
                 {'trabajador': str(p.personal), 'tipo': str(p.tipo),
                  'monto': float(p.monto_solicitado),
@@ -552,11 +552,36 @@ def tool_listar_aprobaciones_pendientes():
         qs = SolicitudVacacion.objects.filter(estado='PENDIENTE').select_related('personal')
         return {
             'total': qs.count(),
-            'donde_aprobar': '/vacaciones/',
+            'donde_aprobar': '/aprobaciones/?tab=vacaciones',
             'detalle': [
                 {'trabajador': str(s.personal),
                  'desde': s.fecha_inicio.isoformat() if getattr(s, 'fecha_inicio', None) else None}
                 for s in qs[:5]
+            ],
+        }
+
+    def _permisos():
+        from vacaciones.models import SolicitudPermiso
+        qs = SolicitudPermiso.objects.filter(estado='PENDIENTE').select_related('personal', 'tipo')
+        return {
+            'total': qs.count(),
+            'donde_aprobar': '/aprobaciones/?tab=permisos',
+            'detalle': [
+                {'trabajador': str(s.personal), 'tipo': str(getattr(s, 'tipo', '') or ''),
+                 'desde': s.fecha_inicio.isoformat() if getattr(s, 'fecha_inicio', None) else None}
+                for s in qs[:5]
+            ],
+        }
+
+    def _workflows():
+        from workflows.models import InstanciaFlujo
+        qs = InstanciaFlujo.objects.filter(estado='EN_PROCESO').select_related('flujo')
+        return {
+            'total': qs.count(),
+            'donde_aprobar': '/aprobaciones/?tab=workflows',
+            'detalle': [
+                {'flujo': str(w.flujo), 'etapa': str(w.etapa_actual or '')}
+                for w in qs[:5]
             ],
         }
 
@@ -572,6 +597,8 @@ def tool_listar_aprobaciones_pendientes():
     _bloque('prestamos_y_adelantos', _prestamos)
     _bloque('descuentos_planilla', _descuentos)
     _bloque('vacaciones', _vacaciones)
+    _bloque('permisos', _permisos)
+    _bloque('workflows', _workflows)
     _bloque('reintegros_agente', _reintegros)
 
     total = sum(
