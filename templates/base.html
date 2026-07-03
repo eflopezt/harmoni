@@ -219,9 +219,7 @@
 
                     {% if mod_documentos %}
                     <div class="nav-subheader"><i class="fas fa-folder-open"></i><span>Mis Documentos</span></div>
-                    <a href="{% url 'mis_constancias' %}" class="nav-item" data-match="/documentos/constancias/mis">
-                        <i class="fas fa-file-signature"></i><span>Mis Constancias</span>
-                    </a>
+                    {# Mis Constancias vive en las acciones rápidas de Mi Resumen #}
                     <a href="{% url 'mis_documentos_laborales' %}" class="nav-item" data-match="/documentos/laborales/mis">
                         <i class="fas fa-file-contract"></i><span>Reglamentos y Políticas</span>
                     </a>
@@ -280,17 +278,12 @@
                     {% endif %}
 
                     <div class="nav-subheader"><i class="fas fa-building"></i><span>Mi Empresa</span></div>
-                    <a href="{% url 'organigrama' %}" class="nav-item" data-match="/mi-portal/organigrama">
-                        <i class="fas fa-sitemap"></i><span>Organigrama</span>
-                    </a>
+                    {# Organigrama y Mi Timeline viven en las acciones rápidas de Mi Resumen #}
                     <a href="{% url 'directorio' %}" class="nav-item" data-match="/mi-portal/directorio">
                         <i class="fas fa-address-book"></i><span>Directorio</span>
                     </a>
                     <a href="{% url 'mi_onboarding_portal' %}" class="nav-item" data-match="/mi-portal/mi-onboarding">
                         <i class="fas fa-user-plus"></i><span>Mi Onboarding</span>
-                    </a>
-                    <a href="{% url 'mi_timeline' %}" class="nav-item" data-match="/mi-portal/timeline">
-                        <i class="fas fa-stream"></i><span>Mi Timeline</span>
                     </a>
 
                     <div class="nav-subheader"><i class="fas fa-bullhorn"></i><span>Comunicación</span></div>
@@ -454,14 +447,10 @@
                     <a href="{% url 'pre_planilla' %}" class="nav-item" data-match="/nominas/pre-planilla">
                         <i class="fas fa-clipboard-check"></i><span>Alistar Planilla</span>
                     </a>
-                    <a href="{% url 'workflow_mes' %}" class="nav-item" data-match="/nominas/workflow-mes">
-                        <i class="fas fa-route"></i><span>Workflow del Mes</span>
-                    </a>
+                    {# Workflow del Mes, Nuevo Período, Procesos Especiales y
+                       Validador Onboarding viven en sus hubs (Mi Día / Períodos) #}
                     <a href="{% url 'nominas_panel' %}" class="nav-item" data-match="^/nominas/$">
                         <i class="fas fa-list-alt"></i><span>Períodos</span>
-                    </a>
-                    <a href="{% url 'nominas_periodo_crear' %}" class="nav-item" data-match="/nominas/periodos/nuevo">
-                        <i class="fas fa-plus-circle"></i><span>Nuevo Período</span>
                     </a>
                     <a href="{% url 'nominas_emision_boletas' %}" class="nav-item" data-match="/nominas/boletas">
                         <i class="fas fa-paper-plane"></i><span>Emisión de Boletas</span>
@@ -469,17 +458,11 @@
                     <a href="{% url 'briefing_panel' %}" class="nav-item" data-match="/asistencia/briefing">
                         <i class="fas fa-clipboard-list"></i><span>Briefing del Día</span>
                     </a>
-                    <a href="/nominas/#especiales" class="nav-item" data-match="/nominas/#especiales">
-                        <i class="fas fa-layer-group"></i><span>Procesos Especiales</span>
-                    </a>
                     <a href="{% url 'propinas_lista' %}" class="nav-item" data-match="/nominas/propinas">
                         <i class="fas fa-coins"></i><span>Propinas</span>
                     </a>
 
                     <div class="nav-subheader"><i class="fas fa-cogs"></i><span>Herramientas</span></div>
-                    <a href="{% url 'onboarding_validador' %}" class="nav-item" data-match="/nominas/onboarding">
-                        <i class="fas fa-clipboard-check"></i><span>Validador Onboarding</span>
-                    </a>
                     <a href="{% url 'nominas_saldos_apertura' %}" class="nav-item" data-match="/nominas/apertura">
                         <i class="fas fa-rocket"></i><span>Saldos de Apertura</span>
                     </a>
