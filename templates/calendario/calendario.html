@@ -965,6 +965,7 @@
                 + '<i class="far fa-calendar"></i>'
                 + 'No hay eventos para este dia'
                 + '</div>';
+            loadDisponibilidad(dateStr);
             return;
         }
 
@@ -1006,6 +1007,44 @@
                 }
             });
         });
+
+        loadDisponibilidad(dateStr);
+    }
+
+    // ── Disponibilidad del día (F3): quién está libre ──
+    function loadDisponibilidad(dateStr) {
+        const params = new URLSearchParams({ fecha: dateStr });
+        const area = areaFilter.value;
+        if (area) params.set('area', area);
+        fetch('/calendario/disponibilidad/?' + params.toString())
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+                if (!d) return;
+                const box = document.createElement('div');
+                let inner = '<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;'
+                    + 'background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;'
+                    + 'margin-bottom:10px;font-size:.85rem;">'
+                    + '<i class="fas fa-users" style="color:#0f766e;"></i>'
+                    + '<span><strong>' + d.disponibles + '</strong> de ' + d.total_activos
+                    + ' disponibles</span>';
+                if (d.es_feriado) {
+                    inner += '<span style="color:#ef4444;font-weight:600;">&middot; feriado</span>';
+                }
+                inner += '</div>';
+                if (d.ausentes > 0) {
+                    inner += '<details style="margin:-4px 0 10px;font-size:.8rem;">'
+                        + '<summary style="cursor:pointer;color:#64748b;">'
+                        + d.ausentes + ' ausente(s) &mdash; ver quiénes</summary>';
+                    d.detalle.forEach(a => {
+                        inner += '<div style="padding:2px 0 2px 14px;color:#475569;">'
+                            + a.nombre + ' &middot; ' + a.motivo + '</div>';
+                    });
+                    inner += '</details>';
+                }
+                box.innerHTML = inner;
+                detailBody.prepend(box);
+            })
+            .catch(() => {});
     }
 
     // ── Delete event ──

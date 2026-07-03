@@ -445,6 +445,97 @@ def calendario_eventos(request):
 
 @login_required
 @solo_admin
+@require_GET
+def calendario_disponibilidad(request):
+    """Modo disponibilidad (F3): ¿quién está disponible el día X?
+
+    Disponible = activo sin vacación aprobada, ni permiso aprobado, ni
+    papeleta de ausencia aprobada/ejecutada que cubra la fecha.
+    """
+    fecha = _parse_date(request.GET.get('fecha'), date.today())
+    area_id = request.GET.get('area') or None
+
+    personal_qs = Personal.objects.filter(estado='Activo')
+    if area_id:
+        try:
+            personal_qs = personal_qs.filter(subarea__area_id=int(area_id))
+        except (ValueError, TypeError):
+            pass
+    total = personal_qs.count()
+    ids_activos = set(personal_qs.values_list('pk', flat=True))
+
+    ausentes = {}   # personal_id -> motivo (primera fuente encontrada)
+
+    def _marcar(pares):
+        for pid, motivo in pares:
+            if pid in ids_activos and pid not in ausentes:
+                ausentes[pid] = motivo
+
+    try:
+        from vacaciones.models import SolicitudVacacion
+        _marcar(
+            (v.personal_id, 'Vacaciones')
+            for v in SolicitudVacacion.objects.filter(
+                estado__in=['APROBADA', 'EN_GOCE'],
+                fecha_inicio__lte=fecha, fecha_fin__gte=fecha,
+            ).only('personal_id')
+        )
+    except Exception:
+        pass
+    try:
+        from vacaciones.models import SolicitudPermiso
+        _marcar(
+            (p.personal_id,
+             f'Permiso: {p.tipo.nombre}' if p.tipo_id else 'Permiso')
+            for p in SolicitudPermiso.objects.filter(
+                estado='APROBADA',
+                fecha_inicio__lte=fecha, fecha_fin__gte=fecha,
+            ).select_related('tipo')
+        )
+    except Exception:
+        pass
+    try:
+        from asistencia.models import RegistroPapeleta
+        _marcar(
+            (pa.personal_id, pa.get_tipo_permiso_display())
+            for pa in RegistroPapeleta.objects.filter(
+                estado__in=['APROBADA', 'EJECUTADA'],
+                fecha_inicio__lte=fecha, fecha_fin__gte=fecha,
+                personal__isnull=False,
+            )
+        )
+    except Exception:
+        pass
+
+    es_feriado = False
+    try:
+        from asistencia.services.feriados import feriados_efectivos
+        es_feriado = fecha in feriados_efectivos(fecha, fecha)
+    except Exception:
+        pass
+
+    nombres = {
+        p.pk: p.apellidos_nombres
+        for p in Personal.objects.filter(pk__in=list(ausentes)[:60])
+    }
+    detalle = sorted(
+        ({'nombre': nombres[pid], 'motivo': motivo}
+         for pid, motivo in ausentes.items() if pid in nombres),
+        key=lambda x: x['nombre'],
+    )
+
+    return JsonResponse({
+        'fecha': fecha.isoformat(),
+        'total_activos': total,
+        'ausentes': len(ausentes),
+        'disponibles': total - len(ausentes),
+        'es_feriado': es_feriado,
+        'detalle': detalle,
+    })
+
+
+@login_required
+@solo_admin
 @require_POST
 def evento_crear(request):
     """Crea un evento personalizado via AJAX."""
