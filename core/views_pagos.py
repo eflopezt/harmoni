@@ -35,7 +35,14 @@ def _empresa_de(request):
             return personal.empresa
     except Exception:
         pass
-    return getattr(request, 'empresa_actual', None)
+    empresa = getattr(request, 'empresa_actual', None)
+    if empresa is not None:
+        return empresa
+    # Modo consolidado o cuenta recién creada sin personal: EmpresaMiddleware
+    # deja empresa_actual en None, pero el cobro necesita una empresa concreta.
+    # Se cobra a la principal (misma resolución que hacía el middleware).
+    from empresas.models import Empresa
+    return Empresa.objects.filter(activa=True, es_principal=True).first()
 
 
 @login_required
