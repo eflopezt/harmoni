@@ -344,22 +344,34 @@ def prestamo_detalle(request, pk):
 @login_required
 @solo_admin
 def prestamo_aprobar(request, pk):
-    """Aprobar un préstamo pendiente."""
+    """Aprobar un préstamo pendiente. AJAX-aware (bandeja unificada)."""
     prestamo = get_object_or_404(Prestamo, pk=pk)
+    es_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if request.method == 'POST' and prestamo.estado in ('BORRADOR', 'PENDIENTE'):
-        monto = request.POST.get('monto_aprobado')
-        fecha_desc = request.POST.get('fecha_descuento')
-        monto_aprobado = Decimal(monto) if monto else None
-        fecha_descuento = date.fromisoformat(fecha_desc) if fecha_desc else None
+        try:
+            monto = request.POST.get('monto_aprobado')
+            fecha_desc = request.POST.get('fecha_descuento')
+            monto_aprobado = Decimal(monto) if monto else None
+            fecha_descuento = date.fromisoformat(fecha_desc) if fecha_desc else None
 
-        prestamo.aprobar(request.user, monto_aprobado, fecha_descuento)
+            prestamo.aprobar(request.user, monto_aprobado, fecha_descuento)
+        except (ValueError, ArithmeticError) as e:
+            if es_ajax:
+                return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+            messages.error(request, f'No se pudo aprobar: {e}')
+            return redirect('prestamo_detalle', pk=pk)
 
         from core.audit import log_update
         log_update(request, prestamo, {'estado': {'old': 'PENDIENTE', 'new': 'EN_CURSO'}},
                    f'Préstamo aprobado: S/ {prestamo.monto_aprobado}')
 
-        messages.success(request, f'Préstamo aprobado — {prestamo.num_cuotas} cuotas de S/ {prestamo.cuota_mensual}')
+        msg = f'Préstamo aprobado — {prestamo.num_cuotas} cuotas de S/ {prestamo.cuota_mensual}'
+        if es_ajax:
+            return JsonResponse({'ok': True, 'mensaje': msg})
+        messages.success(request, msg)
+    elif es_ajax:
+        return JsonResponse({'ok': False, 'error': 'El préstamo no está pendiente.'}, status=400)
     return redirect('prestamo_detalle', pk=pk)
 
 
@@ -445,16 +457,28 @@ def prestamo_desembolsar(request, pk):
 @login_required
 @solo_admin
 def prestamo_rechazar(request, pk):
-    """Rechaza un préstamo solicitado."""
+    """Rechaza un préstamo solicitado. AJAX-aware (bandeja unificada)."""
     prestamo = get_object_or_404(Prestamo, pk=pk)
+    es_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     if request.method != 'POST':
         return redirect('prestamo_detalle', pk=pk)
     motivo = request.POST.get('motivo_rechazo', '').strip()
     try:
         prestamo.rechazar(request.user, motivo=motivo)
     except ValueError as e:
+        if es_ajax:
+            return JsonResponse({'ok': False, 'error': str(e)}, status=400)
         messages.error(request, str(e))
         return redirect('prestamo_detalle', pk=pk)
+    if es_ajax:
+        try:
+            from core.audit import log_update
+            log_update(request, prestamo,
+                       {'estado': {'old': 'PENDIENTE', 'new': 'RECHAZADO'}},
+                       f'Préstamo rechazado. Motivo: {motivo}')
+        except Exception:
+            pass
+        return JsonResponse({'ok': True, 'mensaje': 'Préstamo rechazado.'})
     try:
         from core.audit import log_update
         log_update(request, prestamo,

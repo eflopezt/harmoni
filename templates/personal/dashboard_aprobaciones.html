@@ -505,10 +505,17 @@
                     <td class="text-end small fw-semibold">S/ {{ pr.monto_solicitado|floatformat:2 }}</td>
                     <td class="text-center small">{{ pr.num_cuotas|default:"—" }}</td>
                     <td class="small text-muted">{{ pr.fecha_solicitud|date:"d/m/Y" }}</td>
-                    <td class="text-center">
-                        <a href="{% url 'prestamo_detalle' pr.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2"
-                           title="Aprobar requiere fijar monto y fecha de descuento">
-                            Revisar <i class="fas fa-arrow-right ms-1"></i>
+                    <td class="text-center text-nowrap">
+                        <button class="btn btn-success btn-sm py-0 px-2"
+                                onclick="abrirModalPrestamo({{ pr.pk }}, '{{ pr.monto_solicitado }}', '{{ pr.personal.apellidos_nombres|escapejs }}')"
+                                title="Aprobar (fija monto y fecha de descuento)">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm py-0 px-2" onclick="rechazarPrestamo({{ pr.pk }})" title="Rechazar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <a href="{% url 'prestamo_detalle' pr.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Ver detalle">
+                            <i class="fas fa-eye"></i>
                         </a>
                     </td>
                 </tr>
@@ -538,15 +545,27 @@
                     <th>Objeto</th>
                     <th>Etapa actual</th>
                     <th>Iniciado</th>
+                    <th class="text-center" style="width:110px">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for w in workflow_items %}
-                <tr class="aprob-row">
+                <tr class="aprob-row" id="wf-{{ w.pk }}">
                     <td class="small fw-semibold">{{ w.flujo.nombre|default:w.flujo }}</td>
                     <td class="small text-muted">{{ w.objeto|default:"—"|truncatechars:50 }}</td>
                     <td class="small">{{ w.etapa_actual|default:"—" }}</td>
                     <td class="small text-muted">{{ w.creado_en|date:"d/m/Y H:i" }}</td>
+                    <td class="text-center text-nowrap">
+                        <button class="btn btn-success btn-sm py-0 px-2" onclick="decidirWorkflow({{ w.pk }}, 'APROBADO')" title="Aprobar">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm py-0 px-2" onclick="decidirWorkflow({{ w.pk }}, 'RECHAZADO')" title="Rechazar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <a href="{% url 'workflow_detalle' w.pk %}" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Ver detalle">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -563,6 +582,36 @@
 {% endif %}
 
 {% endif %}
+
+<!-- ── Modal aprobar préstamo (monto + fecha de descuento) ── -->
+<div class="modal fade" id="modalAprobarPrestamo" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header py-2" style="background:#0f766e;color:#fff;">
+        <h6 class="modal-title"><i class="fas fa-hand-holding-usd me-2"></i>Aprobar préstamo</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="small text-muted mb-2" id="prestamoModalNombre"></div>
+        <div class="mb-2">
+          <label class="form-label small fw-semibold">Monto aprobado (S/)</label>
+          <input type="number" step="0.01" min="1" id="prestamoMonto" class="form-control form-control-sm">
+        </div>
+        <div class="mb-1">
+          <label class="form-label small fw-semibold">Fecha primer descuento</label>
+          <input type="date" id="prestamoFecha" class="form-control form-control-sm">
+        </div>
+      </div>
+      <div class="modal-footer py-2 bg-light">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-success" id="btnConfirmarPrestamo"
+                onclick="aprobarPrestamoConfirm()">
+          <i class="fas fa-check me-1"></i>Aprobar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -673,6 +722,64 @@ async function rechazarPermiso(pk) {
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.ok) { fadeRow('per-'+pk, false); }
     else { alert(data.error || 'Error al rechazar'); }
+}
+
+/* ── Préstamos (modal monto + fecha) ── */
+let _prestamoPk = null;
+function abrirModalPrestamo(pk, montoSolicitado, nombre) {
+    _prestamoPk = pk;
+    document.getElementById('prestamoModalNombre').textContent = nombre;
+    document.getElementById('prestamoMonto').value = montoSolicitado;
+    document.getElementById('prestamoFecha').value = new Date().toISOString().slice(0, 10);
+    new bootstrap.Modal(document.getElementById('modalAprobarPrestamo')).show();
+}
+async function aprobarPrestamoConfirm() {
+    if (!_prestamoPk) return;
+    const fd = new FormData();
+    fd.append('monto_aprobado', document.getElementById('prestamoMonto').value);
+    fd.append('fecha_descuento', document.getElementById('prestamoFecha').value);
+    const r = await fetch(`/prestamos/${_prestamoPk}/aprobar/`, { method:'POST', headers, body: fd });
+    const data = await r.json().catch(() => ({}));
+    bootstrap.Modal.getInstance(document.getElementById('modalAprobarPrestamo'))?.hide();
+    if (r.ok && data.ok) { fadeRow('pre-'+_prestamoPk, true); }
+    else { alert(data.error || 'Error al aprobar el préstamo'); }
+    _prestamoPk = null;
+}
+async function rechazarPrestamo(pk) {
+    const motivo = prompt('Motivo del rechazo:');
+    if (motivo === null) return;
+    const fd = new FormData();
+    fd.append('motivo_rechazo', motivo || '');
+    const r = await fetch(`/prestamos/${pk}/rechazar/`, { method:'POST', headers, body: fd });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) { fadeRow('pre-'+pk, false); }
+    else { alert(data.error || 'Error al rechazar'); }
+}
+
+/* ── Workflows (decidir) ── */
+async function decidirWorkflow(pk, decision) {
+    let comentario = '';
+    if (decision === 'RECHAZADO') {
+        comentario = prompt('Comentario del rechazo (opcional):');
+        if (comentario === null) return;
+    } else if (!confirm('¿Aprobar esta etapa del workflow?')) {
+        return;
+    }
+    const fd = new FormData();
+    fd.append('decision', decision);
+    fd.append('comentario', comentario || '');
+    const r = await fetch(`/workflows/bandeja/${pk}/decidir/`, { method:'POST', headers, body: fd });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) {
+        // Si sigue EN_PROCESO pasó de etapa: se mantiene visible con aviso
+        if (data.estado === 'EN_PROCESO') {
+            alert(data.mensaje);
+        } else {
+            fadeRow('wf-'+pk, decision === 'APROBADO');
+        }
+    } else {
+        alert(data.error || 'Error al registrar la decisión');
+    }
 }
 
 /* ── Lote Roster ── */

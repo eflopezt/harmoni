@@ -279,8 +279,11 @@ def decidir_view(request, pk):
     instancia = get_object_or_404(InstanciaFlujo, pk=pk)
     decision = request.POST.get('decision')
     comentario = request.POST.get('comentario', '').strip()
+    es_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if decision not in ('APROBADO', 'RECHAZADO'):
+        if es_ajax:
+            return JsonResponse({'ok': False, 'error': 'Decisión inválida.'}, status=400)
         messages.error(request, 'Decision invalida.')
         return redirect('workflow_detalle', pk=pk)
 
@@ -290,14 +293,26 @@ def decidir_view(request, pk):
             instancia.refresh_from_db()
             if decision == 'APROBADO':
                 if instancia.estado == 'EN_PROCESO':
-                    messages.success(request, 'Aprobado. La solicitud continua a la siguiente etapa.')
+                    msg = 'Aprobado. La solicitud continua a la siguiente etapa.'
                 else:
-                    messages.success(request, 'Aprobacion completada. La solicitud fue aprobada definitivamente.')
+                    msg = 'Aprobacion completada. La solicitud fue aprobada definitivamente.'
+                if es_ajax:
+                    return JsonResponse({'ok': True, 'mensaje': msg, 'estado': instancia.estado})
+                messages.success(request, msg)
             else:
+                if es_ajax:
+                    return JsonResponse({'ok': True, 'mensaje': 'Solicitud rechazada.',
+                                         'estado': instancia.estado})
                 messages.warning(request, 'Solicitud rechazada. El solicitante sera notificado.')
         else:
+            if es_ajax:
+                return JsonResponse(
+                    {'ok': False, 'error': 'No tienes permiso para aprobar esta solicitud.'},
+                    status=403)
             messages.error(request, 'No tienes permiso para aprobar esta solicitud.')
     except ValueError as e:
+        if es_ajax:
+            return JsonResponse({'ok': False, 'error': str(e)}, status=400)
         messages.error(request, str(e))
 
     return redirect('workflow_bandeja')
