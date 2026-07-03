@@ -730,59 +730,10 @@ def saldo_detalle(request, pk):
 @login_required
 @solo_admin
 def vacaciones_calendario(request):
-    """Vista de calendario mensual de vacaciones aprobadas."""
-    hoy = date.today()
-    try:
-        anio = int(request.GET.get('anio', hoy.year))
-        mes = int(request.GET.get('mes', hoy.month))
-    except (ValueError, TypeError):
-        anio, mes = hoy.year, hoy.month
-
-    import calendar as cal_mod
-    # Primero y último día del mes
-    primer_dia = date(anio, mes, 1)
-    ultimo_dia = date(anio, mes, cal_mod.monthrange(anio, mes)[1])
-
-    vac_aprobadas = SolicitudVacacion.objects.select_related(
-        'personal', 'personal__subarea', 'personal__subarea__area'
-    ).filter(
-        estado__in=['APROBADA', 'EN_GOCE', 'COMPLETADA'],
-        fecha_inicio__lte=ultimo_dia,
-        fecha_fin__gte=primer_dia,
-    ).order_by('fecha_inicio', 'personal__apellidos_nombres')
-
-    # Mes anterior / siguiente para navegación
-    if mes == 1:
-        mes_ant, anio_ant = 12, anio - 1
-    else:
-        mes_ant, anio_ant = mes - 1, anio
-    if mes == 12:
-        mes_sig, anio_sig = 1, anio + 1
-    else:
-        mes_sig, anio_sig = mes + 1, anio
-
-    nombre_mes = primer_dia.strftime('%B %Y').capitalize()
-
-    meses_lista = [
-        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
-        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
-        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre'),
-    ]
-
-    context = {
-        'titulo': f'Calendario de Vacaciones — {nombre_mes}',
-        'vac_aprobadas': vac_aprobadas,
-        'anio': anio,
-        'mes': mes,
-        'nombre_mes': nombre_mes,
-        'mes_ant': mes_ant,
-        'anio_ant': anio_ant,
-        'mes_sig': mes_sig,
-        'anio_sig': anio_sig,
-        'total': vac_aprobadas.count(),
-        'meses_lista': meses_lista,
-    }
-    return render(request, 'vacaciones/calendario.html', context)
+    """Vista mensual legacy retirada (P14): el calendario unificado con la
+    capa 'vacacion' es la respuesta a disponibilidad. La URL se conserva
+    por bookmarks; la vista anual (densidad para planeación) sigue viva."""
+    return redirect('calendario_view')
 
 
 # ══════════════════════════════════════════════════════════════

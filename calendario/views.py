@@ -46,7 +46,8 @@ def _build_events(start, end, area_id=None, tipo_filter=None, personal_obj=None)
     if tipo_filter:
         tipos_activos = set(tipo_filter.split(','))
     else:
-        tipos_activos = {'vacacion', 'permiso', 'feriado', 'cumpleanos', 'turno', 'reunion', 'otro'}
+        tipos_activos = {'vacacion', 'permiso', 'feriado', 'cumpleanos', 'turno',
+                         'reunion', 'otro', 'ausencia'}
 
     # ── 1. Eventos personalizados ──
     if tipos_activos & {'reunion', 'otro', 'vacacion', 'permiso', 'feriado', 'cumpleanos', 'turno'}:
@@ -135,6 +136,41 @@ def _build_events(start, end, area_id=None, tipo_filter=None, personal_obj=None)
                     'allDay': True,
                     'personal_name': p.personal.apellidos_nombres,
                     'description': p.motivo or '',
+                    'deletable': False,
+                })
+        except Exception:
+            pass
+
+    # ── 3b. Ausencias reales: papeletas aprobadas (DM, licencias, DL, etc.) ──
+    # Fuente única de ausencias (P1). Se excluyen las papeletas espejo de
+    # SolicitudVacacion (ya pintadas por la capa 'vacacion').
+    if 'ausencia' in tipos_activos:
+        try:
+            from asistencia.models import RegistroPapeleta
+            pap_qs = RegistroPapeleta.objects.filter(
+                estado__in=['APROBADA', 'EJECUTADA'],
+                fecha_inicio__lte=end,
+                fecha_fin__gte=start,
+                personal__isnull=False,
+            ).exclude(
+                detalle__startswith='Auto: SolicitudVacacion',
+            ).select_related('personal')
+            if personal_obj:
+                pap_qs = pap_qs.filter(personal=personal_obj)
+            if area_id:
+                pap_qs = pap_qs.filter(personal__subarea__area_id=area_id)
+
+            for pa in pap_qs:
+                events.append({
+                    'id': f'pap-{pa.pk}',
+                    'title': f'{pa.get_tipo_permiso_display()} - {pa.personal.apellidos_nombres}',
+                    'start': pa.fecha_inicio.isoformat(),
+                    'end': pa.fecha_fin.isoformat(),
+                    'color': '#db2777',
+                    'type': 'ausencia',
+                    'allDay': True,
+                    'personal_name': pa.personal.apellidos_nombres,
+                    'description': pa.detalle or pa.get_origen_display(),
                     'deletable': False,
                 })
         except Exception:
