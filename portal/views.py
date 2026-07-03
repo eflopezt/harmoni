@@ -495,11 +495,11 @@ def mi_roster(request):
         fecha_inicio = date(anio, mes, 1)
         fecha_fin = date(anio, mes, calendar.monthrange(anio, mes)[1])
 
-        registros = Roster.objects.filter(
+        registros = list(Roster.objects.filter(
             personal=empleado,
             fecha__gte=fecha_inicio,
             fecha__lte=fecha_fin,
-        ).order_by('fecha')
+        ).order_by('fecha'))
 
         primer_roster = Roster.objects.filter(
             personal=empleado,
@@ -521,6 +521,34 @@ def mi_roster(request):
                 color_por_codigo[c] = _PALETA[_pi % len(_PALETA)]
                 _pi += 1
 
+        _NOMBRES = {
+            'T': 'Trabajo presencial',
+            'TR': 'Trabajo remoto',
+            'D': 'Descanso',
+            'DL': 'Dia libre',
+            'DLA': 'Dia libre acumulado',
+            'DOL': 'Descanso compensatorio',
+            'DM': 'Descanso medico',
+            'V': 'Vacaciones',
+            'F': 'Feriado',
+            'FC': 'Feriado compensable',
+        }
+
+        total_programado = sum(1 for r in registros if r.codigo)
+        total_descanso = sum(1 for r in registros if (r.codigo or '').upper() in _DESCANSO)
+        total_trabajo = max(total_programado - total_descanso, 0)
+        roster_hoy = reg_por_fecha.get(hoy)
+        proximos_turnos = [
+            {
+                'fecha': r.fecha,
+                'codigo': r.codigo,
+                'color': color_por_codigo.get(r.codigo, '#0f766e'),
+                'descripcion': _NOMBRES.get((r.codigo or '').upper(), 'Turno programado'),
+            }
+            for r in registros
+            if r.fecha >= hoy and r.codigo
+        ][:4]
+
         cal = calendar.Calendar(firstweekday=0)   # 0 = lunes
         semanas = []
         for semana in cal.monthdatescalendar(anio, mes):
@@ -534,18 +562,32 @@ def mi_roster(request):
                     'en_mes': d.month == mes,
                     'es_hoy': d == hoy,
                     'codigo': cod,
+                    'descripcion': _NOMBRES.get((cod or '').upper(), 'Turno programado' if cod else ''),
                     'color': color_por_codigo.get(cod, ''),
                     'estado': r.estado if r else '',
                     'obs': (r.observaciones if r else '') or '',
                 })
             semanas.append(fila)
 
-        leyenda = [{'codigo': c, 'color': color_por_codigo[c]} for c in codigos_distintos]
+        leyenda = [
+            {
+                'codigo': c,
+                'color': color_por_codigo[c],
+                'descripcion': _NOMBRES.get(c.upper(), 'Codigo operativo'),
+                'total': sum(1 for r in registros if r.codigo == c),
+            }
+            for c in codigos_distintos
+        ]
 
         context.update({
             'registros': registros,
             'semanas': semanas,
             'leyenda': leyenda,
+            'roster_hoy': roster_hoy,
+            'proximos_turnos': proximos_turnos,
+            'total_programado': total_programado,
+            'total_trabajo': total_trabajo,
+            'total_descanso': total_descanso,
             'anio_sel': anio,
             'mes_sel': mes,
             'mes_nombre': f"{dict(MESES)[mes]} {anio}",

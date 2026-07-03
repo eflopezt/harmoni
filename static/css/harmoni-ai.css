@@ -1173,14 +1173,26 @@
     .ai-chat-panel {
         width: calc(100vw - 16px);
         right: 8px;
-        bottom: 80px;
-        max-height: calc(100vh - 120px);
+        bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+        max-height: calc(100vh - 150px);
+        border-radius: 14px;
     }
     .ai-chat-messages {
         max-height: calc(100vh - 320px);
     }
     .ai-chat-fab {
-        bottom: 16px;
-        right: 16px;
+        bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+        right: 14px;
+        width: 52px;
+        height: 52px;
+        font-size: 1.12rem;
+        box-shadow: 0 6px 18px rgba(15, 118, 110, 0.34);
+        z-index: 1038;
+    }
+    .ai-chat-fab:hover {
+        transform: none;
+    }
+    .ai-chat-fab .ai-fab-pulse {
+        display: none;
     }
 }

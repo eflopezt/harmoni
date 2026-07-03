@@ -11,155 +11,451 @@
 {% block portal_content %}
 
 <style>
+    .portal-fab,
+    .portal-fab-menu {
+        display: none !important;
+    }
+    .roster-shell { display: grid; gap: 16px; }
+    .roster-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        border-radius: 14px;
+        padding: 18px 20px;
+        color: #fff;
+        background: linear-gradient(135deg, #0d2b27 0%, #0f766e 58%, #0891b2 100%);
+        box-shadow: 0 12px 28px rgba(15, 118, 110, .18);
+    }
+    .roster-hero-kicker {
+        margin-bottom: 4px;
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.72);
+    }
+    .roster-hero h2 {
+        margin: 0;
+        color: #fff;
+        font-size: 1.3rem;
+        font-weight: 800;
+        line-height: 1.15;
+    }
+    .roster-hero-sub {
+        margin-top: 6px;
+        color: rgba(255,255,255,.78);
+        font-size: .84rem;
+    }
+    .roster-today {
+        min-width: 156px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 12px;
+        background: rgba(255,255,255,.13);
+        text-align: center;
+    }
+    .roster-today small {
+        display: block;
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.75);
+    }
+    .roster-today-code {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 52px;
+        height: 40px;
+        margin-top: 7px;
+        border-radius: 12px;
+        background: #fff;
+        color: #0f766e;
+        font-size: 1.15rem;
+        font-weight: 900;
+        box-shadow: 0 8px 16px rgba(0,0,0,.12);
+    }
+    .roster-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .roster-stat {
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #fff;
+    }
+    .roster-stat span {
+        display: block;
+        color: #64748b;
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+    .roster-stat strong {
+        display: block;
+        margin-top: 4px;
+        color: #0f2926;
+        font-size: 1.45rem;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+    }
+    .roster-period-card .dash-card-body { padding: 16px 18px; }
+    .roster-period-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+    }
+    .roster-period-form .form-select {
+        min-height: 40px;
+        border-radius: 10px;
+    }
+    .roster-calendar-card .dash-card-header {
+        padding: 15px 18px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .roster-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .roster-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px 6px 7px;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        background: #fff;
+        color: #334155;
+        font-size: .74rem;
+        font-weight: 700;
+    }
+    .roster-legend-code {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 26px;
+        height: 22px;
+        border-radius: 7px;
+        color: #fff;
+        font-size: .7rem;
+        font-weight: 900;
+    }
     .roster-cal { width: 100%; }
-    .roster-cal-head, .roster-cal-row {
-        display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    .roster-cal-head,
+    .roster-cal-row {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
     }
-    .roster-cal-head { margin-bottom: 4px; }
+    .roster-cal-head {
+        margin-bottom: 8px;
+    }
     .roster-cal-head > div {
-        text-align: center; font-size: .72rem; font-weight: 700;
-        color: #64748b; text-transform: uppercase; letter-spacing: .02em;
+        text-align: center;
+        color: #64748b;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+        text-transform: uppercase;
     }
-    .roster-cal-row { margin-bottom: 4px; }
+    .roster-cal-row {
+        margin-bottom: 6px;
+    }
     .roster-cal-cell {
-        position: relative; min-height: 54px; border: 1px solid #e5e7eb;
-        border-radius: 8px; padding: 4px; display: flex; flex-direction: column;
-        align-items: center; background: #fff;
+        position: relative;
+        display: flex;
+        min-height: 74px;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 8px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #fff, #f8fafc);
+        box-shadow: inset 0 -1px 0 rgba(15,41,38,.03);
     }
-    .roster-cal-cell.fuera { background: #f8fafc; opacity: .45; }
+    .roster-cal-cell.fuera {
+        background: #f8fafc;
+        opacity: .46;
+    }
+    .roster-cal-cell.con-turno {
+        border-color: var(--turno-soft, #cbd5e1);
+        background: linear-gradient(180deg, var(--turno-bg, #f8fafc), #fff 72%);
+    }
     .roster-cal-cell.hoy {
-        border-color: #14b8a6; box-shadow: 0 0 0 2px rgba(20,184,166,.25);
+        border-color: #14b8a6;
+        box-shadow: 0 0 0 2px rgba(20,184,166,.25), 0 8px 20px rgba(15,118,110,.10);
     }
-    .roster-cal-cell .rc-dia {
-        font-size: .72rem; color: #94a3b8; align-self: flex-end; line-height: 1;
+    .rc-dia {
+        align-self: flex-end;
+        color: #94a3b8;
+        font-size: .72rem;
+        font-weight: 800;
+        line-height: 1;
     }
-    .roster-cal-cell .rc-cod {
-        margin-top: auto; margin-bottom: 3px; font-size: .8rem; font-weight: 700;
-        color: #fff; padding: 3px 8px; border-radius: 6px; min-width: 28px; text-align: center;
+    .rc-cod {
+        min-width: 34px;
+        margin-top: auto;
+        padding: 5px 9px;
+        border-radius: 9px;
+        color: #fff;
+        font-size: .84rem;
+        font-weight: 900;
+        text-align: center;
+        box-shadow: 0 6px 14px rgba(15,41,38,.14);
+    }
+    .rc-desc {
+        max-width: 100%;
+        margin-top: 5px;
+        overflow: hidden;
+        color: #64748b;
+        font-size: .64rem;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .roster-next {
+        display: grid;
+        gap: 8px;
+    }
+    .roster-next-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #fff;
+        font-size: .82rem;
+    }
+    .roster-next-date {
+        color: #334155;
+        font-weight: 700;
+    }
+    .roster-next-code {
+        padding: 4px 8px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: .72rem;
+        font-weight: 900;
     }
     @media (max-width: 576px) {
-        .roster-cal-cell { min-height: 44px; padding: 2px; }
-        .roster-cal-cell .rc-cod { font-size: .7rem; padding: 2px 5px; min-width: 22px; }
+        .roster-hero {
+            grid-template-columns: 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
+        .roster-today {
+            display: flex;
+            min-width: 0;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            text-align: left;
+        }
+        .roster-summary {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 7px;
+        }
+        .roster-stat {
+            padding: 10px 8px;
+            border-radius: 10px;
+        }
+        .roster-stat span { font-size: .6rem; }
+        .roster-stat strong { font-size: 1.15rem; }
+        .roster-period-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .period-submit { grid-column: 1 / -1; }
+        .period-submit .btn { width: 100%; }
+        .roster-cal-head,
+        .roster-cal-row { gap: 4px; }
+        .roster-cal-cell {
+            min-height: 58px;
+            padding: 5px;
+            border-radius: 9px;
+        }
+        .rc-cod {
+            min-width: 25px;
+            padding: 3px 6px;
+            border-radius: 7px;
+            font-size: .7rem;
+        }
+        .rc-desc { display: none; }
         .roster-cal-head > div { font-size: .62rem; }
     }
 </style>
 
 {% if not empleado %}
-<div class="alert alert-warning">Tu usuario no está vinculado a un empleado. Contacta a RRHH o TI.</div>
+<div class="alert alert-warning">Tu usuario no esta vinculado a un empleado. Contacta a RRHH o TI.</div>
 {% else %}
 
-<!-- Filtro de período -->
-<div class="dash-card mb-4">
-    <div class="dash-card-body">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-auto">
-                <label class="form-label mb-1" style="font-size:.8rem">Mes</label>
-                <select name="mes" class="form-select form-select-sm" style="min-width:8.5rem">
-                    {% for num, nombre in meses %}
-                    <option value="{{ num }}" {% if num == mes_sel %}selected{% endif %}>{{ nombre }}</option>
-                    {% endfor %}
-                </select>
+<div class="roster-shell">
+    <section class="roster-hero">
+        <div>
+            <div class="roster-hero-kicker">Programacion mensual</div>
+            <h2>{{ mes_nombre|capfirst }}</h2>
+            <div class="roster-hero-sub">
+                {{ empleado.apellidos_nombres }}{% if empleado.subarea %} · {{ empleado.subarea.nombre }}{% endif %}
             </div>
-            <div class="col-auto">
-                <label class="form-label mb-1" style="font-size:.8rem">Año</label>
-                <select name="anio" class="form-select form-select-sm" style="min-width:6rem">
-                    {% for a in anios %}
-                    <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}>{{ a }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="fas fa-search me-1"></i>Consultar
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Calendario del mes -->
-<div class="dash-card">
-    <div class="dash-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <span><i class="fas fa-calendar-alt me-2 text-warning"></i>{{ mes_nombre|capfirst }}</span>
-        {% if leyenda %}
-        <div class="d-flex flex-wrap gap-1 align-items-center">
-            {% for l in leyenda %}
-            <span class="badge" style="background:{{ l.color }};color:#fff;font-weight:600">{{ l.codigo }}</span>
-            {% endfor %}
         </div>
-        {% endif %}
-    </div>
-    <div class="dash-card-body">
-        {% if semanas %}
-        <div class="roster-cal">
-            <div class="roster-cal-head">
-                <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+        <div class="roster-today">
+            <div>
+                <small>Turno de hoy</small>
+                {% if roster_hoy and roster_hoy.codigo %}
+                    <span class="roster-today-code">{{ roster_hoy.codigo }}</span>
+                {% else %}
+                    <span class="roster-today-code">--</span>
+                {% endif %}
             </div>
-            {% for semana in semanas %}
-            <div class="roster-cal-row">
-                {% for c in semana %}
-                <div class="roster-cal-cell{% if not c.en_mes %} fuera{% endif %}{% if c.es_hoy %} hoy{% endif %}"
-                     {% if c.obs %}title="{{ c.obs }}"{% endif %}>
-                    <span class="rc-dia">{{ c.dia }}</span>
-                    {% if c.codigo %}
-                    <span class="rc-cod" style="background:{{ c.color }}">{{ c.codigo }}</span>
-                    {% endif %}
+        </div>
+    </section>
+
+    <div class="roster-summary">
+        <div class="roster-stat"><span>Programados</span><strong>{{ total_programado|default:0 }}</strong></div>
+        <div class="roster-stat"><span>Trabajo</span><strong>{{ total_trabajo|default:0 }}</strong></div>
+        <div class="roster-stat"><span>Descanso</span><strong>{{ total_descanso|default:0 }}</strong></div>
+    </div>
+
+    <div class="dash-card roster-period-card">
+        <div class="dash-card-body">
+            <form method="get" class="roster-period-form">
+                <div>
+                    <label class="form-label mb-1" style="font-size:.76rem;font-weight:700;color:#475569;">Mes</label>
+                    <select name="mes" class="form-select form-select-sm">
+                        {% for num, nombre in meses %}
+                        <option value="{{ num }}" {% if num == mes_sel %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label mb-1" style="font-size:.76rem;font-weight:700;color:#475569;">A&ntilde;o</label>
+                    <select name="anio" class="form-select form-select-sm">
+                        {% for a in anios %}
+                        <option value="{{ a }}" {% if a == anio_sel %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="period-submit">
+                    <button type="submit" class="btn btn-primary btn-sm" style="min-height:40px;border-radius:10px;">
+                        <i class="fas fa-search me-1"></i>Consultar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="dash-card roster-calendar-card">
+        <div class="dash-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="fas fa-calendar-alt me-2 text-warning"></i>{{ mes_nombre|capfirst }}</span>
+            {% if leyenda %}
+            <div class="roster-legend">
+                {% for l in leyenda %}
+                <span class="roster-legend-item">
+                    <span class="roster-legend-code" style="background:{{ l.color }}">{{ l.codigo }}</span>
+                    <span>{{ l.descripcion }} · {{ l.total }}</span>
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="dash-card-body">
+            {% if semanas %}
+            <div class="roster-cal">
+                <div class="roster-cal-head">
+                    <div>Lun</div><div>Mar</div><div>Mie</div><div>Jue</div><div>Vie</div><div>Sab</div><div>Dom</div>
+                </div>
+                {% for semana in semanas %}
+                <div class="roster-cal-row">
+                    {% for c in semana %}
+                    <div class="roster-cal-cell{% if c.codigo %} con-turno{% endif %}{% if not c.en_mes %} fuera{% endif %}{% if c.es_hoy %} hoy{% endif %}"
+                         style="{% if c.color %}--turno-bg:{{ c.color }}18;--turno-soft:{{ c.color }}66;{% endif %}"
+                         {% if c.obs %}title="{{ c.obs }}"{% elif c.descripcion %}title="{{ c.descripcion }}"{% endif %}>
+                        <span class="rc-dia">{{ c.dia }}</span>
+                        {% if c.codigo %}
+                        <span class="rc-cod" style="background:{{ c.color }}">{{ c.codigo }}</span>
+                        <span class="rc-desc">{{ c.descripcion }}</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
                 {% endfor %}
             </div>
-            {% endfor %}
-        </div>
 
-        <details class="mt-3">
-            <summary class="text-muted" style="cursor:pointer;font-size:.85rem">
-                <i class="fas fa-list me-1"></i>Ver como lista
-            </summary>
-            <div class="table-responsive mt-2">
-                <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-3">Fecha</th>
-                            <th>Día</th>
-                            <th>Código</th>
-                            <th>Observación</th>
-                            <th class="pe-3">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for r in registros %}
-                        <tr {% if r.fecha == hoy %}style="background:#f0fdf4"{% endif %}>
-                            <td class="ps-3">
-                                {{ r.fecha|date:"d/m/Y" }}
-                                {% if r.fecha == hoy %}<span class="badge bg-success ms-1" style="font-size:.65rem">Hoy</span>{% endif %}
-                            </td>
-                            <td class="text-muted" style="font-size:.8rem">{{ r.fecha|date:"D" }}</td>
-                            <td>
-                                {% if r.codigo %}
-                                <span class="badge bg-light text-dark border fw-semibold">{{ r.codigo }}</span>
-                                {% else %}—{% endif %}
-                            </td>
-                            <td class="text-muted" style="font-size:.85rem">{{ r.observaciones|default:"—" }}</td>
-                            <td class="pe-3">
-                                {% if r.estado == 'aprobado' %}
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:.7rem">Aprobado</span>
-                                {% elif r.estado == 'pendiente' %}
-                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning" style="font-size:.7rem">Pendiente</span>
-                                {% else %}
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border" style="font-size:.7rem">{{ r.estado|capfirst }}</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            {% if proximos_turnos %}
+            <div class="mt-3">
+                <div class="text-muted mb-2" style="font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;">Proximos turnos</div>
+                <div class="roster-next">
+                    {% for r in proximos_turnos %}
+                    <div class="roster-next-item">
+                        <span class="roster-next-date">{{ r.fecha|date:"D d/m" }}</span>
+                        <span class="text-muted flex-grow-1">{{ r.descripcion }}</span>
+                        <span class="roster-next-code" style="background:{{ r.color }}">{{ r.codigo }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
-        </details>
-        {% else %}
-        <div class="text-center text-muted py-5">
-            <i class="fas fa-calendar-times fa-2x mb-2 d-block opacity-25"></i>
-            Sin registros de roster para este mes
+            {% endif %}
+
+            <details class="mt-3">
+                <summary class="text-muted" style="cursor:pointer;font-size:.85rem">
+                    <i class="fas fa-list me-1"></i>Ver como lista
+                </summary>
+                <div class="table-responsive mt-2">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Fecha</th>
+                                <th>Dia</th>
+                                <th>Codigo</th>
+                                <th>Observacion</th>
+                                <th class="pe-3">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in registros %}
+                            <tr {% if r.fecha == hoy %}style="background:#f0fdf4"{% endif %}>
+                                <td class="ps-3">
+                                    {{ r.fecha|date:"d/m/Y" }}
+                                    {% if r.fecha == hoy %}<span class="badge bg-success ms-1" style="font-size:.65rem">Hoy</span>{% endif %}
+                                </td>
+                                <td class="text-muted" style="font-size:.8rem">{{ r.fecha|date:"D" }}</td>
+                                <td>
+                                    {% if r.codigo %}
+                                    <span class="badge bg-light text-dark border fw-semibold">{{ r.codigo }}</span>
+                                    {% else %}--{% endif %}
+                                </td>
+                                <td class="text-muted" style="font-size:.85rem">{{ r.observaciones|default:"--" }}</td>
+                                <td class="pe-3">
+                                    {% if r.estado == 'aprobado' %}
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:.7rem">Aprobado</span>
+                                    {% elif r.estado == 'pendiente' %}
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning" style="font-size:.7rem">Pendiente</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border" style="font-size:.7rem">{{ r.estado|capfirst }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-calendar-times fa-2x mb-2 d-block opacity-25"></i>
+                Sin registros de roster para este mes
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 </div>
 
