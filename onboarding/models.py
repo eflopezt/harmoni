@@ -168,6 +168,61 @@ class ProcesoOnboarding(models.Model):
         return (date.today() - self.fecha_inicio).days
 
 
+class ChecklistTI(models.Model):
+    """Provisioning TI mínimo (rec. 18 del análisis de flujo).
+
+    Campos estructurados en vez de integraciones complejas: TI marca lo
+    hecho y RRHH ve el avance desde el detalle del onboarding.
+    """
+    proceso = models.OneToOneField(
+        ProcesoOnboarding, on_delete=models.CASCADE,
+        related_name='checklist_ti', verbose_name='Proceso de Onboarding',
+    )
+    correo_creado = models.BooleanField(
+        default=False, verbose_name='Correo corporativo creado')
+    correo_corporativo = models.EmailField(
+        blank=True, verbose_name='Correo corporativo')
+    usuario_ad_creado = models.BooleanField(
+        default=False, verbose_name='Usuario AD/SSO creado')
+    usuario_ad = models.CharField(
+        max_length=100, blank=True, verbose_name='Usuario AD/SSO')
+    equipo_entregado = models.BooleanField(
+        default=False, verbose_name='Equipo entregado')
+    equipo_asignado = models.ForeignKey(
+        'personal.ActivoAsignado', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='checklists_ti',
+        verbose_name='Equipo asignado',
+        help_text='Activo entregado al ingresar (laptop, celular, EPP...)',
+    )
+    accesos_sistemas = models.TextField(
+        blank=True, verbose_name='Accesos a sistemas',
+        help_text='Sistemas, carpetas o licencias habilitados')
+    fotocheck_entregado = models.BooleanField(
+        default=False, verbose_name='Fotocheck entregado')
+    actualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='checklists_ti_actualizados',
+    )
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Checklist TI'
+        verbose_name_plural = 'Checklists TI'
+
+    def __str__(self):
+        return f'Checklist TI: {self.proceso.personal.apellidos_nombres}'
+
+    @property
+    def completado(self):
+        return self.correo_creado and self.usuario_ad_creado and self.equipo_entregado
+
+    @property
+    def avance(self):
+        checks = [self.correo_creado, self.usuario_ad_creado,
+                  self.equipo_entregado, self.fotocheck_entregado]
+        return round(sum(checks) * 100 / len(checks))
+
+
 class PasoOnboarding(models.Model):
     """Paso concreto de un proceso de onboarding."""
     ESTADO_CHOICES = [

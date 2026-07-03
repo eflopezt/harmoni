@@ -159,19 +159,60 @@ def onboarding_crear(request):
 @login_required
 @solo_admin
 def onboarding_detalle(request, pk):
-    """Detalle de proceso con checklist de pasos."""
+    """Detalle de proceso con checklist de pasos + checklist TI."""
+    from .models import ChecklistTI
+
     proceso = get_object_or_404(
         ProcesoOnboarding.objects.select_related('personal', 'plantilla', 'iniciado_por'),
         pk=pk
     )
     pasos = proceso.pasos.select_related('responsable', 'completado_por').all()
+    checklist_ti, _ = ChecklistTI.objects.get_or_create(proceso=proceso)
+
+    from personal.models import ActivoAsignado
+    activos_personal = ActivoAsignado.objects.filter(
+        personal=proceso.personal).order_by('-pk')
 
     context = {
         'titulo': f'Onboarding: {proceso.personal.apellidos_nombres}',
         'proceso': proceso,
         'pasos': pasos,
+        'checklist_ti': checklist_ti,
+        'activos_personal': activos_personal,
     }
     return render(request, 'onboarding/onboarding_detalle.html', context)
+
+
+@login_required
+@solo_admin
+@require_POST
+def checklist_ti_guardar(request, pk):
+    """Guarda el checklist TI del proceso (provisioning mínimo, rec. 18)."""
+    from .models import ChecklistTI
+
+    proceso = get_object_or_404(ProcesoOnboarding, pk=pk)
+    chk, _ = ChecklistTI.objects.get_or_create(proceso=proceso)
+
+    chk.correo_creado = bool(request.POST.get('correo_creado'))
+    chk.correo_corporativo = request.POST.get('correo_corporativo', '').strip()
+    chk.usuario_ad_creado = bool(request.POST.get('usuario_ad_creado'))
+    chk.usuario_ad = request.POST.get('usuario_ad', '').strip()
+    chk.equipo_entregado = bool(request.POST.get('equipo_entregado'))
+    chk.accesos_sistemas = request.POST.get('accesos_sistemas', '').strip()
+    chk.fotocheck_entregado = bool(request.POST.get('fotocheck_entregado'))
+    chk.actualizado_por = request.user
+
+    equipo_id = request.POST.get('equipo_asignado') or None
+    if equipo_id:
+        from personal.models import ActivoAsignado
+        chk.equipo_asignado = ActivoAsignado.objects.filter(
+            pk=equipo_id, personal=proceso.personal).first()
+    else:
+        chk.equipo_asignado = None
+    chk.save()
+
+    messages.success(request, f'Checklist TI guardado ({chk.avance}% completo).')
+    return redirect('onboarding_detalle', pk=pk)
 
 
 # ══════════════════════════════════════════════════════════════

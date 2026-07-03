@@ -133,6 +133,81 @@
         </table>
     </div>
 </div>
+
+{# ── Checklist TI (provisioning mínimo) ─────────────────────────── #}
+{% if checklist_ti %}
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header d-flex align-items-center gap-2"
+         style="background:#eff6ff;border-bottom:1px solid #bfdbfe;">
+        <i class="fas fa-laptop" style="color:#1d4ed8"></i>
+        <strong style="color:#1d4ed8">Checklist TI</strong>
+        <span class="badge {% if checklist_ti.completado %}bg-success{% else %}bg-warning text-dark{% endif %} ms-auto">
+            {{ checklist_ti.avance }}%
+        </span>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{% url 'checklist_ti_guardar' proceso.pk %}">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="form-check form-switch mb-1">
+                        <input type="checkbox" name="correo_creado" value="1" class="form-check-input"
+                               id="ti_correo" {% if checklist_ti.correo_creado %}checked{% endif %}>
+                        <label class="form-check-label small fw-semibold" for="ti_correo">Correo corporativo creado</label>
+                    </div>
+                    <input type="email" name="correo_corporativo" class="form-control form-control-sm"
+                           placeholder="nombre@empresa.pe" value="{{ checklist_ti.correo_corporativo }}">
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check form-switch mb-1">
+                        <input type="checkbox" name="usuario_ad_creado" value="1" class="form-check-input"
+                               id="ti_ad" {% if checklist_ti.usuario_ad_creado %}checked{% endif %}>
+                        <label class="form-check-label small fw-semibold" for="ti_ad">Usuario AD/SSO creado</label>
+                    </div>
+                    <input type="text" name="usuario_ad" class="form-control form-control-sm"
+                           placeholder="dominio\usuario" value="{{ checklist_ti.usuario_ad }}">
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check form-switch mb-1">
+                        <input type="checkbox" name="equipo_entregado" value="1" class="form-check-input"
+                               id="ti_equipo" {% if checklist_ti.equipo_entregado %}checked{% endif %}>
+                        <label class="form-check-label small fw-semibold" for="ti_equipo">Equipo entregado</label>
+                    </div>
+                    <select name="equipo_asignado" class="form-select form-select-sm">
+                        <option value="">— Sin activo vinculado —</option>
+                        {% for a in activos_personal %}
+                        <option value="{{ a.pk }}" {% if checklist_ti.equipo_asignado_id == a.pk %}selected{% endif %}>
+                            {{ a }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Los activos se registran en la ficha del trabajador.</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check form-switch mb-1">
+                        <input type="checkbox" name="fotocheck_entregado" value="1" class="form-check-input"
+                               id="ti_foto" {% if checklist_ti.fotocheck_entregado %}checked{% endif %}>
+                        <label class="form-check-label small fw-semibold" for="ti_foto">Fotocheck entregado</label>
+                    </div>
+                    <textarea name="accesos_sistemas" class="form-control form-control-sm" rows="2"
+                              placeholder="Sistemas, carpetas o licencias habilitados...">{{ checklist_ti.accesos_sistemas }}</textarea>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mt-3">
+                <small class="text-muted">
+                    {% if checklist_ti.actualizado_por %}
+                    Última actualización: {{ checklist_ti.actualizado_por.get_full_name|default:checklist_ti.actualizado_por.username }}
+                    · {{ checklist_ti.actualizado_en|date:"d/m/Y H:i" }}
+                    {% endif %}
+                </small>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-save me-1"></i>Guardar checklist
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

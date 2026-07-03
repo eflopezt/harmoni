@@ -11,6 +11,7 @@ urlpatterns = [
     path('crear/', views.onboarding_crear, name='onboarding_crear'),
     path('<int:pk>/', views.onboarding_detalle, name='onboarding_detalle'),
     path('<int:pk>/progreso/', views.proceso_progreso, name='proceso_progreso'),
+    path('<int:pk>/checklist-ti/', views.checklist_ti_guardar, name='checklist_ti_guardar'),
     path('paso/<int:pk>/completar/', views.paso_completar, name='paso_on_completar'),
     path('paso/<int:pk>/omitir/', views.paso_omitir, name='paso_on_omitir'),
     path('<int:proc_pk>/paso/<int:paso_pk>/completar/', views.onboarding_completar_paso, name='onboarding_completar_paso'),
