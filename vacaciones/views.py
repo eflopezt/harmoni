@@ -366,11 +366,13 @@ def saldo_generar_masivo(request):
     - Art. 22: Vacaciones truncas proporcionales al cese (30/12 × meses).
     - dias_derecho = 30 para año completo, proporcional para periodo incompleto.
     - dias_gozados se sincroniza con:
-      a) SolicitudVacacion con estado APROBADA en el período
-      b) RegistroTareo con codigo_dia='VAC' en el período
-      c) RegistroPapeleta con tipo_permiso VACACIONES estado APROBADA
+      a) SolicitudVacacion con estado APROBADA (todas)
+      b) RegistroPapeleta VACACIONES aprobadas/ejecutadas (importadas Synkro
+         o manuales), excluyendo las espejo de SolicitudVacacion para no
+         contar doble
+      c) fallback legacy: RegistroTareo codigo_dia='VAC' solo si (a)+(b)=0
     """
-    from asistencia.models import RegistroTareo
+    from asistencia.models import RegistroPapeleta, RegistroTareo
 
     personal_qs = Personal.objects.filter(estado='Activo', fecha_alta__isnull=False)
     creados = 0
@@ -400,7 +402,17 @@ def saldo_generar_masivo(request):
         ).aggregate(total=Sum('dias_calendario'))
         total_dias_gozados_emp += vac_sol['total'] or 0
 
-        # Fuente 2: RegistroTareo VAC (solo si no hay solicitudes)
+        # Fuente 2: papeletas VACACIONES aprobadas (importadas o manuales).
+        # Las espejo de SolicitudVacacion ya están contadas en fuente 1.
+        paps_vac = RegistroPapeleta.objects.filter(
+            personal=emp, tipo_permiso='VACACIONES',
+            estado__in=['APROBADA', 'EJECUTADA'],
+        ).exclude(detalle__startswith='Auto: SolicitudVacacion')
+        for pa in paps_vac:
+            total_dias_gozados_emp += (pa.fecha_fin - pa.fecha_inicio).days + 1
+
+        # Fuente 3 (fallback legacy, datos previos a papeletas):
+        # RegistroTareo VAC solo si no hay solicitudes ni papeletas
         if total_dias_gozados_emp == 0:
             total_dias_gozados_emp = RegistroTareo.objects.filter(
                 personal=emp, codigo_dia='VAC',

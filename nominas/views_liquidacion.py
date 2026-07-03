@@ -215,33 +215,44 @@ def _calcular_liquidacion(personal: Personal, rmv: Decimal = None) -> dict:
 
 @login_required
 def liquidaciones_panel(request):
-    """Panel: cesados pendientes de liquidar + liquidaciones recientes."""
-    # Empleados cesados
-    cesados = Personal.objects.filter(
-        estado='Cesado',
-        fecha_cese__isnull=False,
-    ).order_by('-fecha_cese').select_related('subarea__area')
+    """Panel unificado de liquidaciones (cola de P6).
 
-    # IDs ya liquidados (tienen RegistroNomina en un periodo LIQUIDACION)
-    liq_personal_ids = set(
-        RegistroNomina.objects.filter(
-            periodo__tipo='LIQUIDACION'
-        ).values_list('personal_id', flat=True)
+    Fuente principal: LiquidacionLaboral (se auto-crea al cesar vía signal),
+    separada en abiertas (BORRADOR→FIRMADA) y cerradas (PAGADA/CERRADA).
+    Los cesados legacy SIN LiquidacionLaboral (previos al feature o con
+    signal fallido) se listan aparte con acceso al flujo viejo.
+    """
+    from nominas.models import LiquidacionLaboral
+
+    liquidaciones = (
+        LiquidacionLaboral.objects
+        .select_related('personal', 'personal__subarea__area')
+        .order_by('-fecha_cese')
+    )
+    _cerrados = ('PAGADA', 'CERRADA')
+    abiertas = [l for l in liquidaciones if l.estado not in _cerrados]
+    cerradas = [l for l in liquidaciones if l.estado in _cerrados][:30]
+
+    con_liq_ids = {l.personal_id for l in liquidaciones}
+    sin_liquidacion = list(
+        Personal.objects.filter(
+            estado='Cesado', fecha_cese__isnull=False,
+        ).exclude(pk__in=con_liq_ids)
+        .select_related('subarea__area')
+        .order_by('-fecha_cese')[:50]
     )
 
-    pendientes   = [c for c in cesados if c.pk not in liq_personal_ids]
-    ya_liquidados = [c for c in cesados if c.pk in liq_personal_ids]
-
-    # Períodos de liquidación recientes
+    # Períodos de liquidación recientes (histórico del flujo viejo)
     periodos_liq = PeriodoNomina.objects.filter(
         tipo='LIQUIDACION'
     ).order_by('-fecha_pago')[:20]
 
     return render(request, 'nominas/liquidaciones_panel.html', {
-        'titulo':         'Liquidaciones al Cese',
-        'pendientes':     pendientes,
-        'ya_liquidados':  ya_liquidados,
-        'periodos_liq':   periodos_liq,
+        'titulo':          'Liquidaciones al Cese',
+        'abiertas':        abiertas,
+        'cerradas':        cerradas,
+        'sin_liquidacion': sin_liquidacion,
+        'periodos_liq':    periodos_liq,
     })
 
 

@@ -35,13 +35,13 @@
         <div class="card-header d-flex align-items-center gap-2"
              style="background:#fee2e2; border-bottom:1px solid #fca5a5;">
           <i class="fas fa-exclamation-circle text-danger"></i>
-          <strong class="text-danger">Pendientes de Liquidar</strong>
-          {% if pendientes %}
-          <span class="badge bg-danger ms-auto">{{ pendientes|length }}</span>
+          <strong class="text-danger">Liquidaciones en Proceso</strong>
+          {% if abiertas %}
+          <span class="badge bg-danger ms-auto">{{ abiertas|length }}</span>
           {% endif %}
         </div>
         <div class="card-body p-0">
-          {% if pendientes %}
+          {% if abiertas %}
           <div class="table-responsive">
             <table class="table table-hover mb-0 small">
               <thead class="table-light">
@@ -50,30 +50,46 @@
                   <th>Área / Cargo</th>
                   <th>Fecha Cese</th>
                   <th>Motivo</th>
+                  <th>Estado</th>
+                  <th class="text-end">Neto</th>
                   <th class="text-end">Acción</th>
                 </tr>
               </thead>
               <tbody>
-                {% for p in pendientes %}
+                {% for l in abiertas %}
                 <tr>
                   <td>
-                    <div class="fw-semibold">{{ p.apellidos_nombres }}</div>
-                    <small class="text-muted">DNI {{ p.nro_doc }}</small>
+                    <div class="fw-semibold">{{ l.personal.apellidos_nombres }}</div>
+                    <small class="text-muted">DNI {{ l.personal.nro_doc }}</small>
                   </td>
                   <td>
-                    <small>{{ p.subarea.area.nombre|default:"—" }}</small><br>
-                    <small class="text-muted">{{ p.cargo|default:"—" }}</small>
+                    <small>{{ l.personal.subarea.area.nombre|default:"—" }}</small><br>
+                    <small class="text-muted">{{ l.personal.cargo|default:"—" }}</small>
                   </td>
                   <td>
                     <span class="badge bg-danger bg-opacity-10 text-danger fw-semibold">
-                      {{ p.fecha_cese|date:"d/m/Y" }}
+                      {{ l.fecha_cese|date:"d/m/Y" }}
                     </span>
                   </td>
-                  <td><small>{{ p.get_motivo_cese_display|default:"—" }}</small></td>
+                  <td><small>{{ l.get_motivo_cese_display|default:"—" }}</small></td>
+                  <td>
+                    {% if l.estado == 'BORRADOR' %}
+                    <span class="badge bg-light text-dark">Borrador</span>
+                    {% elif l.estado == 'CALCULADA' %}
+                    <span class="badge bg-warning text-dark">Calculada</span>
+                    {% elif l.estado == 'APROBADA' %}
+                    <span class="badge bg-info text-dark">Aprobada</span>
+                    {% else %}
+                    <span class="badge bg-primary">{{ l.get_estado_display }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end small fw-semibold">
+                    {% if l.total_neto %}S/ {{ l.total_neto|floatformat:2|intcomma }}{% else %}—{% endif %}
+                  </td>
                   <td class="text-end text-nowrap">
-                    <a href="{% url 'nominas_liquidacion_detalle' p.pk %}"
+                    <a href="{% url 'nominas_liquidacion_laboral_detalle' l.pk %}"
                        class="btn btn-sm btn-danger">
-                      <i class="fas fa-calculator me-1"></i>Liquidar
+                      <i class="fas fa-calculator me-1"></i>Procesar
                     </a>
                   </td>
                 </tr>
@@ -84,11 +100,44 @@
           {% else %}
           <div class="p-5 text-center text-muted">
             <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
-            <p class="mb-0">No hay empleados cesados pendientes de liquidación.</p>
+            <p class="mb-0">No hay liquidaciones en proceso.</p>
           </div>
           {% endif %}
         </div>
       </div>
+
+      {% if sin_liquidacion %}
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header d-flex align-items-center gap-2"
+             style="background:#fff7ed; border-bottom:1px solid #fed7aa;">
+          <i class="fas fa-history" style="color:#ea580c"></i>
+          <strong style="color:#ea580c">Cesados sin liquidación registrada</strong>
+          <span class="badge bg-warning text-dark ms-auto">{{ sin_liquidacion|length }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+              <tbody>
+                {% for p in sin_liquidacion %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ p.apellidos_nombres }}</div>
+                    <small class="text-muted">DNI {{ p.nro_doc }} · cese {{ p.fecha_cese|date:"d/m/Y" }}</small>
+                  </td>
+                  <td class="text-end text-nowrap">
+                    <a href="{% url 'nominas_liquidacion_detalle' p.pk %}"
+                       class="btn btn-sm btn-outline-secondary">
+                      <i class="fas fa-calculator me-1"></i>Liquidar (flujo clásico)
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     {# ═══ Columna derecha: Ya Liquidados ═══ #}
@@ -100,15 +149,16 @@
           <strong class="text-success">Liquidados Recientemente</strong>
         </div>
         <div class="card-body p-0">
-          {% if ya_liquidados %}
+          {% if cerradas %}
           <ul class="list-group list-group-flush">
-            {% for p in ya_liquidados|slice:":12" %}
+            {% for l in cerradas|slice:":12" %}
             <li class="list-group-item d-flex align-items-center justify-content-between py-2">
               <div>
-                <div class="fw-semibold small">{{ p.apellidos_nombres }}</div>
-                <small class="text-muted">{{ p.fecha_cese|date:"d/m/Y" }} — {{ p.get_motivo_cese_display|default:"" }}</small>
+                <div class="fw-semibold small">{{ l.personal.apellidos_nombres }}</div>
+                <small class="text-muted">{{ l.fecha_cese|date:"d/m/Y" }} · {{ l.get_estado_display }}
+                  {% if l.total_neto %} · S/ {{ l.total_neto|floatformat:2|intcomma }}{% endif %}</small>
               </div>
-              <a href="{% url 'nominas_liquidacion_detalle' p.pk %}"
+              <a href="{% url 'nominas_liquidacion_laboral_detalle' l.pk %}"
                  class="btn btn-sm btn-outline-secondary">
                 <i class="fas fa-eye"></i>
               </a>
@@ -118,7 +168,7 @@
           {% else %}
           <div class="p-4 text-center text-muted small">
             <i class="fas fa-inbox fa-lg mb-2"></i>
-            <p class="mb-0">Sin liquidaciones registradas aún.</p>
+            <p class="mb-0">Sin liquidaciones cerradas aún.</p>
           </div>
           {% endif %}
         </div>
