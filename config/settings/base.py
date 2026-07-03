@@ -68,7 +68,6 @@ INSTALLED_APPS = [
     'empresas.apps.EmpresasConfig',
     'workflows.apps.WorkflowsConfig',
     'descuentos.apps.DescuentosConfig',
-    'wa_marketing.apps.WaMarketingConfig',
 ]
 
 MIDDLEWARE = [

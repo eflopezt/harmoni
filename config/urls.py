@@ -250,7 +250,6 @@ urlpatterns = [
     path('api/health/nominas/', __import__('nominas.views_health', fromlist=['nominas_health']).nominas_health, name='api_health_nominas'),
     path('empresas/', include('empresas.urls')),
     path('workflows/', include('workflows.urls')),
-    path('', include('wa_marketing.urls')),
 ]
 
 # Add debug toolbar URLs in development
