@@ -160,7 +160,8 @@
 
             <!-- ══ PRINCIPAL (no collapsible) ══ -->
             <div class="nav-section">
-                <a href="{% url 'home' %}" class="nav-item" data-match="^/$">
+                {# ?landing=home evita el redirect de la pantalla de inicio elegida #}
+                <a href="{% url 'home' %}?landing=home" class="nav-item" data-match="^/$">
                     <i class="fas fa-th-large"></i><span>Dashboard</span>
                 </a>
             </div>

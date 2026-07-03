@@ -51,6 +51,19 @@
             </div>
           </div>
 
+          <div class="mb-4">
+            <label class="form-label fw-semibold" for="id_landing">Pantalla de inicio</label>
+            <select name="landing_default" id="id_landing" class="form-select" style="max-width:340px;">
+              {% for val, lbl in landing_opciones %}
+              <option value="{{ val }}" {% if prefs.landing_default == val %}selected{% endif %}>{{ lbl }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">
+              A dónde llegas al entrar al sistema. Siempre puedes volver al
+              dashboard general con <code>/?landing=home</code> o desde el menú.
+            </div>
+          </div>
+
           <div class="mb-3">
             <div class="form-check form-switch">
               <input type="checkbox" name="sidebar_colapsado" value="1"

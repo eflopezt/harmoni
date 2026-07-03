@@ -190,6 +190,34 @@ def _get_frase_dia(hoy: date) -> dict:
     }
 
 
+def _landing_preferido(user, is_jefe=False):
+    """Devuelve el url name del landing elegido por el usuario, o None.
+
+    Los destinos de nóminas/reclutamiento son solo-superuser; un jefe de
+    área solo puede anclar el Centro de Aprobaciones (donde sí decide).
+    """
+    try:
+        from core.models import PreferenciaUsuario
+        pref = PreferenciaUsuario.objects.filter(usuario=user).only(
+            'landing_default').first()
+    except Exception:
+        return None
+    if not pref or pref.landing_default in ('', 'home'):
+        return None
+
+    destino_map = {
+        'aprobaciones': 'dashboard_aprobaciones',
+        'mi_dia_reclutador': 'mi_dia_reclutador',
+        'mi_dia_nominas': 'mi_dia_nominas',
+    }
+    destino = destino_map.get(pref.landing_default)
+    if destino is None:
+        return None
+    if destino != 'dashboard_aprobaciones' and not user.is_superuser:
+        return None
+    return destino
+
+
 def home(request):
     """Vista principal — Landing pública o Dashboard según autenticación.
 
@@ -218,6 +246,13 @@ def home(request):
             return redirect('portal_home')
         # Jefe de área → dashboard de equipo
         is_jefe = True
+
+    # ── Landing por rol (rec. 16): preferencia del usuario ────────────────
+    # ?landing=home fuerza el dashboard (para no quedar sin salida).
+    if request.GET.get('landing') != 'home':
+        destino = _landing_preferido(request.user, is_jefe=is_jefe)
+        if destino:
+            return redirect(destino)
 
     hoy = date.today()
 

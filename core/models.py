@@ -95,6 +95,15 @@ class PreferenciaUsuario(models.Model):
         ('en', 'English'),
     ]
 
+    # Landing por rol (rec. 16 del análisis de flujo): cada usuario elige
+    # en qué "Mi Día" aterriza al entrar. 'home' = dashboard general.
+    LANDING_CHOICES = [
+        ('home', 'Dashboard general'),
+        ('aprobaciones', 'Centro de Aprobaciones'),
+        ('mi_dia_reclutador', 'Mi Día — Reclutamiento'),
+        ('mi_dia_nominas', 'Mi Día — Nóminas'),
+    ]
+
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -106,6 +115,13 @@ class PreferenciaUsuario(models.Model):
     sidebar_colapsado = models.BooleanField(
         default=False,
         verbose_name='Sidebar colapsado por defecto',
+    )
+    landing_default = models.CharField(
+        max_length=20,
+        choices=LANDING_CHOICES,
+        default='home',
+        verbose_name='Pantalla de inicio',
+        help_text='A dónde llegas al entrar al sistema.',
     )
     items_por_pagina = models.PositiveSmallIntegerField(
         default=20,

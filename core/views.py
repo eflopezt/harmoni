@@ -468,6 +468,9 @@ def preferencias_usuario(request):
         prefs.sidebar_colapsado    = bool(request.POST.get('sidebar_colapsado'))
         prefs.tema                 = request.POST.get('tema', 'AUTO')
         prefs.idioma               = request.POST.get('idioma', 'es')
+        landing = request.POST.get('landing_default', prefs.landing_default)
+        if landing in dict(PreferenciaUsuario.LANDING_CHOICES):
+            prefs.landing_default = landing
         prefs.notif_email_habilitado = bool(request.POST.get('notif_email_habilitado'))
         prefs.notif_contratos      = bool(request.POST.get('notif_contratos'))
         prefs.notif_vacaciones     = bool(request.POST.get('notif_vacaciones'))
@@ -493,6 +496,7 @@ def preferencias_usuario(request):
         'items_opciones': PreferenciaUsuario.ITEMS_PAGINA_CHOICES,
         'tema_opciones': PreferenciaUsuario.TEMA_CHOICES,
         'idioma_opciones': PreferenciaUsuario.IDIOMA_CHOICES,
+        'landing_opciones': PreferenciaUsuario.LANDING_CHOICES,
     }
     return render(request, 'core/preferencias.html', context)
 
