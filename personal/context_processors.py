@@ -264,6 +264,17 @@ def _calcular_badge(user, area_ids: list) -> int:
             total += SolicitudPermiso.objects.filter(estado='PENDIENTE').count()
         except Exception:
             pass
+        # Préstamos y workflows también viven en la bandeja unificada (P16)
+        try:
+            from prestamos.models import Prestamo
+            total += Prestamo.objects.filter(estado__in=['BORRADOR', 'PENDIENTE']).count()
+        except Exception:
+            pass
+        try:
+            from workflows.models import InstanciaFlujo
+            total += InstanciaFlujo.objects.filter(estado='EN_PROCESO').count()
+        except Exception:
+            pass
     else:
         af = Q(personal__subarea__area__in=area_ids)
         total += Roster.objects.filter(Q(estado='pendiente') & af).count()

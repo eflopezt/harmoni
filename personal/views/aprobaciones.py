@@ -1,6 +1,7 @@
 """
 Vistas para el dashboard unificado de aprobaciones.
-Agrega: Roster, Papeletas, Solicitudes HE, Justificaciones.
+Agrega: Roster, Papeletas, Solicitudes HE, Justificaciones,
+Vacaciones, Permisos, Préstamos y Workflows (bandeja única, P16).
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -20,6 +21,7 @@ from ..permissions import get_areas_responsable
 def dashboard_aprobaciones(request):
     """Dashboard unificado de aprobaciones para admin y responsables."""
     from asistencia.models import RegistroPapeleta, SolicitudHE, JustificacionNoMarcaje
+    from vacaciones.models import SolicitudPermiso, SolicitudVacacion
 
     # ── Permisos ──
     areas_responsable = Area.objects.none()
@@ -45,6 +47,26 @@ def dashboard_aprobaciones(request):
     papeletas_qs = filtro_area(RegistroPapeleta.objects.filter(estado='PENDIENTE'))
     solicitudes_qs = filtro_area(SolicitudHE.objects.filter(estado='PENDIENTE'))
     justificaciones_qs = filtro_area(JustificacionNoMarcaje.objects.filter(estado='PENDIENTE'))
+    vacaciones_qs = filtro_area(SolicitudVacacion.objects.filter(estado='PENDIENTE'))
+    permisos_qs = filtro_area(SolicitudPermiso.objects.filter(estado='PENDIENTE'))
+
+    # Préstamos y workflows: solo admin (sus endpoints son @solo_admin /
+    # aprobador designado; el responsable de área no decide sobre ellos)
+    prestamos_qs = None
+    workflow_items = []
+    if is_admin:
+        try:
+            from prestamos.models import Prestamo
+            prestamos_qs = Prestamo.objects.filter(estado__in=['BORRADOR', 'PENDIENTE'])
+        except Exception:
+            prestamos_qs = None
+        try:
+            from workflows.models import InstanciaFlujo
+            wf_qs = (InstanciaFlujo.objects.filter(estado='EN_PROCESO')
+                     .select_related('flujo').order_by('-creado_en')[:100])
+            workflow_items = [w for w in wf_qs]
+        except Exception:
+            workflow_items = []
 
     # Filtro de búsqueda
     if buscar:
@@ -54,13 +76,22 @@ def dashboard_aprobaciones(request):
         papeletas_qs = papeletas_qs.filter(q_nombre | q_doc)
         solicitudes_qs = solicitudes_qs.filter(q_nombre | q_doc)
         justificaciones_qs = justificaciones_qs.filter(q_nombre | q_doc)
+        vacaciones_qs = vacaciones_qs.filter(q_nombre | q_doc)
+        permisos_qs = permisos_qs.filter(q_nombre | q_doc)
+        if prestamos_qs is not None:
+            prestamos_qs = prestamos_qs.filter(q_nombre | q_doc)
 
     # ── Counts para badges de tabs ──
     cnt_roster = roster_qs.count()
     cnt_papeletas = papeletas_qs.count()
     cnt_solicitudes = solicitudes_qs.count()
     cnt_justificaciones = justificaciones_qs.count()
-    cnt_total = cnt_roster + cnt_papeletas + cnt_solicitudes + cnt_justificaciones
+    cnt_vacaciones = vacaciones_qs.count()
+    cnt_permisos = permisos_qs.count()
+    cnt_prestamos = prestamos_qs.count() if prestamos_qs is not None else 0
+    cnt_workflows = len(workflow_items)
+    cnt_total = (cnt_roster + cnt_papeletas + cnt_solicitudes + cnt_justificaciones
+                 + cnt_vacaciones + cnt_permisos + cnt_prestamos + cnt_workflows)
 
     # ── Stats generales ──
     hoy = date.today()
@@ -79,13 +110,25 @@ def dashboard_aprobaciones(request):
         JustificacionNoMarcaje.objects.filter(estado='APROBADA', fecha_revision=hoy)
     ).count()
 
+    aprobados_hoy_vac = filtro_area(
+        SolicitudVacacion.objects.filter(estado='APROBADA', fecha_aprobacion=hoy)
+    ).count()
+    aprobados_hoy_per = filtro_area(
+        SolicitudPermiso.objects.filter(estado='APROBADA', fecha_aprobacion=hoy)
+    ).count()
+
     stats = {
         'total_pendientes': cnt_total,
-        'aprobados_hoy': aprobados_hoy_roster + aprobados_hoy_pap + aprobados_hoy_sol + aprobados_hoy_just,
+        'aprobados_hoy': (aprobados_hoy_roster + aprobados_hoy_pap + aprobados_hoy_sol
+                          + aprobados_hoy_just + aprobados_hoy_vac + aprobados_hoy_per),
         'cnt_roster': cnt_roster,
         'cnt_papeletas': cnt_papeletas,
         'cnt_solicitudes': cnt_solicitudes,
         'cnt_justificaciones': cnt_justificaciones,
+        'cnt_vacaciones': cnt_vacaciones,
+        'cnt_permisos': cnt_permisos,
+        'cnt_prestamos': cnt_prestamos,
+        'cnt_workflows': cnt_workflows,
     }
 
     # ── Cargar datos según tab ──
@@ -93,6 +136,9 @@ def dashboard_aprobaciones(request):
     papeleta_items = []
     solicitud_items = []
     justificacion_items = []
+    vacacion_items = []
+    permiso_items = []
+    prestamo_items = []
 
     if tab in ('todos', 'roster'):
         roster_items = list(roster_qs.select_related(
@@ -114,6 +160,24 @@ def dashboard_aprobaciones(request):
             'personal', 'personal__subarea__area',
         ).order_by('-creado_en')[:100])
 
+    if tab in ('todos', 'vacaciones'):
+        vacacion_items = list(vacaciones_qs.select_related(
+            'personal', 'personal__subarea__area', 'saldo',
+        ).order_by('fecha_inicio')[:100])
+
+    if tab in ('todos', 'permisos'):
+        permiso_items = list(permisos_qs.select_related(
+            'personal', 'personal__subarea__area', 'tipo',
+        ).order_by('fecha_inicio')[:100])
+
+    if tab in ('todos', 'prestamos') and prestamos_qs is not None:
+        prestamo_items = list(prestamos_qs.select_related(
+            'personal', 'personal__subarea__area',
+        ).order_by('-creado_en')[:100])
+
+    if tab not in ('todos', 'workflows'):
+        workflow_items = []
+
     context = {
         'stats': stats,
         'tab': tab,
@@ -123,6 +187,11 @@ def dashboard_aprobaciones(request):
         'papeleta_items': papeleta_items,
         'solicitud_items': solicitud_items,
         'justificacion_items': justificacion_items,
+        'vacacion_items': vacacion_items,
+        'permiso_items': permiso_items,
+        'prestamo_items': prestamo_items,
+        'workflow_items': workflow_items,
+        'es_admin_aprobaciones': is_admin,
     }
     return render(request, 'personal/dashboard_aprobaciones.html', context)
 

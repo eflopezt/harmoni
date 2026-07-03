@@ -112,6 +112,24 @@
            class="tab-pill {% if tab == 'roster' %}active{% endif %}">
             <i class="fas fa-calendar-alt"></i> Roster <span class="badge bg-dark">{{ stats.cnt_roster }}</span>
         </a>
+        <a href="?tab=vacaciones{% if buscar %}&buscar={{ buscar }}{% endif %}"
+           class="tab-pill {% if tab == 'vacaciones' %}active{% endif %}">
+            <i class="fas fa-umbrella-beach"></i> Vacaciones <span class="badge bg-dark">{{ stats.cnt_vacaciones }}</span>
+        </a>
+        <a href="?tab=permisos{% if buscar %}&buscar={{ buscar }}{% endif %}"
+           class="tab-pill {% if tab == 'permisos' %}active{% endif %}">
+            <i class="fas fa-door-open"></i> Permisos <span class="badge bg-dark">{{ stats.cnt_permisos }}</span>
+        </a>
+        {% if es_admin_aprobaciones %}
+        <a href="?tab=prestamos{% if buscar %}&buscar={{ buscar }}{% endif %}"
+           class="tab-pill {% if tab == 'prestamos' %}active{% endif %}">
+            <i class="fas fa-hand-holding-usd"></i> Préstamos <span class="badge bg-dark">{{ stats.cnt_prestamos }}</span>
+        </a>
+        <a href="?tab=workflows{% if buscar %}&buscar={{ buscar }}{% endif %}"
+           class="tab-pill {% if tab == 'workflows' %}active{% endif %}">
+            <i class="fas fa-code-branch"></i> Workflows <span class="badge bg-dark">{{ stats.cnt_workflows }}</span>
+        </a>
+        {% endif %}
     </div>
     <!-- Buscar -->
     <form method="get" class="d-flex gap-2" style="min-width:260px">
@@ -360,6 +378,183 @@
 </div>
 {% endif %}
 
+<!-- ══════════ VACACIONES ══════════ -->
+{% if vacacion_items %}
+<div class="aprob-section mb-4">
+    <div class="aprob-section-header">
+        <div class="section-icon" style="background:#d1fae5;color:#065f46"><i class="fas fa-umbrella-beach"></i></div>
+        <strong>Solicitudes de Vacaciones</strong>
+        <span class="badge bg-warning text-dark ms-auto">{{ stats.cnt_vacaciones }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Trabajador</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th class="text-center">Días</th>
+                    <th class="text-center">Saldo disp.</th>
+                    <th>Motivo</th>
+                    <th class="text-center" style="width:100px">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vacacion_items %}
+                <tr class="aprob-row" id="vac-{{ v.pk }}">
+                    <td class="small">
+                        <strong>{{ v.personal.apellidos_nombres }}</strong>
+                        <br><span class="text-muted">{{ v.personal.nro_doc }}</span>
+                    </td>
+                    <td class="small">{{ v.fecha_inicio|date:"d/m/Y" }}</td>
+                    <td class="small">{{ v.fecha_fin|date:"d/m/Y" }}</td>
+                    <td class="text-center small fw-semibold">{{ v.dias_calendario }}</td>
+                    <td class="text-center small">
+                        {% if v.saldo %}{{ v.saldo.dias_pendientes }}{% else %}—{% endif %}
+                    </td>
+                    <td class="small text-muted">{{ v.motivo|truncatechars:40|default:"—" }}</td>
+                    <td class="text-center">
+                        <button class="btn btn-success btn-sm py-0 px-2" onclick="aprobarVacacion({{ v.pk }})" title="Aprobar">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm py-0 px-2" onclick="rechazarVacacion({{ v.pk }})" title="Rechazar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ══════════ PERMISOS ══════════ -->
+{% if permiso_items %}
+<div class="aprob-section mb-4">
+    <div class="aprob-section-header">
+        <div class="section-icon" style="background:#dbeafe;color:#1e40af"><i class="fas fa-door-open"></i></div>
+        <strong>Solicitudes de Permiso</strong>
+        <span class="badge bg-warning text-dark ms-auto">{{ stats.cnt_permisos }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Trabajador</th>
+                    <th>Tipo</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th>Motivo</th>
+                    <th class="text-center" style="width:100px">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pe in permiso_items %}
+                <tr class="aprob-row" id="per-{{ pe.pk }}">
+                    <td class="small">
+                        <strong>{{ pe.personal.apellidos_nombres }}</strong>
+                        <br><span class="text-muted">{{ pe.personal.nro_doc }}</span>
+                    </td>
+                    <td><span class="tipo-pill tipo-lic">{{ pe.tipo.nombre|default:"—"|truncatechars:28 }}</span></td>
+                    <td class="small">{{ pe.fecha_inicio|date:"d/m/Y" }}</td>
+                    <td class="small">{{ pe.fecha_fin|date:"d/m/Y" }}</td>
+                    <td class="small text-muted">{{ pe.motivo|truncatechars:40|default:"—" }}</td>
+                    <td class="text-center">
+                        <button class="btn btn-success btn-sm py-0 px-2" onclick="aprobarPermiso({{ pe.pk }})" title="Aprobar">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm py-0 px-2" onclick="rechazarPermiso({{ pe.pk }})" title="Rechazar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ══════════ PRÉSTAMOS (solo admin; aprobar requiere monto/fecha) ══════════ -->
+{% if prestamo_items %}
+<div class="aprob-section mb-4">
+    <div class="aprob-section-header">
+        <div class="section-icon" style="background:#fef3c7;color:#92400e"><i class="fas fa-hand-holding-usd"></i></div>
+        <strong>Préstamos por Aprobar</strong>
+        <span class="badge bg-warning text-dark ms-auto">{{ stats.cnt_prestamos }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Trabajador</th>
+                    <th class="text-end">Monto solicitado</th>
+                    <th class="text-center">Cuotas</th>
+                    <th>Solicitado</th>
+                    <th class="text-center" style="width:110px">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pr in prestamo_items %}
+                <tr class="aprob-row" id="pre-{{ pr.pk }}">
+                    <td class="small">
+                        <strong>{{ pr.personal.apellidos_nombres }}</strong>
+                        <br><span class="text-muted">{{ pr.personal.nro_doc }}</span>
+                    </td>
+                    <td class="text-end small fw-semibold">S/ {{ pr.monto_solicitado|floatformat:2 }}</td>
+                    <td class="text-center small">{{ pr.num_cuotas|default:"—" }}</td>
+                    <td class="small text-muted">{{ pr.fecha_solicitud|date:"d/m/Y" }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'prestamo_detalle' pr.pk %}" class="btn btn-outline-primary btn-sm py-0 px-2"
+                           title="Aprobar requiere fijar monto y fecha de descuento">
+                            Revisar <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ══════════ WORKFLOWS (solo admin; decisión con contexto en su bandeja) ══════════ -->
+{% if workflow_items %}
+<div class="aprob-section mb-4">
+    <div class="aprob-section-header">
+        <div class="section-icon" style="background:#ede9fe;color:#5b21b6"><i class="fas fa-code-branch"></i></div>
+        <strong>Workflows en Proceso</strong>
+        <span class="badge bg-warning text-dark ms-auto">{{ stats.cnt_workflows }}</span>
+        <a href="{% url 'workflow_bandeja' %}" class="btn btn-outline-primary btn-sm ms-2 py-0">
+            Ir a la bandeja <i class="fas fa-arrow-right ms-1"></i>
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Flujo</th>
+                    <th>Objeto</th>
+                    <th>Etapa actual</th>
+                    <th>Iniciado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in workflow_items %}
+                <tr class="aprob-row">
+                    <td class="small fw-semibold">{{ w.flujo.nombre|default:w.flujo }}</td>
+                    <td class="small text-muted">{{ w.objeto|default:"—"|truncatechars:50 }}</td>
+                    <td class="small">{{ w.etapa_actual|default:"—" }}</td>
+                    <td class="small text-muted">{{ w.creado_en|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
 {% if buscar and stats.total_pendientes == 0 %}
 <div class="alert alert-info">
     <i class="fas fa-search me-2"></i>
@@ -440,6 +635,44 @@ async function rechazarRoster(pk) {
     if (!confirm('¿Rechazar este cambio de roster?')) return;
     const r = await fetch(`/roster/rechazar/${pk}/`, { method:'POST', headers });
     if (r.ok) { fadeRow('roster-'+pk, false); } else { alert('Error al rechazar'); }
+}
+
+/* ── Vacaciones ── */
+async function aprobarVacacion(pk) {
+    if (!confirm('¿Aprobar estas vacaciones? Se descontará del saldo y se creará la papeleta VAC.')) return;
+    const r = await fetch(`/vacaciones/${pk}/aprobar/`, { method:'POST', headers });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) { fadeRow('vac-'+pk, true); }
+    else { alert(data.error || 'Error al aprobar'); }
+}
+async function rechazarVacacion(pk) {
+    const motivo = prompt('Motivo del rechazo (opcional):');
+    if (motivo === null) return;
+    const fd = new FormData();
+    fd.append('motivo', motivo || '');
+    const r = await fetch(`/vacaciones/${pk}/rechazar/`, { method:'POST', headers, body: fd });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) { fadeRow('vac-'+pk, false); }
+    else { alert(data.error || 'Error al rechazar'); }
+}
+
+/* ── Permisos ── */
+async function aprobarPermiso(pk) {
+    if (!confirm('¿Aprobar este permiso?')) return;
+    const r = await fetch(`/vacaciones/permisos/${pk}/aprobar/`, { method:'POST', headers });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) { fadeRow('per-'+pk, true); }
+    else { alert(data.error || 'Error al aprobar'); }
+}
+async function rechazarPermiso(pk) {
+    const motivo = prompt('Motivo del rechazo (opcional):');
+    if (motivo === null) return;
+    const fd = new FormData();
+    fd.append('motivo', motivo || '');
+    const r = await fetch(`/vacaciones/permisos/${pk}/rechazar/`, { method:'POST', headers, body: fd });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) { fadeRow('per-'+pk, false); }
+    else { alert(data.error || 'Error al rechazar'); }
 }
 
 /* ── Lote Roster ── */
