@@ -58,6 +58,8 @@ TOOLS DISPONIBLES:
 
 - `listar_reintegros_pendientes(personal_id: int = None)`: lista reintegros en estado PROPUESTO o APROBADO.
 
+- `listar_aprobaciones_pendientes()`: vista consolidada de TODO lo que espera aprobación humana (papeletas, solicitudes HE, justificaciones, roster, préstamos y adelantos, descuentos de planilla, vacaciones, permisos, workflows, reintegros). Solo LECTURA: devuelve el total y, por bloque, el conteo + `donde_aprobar` (deep-link a la bandeja unificada `/aprobaciones/?tab=...`). El humano aprueba en esa pantalla; el agente NO aprueba. Úsala cuando el usuario pregunte "¿qué tengo pendiente de aprobar?" o similar.
+
 EJEMPLO DE FLUJO ESPERADO
 
 Usuario: "Olvidé aumentar S/200 el sueldo a todos los trabajadores el mes pasado."

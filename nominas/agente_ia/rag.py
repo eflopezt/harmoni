@@ -383,7 +383,7 @@ La tasa exacta la fija la aseguradora según nivel de riesgo del puesto (CIIU + 
 
 **Sanción por no contratarlo**: empleador asume directamente todas las prestaciones (médicas + pensiones), además de multa SUNAFIL.
 
-**Estado en Harmoni**: registro manual vía `otros_descuentos`/concepto custom — cálculo automático pendiente.
+**Estado en Harmoni**: cálculo automático en el engine. El trabajador se marca `afecto_sctr` (comando `marcar_afecto_sctr`); las tasas SCTR Salud/Pensión y Vida Ley se leen de `ConfiguracionSistema` (o del snapshot congelado del período) vía `_aportes_riesgo_efectivos`, y se aplican en `calcular_registro` como aporte del empleador (no descuenta al trabajador).
 """,
     },
 
