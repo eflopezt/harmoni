@@ -7,6 +7,35 @@
 
 ## WS1 · RBAC roles reales en Harmoni (proyecto principal)
 
+> **PROGRESO 2026-07-04 (sesión Opus):** fundación construida y 6 módulos
+> migrados. Hecho:
+> - `core/permisos.py`: `tiene_modulo(user, modulo)`, `puede_aprobar(user)`,
+>   `perfil_de(user)`, decorador `requiere_modulo(modulo)`, alias
+>   `solo_superuser`. Enlace real User→`personal_data`→`perfil_acceso`.
+> - `_puede_ver_admin` corregido (usaba getattrs obsoletos).
+> - Migrados al patrón "1 línea" (redefinir el `solo_admin` local a
+>   `requiere_modulo('<mod>')`): **reclutamiento, capacitaciones, encuestas,
+>   disciplinaria, onboarding, evaluaciones**. Cada superuser sigue entrando;
+>   un perfil con el `mod_<x>` opera; sin él, redirect. `landing` permite
+>   Mi Día Reclutamiento a quien tenga el módulo.
+> - Tests: `core/tests/test_permisos.py` (8, matriz de roles sobre vista
+>   real) + suites de los 6 módulos verdes.
+>
+> **PENDIENTE (próxima sesión):** migrar los módulos restantes con el mismo
+> patrón donde sea seguro. Clasificación:
+> - **Talento/operación, seguros de migrar 1-línea:** documentos (5 archivos,
+>   mixto: `views_cese.py` es sensible → revisar por-vista), analytics
+>   (`mod_analytics`, read-only), calendario (ya `mod_calendario`).
+> - **Dinero/sensibles, DEJAR superuser (usar `solo_superuser` explícito para
+>   documentar la intención):** nóminas (no tiene `mod_`), préstamos,
+>   salarios, cierre, viáticos, integraciones (PLAME/SUNAT), workflows.
+> - **Mixtos, tratamiento POR-VISTA (no blanket):** asistencia (94 vistas:
+>   ver tareo = operación, pero cálculo HE alimenta planilla), personal (49:
+>   incluye cese que dispara liquidación), empresas, comunicaciones.
+> - Falta: seed asigna perfil pero el usuario debe ser `is_staff=True` para
+>   que `tiene_modulo` lo deje pasar — documentar en el flujo de alta de
+>   usuarios / o revisar si el perfil debería implicar staff.
+
 **Objetivo:** que un usuario pueda operar Reclutamiento o Nóminas sin ser
 superuser. Hoy casi todas las vistas de gestión usan `@solo_admin`
 (is_superuser), así que "reclutador" y "analista de nóminas" no existen
