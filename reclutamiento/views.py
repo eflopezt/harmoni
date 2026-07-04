@@ -38,7 +38,11 @@ from .forms import (
 )
 
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
+# RBAC (WS1): reclutamiento lo opera superuser O staff con perfil
+# RECLUTADOR (PerfilAcceso.mod_reclutamiento). El nombre `solo_admin` se
+# conserva por los usos existentes; ahora gatea por módulo, no por superuser.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('reclutamiento')
 
 
 # ══════════════════════════════════════════════════════════════

@@ -15,11 +15,12 @@ def _puede_ver_admin(request) -> bool:
         return False
     if u.is_superuser or u.is_staff:
         return True
-    perfil = getattr(u, 'perfil_acceso', None)
-    return bool(perfil and (
-        getattr(perfil, 'es_responsable', False)
-        or getattr(perfil, 'puede_aprobar', False)
-    ))
+    # Fallback para usuarios NO-staff con perfil que aprueba (raro, pero el
+    # RBAC lo contempla). Usa el path real User→Personal→PerfilAcceso; antes
+    # leía u.perfil_acceso (inexistente) y un campo es_responsable que no
+    # existe, así que este branch nunca disparaba.
+    from core.permisos import puede_aprobar
+    return puede_aprobar(u)
 
 
 def rol_context(request):

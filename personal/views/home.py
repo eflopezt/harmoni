@@ -193,8 +193,11 @@ def _get_frase_dia(hoy: date) -> dict:
 def _landing_preferido(user, is_jefe=False):
     """Devuelve el url name del landing elegido por el usuario, o None.
 
-    Los destinos de nóminas/reclutamiento son solo-superuser; un jefe de
-    área solo puede anclar el Centro de Aprobaciones (donde sí decide).
+    Cada destino se permite si el usuario puede realmente entrar (RBAC):
+    - Centro de Aprobaciones: cualquier admin/staff.
+    - Mi Día Reclutamiento: superuser o staff con mod_reclutamiento.
+    - Mi Día Nóminas: solo superuser (nóminas = dinero, fase 1).
+    Si el perfil no alcanza el destino guardado, cae al dashboard general.
     """
     try:
         from core.models import PreferenciaUsuario
@@ -205,17 +208,19 @@ def _landing_preferido(user, is_jefe=False):
     if not pref or pref.landing_default in ('', 'home'):
         return None
 
+    from core.permisos import tiene_modulo
+
     destino_map = {
-        'aprobaciones': 'dashboard_aprobaciones',
-        'mi_dia_reclutador': 'mi_dia_reclutador',
-        'mi_dia_nominas': 'mi_dia_nominas',
+        'aprobaciones': ('dashboard_aprobaciones', lambda u: True),
+        'mi_dia_reclutador': ('mi_dia_reclutador',
+                              lambda u: tiene_modulo(u, 'reclutamiento')),
+        'mi_dia_nominas': ('mi_dia_nominas', lambda u: u.is_superuser),
     }
-    destino = destino_map.get(pref.landing_default)
-    if destino is None:
+    entry = destino_map.get(pref.landing_default)
+    if entry is None:
         return None
-    if destino != 'dashboard_aprobaciones' and not user.is_superuser:
-        return None
-    return destino
+    destino, permitido = entry
+    return destino if permitido(user) else None
 
 
 def home(request):
