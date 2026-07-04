@@ -200,22 +200,8 @@
                         <i class="fas fa-calendar-day"></i><span>Mi Calendario</span>
                     </a>
 
-                    <div class="nav-subheader"><i class="fas fa-paper-plane"></i><span>Solicitudes</span></div>
-                    <a href="{% url 'portal_mis_vacaciones' %}" class="nav-item" data-match="/mi-portal/mis-vacaciones">
-                        <i class="fas fa-umbrella-beach"></i><span>Mis Vacaciones</span>
-                    </a>
-                    <a href="{% url 'mis_permisos' %}" class="nav-item" data-match="/vacaciones/mis-permisos">
-                        <i class="fas fa-calendar-check"></i><span>Mis Permisos</span>
-                    </a>
-                    <a href="{% url 'mis_justificaciones' %}" class="nav-item" data-match="/mi-portal/justificaciones">
-                        <i class="fas fa-pen-square"></i><span>Mis Justificaciones</span>
-                    </a>
-                    <a href="{% url 'mis_solicitudes_he' %}" class="nav-item" data-match="/mi-portal/solicitudes-he">
-                        <i class="fas fa-hourglass-half"></i><span>Solicitudes HE</span>
-                    </a>
-                    <a href="{% url 'mis_papeletas' %}" class="nav-item" data-match="/mi-portal/papeletas">
-                        <i class="fas fa-file-alt"></i><span>Mis Papeletas</span>
-                    </a>
+                    {# Solicitudes (vacaciones, permisos, justificaciones, HE,
+                       papeletas) viven en las acciones rápidas de Mi Resumen #}
 
                     {% if mod_documentos %}
                     <div class="nav-subheader"><i class="fas fa-folder-open"></i><span>Mis Documentos</span></div>
