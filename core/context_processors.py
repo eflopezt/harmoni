@@ -24,9 +24,19 @@ def _puede_ver_admin(request) -> bool:
 
 
 def rol_context(request):
-    """Flags de rol para templates (admin vs trabajador puro)."""
+    """Flags de rol para templates (admin vs trabajador puro + operador SaaS)."""
     puede = _puede_ver_admin(request)
-    return {'puede_ver_admin': puede, 'es_trabajador_puro': not puede}
+    u = getattr(request, 'user', None)
+    try:
+        from core.permisos import es_operador_plataforma
+        es_operador = es_operador_plataforma(u) if u else False
+    except Exception:
+        es_operador = False
+    return {
+        'puede_ver_admin': puede,
+        'es_trabajador_puro': not puede,
+        'es_operador_plataforma': es_operador,
+    }
 
 
 def plan_starter_context(request):

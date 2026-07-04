@@ -9,8 +9,11 @@ import pytest
 from django.contrib.auth.models import AnonymousUser, User
 
 from core.models import PerfilAcceso
+from django.test import override_settings
+
 from core.permisos import (
-    perfil_de, puede_aprobar, tiene_modulo, tiene_modulo_o_staff,
+    es_operador_plataforma, perfil_de, puede_aprobar,
+    tiene_modulo, tiene_modulo_o_staff,
 )
 from personal.models import Personal
 
@@ -89,6 +92,46 @@ def test_puede_aprobar_flag():
     perfil2 = _perfil('NOAPRUEBA', mod_vacaciones=True, puede_aprobar=False)
     user2 = _usuario_con_perfil('noaprob1', perfil2)
     assert puede_aprobar(user2) is False
+
+
+# ── operador de plataforma: gestión de clientes SaaS, no tenant/demo ────────
+
+@pytest.mark.django_db
+def test_operador_plataforma_allowlist():
+    dueño = User.objects.create_superuser('owner', 'owner@harmoni.app', 'x')
+    otro_su = User.objects.create_superuser('demo', 'demo@x.pe', 'x')
+    empleado = User.objects.create_user('emp', 'e@x.pe', 'x', is_staff=True)
+
+    # allowlist vacía → NADIE (fail-closed), ni el superuser
+    with override_settings(HARMONI_PLATFORM_OWNERS=[]):
+        assert es_operador_plataforma(dueño) is False
+        assert es_operador_plataforma(otro_su) is False
+
+    # allowlist con el email del dueño → solo él
+    with override_settings(HARMONI_PLATFORM_OWNERS=['owner@harmoni.app']):
+        assert es_operador_plataforma(dueño) is True
+        assert es_operador_plataforma(otro_su) is False   # demo NO
+        assert es_operador_plataforma(empleado) is False  # no superuser
+
+    # también matchea por username
+    with override_settings(HARMONI_PLATFORM_OWNERS=['owner']):
+        assert es_operador_plataforma(dueño) is True
+
+
+@pytest.mark.django_db
+def test_suscripciones_solo_operador(client):
+    """El panel de suscripciones (clientes SaaS) no lo ve un superuser
+    tenant/demo; solo el operador de plataforma."""
+    from django.urls import reverse
+    url = reverse('suscripciones_admin')
+
+    User.objects.create_superuser('demo2', 'demo2@x.pe', 'x')
+    client.login(username='demo2', password='x')
+    with override_settings(HARMONI_PLATFORM_OWNERS=[]):
+        # fail-closed: redirect (no es operador)
+        assert client.get(url).status_code == 302
+    with override_settings(HARMONI_PLATFORM_OWNERS=['demo2@x.pe']):
+        assert client.get(url).status_code == 200
 
 
 # ── variante _o_staff: staff sin perfil conserva acceso (sin regresión) ─────

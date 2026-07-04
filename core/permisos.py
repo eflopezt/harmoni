@@ -118,3 +118,28 @@ def requiere_modulo_o_staff(modulo: str):
 #: aprobar préstamos, liquidaciones). Alias explícito para dejar claro en el
 #: código que la restricción es deliberada, no un módulo pendiente de abrir.
 solo_superuser = user_passes_test(es_admin, login_url='login')
+
+
+# ── Operador de plataforma (SaaS owner) ─────────────────────────────────────
+
+def es_operador_plataforma(user) -> bool:
+    """True solo para el/los dueño(s) de la plataforma Harmoni.
+
+    La gestión de CLIENTES (suscripciones, cobros, panel multi-empresa) es del
+    operador SaaS, NO de un admin/superuser de un tenant. Fail-closed: si
+    `settings.HARMONI_PLATFORM_OWNERS` está vacío, devuelve False para todos
+    (así la instancia demo, aunque su usuario sea superuser, no lo ve).
+    """
+    if not getattr(user, 'is_authenticated', False) or not user.is_superuser:
+        return False
+    from django.conf import settings
+    owners = getattr(settings, 'HARMONI_PLATFORM_OWNERS', []) or []
+    if not owners:
+        return False
+    ident = {(user.email or '').lower(), (user.username or '').lower()}
+    return bool(ident & set(owners))
+
+
+#: Decorador: solo el operador de plataforma (dueño SaaS).
+solo_operador_plataforma = user_passes_test(
+    es_operador_plataforma, login_url='login')

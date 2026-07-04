@@ -20,11 +20,10 @@ from django.views.decorators.http import require_http_methods
 from empresas.models import Empresa
 
 
-def _es_super(u):
-    return u.is_authenticated and u.is_superuser
+from core.permisos import es_operador_plataforma
 
 
-@user_passes_test(_es_super)
+@user_passes_test(es_operador_plataforma, login_url='home')
 @require_http_methods(['GET', 'POST'])
 def suscripciones_admin(request):
     from core.planes import PLANES, plan_choices
@@ -106,7 +105,7 @@ def suscripciones_admin(request):
     })
 
 
-@user_passes_test(_es_super)
+@user_passes_test(es_operador_plataforma, login_url='home')
 def suscripcion_pagos(request, empresa_id):
     """Historial completo de pagos (ledger) de una empresa."""
     from empresas.models_billing import HistorialPago

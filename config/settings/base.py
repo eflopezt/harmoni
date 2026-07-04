@@ -440,3 +440,18 @@ CELERY_BEAT_SCHEDULE = {
 # ──────────────────────────────────────────────────────────────
 MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN', '')
 MERCADOPAGO_WEBHOOK_SECRET = os.environ.get('MERCADOPAGO_WEBHOOK_SECRET', '')
+
+# ──────────────────────────────────────────────────────────────
+# OPERADOR DE PLATAFORMA (SaaS owner) — separa la gestión de
+# CLIENTES de Harmoni (suscripciones, cobros, panel multi-empresa)
+# del admin de un tenant. Fail-closed: si la lista está vacía,
+# NADIE ve el panel de suscripciones (ni un superuser tenant/demo).
+# Configurar en prod con la(s) cuenta(s) dueñas: email o username,
+# separados por coma. Dejar VACÍO en la instancia demo.
+#   HARMONI_PLATFORM_OWNERS=admin@harmoni.app
+# ──────────────────────────────────────────────────────────────
+HARMONI_PLATFORM_OWNERS = [
+    x.strip().lower()
+    for x in os.environ.get('HARMONI_PLATFORM_OWNERS', '').split(',')
+    if x.strip()
+]
