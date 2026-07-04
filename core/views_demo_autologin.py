@@ -97,8 +97,11 @@ def _resolver_escenario(slug):
     return key, DEMO_ESCENARIOS.get(key)
 
 
-def _aplicar_empresa(request, esc):
-    """Fija en la sesión la empresa/vista del escenario."""
+def _aplicar_empresa(request, esc, key=None):
+    """Fija en la sesión la empresa/vista del escenario + marca el escenario
+    elegido (para que el home no vuelva a pedir la selección)."""
+    if key:
+        request.session['demo_escenario'] = key
     if esc.get('modo') == 'consolidado':
         request.session['modo_consolidado'] = True
         request.session.pop('empresa_actual_id', None)
@@ -170,7 +173,7 @@ def demo_autologin(request, slug):
     # Login (especificamos backend porque hay varios configurados)
     user.backend = f"{ModelBackend.__module__}.{ModelBackend.__name__}"
     login(request, user)
-    _aplicar_empresa(request, esc)
+    _aplicar_empresa(request, esc, key=key)
     logger.info(f"Auto-login OK: escenario={key} user={username} from {request.META.get('REMOTE_ADDR')}")
 
     return redirect('/')

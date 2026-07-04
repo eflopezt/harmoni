@@ -238,6 +238,24 @@ def home(request):
             return redirect('login')
         return render(request, 'landing.html')
 
+    # ── Demo: elegir escenario al entrar ──────────────────────────────────────
+    # En el ambiente demo, el usuario admin (demo/demo2) elige primero qué
+    # empresa/grupo explorar (minera, constructora, grupo gastronómico…).
+    # Si aún no eligió en esta sesión, se le manda al selector /d/.
+    import os
+    _es_demo = os.environ.get('DEMO_MODE', 'False').lower() in ('true', '1', 'yes')
+    if _es_demo and request.user.username in ('demo', 'demo2'):
+        if request.GET.get('escenario') == 'omitir':
+            # Eligió ver el panel consolidado: recordarlo para no re-preguntar.
+            request.session['demo_escenario'] = 'consolidado'
+        elif not request.session.get('demo_escenario'):
+            try:
+                from core.views_demo_autologin import _is_demo_host
+                if _is_demo_host(request):
+                    return redirect('demo_landing')
+            except Exception:
+                pass
+
     # ── Dashboard (requiere login) ──────────────────────────────────────────
     # ── Enrutamiento de 3 niveles ─────────────────────────────────────────────
     # Nivel 1: is_superuser / is_staff   → dashboard RRHH completo (continúa)
