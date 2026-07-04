@@ -34,11 +34,13 @@ GASTRO_GRUPO = [
 GASTRO_PRINCIPAL = '20100100100'
 MINERA_RUC = '20600000029'
 CONSTRUCTORA_RUC = '20600000011'
+AGENCIA_RUC = '20612345678'   # Pixel Motion (agencia real, 25 trab)
 
 # Empresas placeholder/duplicadas a desactivar (0 trabajadores, ruido en demo)
 CLUTTER_RUCS = [
     '20600000037',  # RESTAURANTE GENÉRICO (placeholder gastronomía)
     '20600000053',  # EMPRESA GENÉRICA
+    '20600000045',  # AGENCIA CREATIVA GENÉRICA (placeholder audiovisual vacío)
     '20100100300',  # Sabores del Sur Express SAC (duplicado)
     '20100100200',  # Sabores del Sur Marino SAC (duplicado)
 ]
@@ -111,6 +113,15 @@ class Command(BaseCommand):
             self.stdout.write(f'[CONSTRUCCION] {constru.razon_social}: +{n} trabajadores')
         else:
             self.stdout.write(self.style.WARNING(f'[CONSTRUCCION] empresa {CONSTRUCTORA_RUC} no existe'))
+
+        # ── 3b. Agencia (única): Pixel Motion → AUDIOVISUAL ──
+        agencia = Empresa.objects.filter(ruc=AGENCIA_RUC).first()
+        if agencia:
+            agencia.rubro = 'AUDIOVISUAL'
+            agencia.es_principal = False
+            agencia.activa = True
+            agencia.save(update_fields=['rubro', 'es_principal', 'activa'])
+            self.stdout.write(f'[AUDIOVISUAL] {agencia.razon_social}: rubro alineado')
 
         # ── 4. Limpieza: desactivar placeholders/duplicados vacíos ──
         from personal.models import Personal
