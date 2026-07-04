@@ -200,8 +200,7 @@
                         <i class="fas fa-calendar-day"></i><span>Mi Calendario</span>
                     </a>
 
-                    {# Solicitudes (vacaciones, permisos, justificaciones, HE,
-                       papeletas) viven en las acciones rápidas de Mi Resumen #}
+                    {# Solicitudes (vacaciones, permisos, justificaciones, HE, papeletas) viven en las acciones rápidas de Mi Resumen #}
 
                     {% if mod_documentos %}
                     <div class="nav-subheader"><i class="fas fa-folder-open"></i><span>Mis Documentos</span></div>
@@ -433,8 +432,7 @@
                     <a href="{% url 'pre_planilla' %}" class="nav-item" data-match="/nominas/pre-planilla">
                         <i class="fas fa-clipboard-check"></i><span>Alistar Planilla</span>
                     </a>
-                    {# Workflow del Mes, Nuevo Período, Procesos Especiales y
-                       Validador Onboarding viven en sus hubs (Mi Día / Períodos) #}
+                    {# Workflow del Mes, Nuevo Período, Procesos Especiales y Validador Onboarding viven en sus hubs (Mi Día / Períodos) #}
                     <a href="{% url 'nominas_panel' %}" class="nav-item" data-match="^/nominas/$">
                         <i class="fas fa-list-alt"></i><span>Períodos</span>
                     </a>
@@ -888,8 +886,7 @@
                     </a>
                     {% if user.is_superuser %}
 
-                    {# Suscripciones (gestión de clientes SaaS) es SOLO del
-                       operador de plataforma, no de un admin de tenant/demo. #}
+                    {# Suscripciones (gestión de clientes SaaS) es SOLO del operador de plataforma, no de un admin de tenant/demo. #}
                     {% if es_operador_plataforma %}
                     <div class="nav-subheader"><i class="fas fa-receipt"></i><span>Facturación</span></div>
                     <a href="{% url 'suscripciones_admin' %}" class="nav-item" data-match="/suscripciones">
