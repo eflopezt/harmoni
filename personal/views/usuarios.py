@@ -598,6 +598,16 @@ def accesos_asignar_perfil(request):
 
     personal.save(update_fields=['perfil_acceso'])
 
+    # RBAC (WS1): sincronizar is_staff con tener un perfil de gestión. Sin
+    # esto, requiere_modulo() bloquea a los usuarios con perfil (RECLUTADOR,
+    # etc.) porque tiene_modulo exige is_staff. Nunca degrada a un superuser.
+    usuario = personal.usuario
+    if usuario and not usuario.is_superuser:
+        debe_ser_staff = bool(perfil_codigo)
+        if usuario.is_staff != debe_ser_staff:
+            usuario.is_staff = debe_ser_staff
+            usuario.save(update_fields=['is_staff'])
+
     # Invalida cache RBAC del usuario afectado
     if personal.usuario_id:
         invalidar_perfil(personal.usuario_id)

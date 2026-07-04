@@ -91,6 +91,65 @@ def test_puede_aprobar_flag():
     assert puede_aprobar(user2) is False
 
 
+# ── asignar perfil sincroniza is_staff (para que el RBAC funcione) ──────────
+
+@pytest.mark.django_db
+def test_asignar_perfil_marca_is_staff(client):
+    """Asignar un PerfilAcceso desde la UI debe marcar is_staff en el usuario
+    vinculado; quitarlo lo desmarca. Sin esto, requiere_modulo bloquearía a
+    los RECLUTADOR creados por la UI."""
+    from django.urls import reverse
+
+    _perfil('RECLUTADOR', mod_reclutamiento=True)
+    # target: usuario vinculado, aún sin perfil ni staff
+    target = User.objects.create_user('target.staff', 't2@t.pe', 'x',
+                                      is_staff=False)
+    personal = Personal.objects.create(
+        nro_doc='60000001', apellidos_nombres='TARGET, STAFF',
+        cargo='Analista', tipo_trab='Empleado', estado='Activo',
+        fecha_alta=date(2024, 1, 1), sueldo_base=Decimal('2500'),
+        usuario=target,
+    )
+
+    # requester: superuser (puede gestionar accesos)
+    User.objects.create_superuser('root.asig', 'ra@t.pe', 'x')
+    client.login(username='root.asig', password='x')
+
+    # Asignar RECLUTADOR
+    resp = client.post(reverse('accesos_asignar_perfil'),
+                       {'personal_id': personal.pk, 'perfil_codigo': 'RECLUTADOR'})
+    assert resp.status_code == 200 and resp.json()['success'] is True
+    target.refresh_from_db()
+    assert target.is_staff is True
+    assert tiene_modulo(target, 'reclutamiento') is True
+
+    # Quitar perfil → deja de ser staff
+    resp = client.post(reverse('accesos_asignar_perfil'),
+                       {'personal_id': personal.pk, 'perfil_codigo': ''})
+    assert resp.status_code == 200
+    target.refresh_from_db()
+    assert target.is_staff is False
+
+
+@pytest.mark.django_db
+def test_asignar_perfil_no_degrada_superuser(client):
+    """Un superuser vinculado nunca pierde is_staff al quitarle el perfil."""
+    from django.urls import reverse
+    su = User.objects.create_superuser('su.link', 'sl@t.pe', 'x')
+    personal = Personal.objects.create(
+        nro_doc='60000002', apellidos_nombres='SUPER, LINK',
+        cargo='Gerente', tipo_trab='Empleado', estado='Activo',
+        fecha_alta=date(2024, 1, 1), sueldo_base=Decimal('9000'),
+        usuario=su,
+    )
+    User.objects.create_superuser('root.asig2', 'ra2@t.pe', 'x')
+    client.login(username='root.asig2', password='x')
+    client.post(reverse('accesos_asignar_perfil'),
+                {'personal_id': personal.pk, 'perfil_codigo': ''})
+    su.refresh_from_db()
+    assert su.is_staff is True   # intacto
+
+
 # ── integración sobre una vista real de reclutamiento ───────────────────────
 
 @pytest.mark.django_db
