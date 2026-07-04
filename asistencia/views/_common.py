@@ -6,9 +6,9 @@ from datetime import timedelta
 from django.contrib.auth.decorators import user_passes_test
 from django.db.models import Exists, Max, OuterRef, Subquery
 
-solo_admin = user_passes_test(lambda u: u.is_superuser or u.is_staff, login_url='login')
-
-
+# RBAC (WS1): staff con mod_asistencia (staff sin perfil conserva acceso, compat).
+from core.permisos import requiere_modulo_o_staff
+solo_admin = requiere_modulo_o_staff('asistencia')
 def _get_importacion_activa(tipo='RELOJ', importacion_id=None):
     """Devuelve la importación activa (por ID o la última completada de ese tipo)."""
     from asistencia.models import TareoImportacion

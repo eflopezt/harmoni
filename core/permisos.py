@@ -75,9 +75,43 @@ def requiere_modulo(modulo: str):
     """Decorador: acceso al módulo `modulo` (superuser o staff con el
     mod_<modulo> en su PerfilAcceso).
 
+    Usar SOLO para reemplazar un `solo_admin` que era `is_superuser`-only:
+    así la migración solo AÑADE acceso (a los profile-holders), sin regresión.
+
     Uso: `@requiere_modulo('reclutamiento')`
     """
     return user_passes_test(lambda u: tiene_modulo(u, modulo), login_url='login')
+
+
+def tiene_modulo_o_staff(user, modulo: str) -> bool:
+    """Como `tiene_modulo`, pero un staff SIN perfil asignado conserva acceso
+    (compat legacy). Para migrar vistas que antes eran `is_superuser or
+    is_staff` sin regresar a los staff que aún no tienen PerfilAcceso.
+
+    - superuser → sí
+    - staff con perfil que tiene mod_<x> → sí
+    - staff con perfil que NO tiene mod_<x> → no (RBAC ya activo para él)
+    - staff sin perfil → sí (legacy, hasta que se le asigne uno)
+    - no-staff → no
+    """
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    if user.is_superuser:
+        return True
+    if not getattr(user, 'is_staff', False):
+        return False
+    perfil = perfil_de(user)
+    if perfil is None:
+        return True   # legacy: staff sin perfil mantiene acceso
+    return bool(getattr(perfil, f'mod_{modulo}', False))
+
+
+def requiere_modulo_o_staff(modulo: str):
+    """Decorador para vistas que antes eran `is_superuser or is_staff`.
+    Migra a RBAC sin regresar a staff sin perfil. Ver `tiene_modulo_o_staff`.
+    """
+    return user_passes_test(lambda u: tiene_modulo_o_staff(u, modulo),
+                            login_url='login')
 
 
 #: Vistas críticas / de dinero — superuser exclusivo (motor nóminas, cierre,

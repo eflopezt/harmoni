@@ -11,9 +11,9 @@ from django.shortcuts import get_object_or_404, render
 
 from personal.models import Personal
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
-
-
+# RBAC (WS1): superuser o staff con mod_personal en su perfil.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('personal')
 def _build_timeline(empleado, limit=100):
     """Construye la lista de eventos cronológicos para un empleado."""
     from asistencia.models import (

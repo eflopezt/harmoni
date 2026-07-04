@@ -16,9 +16,9 @@ from documentos.models import (
     PlantillaDossier, PlantillaDossierItem, Dossier, DossierPersonal, DossierItem,
 )
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
-
-
+# RBAC (WS1): superuser o staff con mod_documentos en su perfil.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('documentos')
 # ── Panel Principal ──────────────────────────────────────────────
 
 @login_required

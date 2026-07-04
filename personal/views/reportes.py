@@ -19,8 +19,9 @@ from openpyxl.utils import get_column_letter
 from ..models import Area, Personal
 
 # ─── Solo admin ───────────────────────────────────────────────────────────────
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
-
+# RBAC (WS1): superuser o staff con mod_personal en su perfil.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('personal')
 # ─── Estilos openpyxl ─────────────────────────────────────────────────────────
 HEADER_FILL  = PatternFill("solid", fgColor="0D2B27")
 HEADER_FONT  = Font(color="FFFFFF", bold=True, size=10)

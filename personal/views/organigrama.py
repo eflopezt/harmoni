@@ -10,9 +10,9 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from ..models import Area, SubArea, Personal
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
-
-
+# RBAC (WS1): superuser o staff con mod_personal en su perfil.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('personal')
 @login_required
 @solo_admin
 def organigrama_view(request):

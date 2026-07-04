@@ -16,9 +16,9 @@ from portal.views import _get_empleado
 
 from .models import EventoCalendario
 
-solo_admin = user_passes_test(lambda u: u.is_superuser or u.is_staff, login_url='login')
-
-
+# RBAC (WS1): staff con mod_calendario (staff sin perfil conserva acceso, compat).
+from core.permisos import requiere_modulo_o_staff
+solo_admin = requiere_modulo_o_staff('calendario')
 # ---------------------------------------------------------------------------
 #  Helpers
 # ---------------------------------------------------------------------------

@@ -10,9 +10,9 @@ from django.views.decorators.http import require_POST
 
 from personal.models import Personal, ActivoAsignado
 
-solo_admin = user_passes_test(lambda u: u.is_superuser or u.is_staff, login_url='login')
-
-
+# RBAC (WS1): staff con mod_personal (staff sin perfil conserva acceso, compat).
+from core.permisos import requiere_modulo_o_staff
+solo_admin = requiere_modulo_o_staff('personal')
 @login_required
 @solo_admin
 def activos_panel(request):

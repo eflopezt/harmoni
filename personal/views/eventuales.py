@@ -23,9 +23,9 @@ from django.shortcuts import redirect, render
 from personal.models import Personal, Contrato, SubArea
 
 
-solo_admin = user_passes_test(lambda u: u.is_superuser)
-
-
+# RBAC (WS1): superuser o staff con mod_personal en su perfil.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('personal')
 @login_required
 @solo_admin
 def eventual_nuevo(request):

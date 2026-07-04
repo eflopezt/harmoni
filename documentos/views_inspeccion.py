@@ -29,8 +29,9 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-solo_admin = user_passes_test(lambda u: u.is_superuser)
-
+# RBAC (WS1): superuser o staff con mod_documentos en su perfil.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('documentos')
 MAX_MESES = 12
 
 

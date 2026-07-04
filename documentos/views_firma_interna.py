@@ -26,9 +26,9 @@ from .models import (
     DocumentoLaboral,
 )
 
-solo_admin = user_passes_test(lambda u: u.is_superuser or u.is_staff)
-
-
+# RBAC (WS1): staff con mod_documentos (staff sin perfil conserva acceso, compat).
+from core.permisos import requiere_modulo_o_staff
+solo_admin = requiere_modulo_o_staff('documentos')
 def _get_client_ip(request):
     """Obtiene la IP real del cliente."""
     xff = request.META.get('HTTP_X_FORWARDED_FOR')

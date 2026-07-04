@@ -10,7 +10,7 @@ from django.contrib.auth.models import AnonymousUser, User
 
 from core.models import PerfilAcceso
 from core.permisos import (
-    perfil_de, puede_aprobar, tiene_modulo,
+    perfil_de, puede_aprobar, tiene_modulo, tiene_modulo_o_staff,
 )
 from personal.models import Personal
 
@@ -89,6 +89,32 @@ def test_puede_aprobar_flag():
     perfil2 = _perfil('NOAPRUEBA', mod_vacaciones=True, puede_aprobar=False)
     user2 = _usuario_con_perfil('noaprob1', perfil2)
     assert puede_aprobar(user2) is False
+
+
+# ── variante _o_staff: staff sin perfil conserva acceso (sin regresión) ─────
+
+@pytest.mark.django_db
+def test_o_staff_sin_perfil_conserva_acceso():
+    """Un staff SIN perfil pasa (legacy); con perfil se enforcea el módulo."""
+    # staff sin perfil → sí (compat con el viejo is_superuser or is_staff)
+    staff = User.objects.create_user('staff.legacy', 'sl@t.pe', 'x', is_staff=True)
+    assert tiene_modulo_o_staff(staff, 'calendario') is True
+    # el tiene_modulo estricto NO lo deja (requiere perfil)
+    assert tiene_modulo(staff, 'calendario') is False
+
+    # staff con perfil que TIENE el módulo → sí
+    p_ok = _perfil('CAL_OK', mod_calendario=True)
+    u_ok = _usuario_con_perfil('calok', p_ok)
+    assert tiene_modulo_o_staff(u_ok, 'calendario') is True
+
+    # staff con perfil que NO tiene el módulo → no (RBAC ya activo)
+    p_no = _perfil('CAL_NO', mod_calendario=False)
+    u_no = _usuario_con_perfil('calno', p_no)
+    assert tiene_modulo_o_staff(u_no, 'calendario') is False
+
+    # no-staff → no
+    nostaff = User.objects.create_user('nostaff.leg', 'nsl@t.pe', 'x', is_staff=False)
+    assert tiene_modulo_o_staff(nostaff, 'calendario') is False
 
 
 # ── asignar perfil sincroniza is_staff (para que el RBAC funcione) ──────────

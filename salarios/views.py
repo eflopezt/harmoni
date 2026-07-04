@@ -20,9 +20,9 @@ from personal.models import Personal
 from .analisis_equidad import analizar_equidad_salarial, simular_ajuste_outliers
 from .models import BandaSalarial, HistorialSalarial, SimulacionIncremento, DetalleSimulacion
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
-
-
+# RBAC (WS1): superuser o staff con mod_salarios en su perfil.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('salarios')
 # ══════════════════════════════════════════════════════════════
 # ADMIN — BANDAS SALARIALES
 # ══════════════════════════════════════════════════════════════
