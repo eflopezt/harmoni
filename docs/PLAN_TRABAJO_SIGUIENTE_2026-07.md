@@ -32,9 +32,12 @@
 > - **Mixtos, tratamiento POR-VISTA (no blanket):** asistencia (94 vistas:
 >   ver tareo = operación, pero cálculo HE alimenta planilla), personal (49:
 >   incluye cese que dispara liquidación), empresas, comunicaciones.
-> - Falta: seed asigna perfil pero el usuario debe ser `is_staff=True` para
->   que `tiene_modulo` lo deje pasar — documentar en el flujo de alta de
->   usuarios / o revisar si el perfil debería implicar staff.
+> - **RESUELTO (fase 1c):** `accesos_asignar_perfil` ahora sincroniza
+>   `is_staff` al asignar/quitar perfil (nunca degrada superuser), así el
+>   RBAC funciona end-to-end desde la UI. +2 tests.
+>
+> Todo lo anterior (fase 1 + 1b + 1c) está DESPLEGADO en prod (harmoni.pe),
+> suite completa 2424 OK.
 
 **Objetivo:** que un usuario pueda operar Reclutamiento o Nóminas sin ser
 superuser. Hoy casi todas las vistas de gestión usan `@solo_admin`
