@@ -21,7 +21,10 @@ from django.views.decorators.http import require_POST, require_GET
 from .models import KPISnapshot, AlertaRRHH
 from .services import generar_snapshot, generar_alertas
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
+# RBAC (WS1): reportes de analytics para superuser o staff con mod_analytics.
+# La vista de análisis SALARIAL se protege aparte (mod_salarios), abajo.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('analytics')
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -950,9 +953,11 @@ def attrition_risk(request):
 # ANÁLISIS SALARIAL
 # ─────────────────────────────────────────────────
 
-@solo_admin
+@requiere_modulo('salarios')
 def salary_analytics(request):
-    """Vista de análisis salarial: distribución, brechas, percentiles."""
+    """Vista de análisis salarial: distribución, brechas, percentiles.
+
+    Datos de compensación: requiere mod_salarios (no basta mod_analytics)."""
     from personal.models import Personal, Area
 
     UIT_2026 = Decimal('5500.00')   # DS 233-2025-EF (vigente 2026)

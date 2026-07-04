@@ -150,6 +150,38 @@ def test_asignar_perfil_no_degrada_superuser(client):
     assert su.is_staff is True   # intacto
 
 
+# ── analytics: reportes con mod_analytics, pero SALARIOS con mod_salarios ───
+
+@pytest.mark.django_db
+def test_analytics_split_salarios(client):
+    """El dashboard de analytics abre con mod_analytics; el análisis salarial
+    exige mod_salarios (dato de compensación)."""
+    from django.urls import reverse
+    dash = reverse('analytics_dashboard')
+    sal = reverse('analytics_salarios')
+
+    # perfil ANALISTA: analytics sí, salarios no
+    perfil_a = _perfil('ANALISTA', mod_analytics=True, mod_salarios=False)
+    _usuario_con_perfil('analista1', perfil_a)
+    client.login(username='analista1', password='x')
+    assert client.get(dash).status_code == 200
+    assert client.get(sal).status_code == 302   # bloqueado
+    client.logout()
+
+    # perfil COMPENSACIONES: salarios sí
+    perfil_s = _perfil('COMPENSACIONES', mod_analytics=True, mod_salarios=True)
+    _usuario_con_perfil('comp1', perfil_s)
+    client.login(username='comp1', password='x')
+    assert client.get(sal).status_code == 200
+    client.logout()
+
+    # superuser: ambos
+    User.objects.create_superuser('root.an', 'ran@t.pe', 'x')
+    client.login(username='root.an', password='x')
+    assert client.get(dash).status_code == 200
+    assert client.get(sal).status_code == 200
+
+
 # ── integración sobre una vista real de reclutamiento ───────────────────────
 
 @pytest.mark.django_db
