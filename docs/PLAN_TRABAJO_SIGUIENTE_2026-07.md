@@ -36,8 +36,19 @@
 >   `is_staff` al asignar/quitar perfil (nunca degrada superuser), así el
 >   RBAC funciona end-to-end desde la UI. +2 tests.
 >
-> Todo lo anterior (fase 1 + 1b + 1c) está DESPLEGADO en prod (harmoni.pe),
-> suite completa 2424 OK.
+> Todo lo anterior (fase 1 + 1b + 1c + 1d) está DESPLEGADO en prod
+> (harmoni.pe), suite completa 2424 OK.
+>
+> **fase 1d:** analytics migrado con split por-vista — reportes usan
+> `mod_analytics` pero `salary_analytics` exige `mod_salarios` (dato de
+> compensación). 7 módulos migrados en total.
+>
+> **REGLA DE ORO (para la próxima sesión):** solo migrar en bloque módulos
+> cuyo `solo_admin` local sea `is_superuser`-only (así migrar solo AÑADE
+> acceso, cero regresión). Los restantes (calendario, asistencia,
+> documentos/firma) son `is_superuser or is_staff` → migrarlos bloquearía a
+> staff sin perfil; necesitan tratamiento por-vista. personal tiene
+> cese→liquidación (dinero). Ver memoria `project-harmoni-rbac.md`.
 
 **Objetivo:** que un usuario pueda operar Reclutamiento o Nóminas sin ser
 superuser. Hoy casi todas las vistas de gestión usan `@solo_admin`
