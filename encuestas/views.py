@@ -20,9 +20,9 @@ from .models import (
 )
 from . import pulse_analytics
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
-
-
+# RBAC (WS1): superuser o staff con mod_encuestas en su PerfilAcceso.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('encuestas')
 # ══════════════════════════════════════════════════════════════
 # ADMIN — PANEL PRINCIPAL
 # ══════════════════════════════════════════════════════════════

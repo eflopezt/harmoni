@@ -20,9 +20,9 @@ from .models import (
     RequerimientoCapacitacion, CertificacionTrabajador,
 )
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
-
-
+# RBAC (WS1): superuser o staff con mod_capacitaciones en su PerfilAcceso.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('capacitaciones')
 # ══════════════════════════════════════════════════════════════
 # ADMIN — PANEL PRINCIPAL
 # ══════════════════════════════════════════════════════════════

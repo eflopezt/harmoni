@@ -79,9 +79,9 @@ def _sumar_dias_habiles(fecha_inicio, dias, feriados=None):
             agregados += 1
     return actual
 
-solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
-
-
+# RBAC (WS1): superuser o staff con mod_disciplinaria en su PerfilAcceso.
+from core.permisos import requiere_modulo
+solo_admin = requiere_modulo('disciplinaria')
 # ══════════════════════════════════════════════════════════════
 # ADMIN — PANEL PRINCIPAL
 # ══════════════════════════════════════════════════════════════
