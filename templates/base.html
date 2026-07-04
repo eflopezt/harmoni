@@ -886,7 +886,6 @@
                     </a>
                     {% if user.is_superuser %}
 
-                    {# Suscripciones (gestión de clientes SaaS) es SOLO del operador de plataforma, no de un admin de tenant/demo. #}
                     {% if es_operador_plataforma %}
                     <div class="nav-subheader"><i class="fas fa-receipt"></i><span>Facturación</span></div>
                     <a href="{% url 'suscripciones_admin' %}" class="nav-item" data-match="/suscripciones">
