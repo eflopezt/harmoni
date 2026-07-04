@@ -96,7 +96,10 @@ class Command(BaseCommand):
             minera.rubro = 'MINERIA'
             minera.es_principal = False
             minera.activa = True
-            minera.save(update_fields=['rubro', 'es_principal', 'activa'])
+            minera.razon_social = 'COMPAÑÍA MINERA SANTA RITA S.A.C.'
+            minera.nombre_comercial = 'Minera Santa Rita'
+            minera.save(update_fields=['rubro', 'es_principal', 'activa',
+                                       'razon_social', 'nombre_comercial'])
             n = self._poblar(minera, TRAB_MINERIA, base_dni=91000000, minera=True)
             self.stdout.write(f'[MINERIA] {minera.razon_social}: +{n} trabajadores (14x7)')
         else:
@@ -108,7 +111,10 @@ class Command(BaseCommand):
             constru.rubro = 'CONSTRUCCION'
             constru.es_principal = False
             constru.activa = True
-            constru.save(update_fields=['rubro', 'es_principal', 'activa'])
+            constru.razon_social = 'CONSTRUCTORA ANDINA DEL SUR S.A.C.'
+            constru.nombre_comercial = 'Constructora Andina del Sur'
+            constru.save(update_fields=['rubro', 'es_principal', 'activa',
+                                        'razon_social', 'nombre_comercial'])
             n = self._poblar(constru, TRAB_CONSTRUCCION, base_dni=92000000, construccion=True)
             self.stdout.write(f'[CONSTRUCCION] {constru.razon_social}: +{n} trabajadores')
         else:

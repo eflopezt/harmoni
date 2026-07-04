@@ -73,6 +73,20 @@ def harmoni_context(request):
     base['empresas_disponibles'] = _get_empresas_disponibles()
     base['modo_consolidado'] = getattr(request, 'modo_consolidado', False)
 
+    # Demo: el selector solo muestra las empresas del escenario elegido
+    # (Minera → solo la minera; grupo gastronómico → sus razones sociales).
+    demo_esc = request.session.get('demo_escenario') if hasattr(request, 'session') else None
+    if demo_esc:
+        try:
+            from core.views_demo_autologin import rucs_visibles_escenario
+            rucs = rucs_visibles_escenario(demo_esc)
+            if rucs is not None:
+                base['empresas_disponibles'] = [
+                    e for e in base['empresas_disponibles'] if e['ruc'] in rucs
+                ]
+        except Exception:
+            pass
+
     # Demo por rubro: si hay UNA empresa seleccionada con rubro, la vista refleja
     # SU rubro (elegir "Constructora Demo" enciende el Roster de construcción, etc.).
     emp = base['empresa_actual']
@@ -388,7 +402,7 @@ def invalidar_rol(user_pk: int):
 
 def invalidar_empresas():
     """Invalida cache de empresas disponibles. Llamar en Empresa.save()."""
-    cache.delete('harmoni_ctx_empresas_v1')
+    cache.delete('harmoni_ctx_empresas_v3')
 
 
 def invalidar_perfil(user_pk: int | None = None):

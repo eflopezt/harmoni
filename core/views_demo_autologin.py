@@ -97,6 +97,29 @@ def _resolver_escenario(slug):
     return key, DEMO_ESCENARIOS.get(key)
 
 
+# Grupo gastronómico (multiempresa, un solo rubro): las razones sociales que
+# el selector debe mostrar en la vista consolidada. Debe coincidir con
+# GASTRO_GRUPO de seed_demo_escenarios.
+GASTRO_GRUPO_RUCS = [
+    '20100100100', '20100000666', '20100000555',
+    '20100000444', '20100000333', '20100000222', '20100000111',
+]
+
+
+def rucs_visibles_escenario(key):
+    """RUCs que el selector de empresas del sidebar debe mostrar para el
+    escenario demo dado. Así, en 'mineria' solo aparece la minera (no las
+    gastronómicas). None → sin filtro (consolidado global / desconocido)."""
+    if not key:
+        return None
+    if key == 'gastronomia':
+        return GASTRO_GRUPO_RUCS
+    esc = DEMO_ESCENARIOS.get(key)
+    if esc and esc.get('ruc'):
+        return [esc['ruc']]
+    return None
+
+
 def _aplicar_empresa(request, esc, key=None):
     """Fija en la sesión la empresa/vista del escenario + marca el escenario
     elegido (para que el home no vuelva a pedir la selección)."""
