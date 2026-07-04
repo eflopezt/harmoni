@@ -175,6 +175,7 @@ urlpatterns = [
     path('upgrade/', __import__('core.views_upgrade', fromlist=['upgrade_plan']).upgrade_plan, name='upgrade_plan'),
     # Auto-login para demos comerciales (link directo sin teclear credenciales)
     # Solo funciona en hosts demo.*
+    path('d/', __import__('core.views_demo_autologin', fromlist=['demo_landing']).demo_landing, name='demo_landing'),
     path('d/<str:slug>/', __import__('core.views_demo_autologin', fromlist=['demo_autologin']).demo_autologin, name='demo_autologin'),
     # Onboarding Plan Starter — wizard 3 pasos
     path('onboarding/starter/',       __import__('core.views_onboarding_starter', fromlist=['onboarding_starter_step1']).onboarding_starter_step1, name='onboarding_starter_step1'),

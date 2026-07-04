@@ -57,16 +57,64 @@ def _check_rate_limit(request):
     return False
 
 
-# Map slug → username del demo
-DEMO_AUTOLOGIN_USERS = {
-    'starter':    'demo2',   # Pixel Motion (agencia diseño/audiovisual)
-    'enterprise': 'demo',    # Grupo Sabores (gastronomía, 24 RUCs)
-    # Alias amigables
-    's':          'demo2',
-    'e':          'demo',
-    'pixelmotion': 'demo2',
-    'edo':         'demo',
+# Escenarios de demo: cada uno logea un user y fija la empresa/vista adecuada.
+#   modo='consolidado' → grupo multiempresa (vista de todas las empresas).
+#   ruc=<ruc>          → empresa ÚNICA (se selecciona esa).
+DEMO_ESCENARIOS = {
+    'gastronomia': {
+        'user': 'demo', 'label': 'Grupo Gastronómico', 'icon': 'fa-utensils',
+        'sub': 'Multiempresa · varios restaurantes (un solo rubro)',
+        'modo': 'consolidado',
+    },
+    'mineria': {
+        'user': 'demo', 'label': 'Minera', 'icon': 'fa-hard-hat',
+        'sub': 'Empresa única · régimen 14x7, cuadrilla foránea',
+        'ruc': '20600000029',
+    },
+    'construccion': {
+        'user': 'demo', 'label': 'Constructora', 'icon': 'fa-helmet-safety',
+        'sub': 'Empresa única · construcción civil (operario/oficial/peón)',
+        'ruc': '20600000011',
+    },
+    'agencia': {
+        'user': 'demo2', 'label': 'Agencia Creativa', 'icon': 'fa-palette',
+        'sub': 'Empresa única · audiovisual / agencia',
+        'ruc': '20612345678',
+    },
 }
+
+# Slug → escenario (incluye alias de compatibilidad con enlaces viejos).
+_ALIAS = {
+    'starter': 'agencia', 's': 'agencia', 'pixelmotion': 'agencia',
+    'enterprise': 'gastronomia', 'e': 'gastronomia', 'edo': 'gastronomia',
+    'grupo': 'gastronomia', 'gastro': 'gastronomia',
+    'mina': 'mineria', 'construccion-civil': 'construccion',
+}
+
+
+def _resolver_escenario(slug):
+    key = _ALIAS.get(slug.lower(), slug.lower())
+    return key, DEMO_ESCENARIOS.get(key)
+
+
+def _aplicar_empresa(request, esc):
+    """Fija en la sesión la empresa/vista del escenario."""
+    if esc.get('modo') == 'consolidado':
+        request.session['modo_consolidado'] = True
+        request.session.pop('empresa_actual_id', None)
+        request.session.pop('empresa_actual_nombre', None)
+        return
+    ruc = esc.get('ruc')
+    if ruc:
+        try:
+            from empresas.models import Empresa
+            emp = Empresa.objects.filter(ruc=ruc, activa=True).first()
+            if emp:
+                request.session['empresa_actual_id'] = emp.pk
+                request.session['empresa_actual_nombre'] = emp.nombre_display
+                request.session.pop('modo_consolidado', None)
+        except Exception:
+            pass
 
 
 # Hosts permitidos para auto-login (cualquier subdom demo.*)
@@ -102,10 +150,11 @@ def demo_autologin(request, slug):
             content_type='text/plain; charset=utf-8',
         )
 
-    username = DEMO_AUTOLOGIN_USERS.get(slug.lower())
-    if not username:
+    key, esc = _resolver_escenario(slug)
+    if not esc:
         logger.info(f"Auto-login slug desconocido: {slug}")
         raise Http404(f"Demo '{slug}' no existe.")
+    username = esc['user']
 
     User = get_user_model()
     try:
@@ -121,6 +170,20 @@ def demo_autologin(request, slug):
     # Login (especificamos backend porque hay varios configurados)
     user.backend = f"{ModelBackend.__module__}.{ModelBackend.__name__}"
     login(request, user)
-    logger.info(f"Auto-login OK: slug={slug} → user={username} from {request.META.get('REMOTE_ADDR')}")
+    _aplicar_empresa(request, esc)
+    logger.info(f"Auto-login OK: escenario={key} user={username} from {request.META.get('REMOTE_ADDR')}")
 
     return redirect('/')
+
+
+def demo_landing(request):
+    """Página de bienvenida de la demo: tarjetas para elegir el escenario
+    (grupo gastronómico, minera, constructora, agencia). Cada una entra con
+    un clic al ambiente correspondiente."""
+    if not _is_demo_host(request):
+        raise Http404("Solo disponible en el ambiente demo.")
+    from django.shortcuts import render
+    escenarios = [
+        {'slug': k, **v} for k, v in DEMO_ESCENARIOS.items()
+    ]
+    return render(request, 'core/demo_landing.html', {'escenarios': escenarios})
