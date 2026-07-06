@@ -51,179 +51,286 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --deep:#073f36; --deep-2:#042f2a; --teal:#0d9488; --teal-2:#0f766e;
-  --mint:#dff7f2; --mint-2:#edf8f5; --amber:#f59e0b; --blue:#2563eb; --rose:#e11d48;
-  --paper:#f7faf8; --surface:#fff; --ink:#10211e; --body:#4f6c66; --muted:#78918b;
-  --line:#d8e8e3; --line-strong:#bad3cc; --slate:#111b18;
+  --deep:#073f36; --deep-2:#042f2a;
+  --teal:#0d9488; --teal-2:#0f766e;
+  --mint:#ccfbf1; --mint-2:#ecfdf8;
+  --violet:#7161ef; --amber:#f59e0b; --cyan:#0ea5e9;
+  --paper:#f8fcfa; --white:#fff;
+  --ink:#10211e; --body:#496a64; --muted:#6b8580;
+  --line:#dbeee9; --slate:#0f172a;
   --mono:'JetBrains Mono',ui-monospace,monospace;
 }
-html{scroll-behavior:smooth}
+html{height:100%}
 body{
   font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--paper);
-  line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100%;overflow:auto;
+  line-height:1.55;-webkit-font-smoothing:antialiased;height:100%;overflow:hidden;
 }
 img{max-width:100%;display:block}
 a{color:inherit}
 .wrap{max-width:1180px;margin:0 auto;padding:0 24px;width:100%}
-.snap{height:auto;overflow:visible;scroll-snap-type:none}
-.panel{position:relative;overflow:hidden;padding:88px 0}
-.panel:first-of-type{padding-top:116px}
-.panel:nth-of-type(even){background:var(--surface)}
-.panel.auto{padding:0}
-.dots{display:none}
 
-.nav{
-  position:fixed;top:0;left:0;right:0;z-index:100;padding:12px 0;background:rgba(247,250,248,.92);
-  border-bottom:1px solid rgba(7,63,54,.08);backdrop-filter:blur(16px);transition:box-shadow .2s,background .2s;
+/* ══ Snap viewport ══ */
+.snap{
+  height:100%;overflow-y:auto;overflow-x:hidden;
+  scroll-snap-type:y mandatory;scroll-behavior:smooth;
 }
-.nav.scrolled{box-shadow:0 12px 28px rgba(7,63,54,.08);background:rgba(255,255,255,.94)}
+.panel{
+  min-height:100%;scroll-snap-align:start;scroll-snap-stop:always;
+  display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;
+  padding:96px 0 48px;
+}
+.panel.auto{min-height:0;scroll-snap-align:start;padding:0}
+
+/* ══ Dots ══ */
+.dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:10px}
+.dots a{width:9px;height:9px;border-radius:50%;background:rgba(7,63,54,.18);transition:all .25s;display:block}
+.dots a.on{background:var(--teal);transform:scale(1.5)}
+.dots a:hover{background:var(--teal-2)}
+.panel[data-dark] ~ * {}
+.dots.inv a{background:rgba(255,255,255,.28)}
+.dots.inv a.on{background:var(--mint)}
+
+/* ══ Nav ══ */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;transition:all .25s}
+.nav.scrolled{background:rgba(248,252,250,.88);backdrop-filter:blur(18px);border-bottom:1px solid rgba(7,63,54,.08);padding:9px 0}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;gap:20px}
-.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none}
-.brand img{width:38px;height:38px;border-radius:8px}
-.brand b{font-size:1.08rem;font-weight:850;color:var(--deep)}
-.nav-links{display:flex;align-items:center;gap:20px}
+.brand{display:inline-flex;align-items:center;gap:11px;text-decoration:none}
+.brand img{width:40px;height:40px;border-radius:11px}
+.brand b{font-size:1.14rem;font-weight:900;letter-spacing:-.02em;color:var(--deep)}
+.nav-links{display:flex;align-items:center;gap:22px}
 .nav-links a{font-size:.84rem;text-decoration:none;color:var(--body);font-weight:700}
 .nav-links a:hover{color:var(--deep)}
-.nav-login,.nav-cta{padding:9px 14px;border-radius:8px}
-.nav-login{border:1px solid var(--line);background:#fff!important;color:var(--deep)!important}
-.nav-cta{background:var(--deep)!important;color:#fff!important}
+.nav-login{padding:9px 16px;border:1px solid var(--line);border-radius:12px;background:#fff!important;color:var(--deep)!important}
+.nav-cta{padding:10px 16px;border-radius:12px;background:var(--deep)!important;color:#fff!important}
 
-.eyebrow{
-  display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);
-  border-radius:999px;background:#fff;color:var(--teal-2);font-size:.72rem;font-weight:800;
-  letter-spacing:.05em;text-transform:uppercase;
-}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;
+  background:rgba(255,255,255,.78);color:var(--teal-2);font-size:.72rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 .eyebrow i{color:var(--amber)}
-.kicker{font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-2);margin-bottom:10px}
-.title{font-size:clamp(1.9rem,3.4vw,2.85rem);line-height:1.06;letter-spacing:-.03em;color:var(--deep);font-weight:850}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:14px 22px;border-radius:14px;
+  text-decoration:none;font-size:.92rem;font-weight:800;transition:transform .2s,box-shadow .2s;border:1px solid transparent}
+.btn:hover{transform:translateY(-2px)}
+.btn-primary{background:var(--amber);color:var(--deep-2);box-shadow:0 14px 34px rgba(245,158,11,.24)}
+.btn-ghost{background:#fff;color:var(--deep);border-color:var(--line)}
+.kicker{font-size:.72rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-2);margin-bottom:12px}
+.title{font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.04;letter-spacing:-.04em;color:var(--deep);font-weight:900}
 .copy{margin-top:14px;color:var(--body);font-size:1rem;max-width:640px}
-.head-c{text-align:center;max-width:700px;margin:0 auto 34px}
+.head-c{text-align:center;max-width:700px;margin:0 auto 38px}
 .head-c .copy{margin-left:auto;margin-right:auto}
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:12px 18px;
-  border-radius:8px;text-decoration:none;font-size:.92rem;font-weight:800;transition:transform .18s,box-shadow .18s,border-color .18s;
-  border:1px solid transparent;white-space:nowrap;
-}
-.btn:hover{transform:translateY(-1px)}
-.btn-primary{background:var(--amber);color:var(--deep-2);box-shadow:0 12px 24px rgba(245,158,11,.18)}
-.btn-ghost{background:#fff;color:var(--deep);border-color:var(--line-strong)}
 
-/* 1. Hero */
-.p-hero{background:#fff}
-.p-hero::after{content:"";position:absolute;inset:0 0 0 55%;background:#eef8f5;z-index:0}
-.p-hero .wrap{position:relative;z-index:1}
-.hero-grid{position:relative;display:grid;grid-template-columns:.88fr 1.12fr;gap:48px;align-items:center}
-.hero-copy h1{margin-top:18px;font-size:clamp(2.45rem,4.9vw,4.25rem);line-height:1;letter-spacing:-.045em;color:var(--deep);font-weight:900}
+/* ══ 1 · Hero ══ */
+.p-hero{background:linear-gradient(90deg,#fff 0%,#fff 56%,#e9fbf7 56%,#d6f8f0 100%)}
+.p-hero::before{content:"";position:absolute;left:-12%;bottom:-18%;width:58%;height:42%;border-radius:0 120px 0 0;background:rgba(204,251,241,.72)}
+.hero-grid{position:relative;display:grid;grid-template-columns:.95fr 1.05fr;gap:52px;align-items:center}
+.hero-copy h1{margin-top:22px;font-size:clamp(2.6rem,5.4vw,4.6rem);line-height:.97;letter-spacing:-.06em;color:var(--deep);font-weight:900}
 .hero-copy h1 em{font-style:normal;color:var(--teal)}
-.hero-copy p{margin-top:18px;max-width:560px;color:var(--body);font-size:1.06rem;line-height:1.68}
-.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
-.hero-note{margin-top:12px;font-size:.8rem;color:var(--muted);font-weight:700}
-.trust-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
-.trust-row span{
-  display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--line);
-  border-radius:8px;background:#fff;color:var(--deep);font-size:.76rem;font-weight:800;
-}
-.trust-row i{color:var(--teal)}
-.product-window{border:1px solid var(--line-strong);border-radius:12px;background:#fff;box-shadow:0 24px 58px rgba(7,63,54,.14);overflow:hidden}
-.product-toolbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--line);background:#fbfdfc}
-.product-dots{display:flex;gap:7px}
-.product-dots span{width:9px;height:9px;border-radius:50%;background:#d7e6e1}
-.product-dots span:nth-child(1){background:#f87171}.product-dots span:nth-child(2){background:#fbbf24}.product-dots span:nth-child(3){background:#34d399}
-.product-toolbar strong{font-size:.78rem;color:var(--body)}
-.product-layout{display:grid;grid-template-columns:158px 1fr;min-height:430px}
-.product-sidebar{padding:18px 14px;background:#0b332e;color:#dff7f2}
-.product-sidebar b{display:block;font-size:.86rem;margin-bottom:16px;color:#fff}
-.product-nav{display:grid;gap:8px}
-.product-nav span{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;color:rgba(255,255,255,.72);font-size:.78rem;font-weight:700}
-.product-nav span.active{background:rgba(255,255,255,.12);color:#fff}
-.product-nav i{width:14px;color:#7dd3c7}
-.product-main{padding:20px;background:#fff}
-.product-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
-.product-head h2{font-size:1.22rem;line-height:1.2;color:var(--deep)}
-.product-head p{font-size:.78rem;color:var(--muted);font-weight:700;margin-top:3px}
-.status-pill{padding:6px 9px;border-radius:999px;background:#fff7e6;color:#925b00;border:1px solid #f9d48b;font-size:.72rem;font-weight:850;white-space:nowrap}
-.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.metric-card{border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:12px}
-.metric-card strong{display:block;font-family:var(--mono);font-size:1.12rem;color:var(--deep)}
-.metric-card span{display:block;margin-top:2px;font-size:.72rem;color:var(--body);font-weight:750}
-.close-table{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
-.close-table .row{display:grid;grid-template-columns:1.35fr .72fr .72fr .52fr;align-items:center}
-.close-table .row>span{padding:11px 12px;border-bottom:1px solid var(--line);font-size:.78rem;color:var(--body)}
-.close-table .row:last-child>span{border-bottom:0}
-.close-table .head>span{background:#f3f8f6;color:var(--deep);font-weight:850}
-.tag-ok,.tag-warn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:4px 7px;font-size:.68rem;font-weight:850}
-.tag-ok{background:#e8f7f4;color:var(--teal-2)}.tag-warn{background:#fff7e6;color:#925b00}
-.approval-panel{margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:13px 14px;background:#fbfdfc;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
-.approval-panel strong{display:block;color:var(--deep);font-size:.9rem}
-.approval-panel span{display:block;color:var(--body);font-size:.75rem;margin-top:2px}
-.approval-panel button{border:0;border-radius:8px;background:var(--deep);color:#fff;padding:9px 12px;font:inherit;font-size:.78rem;font-weight:850}
-.hero-strip{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:36px;padding:14px 20px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--deep)}
-.hero-strip .lb{color:var(--muted);font-size:.66rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
-.hero-strip span:not(.lb){font-size:.82rem;font-weight:850;color:var(--body)}
+.hero-copy p{margin-top:20px;max-width:540px;color:var(--body);font-size:1.1rem;line-height:1.65}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+.hero-note{margin-top:12px;font-size:.78rem;color:var(--muted);font-weight:700}
+.hero-proof{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px;max-width:520px}
+.proof{padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.85)}
+.proof strong{display:block;color:var(--deep);font-family:var(--mono);font-size:1.3rem;line-height:1}
+.proof span{display:block;margin-top:5px;color:var(--body);font-size:.76rem;font-weight:700}
+.flow-board{border-radius:28px;background:#fff;border:1px solid var(--line);padding:22px;box-shadow:0 28px 70px rgba(4,47,42,.15)}
+.flow-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border-radius:16px;background:var(--deep);color:#fff}
+.flow-top strong{font-size:1.05rem}
+.flow-top span{color:var(--mint);font-size:.74rem;font-weight:800}
+.flow-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-top:16px}
+.flow-step{min-height:84px;padding:13px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.flow-step:nth-child(5){grid-column:1/-1}
+.step-line{display:flex;gap:11px;align-items:flex-start}
+.step-num{flex:0 0 32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:800;font-size:.85rem}
+.flow-step:nth-child(1) .step-num{background:#fff7e6;color:var(--amber)}
+.flow-step:nth-child(2) .step-num{background:#e9fffb;color:var(--teal)}
+.flow-step:nth-child(3) .step-num{background:#ecfdf8;color:var(--deep)}
+.flow-step:nth-child(4) .step-num{background:#f0efff;color:var(--violet)}
+.flow-step:nth-child(5) .step-num{background:#e7f5ff;color:var(--cyan)}
+.flow-step h3{font-size:.92rem;color:var(--ink);line-height:1.15}
+.flow-step p{margin-top:3px;font-size:.73rem;line-height:1.35;color:var(--body)}
+.flow-band{margin-top:12px;padding:13px 16px;border-radius:15px;background:var(--mint);color:var(--deep)}
+.flow-band strong{display:block;font-size:.82rem}
+.flow-band span{font-size:.71rem;color:var(--body);font-weight:700}
+.hero-strip{display:flex;align-items:center;justify-content:center;gap:26px;flex-wrap:wrap;margin-top:40px;padding:16px 22px;border-radius:18px;background:var(--deep);color:#fff}
+.hero-strip .lb{color:rgba(255,255,255,.55);font-size:.66rem;font-weight:900;letter-spacing:.15em;text-transform:uppercase}
+.hero-strip span:not(.lb){font-size:.84rem;font-weight:900;color:rgba(255,255,255,.85)}
 
-/* Shared sections */
-.problem-grid,.flow2-grid,.peru-grid,.split{display:grid;gap:34px;align-items:center}
-.problem-grid,.peru-grid{grid-template-columns:.9fr 1.1fr}.flow2-grid{grid-template-columns:1fr .74fr}.split{grid-template-columns:1fr 1fr}
-.problem-panel,.side-proof{padding:30px;border-radius:8px;background:var(--deep);color:#fff}
-.problem-panel h2,.p-peru h2{font-size:clamp(1.9rem,3.4vw,2.75rem);line-height:1.06;letter-spacing:-.03em;margin-top:14px}
-.problem-panel p,.p-peru .lead,.side-proof p{margin-top:14px;color:rgba(255,255,255,.72)}
-.pain-list,.peru-list,.portal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.pain,.task,.rubro,.law,.price-card,.quote,.portal-ui,.mock-chat,.faq{border:1px solid var(--line);border-radius:8px;background:#fff}
-.pain,.task,.rubro,.law,.price-card,.quote{padding:20px}
-.pain:hover,.task:hover,.rubro:hover,.price-card:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(7,63,54,.08)}
-.pain,.task,.rubro,.price-card{transition:transform .18s,box-shadow .18s}
-.pain i{color:var(--amber);margin-bottom:10px;font-size:1.05rem}
-.pain strong,.task h3,.rubro h3{display:block;color:var(--deep);font-size:1rem}
-.pain span,.task p,.rubro .dolor{display:block;margin-top:6px;color:var(--body);font-size:.85rem}
-.timeline{display:grid;gap:10px}
-.timeline-row{display:grid;grid-template-columns:58px 1fr;gap:14px;align-items:center;padding:14px;border-radius:8px;background:#fff;border:1px solid var(--line);transition:transform .18s,box-shadow .18s}
-.timeline-row:hover{transform:translateX(3px);box-shadow:0 12px 26px rgba(7,63,54,.07)}
-.timeline-code{width:44px;height:44px;border-radius:8px;background:var(--deep);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:800;font-size:1rem}
-.timeline-row h3{font-size:1rem;color:var(--deep);line-height:1.2}.timeline-row p{margin-top:3px;color:var(--body);font-size:.86rem}
-.side-proof ul{list-style:none;margin-top:18px;display:grid;gap:10px}.side-proof li{display:flex;gap:10px;color:rgba(255,255,255,.85);font-weight:700;font-size:.86rem}.side-proof li i{color:#8ee3d7;margin-top:4px}
-.task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.task-icon,.rubro .ri{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:1rem}
-.task:nth-child(1) .task-icon,.rubro:nth-child(1) .ri{background:#fff7e6;color:var(--amber)}
-.task:nth-child(2) .task-icon,.rubro:nth-child(2) .ri{background:#e8f7f4;color:var(--teal)}
-.task:nth-child(3) .task-icon,.rubro:nth-child(3) .ri{background:#eaf1ff;color:var(--blue)}
-.task:nth-child(4) .task-icon,.rubro:nth-child(4) .ri{background:#fdf2f8;color:#be185d}
-.task:nth-child(5) .task-icon{background:#f3f8f6;color:var(--deep)}
-.task:nth-child(6) .task-icon{background:#fff1f2;color:var(--rose)}
-.task-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}.task-tags span{font-size:.68rem;font-weight:850;color:var(--teal-2);background:var(--mint-2);border:1px solid var(--line);border-radius:999px;padding:5px 8px}
-.rubro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.rubro{display:flex;flex-direction:column}.rubro .sol{margin-top:auto;padding-top:14px;font-size:.8rem;font-weight:850;color:var(--teal-2)}.rubro .sol i{margin-right:6px}
-.p-peru{background:var(--deep);color:#fff}.p-peru .eyebrow{border-color:rgba(255,255,255,.18)}
-.law{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}.law strong{display:block;color:#fff;font-size:.9rem}.law span{display:block;margin-top:4px;color:rgba(255,255,255,.64);font-size:.77rem}
-.mock-chat,.portal-ui{padding:20px;box-shadow:0 16px 34px rgba(7,63,54,.07)}
-.chat-bubble{padding:13px 14px;border-radius:8px;margin-bottom:10px;font-size:.87rem}.chat-user{background:#f1f5f9;color:var(--ink);margin-left:34px}.chat-ai{background:var(--mint);color:var(--deep);margin-right:28px}
-.tool-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.tool-row span{font-size:.7rem;font-weight:850;color:var(--deep);border:1px solid var(--line);border-radius:999px;background:#fff;padding:7px 10px;font-family:var(--mono)}
-.portal-head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-radius:8px;background:var(--deep);color:#fff}.portal-head span{font-size:.74rem;color:#8ee3d7;font-weight:850}
-.portal-tile{padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--paper)}.portal-tile i{color:var(--teal);margin-bottom:8px}.portal-tile strong{display:block;color:var(--deep);font-size:.86rem}.portal-tile span{display:block;color:var(--body);font-size:.74rem;margin-top:3px}
-.compare{overflow:hidden;border-radius:8px;border:1px solid var(--line);background:#fff}.compare-row{display:grid;grid-template-columns:1.2fr repeat(3,1fr)}.compare-row>div{padding:14px 16px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:.86rem}.compare-row>div:last-child{border-right:0}.compare-row:last-child>div{border-bottom:0}.compare-head>div{background:var(--deep);color:#fff;font-weight:850}.compare-row .yes{color:var(--teal);font-weight:900}.compare-row .partial{color:var(--amber);font-weight:900}.compare-row .no{color:#94a3b8;font-weight:900}
-.social-band{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}.quote{background:var(--paper);border-style:dashed}.quote p{color:var(--body);font-size:.92rem;font-style:italic}.quote .who{margin-top:14px;display:flex;align-items:center;gap:10px}.quote .who .av{width:36px;height:36px;border-radius:50%;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--teal-2);font-weight:900;font-size:.78rem}.quote .who b{display:block;font-size:.84rem;color:var(--deep)}.quote .who span{font-size:.74rem;color:var(--muted);font-weight:700}
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.price-card{display:flex;flex-direction:column}.price-card.featured{border:2px solid var(--teal);box-shadow:0 16px 34px rgba(7,63,54,.08);position:relative}.price-card.featured::before{content:"Recomendado";position:absolute;top:-12px;left:18px;background:var(--teal);color:#fff;font-size:.66rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border-radius:999px}.price-card h3{color:var(--deep);font-size:1.08rem}.price-card .pd{color:var(--body);font-size:.84rem;margin-top:4px}.price{font-family:var(--mono);font-size:2rem;font-weight:800;color:var(--deep);margin-top:16px}.price span{font-size:.8rem;color:var(--muted)}.price-card ul{list-style:none;display:grid;gap:9px;margin-top:18px}.price-card li{display:flex;gap:9px;color:var(--body);font-size:.85rem}.price-card li i{color:var(--teal);margin-top:4px}.price-card .btn{width:100%;margin-top:auto}.price-card .btn-slot{margin-top:22px}
-.faq-list{max-width:780px;margin:0 auto;display:grid;gap:10px}.faq{background:var(--paper);overflow:hidden}.faq summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 20px;font-weight:800;color:var(--deep);font-size:.96rem}.faq summary::-webkit-details-marker{display:none}.faq summary i{color:var(--teal);transition:transform .2s;flex-shrink:0}.faq[open] summary i{transform:rotate(45deg)}.faq .fa-body{padding:0 20px 18px;color:var(--body);font-size:.9rem}
-.p-final{background:var(--slate);color:#fff;text-align:center}.p-final h2{font-size:clamp(2.1rem,4.4vw,3.5rem);line-height:1.04;letter-spacing:-.04em;font-weight:900}.p-final .lead{max-width:600px;margin:18px auto 28px;color:rgba(255,255,255,.72)}
-.footer{background:#0b1110;color:#fff;padding:32px 0 18px;margin-top:64px;width:100%}.footer-inner{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.footer-brand{display:flex;align-items:center;gap:12px;font-weight:900}.footer-brand img{width:32px;height:32px;border-radius:8px}.footer-links{display:flex;gap:18px;flex-wrap:wrap}.footer-links a{color:rgba(255,255,255,.62);text-decoration:none;font-size:.8rem;font-weight:700}.footer-copy{width:100%;padding-top:16px;margin-top:16px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.42);font-size:.76rem;text-align:center}
+/* ══ 2 · Problema ══ */
+.p-problem{background:#fff}
+.problem-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:38px;align-items:center}
+.problem-panel{padding:36px;border-radius:28px;background:var(--deep);color:#fff}
+.problem-panel h2{font-size:clamp(1.9rem,3.6vw,2.8rem);line-height:1.05;letter-spacing:-.04em;margin-top:16px}
+.problem-panel p{margin-top:16px;color:rgba(255,255,255,.72)}
+.pain-list{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.pain{padding:22px;border:1px solid var(--line);border-radius:20px;background:var(--paper);transition:transform .2s,box-shadow .2s}
+.pain:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(7,63,54,.09)}
+.pain i{color:var(--amber);margin-bottom:12px;font-size:1.15rem}
+.pain strong{display:block;color:var(--deep);font-size:.98rem}
+.pain span{display:block;margin-top:6px;color:var(--body);font-size:.85rem}
 
-.reveal{opacity:1;transform:none}.js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}.js .reveal.visible{opacity:1;transform:translateY(0)}.js .reveal.d1{transition-delay:.06s}.js .reveal.d2{transition-delay:.12s}.js .reveal.d3{transition-delay:.18s}
+/* ══ 3 · Flujo ══ */
+.flow2-grid{display:grid;grid-template-columns:1fr .74fr;gap:32px;align-items:start}
+.timeline{display:grid;gap:12px}
+.timeline-row{display:grid;grid-template-columns:78px 1fr;gap:16px;align-items:center;padding:16px 18px;border-radius:20px;background:#fff;border:1px solid var(--line);transition:transform .2s,box-shadow .2s}
+.timeline-row:hover{transform:translateX(6px);box-shadow:0 14px 34px rgba(7,63,54,.08)}
+.timeline-code{width:58px;height:58px;border-radius:16px;background:var(--deep);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:800;font-size:1.2rem}
+.timeline-row h3{font-size:1.05rem;color:var(--deep);line-height:1.2}
+.timeline-row p{margin-top:4px;color:var(--body);font-size:.87rem}
+.side-proof{padding:26px;border-radius:26px;background:var(--deep);color:#fff;box-shadow:0 22px 54px rgba(7,63,54,.18)}
+.side-proof h3{font-size:1.3rem;line-height:1.15;letter-spacing:-.02em}
+.side-proof p{margin-top:12px;color:rgba(255,255,255,.72);font-size:.92rem}
+.side-proof ul{list-style:none;margin-top:18px;display:grid;gap:11px}
+.side-proof li{display:flex;gap:10px;color:rgba(255,255,255,.85);font-weight:700;font-size:.86rem}
+.side-proof li i{color:var(--mint);margin-top:4px}
+
+/* ══ 4 · Módulos ══ */
+.p-mods{background:#fff}
+.task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.task{padding:22px;border-radius:22px;background:var(--paper);border:1px solid var(--line);transition:transform .2s,box-shadow .2s}
+.task:hover{transform:translateY(-4px);box-shadow:0 18px 42px rgba(7,63,54,.10)}
+.task-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:15px;font-size:1rem}
+.task:nth-child(1) .task-icon{background:#fff7e6;color:var(--amber)}
+.task:nth-child(2) .task-icon{background:#e9fffb;color:var(--teal)}
+.task:nth-child(3) .task-icon{background:#e7f5ff;color:var(--cyan)}
+.task:nth-child(4) .task-icon{background:#f0efff;color:var(--violet)}
+.task:nth-child(5) .task-icon{background:#ecfdf8;color:var(--deep)}
+.task:nth-child(6) .task-icon{background:#fff1f2;color:#e11d48}
+.task h3{font-size:1.02rem;color:var(--deep);margin-bottom:8px}
+.task p{color:var(--body);font-size:.85rem}
+.task-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.task-tags span{font-size:.68rem;font-weight:800;color:var(--teal-2);background:var(--mint-2);border:1px solid var(--line);border-radius:999px;padding:5px 8px}
+
+/* ══ 5 · Rubros ══ */
+.rubro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+.rubro{padding:24px;border-radius:22px;background:#fff;border:1px solid var(--line);transition:transform .2s,box-shadow .2s;display:flex;flex-direction:column}
+.rubro:hover{transform:translateY(-4px);box-shadow:0 18px 42px rgba(7,63,54,.10)}
+.rubro .ri{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;margin-bottom:16px}
+.rubro:nth-child(1) .ri{background:#fff7e6;color:var(--amber)}
+.rubro:nth-child(2) .ri{background:#ecfdf8;color:var(--deep)}
+.rubro:nth-child(3) .ri{background:#e7f5ff;color:var(--cyan)}
+.rubro:nth-child(4) .ri{background:#f0efff;color:var(--violet)}
+.rubro h3{font-size:1.02rem;color:var(--deep)}
+.rubro .dolor{margin-top:8px;font-size:.82rem;color:var(--body)}
+.rubro .sol{margin-top:auto;padding-top:14px;font-size:.8rem;font-weight:800;color:var(--teal-2)}
+.rubro .sol i{margin-right:6px}
+
+/* ══ 6 · Perú ══ */
+.p-peru{background:var(--deep);color:#fff}
+.p-peru::before{content:"";position:absolute;right:-8%;top:-12%;width:42%;height:58%;border-radius:80px;background:rgba(204,251,241,.08)}
+.peru-grid{position:relative;display:grid;grid-template-columns:.9fr 1.1fr;gap:44px;align-items:center}
+.p-peru h2{font-size:clamp(1.9rem,3.6vw,2.8rem);line-height:1.05;letter-spacing:-.04em;margin-top:16px}
+.p-peru .lead{margin-top:14px;color:rgba(255,255,255,.72)}
+.peru-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.law{padding:18px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.06);transition:background .2s}
+.law:hover{background:rgba(255,255,255,.11)}
+.law strong{display:block;color:#fff;font-size:.9rem}
+.law span{display:block;margin-top:4px;color:rgba(255,255,255,.62);font-size:.77rem}
+
+/* ══ 7 · IA + Portal ══ */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.mock-chat{padding:26px;border-radius:26px;background:#fff;border:1px solid var(--line);box-shadow:0 22px 54px rgba(7,63,54,.08)}
+.chat-bubble{padding:14px 16px;border-radius:16px;margin-bottom:11px;font-size:.87rem}
+.chat-user{background:#f1f5f9;color:var(--ink);margin-left:40px}
+.chat-ai{background:var(--mint);color:var(--deep);margin-right:32px}
+.tool-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.tool-row span{font-size:.7rem;font-weight:900;color:var(--deep);border:1px solid var(--line);border-radius:999px;background:#fff;padding:7px 10px;font-family:var(--mono)}
+.portal-ui{border:1px solid var(--line);border-radius:26px;background:#fff;padding:22px;box-shadow:0 22px 54px rgba(7,63,54,.08)}
+.portal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:16px;background:var(--deep);color:#fff}
+.portal-head span{font-size:.74rem;color:var(--mint);font-weight:800}
+.portal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-top:14px}
+.portal-tile{padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}
+.portal-tile i{color:var(--teal);margin-bottom:9px}
+.portal-tile strong{display:block;color:var(--deep);font-size:.87rem}
+.portal-tile span{display:block;color:var(--body);font-size:.74rem;margin-top:3px}
+
+/* ══ 8 · Comparativa + social ══ */
+.p-comp{background:#fff}
+.compare{overflow:hidden;border-radius:26px;border:1px solid var(--line);background:#fff}
+.compare-row{display:grid;grid-template-columns:1.2fr repeat(3,1fr)}
+.compare-row>div{padding:15px 18px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:.86rem}
+.compare-row>div:last-child{border-right:0}
+.compare-row:last-child>div{border-bottom:0}
+.compare-head>div{background:var(--deep);color:#fff;font-weight:900}
+.compare-row .yes{color:var(--teal);font-weight:900}
+.compare-row .partial{color:var(--amber);font-weight:900}
+.compare-row .no{color:#94a3b8;font-weight:900}
+.social-band{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.quote{padding:24px;border-radius:22px;background:var(--paper);border:1px dashed var(--line)}
+.quote p{color:var(--body);font-size:.92rem;font-style:italic}
+.quote .who{margin-top:14px;display:flex;align-items:center;gap:11px}
+.quote .who .av{width:38px;height:38px;border-radius:50%;background:var(--mint);display:flex;align-items:center;justify-content:center;color:var(--teal-2);font-weight:900;font-size:.8rem}
+.quote .who b{display:block;font-size:.84rem;color:var(--deep)}
+.quote .who span{font-size:.74rem;color:var(--muted);font-weight:700}
+
+/* ══ 9 · Planes ══ */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}
+.price-card{padding:26px;border:1px solid var(--line);border-radius:26px;background:#fff;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
+.price-card:hover{transform:translateY(-4px)}
+.price-card.featured{border:2px solid var(--teal);box-shadow:0 22px 54px rgba(7,63,54,.10);position:relative}
+.price-card.featured::before{content:"Recomendado";position:absolute;top:-12px;left:24px;background:var(--teal);color:#fff;font-size:.66rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+.price-card h3{color:var(--deep);font-size:1.08rem}
+.price-card .pd{color:var(--body);font-size:.84rem;margin-top:4px}
+.price{font-family:var(--mono);font-size:2.2rem;font-weight:800;color:var(--deep);margin-top:18px}
+.price span{font-size:.8rem;color:var(--muted)}
+.price-card ul{list-style:none;display:grid;gap:9px;margin-top:18px}
+.price-card li{display:flex;gap:9px;color:var(--body);font-size:.85rem}
+.price-card li i{color:var(--teal);margin-top:4px}
+.price-card .btn{width:100%;margin-top:auto;padding-top:14px}
+.price-card .btn-slot{margin-top:22px}
+
+/* ══ 10 · FAQ ══ */
+.p-faq{background:#fff}
+.faq-list{max-width:780px;margin:0 auto;display:grid;gap:11px}
+.faq{border:1px solid var(--line);border-radius:18px;background:var(--paper);overflow:hidden}
+.faq summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;font-weight:800;color:var(--deep);font-size:.96rem}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary i{color:var(--teal);transition:transform .25s;flex-shrink:0}
+.faq[open] summary i{transform:rotate(45deg)}
+.faq .fa-body{padding:0 22px 20px;color:var(--body);font-size:.9rem}
+
+/* ══ 11 · CTA + footer ══ */
+.p-final{background:linear-gradient(135deg,var(--deep),var(--deep-2));color:#fff;text-align:center}
+.p-final::before{content:"";position:absolute;left:10%;bottom:-35%;width:420px;height:420px;border-radius:70px;background:rgba(204,251,241,.08)}
+.p-final h2{font-size:clamp(2.2rem,4.6vw,3.7rem);line-height:1.02;letter-spacing:-.05em;font-weight:900;position:relative}
+.p-final .lead{max-width:600px;margin:18px auto 30px;color:rgba(255,255,255,.72);position:relative}
+.footer{background:var(--slate);color:#fff;padding:34px 0 18px;margin-top:auto;width:100%}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.footer-brand{display:flex;align-items:center;gap:12px;font-weight:900}
+.footer-brand img{width:32px;height:32px;border-radius:9px}
+.footer-links{display:flex;gap:18px;flex-wrap:wrap}
+.footer-links a{color:rgba(255,255,255,.6);text-decoration:none;font-size:.8rem;font-weight:700}
+.footer-copy{width:100%;padding-top:16px;margin-top:16px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.42);font-size:.76rem;text-align:center}
+
+/* ══ Reveal ══ */
+.reveal{opacity:1;transform:none}
+.js .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+.js .reveal.visible{opacity:1;transform:translateY(0)}
+.js .reveal.d1{transition-delay:.08s}.js .reveal.d2{transition-delay:.16s}.js .reveal.d3{transition-delay:.24s}
 
 @media(max-width:1024px){
-  .panel{padding:72px 0}.panel:first-of-type{padding-top:104px}
+  body{overflow:auto}
+  .snap{height:auto;overflow:visible;scroll-snap-type:none}
+  .panel{min-height:0;padding:72px 0 40px}
+  .dots{display:none}
   .hero-grid,.problem-grid,.flow2-grid,.peru-grid,.split{grid-template-columns:1fr}
-  .task-grid,.pricing-grid,.rubro-grid{grid-template-columns:repeat(2,1fr)}
-  .social-band{grid-template-columns:1fr}.compare{overflow-x:auto}.compare-row{min-width:720px}
-  .product-layout{grid-template-columns:136px 1fr}
+  .task-grid,.pricing-grid{grid-template-columns:repeat(2,1fr)}
+  .rubro-grid{grid-template-columns:repeat(2,1fr)}
+  .social-band{grid-template-columns:1fr}
+  .compare{overflow-x:auto}
+  .compare-row{min-width:720px}
 }
 @media(max-width:760px){
-  .wrap{padding:0 18px}.nav-links a:not(.nav-cta){display:none}.nav-login{display:none!important}
-  .hero-copy h1{font-size:2.34rem}.btn{width:100%}
-  .p-hero::after{display:none}.product-layout{grid-template-columns:1fr}.product-sidebar{display:none}
-  .metric-row,.pain-list,.task-grid,.pricing-grid,.rubro-grid,.peru-list,.portal-grid{grid-template-columns:1fr}
-  .close-table .row{grid-template-columns:1.3fr .8fr}.close-table .row>span:nth-child(3),.close-table .row>span:nth-child(4){display:none}
-  .approval-panel{grid-template-columns:1fr}.approval-panel button{width:100%}.timeline-row{grid-template-columns:1fr}.hero-strip{justify-content:flex-start}
+  .wrap{padding:0 18px}
+  .nav-links a:not(.nav-cta){display:none}
+  .nav-login{display:none!important}
+  .hero-copy h1{font-size:2.3rem}
+  .task-grid,.pricing-grid,.rubro-grid,.pain-list,.flow-grid,.peru-list,.portal-grid{grid-template-columns:1fr}
+  .flow-step:nth-child(5){grid-column:auto}
+  .btn{width:100%}
+  .timeline-row{grid-template-columns:1fr}
+  .hero-strip{gap:14px}
 }
 @media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .snap{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
   .js .reveal{opacity:1;transform:none}
 }
 </style>
@@ -257,71 +364,37 @@ a{color:inherit}
     <div class="wrap">
       <div class="hero-grid">
         <div class="hero-copy reveal">
-          <span class="eyebrow"><i class="fas fa-table-list"></i> Software de RRHH y planillas en Perú</span>
-          <h1>Planillas, asistencia y documentos laborales <em>sin Excel paralelo.</em></h1>
-          <p>Harmoni conecta lo que RRHH revisa cada mes: marcaciones, solicitudes, contratos, boletas y liquidaciones. Empieza por la operación diaria y llega al cierre con trazabilidad.</p>
+          <span class="eyebrow"><i class="fas fa-route"></i> ERP RRHH + Planillas Perú</span>
+          <h1>El RRHH más completo del Perú. <em>En un solo flujo.</em></h1>
+          <p>Los softwares clásicos se quedan en la planilla. Harmoni conecta asistencia, aprobaciones, nómina, boletas, liquidaciones, talento e IA — con la normativa peruana ya integrada.</p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="https://wa.me/51977538028?text=Hola%2C%20quiero%20una%20demo%20de%20Harmoni" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Agendar demo</a>
-            <a class="btn btn-ghost" href="#modulos"><i class="fas fa-layer-group"></i> Ver módulos</a>
+            <a class="btn btn-primary" href="https://wa.me/51977538028?text=Hola%2C%20quiero%20una%20demo%20de%20Harmoni" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Solicitar demo</a>
+            <a class="btn btn-ghost" href="#flujo"><i class="fas fa-diagram-project"></i> Ver el flujo</a>
           </div>
-          <div class="hero-note">Demo de 30 minutos con un flujo real: ingreso, asistencia, cierre y cese.</div>
-          <div class="trust-row" aria-label="Capacidades principales">
-            <span><i class="fas fa-check"></i> PLAME y AFPnet</span>
-            <span><i class="fas fa-check"></i> Boletas con QR</span>
-            <span><i class="fas fa-check"></i> Bandeja de aprobaciones</span>
+          <div class="hero-note">Demo guiada · sin tarjeta · en español</div>
+          <div class="hero-proof" aria-label="Prueba rápida de valor">
+            <div class="proof"><strong>25</strong><span>apps conectadas</span></div>
+            <div class="proof"><strong>1</strong><span>bandeja de aprobaciones</span></div>
+            <div class="proof"><strong>Perú</strong><span>SUNAT, PLAME, AFP/SBS</span></div>
           </div>
         </div>
         <div class="hero-visual reveal d1">
-          <div class="product-window" aria-label="Vista del producto Harmoni">
-            <div class="product-toolbar">
-              <div class="product-dots" aria-hidden="true"><span></span><span></span><span></span></div>
-              <strong>demo.harmoni.pe</strong>
+          <div class="flow-board">
+            <div class="flow-top"><strong>Flujo Harmoni</strong><span>RRHH + Nómina</span></div>
+            <div class="flow-grid">
+              <article class="flow-step"><div class="step-line"><span class="step-num">1</span><div><h3>Configuración</h3><p>Empresa, roles, catálogos y normativa.</p></div></div></article>
+              <article class="flow-step"><div class="step-line"><span class="step-num">2</span><div><h3>Incorporación</h3><p>Reclutamiento, contratación y onboarding.</p></div></div></article>
+              <article class="flow-step"><div class="step-line"><span class="step-num">3</span><div><h3>Operación diaria</h3><p>Asistencia, papeletas y solicitudes.</p></div></div></article>
+              <article class="flow-step"><div class="step-line"><span class="step-num">4</span><div><h3>Cierre y nómina</h3><p>Snapshot legal, cálculo y boletas.</p></div></div></article>
+              <article class="flow-step"><div class="step-line"><span class="step-num">5</span><div><h3>Salida</h3><p>Offboarding, cese y liquidación BLIQ.</p></div></div></article>
             </div>
-            <div class="product-layout">
-              <aside class="product-sidebar">
-                <b>Harmoni</b>
-                <div class="product-nav">
-                  <span class="active"><i class="fas fa-calculator"></i> Nóminas</span>
-                  <span><i class="fas fa-clock"></i> Asistencia</span>
-                  <span><i class="fas fa-inbox"></i> Aprobaciones</span>
-                  <span><i class="fas fa-folder-open"></i> Legajo</span>
-                  <span><i class="fas fa-chart-line"></i> Analytics</span>
-                </div>
-              </aside>
-              <div class="product-main">
-                <div class="product-head">
-                  <div>
-                    <h2>Cierre mensual</h2>
-                    <p>Periodo actual · Grupo operativo · Perú</p>
-                  </div>
-                  <span class="status-pill">En revisión</span>
-                </div>
-                <div class="metric-row">
-                  <div class="metric-card"><strong>184</strong><span>trabajadores activos</span></div>
-                  <div class="metric-card"><strong>12</strong><span>solicitudes pendientes</span></div>
-                  <div class="metric-card"><strong>S/ 428k</strong><span>neto a pagar</span></div>
-                </div>
-                <div class="close-table" aria-label="Resumen de cierre">
-                  <div class="row head"><span>Proceso</span><span>Estado</span><span>Responsable</span><span>ETA</span></div>
-                  <div class="row"><span>Marcaciones cruzadas</span><span><b class="tag-ok">Listo</b></span><span>Asistencia</span><span>08:40</span></div>
-                  <div class="row"><span>Horas extra aprobadas</span><span><b class="tag-warn">Revisar</b></span><span>RRHH</span><span>Hoy</span></div>
-                  <div class="row"><span>Boletas generadas</span><span><b class="tag-ok">Listo</b></span><span>Nómina</span><span>09:15</span></div>
-                </div>
-                <div class="approval-panel">
-                  <div>
-                    <strong>3 cambios requieren aprobación</strong>
-                    <span>Vacaciones, reintegro y actualización de contrato antes del cierre.</span>
-                  </div>
-                  <button type="button">Revisar</button>
-                </div>
-              </div>
-            </div>
+            <div class="flow-band"><strong>Capa transversal</strong><span>Mi Portal · Legajo · Evaluaciones · Salarios · Analytics/IA · Comunicaciones</span></div>
           </div>
         </div>
       </div>
       <div class="hero-strip reveal d2">
-        <span class="lb">Trabaja con</span>
-        <span>SUNAT</span><span>PLAME</span><span>T-Registro</span><span>AFP / SBS</span><span>SUNAFIL</span><span>IR 5ta</span><span>SCTR</span>
+        <span class="lb">Alineado con</span>
+        <span>SUNAT</span><span>PLAME</span><span>T-Registro</span><span>AFP/SBS</span><span>SUNAFIL</span><span>IR 5ta</span><span>SCTR</span>
       </div>
     </div>
   </section>
@@ -331,11 +404,11 @@ a{color:inherit}
     <div class="wrap problem-grid">
       <div class="problem-panel reveal">
         <span class="eyebrow"><i class="fas fa-triangle-exclamation"></i> El problema</span>
-        <h2>El cierre se vuelve pesado cuando cada dato vive en un lugar distinto.</h2>
-        <p>Un sistema calcula la planilla, otro marca la asistencia, y todo lo demás — aprobaciones, legajo, contratos — termina en Excel y correos. Harmoni reúne esas piezas antes del cierre.</p>
+        <h2>RRHH no falla por falta de esfuerzo. Falla porque el software clásico solo cubre una parte.</h2>
+        <p>Un sistema calcula la planilla, otro marca la asistencia, y todo lo demás — aprobaciones, legajo, talento — termina en Excel y correos. El cierre mensual depende de memoria y seguimiento manual.</p>
       </div>
       <div class="pain-list">
-        <div class="pain reveal"><i class="fas fa-cube"></i><strong>Planilla aislada</strong><span>La planilla calcula, pero no siempre ve asistencia, aprobaciones ni cambios de contrato.</span></div>
+        <div class="pain reveal"><i class="fas fa-cube"></i><strong>Planilla aislada</strong><span>El software clásico calcula, pero no conversa con asistencia ni aprobaciones.</span></div>
         <div class="pain reveal d1"><i class="fas fa-fingerprint"></i><strong>Biométrico desconectado</strong><span>Marcaciones que no conversan con roster, HE ni banco de horas.</span></div>
         <div class="pain reveal d2"><i class="fas fa-inbox"></i><strong>Aprobaciones dispersas</strong><span>Vacaciones, papeletas, HE y préstamos en bandejas separadas.</span></div>
         <div class="pain reveal d3"><i class="fas fa-file-signature"></i><strong>Cese sin trazabilidad</strong><span>Documentos, activos y liquidación sin un flujo único.</span></div>
@@ -377,16 +450,16 @@ a{color:inherit}
     <div class="wrap">
       <div class="head-c reveal">
         <div class="kicker">Módulos por tarea</div>
-        <h2 class="title">Módulos por trabajo, no por promesa</h2>
-        <p class="copy">Agrupados por las tareas que RRHH atiende cada semana, con estados claros y responsables visibles.</p>
+        <h2 class="title">Completo, pero fácil de entender</h2>
+        <p class="copy">Agrupados por el trabajo que RRHH hace cada semana, para saber dónde empieza y dónde termina cada tarea.</p>
       </div>
       <div class="task-grid">
         <article class="task reveal"><div class="task-icon"><i class="fas fa-id-badge"></i></div><h3>Portal del empleado</h3><p>Mi resumen, asistencia, roster, boletas, préstamos, viáticos, legajo y notificaciones.</p><div class="task-tags"><span>Mi Portal</span><span>Boletas</span><span>Solicitudes</span></div></article>
         <article class="task reveal d1"><div class="task-icon"><i class="fas fa-users-gear"></i></div><h3>Personal y asistencia</h3><p>Control Tower, contratos, organigrama, roster matricial, tareo, papeletas y banco de horas.</p><div class="task-tags"><span>Roster</span><span>Tareo</span><span>Papeletas</span></div></article>
-        <article class="task reveal d2"><div class="task-icon"><i class="fas fa-calculator"></i></div><h3>Nómina y beneficios</h3><p>Periodos, reintegros, boletas, préstamos, descuentos, propinas y archivos de cierre.</p><div class="task-tags"><span>PLAME</span><span>IR 5ta</span><span>Boletas</span></div></article>
+        <article class="task reveal d2"><div class="task-icon"><i class="fas fa-calculator"></i></div><h3>Nómina y beneficios</h3><p>Periodos, Harmoni IA Nóminas, reintegros, boletas, préstamos, descuentos y propinas.</p><div class="task-tags"><span>PLAME</span><span>IR 5ta</span><span>Boletas</span></div></article>
         <article class="task reveal"><div class="task-icon"><i class="fas fa-folder-open"></i></div><h3>Documentos y cumplimiento</h3><p>Legajo digital, faltantes, dossier, constancias, firma digital, cese y liquidación BLIQ.</p><div class="task-tags"><span>Legajo</span><span>Firma</span><span>BLIQ</span></div></article>
         <article class="task reveal d1"><div class="task-icon"><i class="fas fa-chart-line"></i></div><h3>Talento, clima y salarios</h3><p>Reclutamiento, onboarding, evaluaciones, OKRs, capacitaciones, encuestas y bandas salariales.</p><div class="task-tags"><span>9-Box</span><span>Clima</span><span>Bandas</span></div></article>
-        <article class="task reveal d2"><div class="task-icon"><i class="fas fa-chart-pie"></i></div><h3>Analytics y alertas</h3><p>Headcount, snapshots KPI, riesgo de fuga, anomalías, alertas y reportes para gerencia.</p><div class="task-tags"><span>BI</span><span>Alertas</span><span>Riesgo</span></div></article>
+        <article class="task reveal d2"><div class="task-icon"><i class="fas fa-robot"></i></div><h3>Analytics e IA</h3><p>Headcount, snapshots KPI, riesgo de fuga, predictive insights, alertas y reportes.</p><div class="task-tags"><span>IA</span><span>BI</span><span>Riesgo</span></div></article>
       </div>
     </div>
   </section>
@@ -396,8 +469,8 @@ a{color:inherit}
     <div class="wrap">
       <div class="head-c reveal">
         <div class="kicker">Casos por rubro</div>
-        <h2 class="title">Escenarios cercanos a tu operación</h2>
-        <p class="copy">La demo aterriza el producto en casos concretos por industria, con procesos que un equipo de RRHH reconoce rápido.</p>
+        <h2 class="title">Cada operación tiene su dolor. Harmoni ya lo conoce.</h2>
+        <p class="copy">La demo incluye escenarios reales por industria para que veas tu operación, no una genérica.</p>
       </div>
       <div class="rubro-grid">
         <article class="rubro reveal"><div class="ri"><i class="fas fa-utensils"></i></div><h3>Gastronomía</h3><p class="dolor">Multiempresa, propinas y recargo al consumo repartidos en Excel, turnos rotativos y alta rotación.</p><p class="sol"><i class="fas fa-arrow-right"></i>Pool de propinas por local + multiempresa nativo</p></article>
@@ -413,7 +486,7 @@ a{color:inherit}
     <div class="wrap peru-grid">
       <div class="reveal">
         <span class="eyebrow"><i class="fas fa-flag"></i> Hecho para Perú</span>
-        <h2>La normativa peruana forma parte del cierre, no se agrega al final.</h2>
+        <h2>La normativa peruana forma parte del flujo, no se agrega al final.</h2>
         <p class="lead">Harmoni trabaja con reglas locales de asistencia, planilla, boletas, documentos y liquidación laboral.</p>
       </div>
       <div class="peru-list">
@@ -427,13 +500,13 @@ a{color:inherit}
     </div>
   </section>
 
-  <!-- 7 · DATOS + PORTAL -->
-  <section class="panel" data-title="Datos y autoservicio">
+  <!-- 7 · IA + PORTAL -->
+  <section class="panel" data-title="IA y autoservicio">
     <div class="wrap">
       <div class="split" style="margin-bottom:52px">
         <div class="reveal">
-          <div class="kicker">Asistente con trazabilidad</div>
-          <h2 class="title">El asistente ayuda cuando el dato ya está ordenado</h2>
+          <div class="kicker">IA con trazabilidad</div>
+          <h2 class="title">IA útil cuando el dato ya está ordenado</h2>
           <p class="copy">Consulta indicadores, detecta anomalías, prepara reintegros y deja visible el sustento de cada acción.</p>
           <div class="tool-row">
             <span>consultar_normativa()</span><span>calcular_reintegro()</span><span>buscar_personal()</span><span>generar_reporte()</span>
@@ -441,7 +514,7 @@ a{color:inherit}
         </div>
         <div class="mock-chat reveal d1">
           <div class="chat-bubble chat-user">Faltó reconocer S/ 200 a un grupo de operarios el mes pasado. ¿Cómo lo regularizo?</div>
-          <div class="chat-bubble chat-ai"><strong>Asistente Harmoni</strong><br>Identifiqué a los colaboradores, calculé el reintegro y preparé la propuesta para revisión con sustento legal.</div>
+          <div class="chat-bubble chat-ai"><strong>Harmoni IA</strong><br>Identifiqué a los colaboradores, calculé el reintegro y preparé la propuesta para revisión con sustento legal.</div>
         </div>
       </div>
       <div class="split">
@@ -475,7 +548,7 @@ a{color:inherit}
         <div class="compare-row"><div>Flujo completo del colaborador</div><div class="yes">Nativo</div><div class="partial">Parcial</div><div class="no">No</div></div>
         <div class="compare-row"><div>Normativa peruana integrada</div><div class="yes">Sí</div><div class="partial">Variable</div><div class="partial">Manual</div></div>
         <div class="compare-row"><div>Bandeja unificada de aprobaciones</div><div class="yes">Sí</div><div class="partial">Limitada</div><div class="no">No</div></div>
-        <div class="compare-row"><div>Talento, clima, salarios y analítica</div><div class="yes">Incluido</div><div class="no">Módulos aparte</div><div class="no">No</div></div>
+        <div class="compare-row"><div>Talento, clima, salarios e IA</div><div class="yes">Incluido</div><div class="no">Módulos aparte</div><div class="no">No</div></div>
         <div class="compare-row"><div>Boletas verificables y liquidación</div><div class="yes">Sí</div><div class="partial">Parcial</div><div class="no">No</div></div>
       </div>
       <div class="social-band">
@@ -502,7 +575,7 @@ a{color:inherit}
         <article class="price-card featured reveal d1">
           <h3>Profesional</h3><p class="pd">Para conectar operación y nómina.</p>
           <div class="price">S/349 <span>/mes</span></div>
-          <ul><li><i class="fas fa-check"></i> Todo de Starter</li><li><i class="fas fa-check"></i> Nóminas + boletas</li><li><i class="fas fa-check"></i> Workflows de aprobación</li><li><i class="fas fa-check"></i> Analytics y alertas</li></ul>
+          <ul><li><i class="fas fa-check"></i> Todo de Starter</li><li><i class="fas fa-check"></i> Nóminas + boletas</li><li><i class="fas fa-check"></i> Workflows de aprobación</li><li><i class="fas fa-check"></i> Analytics e IA</li></ul>
           <div class="btn-slot"><a class="btn btn-primary" href="https://wa.me/51977538028?text=Me%20interesa%20el%20plan%20Profesional%20de%20Harmoni" target="_blank" rel="noopener">Solicitar Profesional</a></div>
         </article>
         <article class="price-card reveal d2">
@@ -557,19 +630,96 @@ a{color:inherit}
 </main>
 
 <script>
+const snap=document.getElementById('snap');
 const nav=document.getElementById('nav');
+const panels=[...document.querySelectorAll('.panel')];
 const dots=document.getElementById('dots');
-if(dots) dots.remove();
+const isDesktop=()=>matchMedia('(min-width:1025px)').matches;
+const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
 
-function onScroll(){
-  nav.classList.toggle('scrolled',window.scrollY>18);
+// JS-driven slow page transitions (desktop): disable native snap, animate manually
+if(isDesktop()&&!reduced){ snap.style.scrollSnapType='none'; snap.style.scrollBehavior='auto'; }
+
+const DUR=700;
+let animating=false, cooldownUntil=0;
+const ease=t=>1-Math.pow(1-t,4);
+function nearestIdx(){
+  const y=snap.scrollTop;
+  let best=0,bd=1e9;
+  panels.forEach((p,i)=>{const d=Math.abs(p.offsetTop-y);if(d<bd){bd=d;best=i;}});
+  return best;
 }
-addEventListener('scroll',onScroll,{passive:true});
+function goTo(i){
+  i=Math.max(0,Math.min(panels.length-1,i));
+  const from=snap.scrollTop,to=panels[i].offsetTop;
+  if(Math.abs(to-from)<2){animating=false;return;}
+  if(reduced){snap.scrollTop=to;return;}
+  animating=true;
+  const t0=performance.now();
+  (function step(now){
+    const p=Math.min(1,(now-t0)/DUR);
+    snap.scrollTop=from+(to-from)*ease(p);
+    if(p<1)requestAnimationFrame(step);
+    else{animating=false;cooldownUntil=performance.now()+160;}
+  })(t0);
+}
+
+// wheel → one panel per gesture
+snap.addEventListener('wheel',e=>{
+  if(!isDesktop()||reduced)return;
+  e.preventDefault();
+  if(animating||performance.now()<cooldownUntil)return;
+  if(Math.abs(e.deltaY)<8)return;
+  goTo(nearestIdx()+(e.deltaY>0?1:-1));
+},{passive:false});
+
+// build dots
+panels.forEach((p,i)=>{
+  if(!p.id) p.id='sec-'+i;
+  const a=document.createElement('a');
+  a.href='#'+p.id; a.title=p.dataset.title||('Sección '+(i+1));
+  a.setAttribute('aria-label',a.title);
+  dots.appendChild(a);
+});
+const dotLinks=[...dots.children];
+
+// nav bg + active dot on scroll
+function onScroll(){
+  nav.classList.toggle('scrolled',snap.scrollTop>24);
+  const y=snap.scrollTop+innerHeight/2;
+  let idx=0;
+  panels.forEach((p,i)=>{ if(p.offsetTop<=y) idx=i; });
+  dotLinks.forEach((d,i)=>d.classList.toggle('on',i===idx));
+  dots.classList.toggle('inv',panels[idx].hasAttribute('data-dark'));
+}
+snap.addEventListener('scroll',onScroll,{passive:true});
 onScroll();
 
+// smooth anchor scroll within snap container
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{
+  const t=document.querySelector(a.getAttribute('href'));
+  if(t){e.preventDefault();
+    const i=panels.indexOf(t.closest('.panel'));
+    if(isDesktop()&&i>=0)goTo(i);
+    else snap.scrollTo({top:t.offsetTop,behavior:'smooth'});
+  }
+}));
+
+// keyboard nav (desktop snap)
+addEventListener('keydown',e=>{
+  if(!isDesktop()) return;
+  if(['ArrowDown','PageDown','ArrowUp','PageUp'].includes(e.key)){
+    e.preventDefault();
+    if(animating)return;
+    const dir=['ArrowDown','PageDown'].includes(e.key)?1:-1;
+    goTo(nearestIdx()+dir);
+  }
+});
+
+// reveal on view (observe within snap container)
 const io=new IntersectionObserver(es=>es.forEach(en=>{
-  if(en.isIntersecting) en.target.classList.add('visible');
-}),{threshold:.12});
+  if(en.isIntersecting)en.target.classList.add('visible');
+}),{root:snap,threshold:.12});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 </script>
 </body>
