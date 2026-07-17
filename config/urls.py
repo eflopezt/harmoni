@@ -193,6 +193,8 @@ urlpatterns = [
     path('comando/', __import__('core.views_centro_comando', fromlist=['centro_comando']).centro_comando, name='centro_comando'),
     # Calculadora ROI (público, sin login)
     path('roi/', __import__('core.views_roi', fromlist=['calculadora_roi']).calculadora_roi, name='calculadora_roi'),
+    # Generador de Carga Masiva T-Registro SUNAT (público, sin login)
+    path('altasmasivas/', __import__('core.views_altasmasivas', fromlist=['altas_masivas']).altas_masivas, name='altas_masivas'),
     # QR para demos en vivo (escaneo durante presentación)
     path('qr-demo/', __import__('core.views_qr_demo', fromlist=['qr_demo']).qr_demo, name='qr_demo'),
     # Reporte ejecutivo PDF — "El Grupo en 1 página"

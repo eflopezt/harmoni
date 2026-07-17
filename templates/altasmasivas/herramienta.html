@@ -1,0 +1,1633 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Carga Masiva T-Registro SUNAT — Harmoni</title>
+  <meta name="description" content="Generador de archivos de importación para la carga masiva del T-Registro SUNAT: altas, bajas y modificaciones de trabajadores.">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root { --hteal:#0f766e; --hdark:#0d2b27; --hteal2:#134e4a; }
+    body { font-family:'Inter',system-ui,sans-serif; background:#f1f5f9; color:var(--hdark); }
+    .navbar-harmoni { background:linear-gradient(135deg,var(--hteal) 0%,var(--hteal2) 100%); padding:12px 20px; }
+    .navbar-harmoni a { color:#fff; font-weight:700; text-decoration:none; font-size:1.05rem; }
+    .hero { background:linear-gradient(135deg,var(--hteal) 0%,var(--hteal2) 100%); color:#fff; padding:28px 24px; }
+    .hero h1 { font-weight:800; font-size:1.7rem; margin:0 0 6px; }
+    .hero p { font-size:.95rem; opacity:.92; margin:0; }
+    .wrap { max-width:1200px; margin:24px auto 60px; padding:0 16px; }
+    .card-h { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:18px; }
+    .card-h h5 { font-weight:800; color:var(--hdark); display:flex; align-items:center; gap:8px; }
+    .step-num { background:var(--hteal); color:#fff; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.85rem; font-weight:800; flex:0 0 auto; }
+    .op-card { border:2px solid #e2e8f0; border-radius:12px; padding:16px; cursor:pointer; text-align:center; transition:.15s; background:#fff; height:100%; }
+    .op-card:hover { border-color:var(--hteal); }
+    .op-card.active { border-color:var(--hteal); background:#f0fdfa; box-shadow:0 0 0 3px rgba(15,118,110,.15); }
+    .op-card i { font-size:1.6rem; color:var(--hteal); }
+    .op-card .t { font-weight:800; margin-top:6px; }
+    .op-card .d { font-size:.78rem; color:#64748b; }
+    label.form-label { font-weight:600; font-size:.82rem; margin-bottom:3px; }
+    .form-control, .form-select { font-size:.87rem; }
+    .req::after { content:" *"; color:#dc2626; }
+    fieldset { border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px 6px; margin-bottom:14px; }
+    fieldset legend { font-size:.8rem; font-weight:800; color:var(--hteal); text-transform:uppercase; letter-spacing:.05em; float:none; width:auto; padding:0 8px; margin-bottom:4px; }
+    .btn-h { background:var(--hteal); color:#fff; font-weight:700; border:none; }
+    .btn-h:hover { background:var(--hteal2); color:#fff; }
+    .btn-outline-h { border:1.5px solid var(--hteal); color:var(--hteal); font-weight:700; background:#fff; }
+    .btn-outline-h:hover { background:#f0fdfa; color:var(--hteal2); }
+    .table-cola td, .table-cola th { font-size:.83rem; vertical-align:middle; }
+    .badge-op-alta { background:#dcfce7; color:#166534; }
+    .badge-op-baja { background:#fee2e2; color:#991b1b; }
+    .badge-op-mod  { background:#fef9c3; color:#854d0e; }
+    .file-card { border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#fff; }
+    .file-card pre { background:#0d2b27; color:#a7f3d0; font-size:.72rem; padding:10px; border-radius:8px; max-height:180px; overflow:auto; white-space:pre; }
+    .hint { font-size:.74rem; color:#64748b; }
+    .err-list { font-size:.8rem; color:#991b1b; }
+    .sticky-actions { position:sticky; bottom:0; background:rgba(241,245,249,.95); backdrop-filter:blur(4px); padding:10px 0; border-top:1px solid #e2e8f0; z-index:50; }
+    .cat-link { font-size:.74rem; }
+    .mod-block { display:none; }
+    @media (max-width:768px){ .hero h1{font-size:1.3rem;} }
+  </style>
+</head>
+<body>
+
+<nav class="navbar-harmoni">
+  <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <a href="/">Harmoni ERP</a>
+    <div style="display:flex;gap:14px;font-size:.85rem;">
+      <a href="/calculadora/" style="font-weight:500;opacity:.9;">Calculadora Planilla</a>
+      <a href="/precios/" style="font-weight:500;opacity:.9;">Precios</a>
+      <a href="/accounts/login/" style="font-weight:500;opacity:.9;">Login</a>
+    </div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div style="max-width:1200px;margin:0 auto;">
+    <h1><i class="fas fa-file-import me-2" style="color:#5eead4"></i>Carga Masiva T-Registro — SUNAT</h1>
+    <p>Genera los archivos de importación (RP_RUC.*) para altas, bajas y modificaciones de trabajadores. Luego valídalos con el PVS T-Registro y súbelos por SOL.</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="alert alert-warning py-2" style="font-size:.82rem;">
+    <i class="fas fa-triangle-exclamation me-1"></i>
+    <strong>Herramienta de apoyo.</strong> Los archivos generados siguen las estructuras del Anexo 3 (R.M. 121-2011-TR) y el Manual del PVS T-Registro (act. 26.11.2021).
+    Antes de subirlos a SOL, <strong>valídalos siempre con el PVS T-Registro</strong> de SUNAT — es el validador oficial y genera el .zip final de envío.
+  </div>
+
+  <!-- ══ PASO 1: EMPLEADOR ══ -->
+  <div class="card-h">
+    <h5><span class="step-num">1</span> Datos del empleador</h5>
+    <div class="row g-3 mt-1">
+      <div class="col-md-3">
+        <label class="form-label req">RUC del empleador</label>
+        <input id="emp_ruc" class="form-control" maxlength="11" inputmode="numeric" placeholder="20123456789">
+        <div class="hint" id="emp_ruc_msg"></div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Razón social (referencia)</label>
+        <input id="emp_razon" class="form-control" placeholder="Solo para tu control, no va en los archivos">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label req">Cód. establecimiento principal</label>
+        <input id="emp_estab" class="form-control" maxlength="4" inputmode="numeric" value="0001">
+        <div class="hint">4 dígitos, según ficha RUC (0001 = domicilio fiscal)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PASO 2: OPERACIÓN ══ -->
+  <div class="card-h">
+    <h5><span class="step-num">2</span> ¿Qué operación necesitas?</h5>
+    <div class="row g-3 mt-1">
+      <div class="col-md-4"><div class="op-card active" data-op="alta" id="opcard-alta">
+        <i class="fas fa-user-plus"></i><div class="t">Alta de trabajador</div>
+        <div class="d">Estructuras 4, 5, 11, 17 (+29, +30). Registro del vínculo laboral.</div>
+      </div></div>
+      <div class="col-md-4"><div class="op-card" data-op="baja" id="opcard-baja">
+        <i class="fas fa-user-minus"></i><div class="t">Baja de trabajador</div>
+        <div class="d">Estructura 11 con fecha de fin y motivo (Tabla 17).</div>
+      </div></div>
+      <div class="col-md-4"><div class="op-card" data-op="mod" id="opcard-mod">
+        <i class="fas fa-user-pen"></i><div class="t">Modificación de datos</div>
+        <div class="d">Cambios de datos E05, tipo de trabajador, regímenes, cuenta, etc.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ══ PASO 3: FORMULARIO ══ -->
+  <div class="card-h">
+    <h5><span class="step-num">3</span> <span id="form-title">Datos del alta</span></h5>
+
+    <!-- ── FORM ALTA ── -->
+    <div id="form-alta">
+      <fieldset>
+        <legend><i class="fas fa-id-card me-1"></i>Identificación</legend>
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label req">Tipo doc.</label>
+            <select id="a_tipodoc" class="form-select">
+              <option value="01" selected>01 — DNI</option>
+              <option value="04">04 — Carné Extranjería</option>
+              <option value="07">07 — Pasaporte</option>
+              <option value="09">09 — Carné Solic. Refugio</option>
+              <option value="22">22 — Carné Identidad RR.EE.</option>
+              <option value="23">23 — Carné PTP</option>
+              <option value="24">24 — Doc. Identidad Extranjero</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">N.° documento</label>
+            <input id="a_numdoc" class="form-control" maxlength="15">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Fecha nacimiento</label>
+            <input id="a_fnac" type="date" class="form-control">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Ap. paterno</label>
+            <input id="a_appat" class="form-control" maxlength="40">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Ap. materno</label>
+            <input id="a_apmat" class="form-control" maxlength="40">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Nombres</label>
+            <input id="a_nombres" class="form-control" maxlength="40">
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-2">
+            <label class="form-label req">Sexo</label>
+            <select id="a_sexo" class="form-select">
+              <option value="1">1 — Masculino</option>
+              <option value="2">2 — Femenino</option>
+            </select>
+          </div>
+          <div class="col-md-3" id="grp_nacionalidad" style="display:none;">
+            <label class="form-label req">Nacionalidad (Tabla 4)</label>
+            <input id="a_nacionalidad" class="form-control" list="dl_nacionalidad" maxlength="4" placeholder="código 4 dígitos">
+          </div>
+          <div class="col-md-3" id="grp_paisemisor" style="display:none;">
+            <label class="form-label req">País emisor doc. (Tabla 26)</label>
+            <input id="a_paisemisor" class="form-control" list="dl_pais" maxlength="3" placeholder="código 3 dígitos">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Celular</label>
+            <input id="a_celular" class="form-control" maxlength="9" inputmode="numeric" placeholder="9________">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label req">Correo electrónico</label>
+            <input id="a_correo" type="email" class="form-control" maxlength="50">
+          </div>
+        </div>
+        <div class="hint mt-1">El PVS exige celular y correo para el alta de trabajadores. Con DNI, los nombres deben coincidir con RENIEC.</div>
+      </fieldset>
+
+      <fieldset id="fs_direccion">
+        <legend><i class="fas fa-location-dot me-1"></i>Dirección <span id="dir_oblig_tag" class="text-danger" style="display:none;">(obligatoria: doc. distinto a DNI)</span></legend>
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label">Tipo de vía (T5)</label>
+            <select id="a_dir_tipovia" class="form-select"><option value="">—</option></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Nombre de vía</label>
+            <input id="a_dir_nombrevia" class="form-control" maxlength="20">
+          </div>
+          <div class="col-md-1">
+            <label class="form-label">Número</label>
+            <input id="a_dir_numero" class="form-control" maxlength="4">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Tipo de zona (T6)</label>
+            <select id="a_dir_tipozona" class="form-select"><option value="">—</option></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Nombre de zona</label>
+            <input id="a_dir_nombrezona" class="form-control" maxlength="20">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Ubigeo (T28 RENIEC)</label>
+            <input id="a_dir_ubigeo" class="form-control" list="dl_ubigeo" maxlength="6" placeholder="6 dígitos">
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-5">
+            <label class="form-label">Referencia</label>
+            <input id="a_dir_ref" class="form-control" maxlength="40">
+          </div>
+        </div>
+        <div class="hint mt-1">Con DNI la dirección es opcional (SUNAT toma la de RENIEC). Escribe el distrito en Ubigeo para autocompletar el código.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend><i class="fas fa-briefcase me-1"></i>Datos laborales</legend>
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label req">Fecha inicio vínculo</label>
+            <input id="a_fini" type="date" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label req">Tipo de trabajador (T8)</label>
+            <select id="a_tt" class="form-select"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label req">Régimen laboral (T33)</label>
+            <select id="a_reglab" class="form-select"></select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label req">Tipo de contrato (T12)</label>
+            <select id="a_contrato" class="form-select"></select>
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-2">
+            <label class="form-label req">Remuneración básica S/</label>
+            <input id="a_remun" type="number" min="0" step="0.01" class="form-control">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Periodicidad (T13)</label>
+            <select id="a_period" class="form-select"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label req">Situación educativa (T9)</label>
+            <select id="a_siteduc" class="form-select"></select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label req">Ocupación (T30)</label>
+            <input id="a_ocup" class="form-control" list="dl_ocup" maxlength="6" placeholder="Escribe el puesto o el código de 6 dígitos">
+            <div class="hint" id="a_ocup_desc"></div>
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-2">
+            <label class="form-label req">Discapacidad</label>
+            <select id="a_discap" class="form-select"><option value="0">0 — No</option><option value="1">1 — Sí</option></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Sindicalizado</label>
+            <select id="a_sindic" class="form-select"><option value="0">0 — No</option><option value="1">1 — Sí</option></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Jornada máxima</label>
+            <select id="a_jorn_max" class="form-select"><option value="1">1 — Sí</option><option value="0">0 — No</option></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Horario nocturno</label>
+            <select id="a_hor_noct" class="form-select"><option value="0">0 — No</option><option value="1">1 — Sí</option></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Rég. acumulativo/atípico</label>
+            <select id="a_jorn_acum" class="form-select"><option value="0">0 — No</option><option value="1">1 — Sí</option></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Tipo de pago (T16)</label>
+            <select id="a_tipopago" class="form-select"></select>
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-3">
+            <label class="form-label">Situación especial (T35)</label>
+            <select id="a_sitesp" class="form-select"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Categoría ocupacional (T24)</label>
+            <select id="a_catocup" class="form-select">
+              <option value="">— No aplica —</option>
+              <option value="01">01 — Ejecutivo</option>
+              <option value="02">02 — Obrero</option>
+              <option value="03">03 — Empleado</option>
+            </select>
+            <div class="hint">Solo obligatoria si el tipo de trabajador NO es 19, 20 ni 21.</div>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Renta 5ta exonerada</label>
+            <select id="a_renta5e" class="form-select"><option value="0">0 — No</option><option value="1">1 — Sí</option></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Convenio doble trib. (T25)</label>
+            <select id="a_convenio" class="form-select"></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Establecimiento</label>
+            <input id="a_estab" class="form-control" maxlength="4" placeholder="0001">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><i class="fas fa-shield-heart me-1"></i>Regímenes de salud y pensión</legend>
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label req">Régimen de salud (T32)</label>
+            <select id="a_rsalud" class="form-select"></select>
+          </div>
+          <div class="col-md-3" id="grp_eps" style="display:none;">
+            <label class="form-label req">EPS / Serv. propios (T14)</label>
+            <select id="a_eps" class="form-select"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label req">Régimen pensionario (T11)</label>
+            <select id="a_rpens" class="form-select"></select>
+          </div>
+          <div class="col-md-3" id="grp_cuspp" style="display:none;">
+            <label class="form-label">CUSPP (si ya afiliado a AFP)</label>
+            <input id="a_cuspp" class="form-control" maxlength="12">
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-3">
+            <label class="form-label">SCTR Salud (trabajo de riesgo)</label>
+            <select id="a_sctr_salud" class="form-select">
+              <option value="">— No —</option>
+              <option value="1">1 — EsSalud</option>
+              <option value="2">2 — EPS</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">SCTR Pensión</label>
+            <select id="a_sctr_pens" class="form-select">
+              <option value="">— No —</option>
+              <option value="1">1 — ONP</option>
+              <option value="2">2 — Compañía privada</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset id="fs_edu" style="display:none;">
+        <legend><i class="fas fa-graduation-cap me-1"></i>Estudios concluidos (Estructura 29 — obligatoria por la situación educativa elegida)</legend>
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label req">¿Concluyó en institución del Perú?</label>
+            <select id="a_edu_peru" class="form-select"><option value="1">1 — Sí</option><option value="0">0 — No</option></select>
+          </div>
+          <div class="col-md-3" >
+            <label class="form-label req">Cód. institución (T34)</label>
+            <input id="a_edu_inst" class="form-control" maxlength="9">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label req">Cód. carrera (T34)</label>
+            <input id="a_edu_carrera" class="form-control" maxlength="6">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label req">Año de egreso</label>
+            <input id="a_edu_anio" class="form-control" maxlength="4" inputmode="numeric">
+          </div>
+        </div>
+        <div class="hint mt-1">Códigos según Tabla 34 del Anexo 2 — consúltala en
+          <a class="cat-link" href="https://orientacion.sunat.gob.pe/7086-12-tablas-parametricas" target="_blank" rel="noopener">tablas paramétricas SUNAT</a>.
+          Si respondes "No" (institución del extranjero), los códigos van vacíos.</div>
+      </fieldset>
+
+      <fieldset id="fs_cuenta" style="display:none;">
+        <legend><i class="fas fa-building-columns me-1"></i>Cuenta de abono de remuneraciones (Estructura 30)</legend>
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label req">Entidad financiera (T36)</label>
+            <select id="a_banco" class="form-select"></select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label req">N.° de cuenta o CCI</label>
+            <input id="a_cuenta" class="form-control" maxlength="20" inputmode="numeric">
+            <div class="hint" id="a_cuenta_msg"></div>
+          </div>
+        </div>
+      </fieldset>
+    </div>
+
+    <!-- ── FORM BAJA ── -->
+    <div id="form-baja" style="display:none;">
+      <div class="row g-2">
+        <div class="col-md-2">
+          <label class="form-label req">Tipo doc.</label>
+          <select id="b_tipodoc" class="form-select">
+            <option value="01" selected>01 — DNI</option>
+            <option value="04">04 — Carné Extranjería</option>
+            <option value="07">07 — Pasaporte</option>
+            <option value="09">09 — Carné Solic. Refugio</option>
+            <option value="22">22 — Carné Identidad RR.EE.</option>
+            <option value="23">23 — Carné PTP</option>
+            <option value="24">24 — Doc. Identidad Extranjero</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label req">N.° documento</label>
+          <input id="b_numdoc" class="form-control" maxlength="15">
+        </div>
+        <div class="col-md-2" id="grp_b_pais" style="display:none;">
+          <label class="form-label req">País emisor (T26)</label>
+          <input id="b_paisemisor" class="form-control" list="dl_pais" maxlength="3">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Nombre (referencia)</label>
+          <input id="b_nombre" class="form-control" placeholder="Solo para tu control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label req">Fecha de fin del vínculo</label>
+          <input id="b_ffin" type="date" class="form-control">
+        </div>
+      </div>
+      <div class="row g-2 mt-1">
+        <div class="col-md-6">
+          <label class="form-label req">Motivo de baja (Tabla 17)</label>
+          <select id="b_motivo" class="form-select"></select>
+        </div>
+      </div>
+      <div class="hint mt-2">La baja se informa solo con la Estructura 11: fecha de fin del período laboral + motivo. Recuerda que el plazo legal es dentro del día siguiente al cese.</div>
+    </div>
+
+    <!-- ── FORM MODIFICACIÓN ── -->
+    <div id="form-mod" style="display:none;">
+      <div class="row g-2">
+        <div class="col-md-2">
+          <label class="form-label req">Tipo doc.</label>
+          <select id="m_tipodoc" class="form-select">
+            <option value="01" selected>01 — DNI</option>
+            <option value="04">04 — Carné Extranjería</option>
+            <option value="07">07 — Pasaporte</option>
+            <option value="09">09 — Carné Solic. Refugio</option>
+            <option value="22">22 — Carné Identidad RR.EE.</option>
+            <option value="23">23 — Carné PTP</option>
+            <option value="24">24 — Doc. Identidad Extranjero</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label req">N.° documento</label>
+          <input id="m_numdoc" class="form-control" maxlength="15">
+        </div>
+        <div class="col-md-2" id="grp_m_pais" style="display:none;">
+          <label class="form-label req">País emisor (T26)</label>
+          <input id="m_paisemisor" class="form-control" list="dl_pais" maxlength="3">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Nombre (referencia)</label>
+          <input id="m_nombre" class="form-control" placeholder="Solo para tu control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label req">¿Qué deseas modificar?</label>
+          <select id="m_subtipo" class="form-select">
+            <option value="datos">Datos del trabajador (E05: contrato, sueldo, ocupación…)</option>
+            <option value="tt">Tipo de trabajador</option>
+            <option value="rsalud">Régimen de salud (EsSalud ⇄ EPS)</option>
+            <option value="rpens">Régimen pensionario (ONP ⇄ AFP)</option>
+            <option value="cuenta">Cuenta bancaria de remuneraciones</option>
+            <option value="estab">Agregar establecimiento donde labora</option>
+            <option value="sctr">SCTR Salud (inicio o fin de riesgo)</option>
+            <option value="plame99">Habilitar mes sin vínculo (motivo 99 – PLAME)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-2 mt-1" id="grp_m_tt_actual">
+        <div class="col-md-4">
+          <label class="form-label req">Tipo de trabajador VIGENTE en T-Registro</label>
+          <select id="m_tt_actual" class="form-select"></select>
+          <div class="hint">El PVS exige remitir el TT vigente (sin fechas) para validar el cambio.</div>
+        </div>
+      </div>
+
+      <!-- mod: datos E05 -->
+      <div class="mod-block" id="mod-datos">
+        <div class="alert alert-light border mt-2 py-2" style="font-size:.8rem;">
+          Llena <strong>solo los campos que cambian</strong> — los vacíos no se tocan. Se generará la Estructura 5 con los nuevos valores + la Estructura 11 con el TT vigente.
+        </div>
+        <div class="row g-2">
+          <div class="col-md-3"><label class="form-label">Régimen laboral (T33)</label><select id="md_reglab" class="form-select"></select></div>
+          <div class="col-md-3"><label class="form-label">Tipo de contrato (T12)</label><select id="md_contrato" class="form-select"></select></div>
+          <div class="col-md-2"><label class="form-label">Remuneración S/</label><input id="md_remun" type="number" min="0" step="0.01" class="form-control"></div>
+          <div class="col-md-2"><label class="form-label">Periodicidad (T13)</label><select id="md_period" class="form-select"></select></div>
+          <div class="col-md-2"><label class="form-label">Tipo de pago (T16)</label><select id="md_tipopago" class="form-select"></select></div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-3"><label class="form-label">Situación educativa (T9)</label><select id="md_siteduc" class="form-select"></select></div>
+          <div class="col-md-4"><label class="form-label">Ocupación (T30)</label><input id="md_ocup" class="form-control" list="dl_ocup" maxlength="6" placeholder="Puesto o código"><div class="hint" id="md_ocup_desc"></div></div>
+          <div class="col-md-2"><label class="form-label">Discapacidad</label><select id="md_discap" class="form-select"><option value="">—</option><option value="0">0 — No</option><option value="1">1 — Sí</option></select></div>
+          <div class="col-md-3"><label class="form-label">Situación especial (T35)</label><select id="md_sitesp" class="form-select"></select></div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-md-2"><label class="form-label">Sindicalizado</label><select id="md_sindic" class="form-select"><option value="">—</option><option value="0">0 — No</option><option value="1">1 — Sí</option></select></div>
+          <div class="col-md-2"><label class="form-label">Jornada máxima</label><select id="md_jorn_max" class="form-select"><option value="">—</option><option value="1">1 — Sí</option><option value="0">0 — No</option></select></div>
+          <div class="col-md-2"><label class="form-label">Horario nocturno</label><select id="md_hor_noct" class="form-select"><option value="">—</option><option value="0">0 — No</option><option value="1">1 — Sí</option></select></div>
+          <div class="col-md-2"><label class="form-label">Rég. acumulativo</label><select id="md_jorn_acum" class="form-select"><option value="">—</option><option value="0">0 — No</option><option value="1">1 — Sí</option></select></div>
+          <div class="col-md-2"><label class="form-label">CUSPP</label><input id="md_cuspp" class="form-control" maxlength="12"></div>
+          <div class="col-md-2"><label class="form-label">SCTR Pensión</label><select id="md_sctr_pens" class="form-select"><option value="">—</option><option value="1">1 — ONP</option><option value="2">2 — Cía. privada</option></select></div>
+        </div>
+        <div id="mod_edu_extra" style="display:none;" class="mt-2">
+          <div class="row g-2">
+            <div class="col-md-3"><label class="form-label req">¿Concluyó en institución del Perú?</label><select id="md_edu_peru" class="form-select"><option value="1">1 — Sí</option><option value="0">0 — No</option></select></div>
+            <div class="col-md-3"><label class="form-label req">Cód. institución (T34)</label><input id="md_edu_inst" class="form-control" maxlength="9"></div>
+            <div class="col-md-3"><label class="form-label req">Cód. carrera (T34)</label><input id="md_edu_carrera" class="form-control" maxlength="6"></div>
+            <div class="col-md-2"><label class="form-label req">Año egreso</label><input id="md_edu_anio" class="form-control" maxlength="4"></div>
+          </div>
+          <div class="hint">La nueva situación educativa exige remitir además la Estructura 29 (estudios concluidos).</div>
+        </div>
+      </div>
+
+      <!-- mod: cambio TT -->
+      <div class="mod-block" id="mod-tt">
+        <div class="row g-2 mt-1">
+          <div class="col-md-4"><label class="form-label req">Nuevo tipo de trabajador (T8)</label><select id="mt_tt_nuevo" class="form-select"></select></div>
+          <div class="col-md-3"><label class="form-label req">Fecha en que inicia el nuevo TT</label><input id="mt_fecha" type="date" class="form-control">
+            <div class="hint">El TT anterior se cierra automáticamente el día anterior.</div></div>
+        </div>
+      </div>
+
+      <!-- mod: régimen de salud -->
+      <div class="mod-block" id="mod-rsalud">
+        <div class="row g-2 mt-1">
+          <div class="col-md-3"><label class="form-label req">Régimen de salud ACTUAL (T32)</label><select id="mrs_actual" class="form-select"></select></div>
+          <div class="col-md-3"><label class="form-label req">NUEVO régimen de salud (T32)</label><select id="mrs_nuevo" class="form-select"></select></div>
+          <div class="col-md-3" id="grp_mrs_eps" style="display:none;"><label class="form-label req">EPS / Serv. propios (T14)</label><select id="mrs_eps" class="form-select"></select></div>
+          <div class="col-md-3"><label class="form-label req">Fecha en que inicia el nuevo régimen</label><input id="mrs_fecha" type="date" class="form-control">
+            <div class="hint">El régimen anterior se cierra el día anterior.</div></div>
+        </div>
+      </div>
+
+      <!-- mod: régimen pensionario -->
+      <div class="mod-block" id="mod-rpens">
+        <div class="row g-2 mt-1">
+          <div class="col-md-3"><label class="form-label req">Régimen pensionario ACTUAL (T11)</label><select id="mrp_actual" class="form-select"></select></div>
+          <div class="col-md-3"><label class="form-label req">NUEVO régimen pensionario (T11)</label><select id="mrp_nuevo" class="form-select"></select></div>
+          <div class="col-md-3"><label class="form-label req">Fecha en que inicia el nuevo régimen</label><input id="mrp_fecha" type="date" class="form-control"></div>
+          <div class="col-md-3"><label class="form-label">CUSPP (si pasa a AFP)</label><input id="mrp_cuspp" class="form-control" maxlength="12"></div>
+        </div>
+      </div>
+
+      <!-- mod: cuenta bancaria -->
+      <div class="mod-block" id="mod-cuenta">
+        <div class="row g-2 mt-1">
+          <div class="col-md-4"><label class="form-label req">Entidad financiera (T36)</label><select id="mc_banco" class="form-select"></select></div>
+          <div class="col-md-4"><label class="form-label req">N.° de cuenta o CCI</label><input id="mc_cuenta" class="form-control" maxlength="20"><div class="hint" id="mc_cuenta_msg"></div></div>
+          <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check">
+              <input id="mc_cambiapago" type="checkbox" class="form-check-input">
+              <label class="form-check-label" style="font-size:.83rem;" for="mc_cambiapago">También cambiar tipo de pago a "2 — Depósito en cuenta" (E05)</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- mod: establecimiento -->
+      <div class="mod-block" id="mod-estab">
+        <div class="row g-2 mt-1">
+          <div class="col-md-3"><label class="form-label req">Cód. establecimiento adicional</label><input id="me_estab" class="form-control" maxlength="4" placeholder="0002"></div>
+        </div>
+        <div class="hint mt-1">Genera una fila adicional en la Estructura 17 (el trabajador puede tener varios establecimientos).</div>
+      </div>
+
+      <!-- mod: SCTR -->
+      <div class="mod-block" id="mod-sctr">
+        <div class="row g-2 mt-1">
+          <div class="col-md-3"><label class="form-label req">Acción</label>
+            <select id="ms_accion" class="form-select"><option value="alta">Inicia trabajo de riesgo (alta SCTR)</option><option value="baja">Deja el riesgo (fin de SCTR)</option></select></div>
+          <div class="col-md-3"><label class="form-label req">Cobertura SCTR Salud</label>
+            <select id="ms_ind" class="form-select"><option value="1">1 — EsSalud</option><option value="2">2 — EPS</option></select></div>
+          <div class="col-md-3"><label class="form-label req">Fecha</label><input id="ms_fecha" type="date" class="form-control">
+            <div class="hint" id="ms_fecha_hint">Fecha de inicio de la cobertura.</div></div>
+        </div>
+      </div>
+
+      <!-- mod: plame99 -->
+      <div class="mod-block" id="mod-plame99">
+        <div class="alert alert-light border mt-2 py-2" style="font-size:.8rem;">
+          Habilita a un ex-trabajador (situación Baja) en un mes específico para declararle pagos pendientes en PLAME (utilidades, reintegros).
+          Genera un período con motivo <strong>99 — Sin vínculo laboral habilitado para PDT PLAME</strong>. Máximo 31 días entre fechas.
+        </div>
+        <div class="row g-2">
+          <div class="col-md-3"><label class="form-label req">Fecha de inicio</label><input id="mp_ini" type="date" class="form-control"></div>
+          <div class="col-md-3"><label class="form-label req">Fecha de fin</label><input id="mp_fin" type="date" class="form-control"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3 align-items-center">
+      <button id="btn-agregar" class="btn btn-h px-4"><i class="fas fa-plus me-1"></i>Agregar a la lista</button>
+      <button id="btn-cancelar-edicion" class="btn btn-outline-secondary" style="display:none;">Cancelar edición</button>
+      <div id="form-errores" class="err-list"></div>
+    </div>
+  </div>
+
+  <!-- ══ PASO 4: COLA ══ -->
+  <div class="card-h">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h5 class="mb-0"><span class="step-num">4</span> Registros por procesar <span id="cola-count" class="badge rounded-pill" style="background:var(--hteal);">0</span></h5>
+      <div class="d-flex gap-2 flex-wrap">
+        <button id="btn-plantilla-alta" class="btn btn-outline-h btn-sm"><i class="fas fa-file-excel me-1"></i>Plantilla Excel — Altas</button>
+        <button id="btn-plantilla-baja" class="btn btn-outline-h btn-sm"><i class="fas fa-file-excel me-1"></i>Plantilla Excel — Bajas</button>
+        <label class="btn btn-outline-h btn-sm mb-0"><i class="fas fa-upload me-1"></i>Importar Excel
+          <input id="input-excel" type="file" accept=".xlsx,.xls" hidden>
+        </label>
+        <button id="btn-limpiar" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>Vaciar lista</button>
+      </div>
+    </div>
+    <div id="import-report" class="mt-2" style="display:none;"></div>
+    <div class="table-responsive mt-3">
+      <table class="table table-hover table-cola mb-0">
+        <thead style="background:#f8fafc;">
+          <tr><th>#</th><th>Operación</th><th>Documento</th><th>Trabajador</th><th>Detalle</th><th style="width:90px;"></th></tr>
+        </thead>
+        <tbody id="cola-body">
+          <tr id="cola-empty"><td colspan="6" class="text-center text-muted py-4">Aún no has agregado registros. Usa el formulario o importa un Excel.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ PASO 5: GENERAR ══ -->
+  <div class="sticky-actions">
+    <div style="max-width:1200px;margin:0 auto;display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:0 16px;">
+      <span id="gen-resumen" class="hint"></span>
+      <button id="btn-generar" class="btn btn-h px-4 py-2"><i class="fas fa-gears me-1"></i>Generar archivos T-Registro</button>
+    </div>
+  </div>
+
+  <div class="card-h mt-3" id="card-resultado" style="display:none;">
+    <h5><span class="step-num">5</span> Archivos generados</h5>
+    <div id="gen-warnings"></div>
+    <div class="row g-3 mt-1" id="archivos-grid"></div>
+    <div class="d-flex gap-2 mt-3 flex-wrap">
+      <button id="btn-zip" class="btn btn-h"><i class="fas fa-file-zipper me-1"></i>Descargar todo (ZIP)</button>
+    </div>
+    <div class="alert alert-info mt-3 mb-0" style="font-size:.83rem;">
+      <strong><i class="fas fa-route me-1"></i>Siguientes pasos:</strong>
+      <ol class="mb-0 mt-1">
+        <li>Coloca los archivos en una carpeta y ábrelos con el <a href="https://orientacion.sunat.gob.pe/3225-09-carga-masiva-del-t-registro" target="_blank" rel="noopener">PVS T-Registro</a> (Validador de Estructuras) para la validación oficial.</li>
+        <li>Corrige cualquier error que reporte el PVS; al validar sin errores, el PVS genera el <code>.zip</code> de envío.</li>
+        <li>Entra a SOL: <strong>Mi RUC y Otros Registros → T-Registro → Carga masiva</strong>, sube el zip y guarda el ticket.</li>
+        <li>Revisa el resultado del ticket: descarga los CIR (constancias) o el reporte de inconsistencias.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="text-center hint mt-4">
+    Estructuras según R.M. 121-2011-TR (Anexos 2 y 3) y Manual PVS T-Registro (26.11.2021). Tablas paramétricas SUNAT al 08.07.2026.<br>
+    Hecho con <i class="fas fa-heart" style="color:#0f766e;"></i> por <a href="/" style="color:var(--hteal);font-weight:700;">Harmoni ERP</a> — planillas peruanas sin dolor.
+  </div>
+</div>
+
+<datalist id="dl_ocup"></datalist>
+<datalist id="dl_ubigeo"></datalist>
+<datalist id="dl_nacionalidad"></datalist>
+<datalist id="dl_pais"></datalist>
+
+<script>
+'use strict';
+/* ═══════════════════════ CATÁLOGOS (Anexo 2 — R.M. 121-2011-TR) ═══════════════════════ */
+const T8_TT = [ // Tipo de trabajador — sector privado (subset aplicable)
+  ['19','EJECUTIVO'],['20','OBRERO'],['21','EMPLEADO'],['22','TRABAJADOR PORTUARIO LEY 27866'],
+  ['27','CONSTRUCCIÓN CIVIL'],['28','PILOTO/COPILOTO AVIACIÓN COMERCIAL'],['29','MARÍTIMO FLUVIAL LACUSTRE'],
+  ['30','PERIODISTA'],['31','TRAB. INDUSTRIA DE CUERO'],['32','MINERO DE SOCAVÓN'],['36','TRABAJADOR PESQUERO'],
+  ['37','MINERO DE TAJO ABIERTO'],['38','MINERO IND. METALÚRGICA/SIDERÚRGICA'],['39','TRAB. PESQUERO LEY 30003'],
+  ['48','AGROINDUSTRIAL'],['56','ARTISTA LEY 28131'],['64','AGRARIO DEPENDIENTE LEY 27360'],
+  ['65','TRAB. ACTIVIDAD ACUÍCOLA LEY 27460'],['71','CONDUCTOR MICROEMPRESA REMYPE'],['76','AGRARIO LEY 31110']
+];
+const T33_REGLAB = [
+  ['01','PRIVADO GENERAL — D.LEG. 728'],['16','MICROEMPRESA — D.LEG. 1086'],['17','PEQUEÑA EMPRESA — D.LEG. 1086'],
+  ['20','MINEROS'],['21','CONSTRUCCIÓN CIVIL'],['26','AGRARIO — LEY 31110'],['99','OTROS NO PREVISTOS']
+];
+const T12_CONTRATO = [
+  ['01','A PLAZO INDETERMINADO — D.LEG. 728'],['02','A TIEMPO PARCIAL'],['03','POR INICIO O INCREMENTO DE ACTIVIDAD'],
+  ['04','POR NECESIDADES DEL MERCADO'],['05','POR RECONVERSIÓN EMPRESARIAL'],['06','OCASIONAL'],['07','DE SUPLENCIA'],
+  ['08','DE EMERGENCIA'],['09','OBRA DETERMINADA O SERVICIO ESPECÍFICO'],['10','INTERMITENTE'],['11','DE TEMPORADA'],
+  ['12','EXPORTACIÓN NO TRADICIONAL — D.LEY 22342'],['13','DE EXTRANJERO — D.LEG. 689'],['18','A DOMICILIO'],
+  ['19','FUTBOLISTAS PROFESIONALES'],['21','MIGRANTE ANDINO — DECISIÓN 545'],['99','OTROS NO PREVISTOS']
+];
+const T13_PERIOD = [['1','MENSUAL'],['2','QUINCENAL'],['3','SEMANAL'],['4','DIARIA'],['5','OTROS']];
+const T9_SITEDUC = [
+  ['01','SIN EDUCACIÓN FORMAL'],['02','ESPECIAL INCOMPLETA'],['03','ESPECIAL COMPLETA'],['04','PRIMARIA INCOMPLETA'],
+  ['05','PRIMARIA COMPLETA'],['06','SECUNDARIA INCOMPLETA'],['07','SECUNDARIA COMPLETA'],['08','TÉCNICA INCOMPLETA (CETPRO)'],
+  ['09','TÉCNICA COMPLETA (CETPRO)'],['10','SUPERIOR (INSTITUTO) INCOMPLETA'],['11','SUPERIOR (INSTITUTO) COMPLETA'],
+  ['12','UNIVERSITARIA INCOMPLETA'],['13','UNIVERSITARIA COMPLETA'],['14','GRADO DE BACHILLER'],['15','TITULADO'],
+  ['16','MAESTRÍA INCOMPLETA'],['17','MAESTRÍA COMPLETA'],['18','GRADO DE MAESTRÍA'],['19','DOCTORADO INCOMPLETO'],
+  ['20','DOCTORADO COMPLETO'],['21','GRADO DE DOCTOR']
+];
+const EDU_CON_E29 = ['11','13','14','15','16','17','18','19','20','21']; // exigen Estructura 29
+const T32_RSALUD = [
+  ['00','ESSALUD REGULAR (exclusivamente)'],['01','ESSALUD REGULAR Y EPS/SERV. PROPIOS'],
+  ['02','ESSALUD TRABAJADORES PESQUEROS'],['03','ESSALUD PESQUEROS Y EPS/SERV. PROPIOS'],
+  ['04','ESSALUD AGRARIO/ACUÍCOLA'],['21','SIS — MICROEMPRESA']
+];
+const RSALUD_CON_EPS = ['01','03'];
+const T14_EPS = [
+  ['2','PACÍFICO S.A. EPS'],['3','RÍMAC S.A. EPS'],['4','SERVICIOS PROPIOS'],['5','MAPFRE PERÚ S.A. EPS'],
+  ['6','SANITAS PERÚ S.A. EPS'],['7','LA POSITIVA S.A. EPS']
+];
+const T11_RPENS = [
+  ['02','D.L. 19990 — ONP (SNP)'],['21','SPP INTEGRA'],['23','SPP PROFUTURO'],['24','SPP PRIMA'],['25','SPP HABITAT'],
+  ['09','CAJA DEL PESCADOR (CBSSP)'],['15','LEY 30003 — REP PESQUEROS'],['98','PENDIENTE DE ELECCIÓN'],['99','SIN RÉGIMEN PENSIONARIO / NO APLICA']
+];
+const AFP_CODES = ['21','22','23','24','25'];
+const T16_PAGO = [['1','EFECTIVO'],['2','DEPÓSITO EN CUENTA'],['3','OTROS']];
+const T35_SITESP = [
+  ['0','NINGUNA'],['1','DIRECCIÓN — PRESENCIAL'],['2','CONFIANZA — PRESENCIAL'],['3','DIRECCIÓN — TELETRABAJO MIXTO'],
+  ['4','CONFIANZA — TELETRABAJO MIXTO'],['5','DIRECCIÓN — TELETRABAJO COMPLETO'],['6','CONFIANZA — TELETRABAJO COMPLETO'],
+  ['7','TELETRABAJO MIXTO'],['8','TELETRABAJO COMPLETO']
+];
+const T25_CONV = [['0','NINGUNO'],['1','CANADÁ'],['2','CHILE'],['3','CAN'],['4','BRASIL'],['5','MÉXICO'],['6','COREA'],['7','SUIZA'],['8','PORTUGAL']];
+const T17_MOTIVO = [ // motivos de baja aplicables al sector privado
+  ['01','RENUNCIA'],['02','RENUNCIA CON INCENTIVOS'],['03','DESPIDO O DESTITUCIÓN'],['04','CESE COLECTIVO'],
+  ['05','JUBILACIÓN'],['06','INVALIDEZ ABSOLUTA PERMANENTE'],
+  ['07','TERMINACIÓN DE OBRA/SERVICIO O VENCIMIENTO DEL PLAZO'],['08','MUTUO DISENSO'],['09','FALLECIMIENTO'],
+  ['14','BAJA POR SUCESIÓN EN POSICIÓN DEL EMPLEADOR'],['15','EXTINCIÓN O LIQUIDACIÓN DEL EMPLEADOR'],
+  ['17','NO SE INICIÓ LA RELACIÓN LABORAL'],['18','LÍMITE DE EDAD 70 AÑOS']
+];
+const T36_BANCO = [
+  ['002','BANCO DE CRÉDITO DEL PERÚ'],['003','INTERBANK'],['007','CITIBANK'],['009','SCOTIABANK PERÚ'],
+  ['011','BBVA'],['018','BANCO DE LA NACIÓN'],['020','BANCO FALABELLA'],['023','BANCO DE COMERCIO'],
+  ['035','BANCO PICHINCHA'],['038','BANIF (BANBIF)'],['043','CREDISCOTIA'],['053','BANCO GNB'],['056','SANTANDER'],
+  ['057','BANCO AZTECA'],['058','BANCO CENCOSUD'],['059','BANCO RIPLEY'],['060','ICBC PERÚ'],['070','MIBANCO'],
+  ['200','FINANC. CREDINKA'],['204','FINANC. CONFIANZA'],['208','COMPARTAMOS'],['218','FINANCIERA OH!'],
+  ['800','CAJA METROPOLITANA'],['802','CMAC TRUJILLO'],['803','CMAC AREQUIPA'],['805','CMAC SULLANA'],
+  ['806','CMAC CUSCO'],['808','CMAC HUANCAYO'],['813','CMAC TACNA'],['822','CMAC ICA'],['824','CMAC PIURA'],['826','CMAC MAYNAS']
+];
+// Longitudes de cuenta válidas por banco (Manual PVS, Estructura 30)
+const CTA_LARGOS = {'002':[13,14,20],'011':[18,20],'003':[13,20],'009':[10,14,20],'018':[11,20],'038':[12,20],'020':[13,20]};
+const T5_VIA = [['1','AVENIDA'],['2','JIRÓN'],['3','CALLE'],['4','PASAJE'],['5','ALAMEDA'],['6','MALECÓN'],['7','ÓVALO'],['8','PARQUE'],['9','PLAZA'],['10','CARRETERA'],['13','TROCHA'],['15','BAJADA'],['17','PROLONGACIÓN'],['18','PASEO'],['99','OTROS']];
+const T6_ZONA = [['1','URBANIZACIÓN'],['2','PUEBLO JOVEN'],['3','UNIDAD VECINAL'],['4','CONJUNTO HABITACIONAL'],['5','ASENT. HUMANO'],['6','COOPERATIVA'],['7','RESIDENCIAL'],['8','ZONA INDUSTRIAL'],['9','GRUPO'],['10','CASERÍO'],['11','FUNDO'],['99','OTROS']];
+const TT_SIN_CATOCUP = ['19','20','21','23','66','71','88','89','90','91','98'];
+const DOCS_CON_PAIS = ['07','24'];       // país emisor obligatorio
+const DOCS_EXTRANJERO = ['04','07','09','22','23','24']; // nacionalidad obligatoria
+
+// Catálogos grandes (lazy): T30 ocupaciones, T28 ubigeo, T4 nacionalidad, T26 país
+let CAT = {t30:new Map(), t28:new Map(), t4:new Map(), t26:new Map()};
+fetch('{% static "altasmasivas/catalogos.json" %}').then(r=>r.json()).then(d=>{
+  const fill = (arr, map, dlId, max) => {
+    const dl = document.getElementById(dlId);
+    const frag = document.createDocumentFragment();
+    arr.forEach(([c,n])=>{ map.set(c,n);
+      const o=document.createElement('option'); o.value=c; o.label=n; frag.appendChild(o); });
+    dl.appendChild(frag);
+  };
+  fill(d.t30_ocupaciones, CAT.t30, 'dl_ocup');
+  fill(d.t28_ubigeo,      CAT.t28, 'dl_ubigeo');
+  fill(d.t4_nacionalidad, CAT.t4,  'dl_nacionalidad');
+  fill(d.t26_pais,        CAT.t26, 'dl_pais');
+}).catch(()=>{ /* la herramienta funciona igual; solo se pierde el autocompletado */ });
+
+/* ═══════════════════════ UTILIDADES ═══════════════════════ */
+const $ = id => document.getElementById(id);
+const hoyISO = () => new Date().toISOString().slice(0,10);
+function isoADdmy(iso){ if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function dmyValida(s){ return /^\d{2}\/\d{2}\/\d{4}$/.test(s); }
+function diaAnteriorISO(iso){ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
+function up(s){ return (s||'').trim().toUpperCase(); }
+
+function llenarSelect(el, pares, conVacio, vacioLabel){
+  if(typeof el==='string') el=$(el);
+  el.innerHTML='';
+  if(conVacio){ const o=document.createElement('option'); o.value=''; o.textContent=vacioLabel||'— No cambiar —'; el.appendChild(o); }
+  pares.forEach(([c,n])=>{ const o=document.createElement('option'); o.value=c; o.textContent=`${c} — ${n}`; el.appendChild(o); });
+}
+
+function validarRUC(ruc){
+  if(!/^\d{11}$/.test(ruc)) return false;
+  if(!/^(10|15|17|20)/.test(ruc)) return false;
+  const pesos=[5,4,3,2,7,6,5,4,3,2];
+  let suma=0; for(let i=0;i<10;i++) suma += parseInt(ruc[i])*pesos[i];
+  const resto=suma%11; let dig=11-resto; if(dig===10)dig=0; if(dig===11)dig=1;
+  return dig===parseInt(ruc[10]);
+}
+function validarDoc(td,num){
+  num=(num||'').trim();
+  if(!num) return 'Ingresa el número de documento.';
+  if(td==='01' && !/^\d{8}$/.test(num)) return 'El DNI debe tener 8 dígitos.';
+  if(td==='04' && !/^\d{9,11}$/.test(num)) return 'Carné de Extranjería: de 9 a 11 dígitos.';
+  if(td==='07' && !/^[A-Za-z0-9]{1,15}$/.test(num)) return 'Pasaporte: hasta 15 caracteres alfanuméricos.';
+  if(td==='09' && !/^\d{5,9}$/.test(num)) return 'Carné Solic. Refugio: de 5 a 9 dígitos.';
+  if(td==='22' && !/^\d{1,9}$/.test(num)) return 'Carné Identidad RR.EE.: hasta 9 dígitos.';
+  if(td==='23' && !/^\d{9}$/.test(num)) return 'Carné PTP: 9 dígitos.';
+  if(td==='24' && !/^[A-Za-z0-9]{1,15}$/.test(num)) return 'Doc. Identidad Extranjero: hasta 15 alfanuméricos.';
+  return '';
+}
+function validarCorreoSunat(c){
+  c=(c||'').trim();
+  if(!/^[A-Za-z0-9._-]{3,}@[A-Za-z0-9_-]{2,}\.[A-Za-z]{2,}(\.[A-Za-z]{2,})?$/.test(c)) return 'Correo con formato inválido para el PVS.';
+  const servidor=c.split('@')[1].split('.')[0].toLowerCase();
+  if(['com','gob','gov','es','pe'].includes(servidor)) return 'El servidor del correo no puede ser "com/gob/gov/es/pe" (regla PVS).';
+  const usuario=c.split('@')[0].toLowerCase();
+  if(usuario.includes('no') && usuario.includes('tengo') && usuario.includes('correo')) return 'Correo inválido (regla PVS: no usar "notengocorreo").';
+  return '';
+}
+function validarCelular(t){
+  if(!/^9\d{8}$/.test(t)) return 'El celular debe tener 9 dígitos y empezar con 9.';
+  return '';
+}
+function validarCuenta(banco,cuenta){
+  if(!/^\d{6,20}$/.test(cuenta)) return 'La cuenta debe tener de 6 a 20 dígitos.';
+  if(/^(\d)\1+$/.test(cuenta)) return 'La cuenta no puede ser un mismo dígito repetido.';
+  const largos=CTA_LARGOS[banco];
+  if(largos && !largos.includes(cuenta.length)) return `Para este banco la cuenta debe tener ${largos.join(' o ')} dígitos.`;
+  if(cuenta.length===20 && cuenta.slice(0,3)!==banco) return 'En un CCI (20 dígitos) los 3 primeros deben ser el código del banco.';
+  return '';
+}
+
+// Codificación Windows-1252 (ANSI) — el PVS espera archivos ANSI, no UTF-8.
+const CP1252_EXTRA = {'€':128,'‚':130,'ƒ':131,'„':132,'…':133,'†':134,'‡':135,'ˆ':136,'‰':137,'Š':138,'‹':139,'Œ':140,'Ž':142,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'˜':152,'™':153,'š':154,'›':155,'œ':156,'ž':158,'Ÿ':159};
+function encodeCP1252(str){
+  const bytes=[]; const desconocidos=new Set();
+  for(const ch of str){
+    const cp=ch.codePointAt(0);
+    if(cp<=0x7F){ bytes.push(cp); }
+    else if(cp>=0xA0 && cp<=0xFF){ bytes.push(cp); }
+    else if(CP1252_EXTRA[ch]!==undefined){ bytes.push(CP1252_EXTRA[ch]); }
+    else { bytes.push(63); desconocidos.add(ch); } // '?'
+  }
+  return {bytes:new Uint8Array(bytes), desconocidos:[...desconocidos]};
+}
+function descargarArchivo(nombre, uint8){
+  const blob=new Blob([uint8],{type:'text/plain;charset=windows-1252'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nombre;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+
+/* ═══════════════════════ ESTADO ═══════════════════════ */
+let items=[];          // {op, data} — data serializable
+let editIndex=-1;
+let opActual='alta';
+let archivosGenerados=null; // {nombre: Uint8Array}
+
+function guardarLS(){
+  try{
+    localStorage.setItem('am_items', JSON.stringify(items));
+    localStorage.setItem('am_emp', JSON.stringify({ruc:$('emp_ruc').value, razon:$('emp_razon').value, estab:$('emp_estab').value}));
+  }catch(e){}
+}
+function cargarLS(){
+  try{
+    const emp=JSON.parse(localStorage.getItem('am_emp')||'null');
+    if(emp){ $('emp_ruc').value=emp.ruc||''; $('emp_razon').value=emp.razon||''; $('emp_estab').value=emp.estab||'0001'; }
+    items=JSON.parse(localStorage.getItem('am_items')||'[]');
+  }catch(e){ items=[]; }
+}
+
+/* ═══════════════════════ INICIALIZACIÓN DE SELECTS ═══════════════════════ */
+llenarSelect('a_tt', T8_TT); $('a_tt').value='21';
+llenarSelect('a_reglab', T33_REGLAB);
+llenarSelect('a_contrato', T12_CONTRATO);
+llenarSelect('a_period', T13_PERIOD);
+llenarSelect('a_siteduc', T9_SITEDUC); $('a_siteduc').value='07';
+llenarSelect('a_tipopago', T16_PAGO);
+llenarSelect('a_sitesp', T35_SITESP);
+llenarSelect('a_convenio', T25_CONV);
+llenarSelect('a_rsalud', T32_RSALUD);
+llenarSelect('a_eps', T14_EPS);
+llenarSelect('a_rpens', T11_RPENS); $('a_rpens').value='02';
+llenarSelect('a_banco', T36_BANCO);
+llenarSelect('a_dir_tipovia', T5_VIA, true, '—');
+llenarSelect('a_dir_tipozona', T6_ZONA, true, '—');
+llenarSelect('b_motivo', T17_MOTIVO);
+llenarSelect('m_tt_actual', T8_TT); $('m_tt_actual').value='21';
+llenarSelect('mt_tt_nuevo', T8_TT);
+llenarSelect('mrs_actual', T32_RSALUD);
+llenarSelect('mrs_nuevo', T32_RSALUD);
+llenarSelect('mrs_eps', T14_EPS);
+llenarSelect('mrp_actual', T11_RPENS);
+llenarSelect('mrp_nuevo', T11_RPENS);
+llenarSelect('mc_banco', T36_BANCO);
+llenarSelect('md_reglab', T33_REGLAB, true);
+llenarSelect('md_contrato', T12_CONTRATO, true);
+llenarSelect('md_period', T13_PERIOD, true);
+llenarSelect('md_tipopago', T16_PAGO, true);
+llenarSelect('md_siteduc', T9_SITEDUC, true);
+llenarSelect('md_sitesp', T35_SITESP, true);
+
+/* ═══════════════════════ INTERACCIONES UI ═══════════════════════ */
+document.querySelectorAll('.op-card').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    document.querySelectorAll('.op-card').forEach(c=>c.classList.remove('active'));
+    card.classList.add('active');
+    opActual=card.dataset.op;
+    $('form-alta').style.display = opActual==='alta'?'':'none';
+    $('form-baja').style.display = opActual==='baja'?'':'none';
+    $('form-mod').style.display  = opActual==='mod'?'':'none';
+    $('form-title').textContent = {alta:'Datos del alta', baja:'Datos de la baja', mod:'Datos de la modificación'}[opActual];
+    cancelarEdicion();
+  });
+});
+$('emp_ruc').addEventListener('input', ()=>{
+  const v=$('emp_ruc').value.replace(/\D/g,''); $('emp_ruc').value=v;
+  const m=$('emp_ruc_msg');
+  if(v.length===11){ m.textContent = validarRUC(v)?'✓ RUC válido':'✗ Dígito verificador incorrecto'; m.style.color=validarRUC(v)?'#16a34a':'#dc2626'; }
+  else m.textContent='';
+  guardarLS();
+});
+['emp_razon','emp_estab'].forEach(id=>$(id).addEventListener('change', guardarLS));
+$('a_tipodoc').addEventListener('change', ()=>{
+  const td=$('a_tipodoc').value;
+  $('grp_nacionalidad').style.display = DOCS_EXTRANJERO.includes(td)?'':'none';
+  $('grp_paisemisor').style.display   = DOCS_CON_PAIS.includes(td)?'':'none';
+  $('dir_oblig_tag').style.display    = td!=='01'?'':'none';
+});
+$('b_tipodoc').addEventListener('change', ()=>{ $('grp_b_pais').style.display = DOCS_CON_PAIS.includes($('b_tipodoc').value)?'':'none'; });
+$('m_tipodoc').addEventListener('change', ()=>{ $('grp_m_pais').style.display = DOCS_CON_PAIS.includes($('m_tipodoc').value)?'':'none'; });
+$('a_siteduc').addEventListener('change', ()=>{ $('fs_edu').style.display = EDU_CON_E29.includes($('a_siteduc').value)?'':'none'; });
+$('a_edu_peru')?.addEventListener('change', ()=>{
+  const no = $('a_edu_peru').value==='0';
+  ['a_edu_inst','a_edu_carrera','a_edu_anio'].forEach(id=>{ $(id).disabled=no; if(no)$(id).value=''; });
+});
+$('a_rsalud').addEventListener('change', ()=>{ $('grp_eps').style.display = RSALUD_CON_EPS.includes($('a_rsalud').value)?'':'none'; });
+$('a_rpens').addEventListener('change', ()=>{ $('grp_cuspp').style.display = AFP_CODES.includes($('a_rpens').value)?'':'none'; });
+$('a_tipopago').addEventListener('change', ()=>{ $('fs_cuenta').style.display = $('a_tipopago').value==='2'?'':'none'; });
+$('a_ocup').addEventListener('input', ()=>{
+  const v=$('a_ocup').value.trim();
+  $('a_ocup_desc').textContent = CAT.t30.get(v)||'';
+});
+$('md_ocup').addEventListener('input', ()=>{ $('md_ocup_desc').textContent = CAT.t30.get($('md_ocup').value.trim())||''; });
+$('a_cuenta').addEventListener('input', ()=>{
+  const e=validarCuenta($('a_banco').value, $('a_cuenta').value.trim());
+  $('a_cuenta_msg').textContent = $('a_cuenta').value ? (e||'✓') : '';
+  $('a_cuenta_msg').style.color = e?'#dc2626':'#16a34a';
+});
+$('mc_cuenta').addEventListener('input', ()=>{
+  const e=validarCuenta($('mc_banco').value, $('mc_cuenta').value.trim());
+  $('mc_cuenta_msg').textContent = $('mc_cuenta').value ? (e||'✓') : '';
+  $('mc_cuenta_msg').style.color = e?'#dc2626':'#16a34a';
+});
+$('m_subtipo').addEventListener('change', mostrarBloqueMod);
+$('md_siteduc').addEventListener('change', ()=>{
+  $('mod_edu_extra').style.display = EDU_CON_E29.includes($('md_siteduc').value)?'':'none';
+});
+$('mrs_nuevo').addEventListener('change', ()=>{ $('grp_mrs_eps').style.display = RSALUD_CON_EPS.includes($('mrs_nuevo').value)?'':'none'; });
+$('ms_accion').addEventListener('change', ()=>{
+  $('ms_fecha_hint').textContent = $('ms_accion').value==='alta' ? 'Fecha de inicio de la cobertura.' : 'Fecha del último día con riesgo (fin de cobertura).';
+});
+function mostrarBloqueMod(){
+  const st=$('m_subtipo').value;
+  document.querySelectorAll('.mod-block').forEach(b=>b.style.display='none');
+  $('mod-'+st).style.display='block';
+  // El TT vigente se requiere en todos los subtipos salvo estab y plame99
+  $('grp_m_tt_actual').style.display = ['estab','plame99'].includes(st)?'none':'';
+}
+mostrarBloqueMod();
+
+/* ═══════════════════════ LECTURA / VALIDACIÓN DE FORMULARIOS ═══════════════════════ */
+function leerAlta(){
+  const e=[];
+  const d={};
+  d.tipodoc=$('a_tipodoc').value; d.numdoc=$('a_numdoc').value.trim();
+  const edoc=validarDoc(d.tipodoc,d.numdoc); if(edoc)e.push(edoc);
+  d.paisemisor = DOCS_CON_PAIS.includes(d.tipodoc) ? $('a_paisemisor').value.trim() : '';
+  if(DOCS_CON_PAIS.includes(d.tipodoc) && !/^\d{3}$/.test(d.paisemisor)) e.push('País emisor: código de 3 dígitos (Tabla 26).');
+  d.fnac=$('a_fnac').value; if(!d.fnac)e.push('Falta la fecha de nacimiento.');
+  d.appat=up($('a_appat').value); d.apmat=up($('a_apmat').value); d.nombres=up($('a_nombres').value);
+  if(!d.appat && !d.apmat) e.push('Ingresa al menos un apellido.');
+  if(!d.nombres) e.push('Ingresa los nombres.');
+  d.sexo=$('a_sexo').value;
+  d.nacionalidad = DOCS_EXTRANJERO.includes(d.tipodoc) ? $('a_nacionalidad').value.trim() : '';
+  if(DOCS_EXTRANJERO.includes(d.tipodoc) && !/^\d{4}$/.test(d.nacionalidad)) e.push('Nacionalidad: código de 4 dígitos (Tabla 4).');
+  d.celular=$('a_celular').value.trim(); const ec=validarCelular(d.celular); if(ec)e.push(ec);
+  d.correo=$('a_correo').value.trim().toLowerCase(); const em=validarCorreoSunat(d.correo); if(em)e.push(em);
+  // Dirección
+  d.dir={ tipovia:$('a_dir_tipovia').value, nombrevia:up($('a_dir_nombrevia').value), numero:up($('a_dir_numero').value),
+          tipozona:$('a_dir_tipozona').value, nombrezona:up($('a_dir_nombrezona').value), ref:up($('a_dir_ref').value),
+          ubigeo:$('a_dir_ubigeo').value.trim() };
+  const tieneDir = d.dir.nombrevia||d.dir.nombrezona||d.dir.ubigeo;
+  if(d.tipodoc!=='01' && !tieneDir) e.push('Para documentos distintos al DNI la Dirección 1 es obligatoria (zona/vía + ubigeo).');
+  if(tieneDir){
+    if(!/^\d{6}$/.test(d.dir.ubigeo)) e.push('Ubigeo: 6 dígitos (Tabla 28).');
+    if(!d.dir.nombrevia && !d.dir.nombrezona) e.push('Dirección: registra vía o zona.');
+  }
+  // Laboral
+  d.fini=$('a_fini').value; if(!d.fini)e.push('Falta la fecha de inicio del vínculo.');
+  d.tt=$('a_tt').value; d.reglab=$('a_reglab').value; d.contrato=$('a_contrato').value;
+  d.remun=$('a_remun').value; if(d.remun==='' || parseFloat(d.remun)<0) e.push('Ingresa la remuneración básica.');
+  d.period=$('a_period').value; d.siteduc=$('a_siteduc').value;
+  d.ocup=$('a_ocup').value.trim();
+  if(!/^\d{6}$/.test(d.ocup)) e.push('Ocupación: código de 6 dígitos (Tabla 30) — usa el autocompletado.');
+  d.discap=$('a_discap').value; d.sindic=$('a_sindic').value;
+  d.jorn_max=$('a_jorn_max').value; d.hor_noct=$('a_hor_noct').value; d.jorn_acum=$('a_jorn_acum').value;
+  d.tipopago=$('a_tipopago').value; d.sitesp=$('a_sitesp').value; d.renta5e=$('a_renta5e').value;
+  d.catocup=$('a_catocup').value; d.convenio=$('a_convenio').value;
+  if(!TT_SIN_CATOCUP.includes(d.tt) && !d.catocup) e.push('Para este tipo de trabajador la categoría ocupacional (T24) es obligatoria.');
+  d.estab=$('a_estab').value.trim()||$('emp_estab').value.trim();
+  if(!/^\d{4}$/.test(d.estab)) e.push('Establecimiento: 4 dígitos.');
+  // Regímenes
+  d.rsalud=$('a_rsalud').value;
+  d.eps = RSALUD_CON_EPS.includes(d.rsalud) ? $('a_eps').value : '';
+  d.rpens=$('a_rpens').value;
+  d.cuspp = AFP_CODES.includes(d.rpens) ? $('a_cuspp').value.trim() : '';
+  d.sctr_salud=$('a_sctr_salud').value; d.sctr_pens=$('a_sctr_pens').value;
+  // Estudios
+  d.edu=null;
+  if(EDU_CON_E29.includes(d.siteduc)){
+    d.edu={peru:$('a_edu_peru').value, inst:$('a_edu_inst').value.trim(), carrera:$('a_edu_carrera').value.trim(), anio:$('a_edu_anio').value.trim()};
+    if(d.edu.peru==='1'){
+      if(!d.edu.inst||!d.edu.carrera) e.push('Estudios concluidos: faltan códigos de institución/carrera (Tabla 34).');
+      if(!/^\d{4}$/.test(d.edu.anio) || +d.edu.anio<1950 || +d.edu.anio>new Date().getFullYear()) e.push('Estudios concluidos: año de egreso inválido.');
+    }
+  }
+  // Cuenta
+  d.banco=''; d.cuenta='';
+  if(d.tipopago==='2'){
+    d.banco=$('a_banco').value; d.cuenta=$('a_cuenta').value.trim();
+    if(!d.cuenta) e.push('Tipo de pago "Depósito en cuenta": ingresa banco y n.° de cuenta (Estructura 30).');
+    else { const ec2=validarCuenta(d.banco,d.cuenta); if(ec2)e.push(ec2); }
+  }
+  return {errores:e, data:d};
+}
+function leerBaja(){
+  const e=[]; const d={};
+  d.tipodoc=$('b_tipodoc').value; d.numdoc=$('b_numdoc').value.trim();
+  const edoc=validarDoc(d.tipodoc,d.numdoc); if(edoc)e.push(edoc);
+  d.paisemisor = DOCS_CON_PAIS.includes(d.tipodoc) ? $('b_paisemisor').value.trim() : '';
+  if(DOCS_CON_PAIS.includes(d.tipodoc) && !/^\d{3}$/.test(d.paisemisor)) e.push('País emisor: 3 dígitos.');
+  d.nombre=up($('b_nombre').value);
+  d.ffin=$('b_ffin').value; if(!d.ffin)e.push('Falta la fecha de fin del vínculo.');
+  d.motivo=$('b_motivo').value;
+  return {errores:e, data:d};
+}
+function leerMod(){
+  const e=[]; const d={};
+  d.tipodoc=$('m_tipodoc').value; d.numdoc=$('m_numdoc').value.trim();
+  const edoc=validarDoc(d.tipodoc,d.numdoc); if(edoc)e.push(edoc);
+  d.paisemisor = DOCS_CON_PAIS.includes(d.tipodoc) ? $('m_paisemisor').value.trim() : '';
+  if(DOCS_CON_PAIS.includes(d.tipodoc) && !/^\d{3}$/.test(d.paisemisor)) e.push('País emisor: 3 dígitos.');
+  d.nombre=up($('m_nombre').value);
+  d.subtipo=$('m_subtipo').value;
+  if(!['estab','plame99'].includes(d.subtipo)) d.tt_actual=$('m_tt_actual').value;
+  if(d.subtipo==='datos'){
+    d.campos={ reglab:$('md_reglab').value, contrato:$('md_contrato').value, remun:$('md_remun').value,
+      period:$('md_period').value, tipopago:$('md_tipopago').value, siteduc:$('md_siteduc').value,
+      ocup:$('md_ocup').value.trim(), discap:$('md_discap').value, sitesp:$('md_sitesp').value,
+      sindic:$('md_sindic').value, jorn_max:$('md_jorn_max').value, hor_noct:$('md_hor_noct').value,
+      jorn_acum:$('md_jorn_acum').value, cuspp:$('md_cuspp').value.trim(), sctr_pens:$('md_sctr_pens').value };
+    const alguno=Object.values(d.campos).some(v=>v!=='');
+    if(!alguno) e.push('Modificación de datos: llena al menos un campo a cambiar.');
+    if(d.campos.ocup && !/^\d{6}$/.test(d.campos.ocup)) e.push('Ocupación: código de 6 dígitos.');
+    d.edu=null;
+    if(d.campos.siteduc && EDU_CON_E29.includes(d.campos.siteduc)){
+      d.edu={peru:$('md_edu_peru').value, inst:$('md_edu_inst').value.trim(), carrera:$('md_edu_carrera').value.trim(), anio:$('md_edu_anio').value.trim()};
+      if(d.edu.peru==='1' && (!d.edu.inst||!d.edu.carrera||!/^\d{4}$/.test(d.edu.anio))) e.push('La nueva situación educativa exige los datos de estudios concluidos (E29).');
+    }
+  } else if(d.subtipo==='tt'){
+    d.tt_nuevo=$('mt_tt_nuevo').value; d.fecha=$('mt_fecha').value;
+    if(!d.fecha)e.push('Falta la fecha del cambio.');
+    if(d.tt_nuevo===d.tt_actual)e.push('El nuevo TT es igual al vigente.');
+  } else if(d.subtipo==='rsalud'){
+    d.rs_actual=$('mrs_actual').value; d.rs_nuevo=$('mrs_nuevo').value; d.fecha=$('mrs_fecha').value;
+    d.eps = RSALUD_CON_EPS.includes(d.rs_nuevo) ? $('mrs_eps').value : '';
+    if(!d.fecha)e.push('Falta la fecha del cambio.');
+    if(d.rs_actual===d.rs_nuevo)e.push('El nuevo régimen de salud es igual al actual.');
+  } else if(d.subtipo==='rpens'){
+    d.rp_actual=$('mrp_actual').value; d.rp_nuevo=$('mrp_nuevo').value; d.fecha=$('mrp_fecha').value;
+    d.cuspp=$('mrp_cuspp').value.trim();
+    if(!d.fecha)e.push('Falta la fecha del cambio.');
+    if(d.rp_actual===d.rp_nuevo)e.push('El nuevo régimen pensionario es igual al actual.');
+  } else if(d.subtipo==='cuenta'){
+    d.banco=$('mc_banco').value; d.cuenta=$('mc_cuenta').value.trim(); d.cambiapago=$('mc_cambiapago').checked;
+    if(!d.cuenta)e.push('Ingresa el número de cuenta.');
+    else { const ec=validarCuenta(d.banco,d.cuenta); if(ec)e.push(ec); }
+  } else if(d.subtipo==='estab'){
+    d.estab=$('me_estab').value.trim();
+    if(!/^\d{4}$/.test(d.estab))e.push('Establecimiento: 4 dígitos.');
+  } else if(d.subtipo==='sctr'){
+    d.accion=$('ms_accion').value; d.ind=$('ms_ind').value; d.fecha=$('ms_fecha').value;
+    if(!d.fecha)e.push('Falta la fecha.');
+  } else if(d.subtipo==='plame99'){
+    d.ini=$('mp_ini').value; d.fin=$('mp_fin').value;
+    if(!d.ini||!d.fin)e.push('Ingresa fecha de inicio y fin.');
+    else{
+      const dias=(new Date(d.fin)-new Date(d.ini))/86400000;
+      if(dias<0)e.push('La fecha fin no puede ser anterior al inicio.');
+      if(dias>31)e.push('Entre inicio y fin no pueden pasar más de 31 días (regla PVS motivo 99).');
+    }
+  }
+  return {errores:e, data:d};
+}
+
+/* ═══════════════════════ COLA ═══════════════════════ */
+const SUBTIPO_LABEL = {datos:'Datos E05', tt:'Cambio de TT', rsalud:'Rég. salud', rpens:'Rég. pensionario',
+                       cuenta:'Cuenta bancaria', estab:'Establecimiento', sctr:'SCTR Salud', plame99:'Mes sin vínculo (99)'};
+function descripcionItem(it){
+  const d=it.data;
+  if(it.op==='alta') return `Ingresa ${isoADdmy(d.fini)} · TT ${d.tt} · S/ ${(+d.remun).toFixed(2)} · ${d.contrato==='01'?'Indeterminado':'Contrato '+d.contrato}`;
+  if(it.op==='baja'){ const m=T17_MOTIVO.find(x=>x[0]===d.motivo); return `Cesa ${isoADdmy(d.ffin)} · Motivo ${d.motivo} ${m?('— '+m[1]):''}`; }
+  const st=SUBTIPO_LABEL[d.subtipo]||d.subtipo;
+  if(d.subtipo==='datos'){ const n=Object.values(d.campos).filter(v=>v!=='').length; return `${st}: ${n} campo(s)`; }
+  if(d.subtipo==='tt') return `${st}: ${d.tt_actual} → ${d.tt_nuevo} desde ${isoADdmy(d.fecha)}`;
+  if(d.subtipo==='rsalud') return `${st}: ${d.rs_actual} → ${d.rs_nuevo} desde ${isoADdmy(d.fecha)}`;
+  if(d.subtipo==='rpens') return `${st}: ${d.rp_actual} → ${d.rp_nuevo} desde ${isoADdmy(d.fecha)}`;
+  if(d.subtipo==='cuenta') return `${st}: banco ${d.banco} · ${d.cuenta}`;
+  if(d.subtipo==='estab') return `${st}: ${d.estab}`;
+  if(d.subtipo==='sctr') return `${st}: ${d.accion==='alta'?'inicio':'fin'} ${isoADdmy(d.fecha)}`;
+  if(d.subtipo==='plame99') return `${st}: ${isoADdmy(d.ini)} — ${isoADdmy(d.fin)}`;
+  return st;
+}
+function nombreItem(it){
+  const d=it.data;
+  if(it.op==='alta') return [d.appat,d.apmat,d.nombres].filter(Boolean).join(' ');
+  return d.nombre||'—';
+}
+function renderCola(){
+  const tb=$('cola-body'); tb.innerHTML='';
+  $('cola-count').textContent=items.length;
+  $('gen-resumen').textContent = items.length ? `${items.length} registro(s) listos` : '';
+  if(!items.length){
+    tb.innerHTML='<tr><td colspan="6" class="text-center text-muted py-4">Aún no has agregado registros. Usa el formulario o importa un Excel.</td></tr>';
+    return;
+  }
+  items.forEach((it,i)=>{
+    const tr=document.createElement('tr');
+    const badge={alta:'badge-op-alta',baja:'badge-op-baja',mod:'badge-op-mod'}[it.op];
+    const opName={alta:'ALTA',baja:'BAJA',mod:'MODIF.'}[it.op];
+    tr.innerHTML=`<td>${i+1}</td>
+      <td><span class="badge ${badge}">${opName}</span></td>
+      <td>${it.data.tipodoc} ${it.data.numdoc}</td>
+      <td>${nombreItem(it)}</td>
+      <td>${descripcionItem(it)}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-secondary me-1" data-edit="${i}" title="Editar"><i class="fas fa-pen"></i></button>
+        <button class="btn btn-sm btn-outline-danger" data-del="${i}" title="Eliminar"><i class="fas fa-times"></i></button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{ items.splice(+b.dataset.del,1); guardarLS(); renderCola(); }));
+  tb.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>cargarParaEditar(+b.dataset.edit)));
+}
+
+function cargarParaEditar(i){
+  const it=items[i]; editIndex=i;
+  document.querySelector(`.op-card[data-op="${it.op}"]`).click();
+  editIndex=i; // el click resetea editIndex vía cancelarEdicion
+  const d=it.data;
+  if(it.op==='alta'){
+    $('a_tipodoc').value=d.tipodoc; $('a_tipodoc').dispatchEvent(new Event('change'));
+    $('a_numdoc').value=d.numdoc; $('a_paisemisor').value=d.paisemisor||''; $('a_fnac').value=d.fnac;
+    $('a_appat').value=d.appat; $('a_apmat').value=d.apmat; $('a_nombres').value=d.nombres;
+    $('a_sexo').value=d.sexo; $('a_nacionalidad').value=d.nacionalidad||'';
+    $('a_celular').value=d.celular; $('a_correo').value=d.correo;
+    $('a_dir_tipovia').value=d.dir.tipovia; $('a_dir_nombrevia').value=d.dir.nombrevia; $('a_dir_numero').value=d.dir.numero;
+    $('a_dir_tipozona').value=d.dir.tipozona; $('a_dir_nombrezona').value=d.dir.nombrezona; $('a_dir_ref').value=d.dir.ref; $('a_dir_ubigeo').value=d.dir.ubigeo;
+    $('a_fini').value=d.fini; $('a_tt').value=d.tt; $('a_reglab').value=d.reglab; $('a_contrato').value=d.contrato;
+    $('a_remun').value=d.remun; $('a_period').value=d.period;
+    $('a_siteduc').value=d.siteduc; $('a_siteduc').dispatchEvent(new Event('change'));
+    $('a_ocup').value=d.ocup; $('a_ocup').dispatchEvent(new Event('input'));
+    $('a_discap').value=d.discap; $('a_sindic').value=d.sindic; $('a_jorn_max').value=d.jorn_max;
+    $('a_hor_noct').value=d.hor_noct; $('a_jorn_acum').value=d.jorn_acum;
+    $('a_tipopago').value=d.tipopago; $('a_tipopago').dispatchEvent(new Event('change'));
+    $('a_sitesp').value=d.sitesp; $('a_renta5e').value=d.renta5e; $('a_catocup').value=d.catocup; $('a_convenio').value=d.convenio;
+    $('a_estab').value=d.estab;
+    $('a_rsalud').value=d.rsalud; $('a_rsalud').dispatchEvent(new Event('change'));
+    $('a_eps').value=d.eps||'2';
+    $('a_rpens').value=d.rpens; $('a_rpens').dispatchEvent(new Event('change'));
+    $('a_cuspp').value=d.cuspp||'';
+    $('a_sctr_salud').value=d.sctr_salud||''; $('a_sctr_pens').value=d.sctr_pens||'';
+    if(d.edu){ $('a_edu_peru').value=d.edu.peru; $('a_edu_inst').value=d.edu.inst; $('a_edu_carrera').value=d.edu.carrera; $('a_edu_anio').value=d.edu.anio; }
+    if(d.banco){ $('a_banco').value=d.banco; $('a_cuenta').value=d.cuenta; }
+  } else if(it.op==='baja'){
+    $('b_tipodoc').value=d.tipodoc; $('b_tipodoc').dispatchEvent(new Event('change'));
+    $('b_numdoc').value=d.numdoc; $('b_paisemisor').value=d.paisemisor||'';
+    $('b_nombre').value=d.nombre||''; $('b_ffin').value=d.ffin; $('b_motivo').value=d.motivo;
+  } else {
+    $('m_tipodoc').value=d.tipodoc; $('m_tipodoc').dispatchEvent(new Event('change'));
+    $('m_numdoc').value=d.numdoc; $('m_paisemisor').value=d.paisemisor||''; $('m_nombre').value=d.nombre||'';
+    $('m_subtipo').value=d.subtipo; mostrarBloqueMod();
+    if(d.tt_actual)$('m_tt_actual').value=d.tt_actual;
+    if(d.subtipo==='datos'){
+      const c=d.campos;
+      $('md_reglab').value=c.reglab; $('md_contrato').value=c.contrato; $('md_remun').value=c.remun;
+      $('md_period').value=c.period; $('md_tipopago').value=c.tipopago;
+      $('md_siteduc').value=c.siteduc; $('md_siteduc').dispatchEvent(new Event('change'));
+      $('md_ocup').value=c.ocup; $('md_discap').value=c.discap; $('md_sitesp').value=c.sitesp;
+      $('md_sindic').value=c.sindic; $('md_jorn_max').value=c.jorn_max; $('md_hor_noct').value=c.hor_noct;
+      $('md_jorn_acum').value=c.jorn_acum; $('md_cuspp').value=c.cuspp; $('md_sctr_pens').value=c.sctr_pens;
+      if(d.edu){ $('md_edu_peru').value=d.edu.peru; $('md_edu_inst').value=d.edu.inst; $('md_edu_carrera').value=d.edu.carrera; $('md_edu_anio').value=d.edu.anio; }
+    }
+    if(d.subtipo==='tt'){ $('mt_tt_nuevo').value=d.tt_nuevo; $('mt_fecha').value=d.fecha; }
+    if(d.subtipo==='rsalud'){ $('mrs_actual').value=d.rs_actual; $('mrs_nuevo').value=d.rs_nuevo; $('mrs_nuevo').dispatchEvent(new Event('change')); $('mrs_eps').value=d.eps||'2'; $('mrs_fecha').value=d.fecha; }
+    if(d.subtipo==='rpens'){ $('mrp_actual').value=d.rp_actual; $('mrp_nuevo').value=d.rp_nuevo; $('mrp_fecha').value=d.fecha; $('mrp_cuspp').value=d.cuspp||''; }
+    if(d.subtipo==='cuenta'){ $('mc_banco').value=d.banco; $('mc_cuenta').value=d.cuenta; $('mc_cambiapago').checked=!!d.cambiapago; }
+    if(d.subtipo==='estab'){ $('me_estab').value=d.estab; }
+    if(d.subtipo==='sctr'){ $('ms_accion').value=d.accion; $('ms_ind').value=d.ind; $('ms_fecha').value=d.fecha; }
+    if(d.subtipo==='plame99'){ $('mp_ini').value=d.ini; $('mp_fin').value=d.fin; }
+  }
+  $('btn-agregar').innerHTML='<i class="fas fa-check me-1"></i>Guardar cambios';
+  $('btn-cancelar-edicion').style.display='';
+  window.scrollTo({top:document.querySelector('#form-title').offsetTop-120, behavior:'smooth'});
+}
+function cancelarEdicion(){
+  editIndex=-1;
+  $('btn-agregar').innerHTML='<i class="fas fa-plus me-1"></i>Agregar a la lista';
+  $('btn-cancelar-edicion').style.display='none';
+  $('form-errores').textContent='';
+}
+$('btn-cancelar-edicion').addEventListener('click', cancelarEdicion);
+
+$('btn-agregar').addEventListener('click', ()=>{
+  const lector={alta:leerAlta, baja:leerBaja, mod:leerMod}[opActual];
+  const {errores, data}=lector();
+  const fe=$('form-errores');
+  if(errores.length){ fe.innerHTML='<i class="fas fa-circle-exclamation me-1"></i>'+errores.join(' · '); return; }
+  fe.textContent='';
+  const item={op:opActual, data};
+  if(editIndex>=0){ items[editIndex]=item; cancelarEdicion(); }
+  else items.push(item);
+  guardarLS(); renderCola();
+  // limpiar campos de identificación para el siguiente
+  if(opActual==='alta'){ ['a_numdoc','a_appat','a_apmat','a_nombres','a_celular','a_correo','a_cuspp','a_cuenta','a_ocup','a_remun'].forEach(id=>$(id).value=''); $('a_fnac').value=''; $('a_ocup_desc').textContent=''; }
+  if(opActual==='baja'){ ['b_numdoc','b_nombre'].forEach(id=>$(id).value=''); }
+  if(opActual==='mod'){ ['m_numdoc','m_nombre'].forEach(id=>$(id).value=''); }
+});
+$('btn-limpiar').addEventListener('click', ()=>{
+  if(items.length && !confirm('¿Vaciar toda la lista de registros?')) return;
+  items=[]; guardarLS(); renderCola(); $('card-resultado').style.display='none';
+});
+
+/* ═══════════════════════ GENERACIÓN DE ARCHIVOS ═══════════════════════ */
+// Cada línea: columnas unidas por "|" y con palote final (formato del Anexo 3).
+function linea(cols){ return cols.map(v=>v==null?'':String(v)).join('|')+'|'; }
+function idCols(d){ return [d.tipodoc, d.numdoc, d.paisemisor||'']; }
+
+function construirArchivos(){
+  const ruc=$('emp_ruc').value.trim();
+  const errores=[]; const warnings=[];
+  if(!validarRUC(ruc)) errores.push('RUC del empleador inválido (Paso 1).');
+  if(!items.length) errores.push('No hay registros en la lista.');
+  if(errores.length) return {errores};
+
+  const F={ide:[], tra:[], per:[], est:[], edu:[], cta:[]};
+  const vistosE04=new Set(), vistosE05=new Set(), vistosE30=new Set(), vistosE17=new Set(), vistosE11=new Set();
+
+  function pushE11(cols, claveExtra){
+    // Dedup regla PVS: TD+doc+cat+tipoReg+fechaInicio únicos
+    const clave=[cols[0],cols[1],cols[3],cols[4],cols[5]||claveExtra||''].join('~');
+    if(cols[5] && vistosE11.has(clave)){ warnings.push(`E11: registro duplicado para ${cols[1]} (tipo ${cols[4]}, inicio ${cols[5]}).`); return; }
+    if(cols[5]) vistosE11.add(clave);
+    F.per.push(linea(cols));
+  }
+
+  for(const it of items){
+    const d=it.data; const id=idCols(d);
+    if(it.op==='alta'){
+      const k=id.join('~');
+      if(vistosE04.has(k)){ errores.push(`Alta duplicada para el documento ${d.numdoc}.`); continue; }
+      vistosE04.add(k); vistosE05.add(k);
+      // E04 — 41 columnas
+      const dir=d.dir;
+      F.ide.push(linea([...id, isoADdmy(d.fnac), d.appat, d.apmat, d.nombres, d.sexo, d.nacionalidad||'',
+        '', d.celular, d.correo,
+        dir.tipovia, dir.nombrevia, dir.numero, '', '', '', '', '', '', '', dir.tipozona, dir.nombrezona, dir.ref, dir.ubigeo,
+        '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+        '']));  // campo 41 (indic. centro asist.) solo aplica con 2 direcciones
+      // E05 — 23 columnas
+      F.tra.push(linea([...id, d.reglab, d.siteduc, d.ocup, d.discap, d.cuspp||'', d.sctr_pens||'', d.contrato,
+        d.jorn_acum, d.jorn_max, d.hor_noct, d.sindic, d.period, (+d.remun).toFixed(2), '1', d.renta5e,
+        d.sitesp, d.tipopago, d.catocup||'', d.convenio||'0', '']));
+      // E11 — 4 filas (período, TT, RS, RP) + SCTR opcional
+      const f=isoADdmy(d.fini);
+      pushE11([...id,'1','1',f,'','','']);
+      pushE11([...id,'1','2',f,'',d.tt,'']);
+      pushE11([...id,'1','3',f,'',d.rsalud, d.eps||'']);
+      pushE11([...id,'1','4',f,'',d.rpens,'']);
+      if(d.sctr_salud) pushE11([...id,'1','5',f,'',d.sctr_salud,'']);
+      // E17
+      const k17=k+'~'+ruc+'~'+d.estab;
+      if(!vistosE17.has(k17)){ vistosE17.add(k17); F.est.push(linea([...id, ruc, d.estab])); }
+      // E29
+      if(d.edu){
+        const formSup = d.siteduc==='11' ? '11' : '13';
+        if(d.edu.peru==='1') F.edu.push(linea([...id, formSup, '1', d.edu.inst, d.edu.carrera, d.edu.anio]));
+        else F.edu.push(linea([...id, formSup, '0', '', '', '']));
+      }
+      // E30
+      if(d.banco && d.cuenta){
+        if(!vistosE30.has(k)){ vistosE30.add(k); F.cta.push(linea([...id, d.banco, d.cuenta])); }
+      }
+    }
+    else if(it.op==='baja'){
+      // Solo E11: fecha fin + motivo (Tabla 17)
+      pushE11([...id,'1','1','',isoADdmy(d.ffin), d.motivo,''], 'baja'+d.ffin);
+    }
+    else { // modificación
+      const k=id.join('~');
+      const ttRow=()=>pushE11([...id,'1','2','','',d.tt_actual,''], 'ttvig');
+      if(d.subtipo==='datos'){
+        if(vistosE05.has(k)){ errores.push(`El documento ${d.numdoc} ya tiene una fila E05 en esta carga — sepárala en otra tanda.`); continue; }
+        vistosE05.add(k);
+        const c=d.campos;
+        F.tra.push(linea([...id, c.reglab, c.siteduc, c.ocup, c.discap, c.cuspp, c.sctr_pens, c.contrato,
+          c.jorn_acum, c.jorn_max, c.hor_noct, c.sindic, c.period, c.remun!==''?(+c.remun).toFixed(2):'', '', '',
+          c.sitesp, c.tipopago, '', '', '']));
+        ttRow();
+        if(d.edu){
+          const formSup = c.siteduc==='11' ? '11' : '13';
+          if(d.edu.peru==='1') F.edu.push(linea([...id, formSup, '1', d.edu.inst, d.edu.carrera, d.edu.anio]));
+          else F.edu.push(linea([...id, formSup, '0', '', '', '']));
+        }
+      }
+      else if(d.subtipo==='tt'){
+        const fin=isoADdmy(diaAnteriorISO(d.fecha));
+        pushE11([...id,'1','2','',fin, d.tt_actual,''], 'ttbaja');
+        pushE11([...id,'1','2',isoADdmy(d.fecha),'', d.tt_nuevo,'']);
+      }
+      else if(d.subtipo==='rsalud'){
+        ttRow();
+        const fin=isoADdmy(diaAnteriorISO(d.fecha));
+        pushE11([...id,'1','3','',fin, d.rs_actual,''], 'rsbaja');
+        pushE11([...id,'1','3',isoADdmy(d.fecha),'', d.rs_nuevo, d.eps||'']);
+      }
+      else if(d.subtipo==='rpens'){
+        ttRow();
+        const fin=isoADdmy(diaAnteriorISO(d.fecha));
+        pushE11([...id,'1','4','',fin, d.rp_actual,''], 'rpbaja');
+        pushE11([...id,'1','4',isoADdmy(d.fecha),'', d.rp_nuevo,'']);
+        if(d.cuspp){
+          if(!vistosE05.has(k)){ vistosE05.add(k);
+            F.tra.push(linea([...id,'','','','',d.cuspp,'','','','','','','','','','','','','','','']));
+          }
+        }
+      }
+      else if(d.subtipo==='cuenta'){
+        ttRow();
+        if(!vistosE30.has(k)){ vistosE30.add(k); F.cta.push(linea([...id, d.banco, d.cuenta])); }
+        if(d.cambiapago && !vistosE05.has(k)){
+          vistosE05.add(k);
+          F.tra.push(linea([...id,'','','','','','','','','','','','','','','','','2','','','']));
+        }
+      }
+      else if(d.subtipo==='estab'){
+        const k17=k+'~'+ruc+'~'+d.estab;
+        if(!vistosE17.has(k17)){ vistosE17.add(k17); F.est.push(linea([...id, ruc, d.estab])); }
+      }
+      else if(d.subtipo==='sctr'){
+        ttRow();
+        if(d.accion==='alta') pushE11([...id,'1','5',isoADdmy(d.fecha),'', d.ind,'']);
+        else pushE11([...id,'1','5','',isoADdmy(d.fecha), d.ind,''], 'sctrbaja');
+      }
+      else if(d.subtipo==='plame99'){
+        pushE11([...id,'1','1',isoADdmy(d.ini), isoADdmy(d.fin), '99','']);
+      }
+    }
+  }
+  if(errores.length) return {errores};
+
+  // Ensamblar archivos con nombre RP_<RUC>.<ext> y codificación ANSI (CP1252)
+  const EXT={ide:'ide', tra:'tra', per:'per', est:'est', edu:'edu', cta:'cta'};
+  const DESCR={ide:'E04 — Datos personales', tra:'E05 — Datos del trabajador', per:'E11 — Períodos',
+               est:'E17 — Establecimientos', edu:'E29 — Estudios concluidos', cta:'E30 — Cuenta bancaria'};
+  const archivos={};
+  const desconocidos=new Set();
+  for(const key of Object.keys(F)){
+    if(!F[key].length) continue;
+    const contenido=F[key].join('\r\n')+'\r\n';
+    const {bytes, desconocidos:dchars}=encodeCP1252(contenido);
+    dchars.forEach(c=>desconocidos.add(c));
+    archivos[`RP_${ruc}.${EXT[key]}`]={bytes, lineas:F[key], descr:DESCR[key]};
+  }
+  if(desconocidos.size) warnings.push(`Caracteres no representables en ANSI reemplazados por "?": ${[...desconocidos].join(' ')}`);
+  return {archivos, warnings};
+}
+
+$('btn-generar').addEventListener('click', ()=>{
+  const r=construirArchivos();
+  const card=$('card-resultado'); const grid=$('archivos-grid'); const w=$('gen-warnings');
+  grid.innerHTML=''; w.innerHTML='';
+  if(r.errores){
+    card.style.display='';
+    w.innerHTML=`<div class="alert alert-danger py-2" style="font-size:.85rem;"><strong>No se pudo generar:</strong><br>${r.errores.join('<br>')}</div>`;
+    archivosGenerados=null;
+    return;
+  }
+  archivosGenerados=r.archivos;
+  if(r.warnings.length) w.innerHTML=`<div class="alert alert-warning py-2" style="font-size:.82rem;">${r.warnings.join('<br>')}</div>`;
+  for(const [nombre, info] of Object.entries(r.archivos)){
+    const col=document.createElement('div'); col.className='col-md-6';
+    const preview=info.lineas.slice(0,8).join('\n') + (info.lineas.length>8 ? `\n… (${info.lineas.length-8} líneas más)` : '');
+    col.innerHTML=`<div class="file-card">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div><strong style="font-size:.9rem;">${nombre}</strong>
+          <span class="hint ms-1">${info.descr} · ${info.lineas.length} línea(s)</span></div>
+        <button class="btn btn-sm btn-outline-h" data-file="${nombre}"><i class="fas fa-download"></i></button>
+      </div>
+      <pre>${preview.replace(/</g,'&lt;')}</pre>
+    </div>`;
+    grid.appendChild(col);
+  }
+  grid.querySelectorAll('[data-file]').forEach(b=>b.addEventListener('click',()=>{
+    const n=b.dataset.file; descargarArchivo(n, archivosGenerados[n].bytes);
+  }));
+  card.style.display='';
+  card.scrollIntoView({behavior:'smooth'});
+});
+
+$('btn-zip').addEventListener('click', async ()=>{
+  if(!archivosGenerados) return;
+  const zip=new JSZip();
+  for(const [nombre, info] of Object.entries(archivosGenerados)) zip.file(nombre, info.bytes);
+  const ruc=$('emp_ruc').value.trim();
+  const ts=new Date().toISOString().slice(0,16).replace(/[-:T]/g,'').slice(0,12);
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`TRegistro_CargaMasiva_${ruc}_${ts}.zip`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+});
+
+/* ═══════════════════════ EXCEL: PLANTILLAS ═══════════════════════ */
+const COLS_ALTA=['TIPO_DOC','NRO_DOC','PAIS_EMISOR','FECHA_NACIMIENTO','APELLIDO_PATERNO','APELLIDO_MATERNO','NOMBRES','SEXO','NACIONALIDAD','CELULAR','CORREO',
+  'FECHA_INICIO','TIPO_TRABAJADOR','REGIMEN_LABORAL','TIPO_CONTRATO','REMUNERACION','PERIODICIDAD','SITUACION_EDUCATIVA','OCUPACION','DISCAPACIDAD','SINDICALIZADO',
+  'JORNADA_MAXIMA','HORARIO_NOCTURNO','REGIMEN_ACUMULATIVO','SITUACION_ESPECIAL','TIPO_PAGO','CATEGORIA_OCUPACIONAL','CONVENIO_DOBLE_TRIB','ESTABLECIMIENTO',
+  'REGIMEN_SALUD','EPS','REGIMEN_PENSIONARIO','CUSPP','SCTR_SALUD','SCTR_PENSION','EDU_PERU','EDU_INSTITUCION','EDU_CARRERA','EDU_ANIO','BANCO','CUENTA'];
+const COLS_BAJA=['TIPO_DOC','NRO_DOC','PAIS_EMISOR','NOMBRE_REFERENCIA','FECHA_FIN','MOTIVO_BAJA'];
+
+function hojaCodigos(){
+  const filas=[['CATÁLOGOS SUNAT — Anexo 2 R.M. 121-2011-TR (los códigos van como TEXTO, conserva los ceros)'],[]];
+  const bloques=[['TIPO_DOC',[['01','DNI'],['04','CARNÉ EXTRANJERÍA'],['07','PASAPORTE'],['09','CARNÉ SOLIC. REFUGIO'],['22','CARNÉ IDENTIDAD RR.EE.'],['23','CARNÉ PTP'],['24','DOC. IDENTIDAD EXTRANJERO']]],
+    ['SEXO',[['1','MASCULINO'],['2','FEMENINO']]],
+    ['TIPO_TRABAJADOR (T8)',T8_TT], ['REGIMEN_LABORAL (T33)',T33_REGLAB], ['TIPO_CONTRATO (T12)',T12_CONTRATO],
+    ['PERIODICIDAD (T13)',T13_PERIOD], ['SITUACION_EDUCATIVA (T9)',T9_SITEDUC], ['TIPO_PAGO (T16)',T16_PAGO],
+    ['SITUACION_ESPECIAL (T35)',T35_SITESP], ['CATEGORIA_OCUPACIONAL (T24)',[['01','EJECUTIVO'],['02','OBRERO'],['03','EMPLEADO']]],
+    ['REGIMEN_SALUD (T32)',T32_RSALUD], ['EPS (T14)',T14_EPS], ['REGIMEN_PENSIONARIO (T11)',T11_RPENS],
+    ['SCTR (1=EsSalud/ONP, 2=EPS/Privado)',[['1','ESSALUD / ONP'],['2','EPS / CÍA PRIVADA']]],
+    ['MOTIVO_BAJA (T17)',T17_MOTIVO], ['BANCO (T36)',T36_BANCO], ['CONVENIO_DOBLE_TRIB (T25)',T25_CONV]];
+  for(const [titulo, tabla] of bloques){
+    filas.push([titulo]);
+    tabla.forEach(([c,n])=>filas.push([c,n]));
+    filas.push([]);
+  }
+  filas.push(['OCUPACION (T30): 4,644 códigos — usa el autocompletado de la web o consulta:']);
+  filas.push(['https://orientacion.sunat.gob.pe/7086-12-tablas-parametricas']);
+  return filas;
+}
+
+$('btn-plantilla-alta').addEventListener('click', ()=>{
+  const wb=XLSX.utils.book_new();
+  const ejemplo=['01','03300605','','12/12/1990','LOPEZ','GARCIA','JUAN CARLOS','1','','987654321','jlopez@harmoni.pe',
+    '01/08/2026','21','01','03','1500.00','1','07','421002','0','0','1','0','0','0','2','','0','0001',
+    '00','','02','','','','','','','','002','19412345678901'];
+  const ws=XLSX.utils.aoa_to_sheet([COLS_ALTA, ejemplo]);
+  ws['!cols']=COLS_ALTA.map(c=>({wch:Math.max(c.length+2,12)}));
+  XLSX.utils.book_append_sheet(wb, ws, 'ALTA');
+  const wsG=XLSX.utils.aoa_to_sheet([
+    ['PLANTILLA DE ALTAS — T-REGISTRO (generador Harmoni)'],[],
+    ['1. Llena una fila por trabajador en la hoja ALTA (la fila 2 es un ejemplo: bórrala).'],
+    ['2. Fechas en formato dd/mm/aaaa. Códigos como TEXTO (conserva ceros a la izquierda).'],
+    ['3. Columnas obligatorias: TIPO_DOC, NRO_DOC, FECHA_NACIMIENTO, apellido(s), NOMBRES, SEXO, CELULAR, CORREO,'],
+    ['   FECHA_INICIO, TIPO_TRABAJADOR, REGIMEN_LABORAL, TIPO_CONTRATO, REMUNERACION, PERIODICIDAD,'],
+    ['   SITUACION_EDUCATIVA, OCUPACION, DISCAPACIDAD, SINDICALIZADO, JORNADA_MAXIMA, HORARIO_NOCTURNO,'],
+    ['   TIPO_PAGO, REGIMEN_SALUD, REGIMEN_PENSIONARIO.'],
+    ['4. PAIS_EMISOR solo para Pasaporte (07) y Doc. Extranjero (24). NACIONALIDAD para todo doc. extranjero.'],
+    ['5. EPS solo si REGIMEN_SALUD es 01 o 03. CUSPP solo si ya está afiliado a AFP.'],
+    ['6. EDU_* solo si SITUACION_EDUCATIVA es 11 o 13 a 21. BANCO/CUENTA solo si TIPO_PAGO = 2.'],
+    ['7. ESTABLECIMIENTO vacío = usa el principal indicado en la web.'],
+    ['8. Importa este archivo en harmoni.pe/altasmasivas y genera los archivos para el PVS T-Registro.'],
+  ]);
+  wsG['!cols']=[{wch:110}];
+  XLSX.utils.book_append_sheet(wb, wsG, 'Guía');
+  const wsC=XLSX.utils.aoa_to_sheet(hojaCodigos());
+  wsC['!cols']=[{wch:14},{wch:60}];
+  XLSX.utils.book_append_sheet(wb, wsC, 'Códigos');
+  XLSX.writeFile(wb, 'Plantilla_TRegistro_Altas.xlsx');
+});
+
+$('btn-plantilla-baja').addEventListener('click', ()=>{
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([COLS_BAJA, ['01','03300605','','JUAN CARLOS LOPEZ GARCIA','31/07/2026','01']]);
+  ws['!cols']=COLS_BAJA.map(c=>({wch:Math.max(c.length+2,14)}));
+  XLSX.utils.book_append_sheet(wb, ws, 'BAJA');
+  const wsC=XLSX.utils.aoa_to_sheet([['MOTIVO_BAJA (Tabla 17)'],[], ...T17_MOTIVO.map(([c,n])=>[c,n]),[],
+    ['FECHA_FIN en formato dd/mm/aaaa. La fila 2 es un ejemplo: bórrala.']]);
+  wsC['!cols']=[{wch:14},{wch:60}];
+  XLSX.utils.book_append_sheet(wb, wsC, 'Códigos');
+  XLSX.writeFile(wb, 'Plantilla_TRegistro_Bajas.xlsx');
+});
+
+/* ═══════════════════════ EXCEL: IMPORTACIÓN ═══════════════════════ */
+function celda(v){
+  if(v==null) return '';
+  if(v instanceof Date){
+    const d=String(v.getDate()).padStart(2,'0'), m=String(v.getMonth()+1).padStart(2,'0');
+    return `${d}/${m}/${v.getFullYear()}`;
+  }
+  return String(v).trim();
+}
+function fechaAiso(s){
+  s=celda(s);
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  const m2=s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m2) return s;
+  return '';
+}
+function pad(s,n){ s=celda(s); return (s && /^\d+$/.test(s)) ? s.padStart(n,'0') : s; }
+
+$('input-excel').addEventListener('change', async (ev)=>{
+  const file=ev.target.files[0]; if(!file) return;
+  ev.target.value='';
+  const buf=await file.arrayBuffer();
+  const wb=XLSX.read(buf,{cellDates:true});
+  const rep=$('import-report');
+  const errs=[]; let ok=0;
+  const hojaAlta=wb.SheetNames.find(n=>n.trim().toUpperCase()==='ALTA');
+  const hojaBaja=wb.SheetNames.find(n=>n.trim().toUpperCase()==='BAJA');
+  if(!hojaAlta && !hojaBaja){
+    rep.style.display=''; rep.innerHTML='<div class="alert alert-danger py-2" style="font-size:.83rem;">El Excel no tiene hoja <strong>ALTA</strong> ni <strong>BAJA</strong>. Descarga la plantilla y úsala como base.</div>';
+    return;
+  }
+  if(hojaAlta){
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[hojaAlta], {header:1, defval:''});
+    const head=rows[0].map(h=>celda(h).toUpperCase());
+    const idx=n=>head.indexOf(n);
+    for(let r=1;r<rows.length;r++){
+      const row=rows[r];
+      if(!row.some(v=>celda(v)!=='')) continue;
+      const g=n=>{ const i=idx(n); return i>=0?celda(row[i]):''; };
+      const tipodoc=pad(g('TIPO_DOC'),2)||'01';
+      const numdoc=g('NRO_DOC');
+      const fila=r+1;
+      // Ejemplo de la plantilla sin modificar → saltarlo
+      if(numdoc==='03300605' && g('CORREO')==='jlopez@harmoni.pe'){ continue; }
+      const d={
+        tipodoc, numdoc, paisemisor:pad(g('PAIS_EMISOR'),3),
+        fnac:fechaAiso(g('FECHA_NACIMIENTO')),
+        appat:up(g('APELLIDO_PATERNO')), apmat:up(g('APELLIDO_MATERNO')), nombres:up(g('NOMBRES')),
+        sexo:celda(g('SEXO'))||'1', nacionalidad:pad(g('NACIONALIDAD'),4),
+        celular:g('CELULAR'), correo:g('CORREO').toLowerCase(),
+        dir:{tipovia:'',nombrevia:'',numero:'',tipozona:'',nombrezona:'',ref:'',ubigeo:''},
+        fini:fechaAiso(g('FECHA_INICIO')),
+        tt:pad(g('TIPO_TRABAJADOR'),2)||'21', reglab:pad(g('REGIMEN_LABORAL'),2)||'01',
+        contrato:pad(g('TIPO_CONTRATO'),2)||'01', remun:g('REMUNERACION').replace(',',''),
+        period:celda(g('PERIODICIDAD'))||'1', siteduc:pad(g('SITUACION_EDUCATIVA'),2)||'07',
+        ocup:pad(g('OCUPACION'),6), discap:celda(g('DISCAPACIDAD'))||'0', sindic:celda(g('SINDICALIZADO'))||'0',
+        jorn_max:celda(g('JORNADA_MAXIMA'))||'1', hor_noct:celda(g('HORARIO_NOCTURNO'))||'0',
+        jorn_acum:celda(g('REGIMEN_ACUMULATIVO'))||'0', sitesp:celda(g('SITUACION_ESPECIAL'))||'0',
+        tipopago:celda(g('TIPO_PAGO'))||'1', catocup:pad(g('CATEGORIA_OCUPACIONAL'),2),
+        convenio:celda(g('CONVENIO_DOBLE_TRIB'))||'0',
+        estab:pad(g('ESTABLECIMIENTO'),4)||$('emp_estab').value.trim(),
+        rsalud:pad(g('REGIMEN_SALUD'),2)||'00', eps:celda(g('EPS')),
+        rpens:pad(g('REGIMEN_PENSIONARIO'),2)||'02', cuspp:g('CUSPP'),
+        sctr_salud:celda(g('SCTR_SALUD')), sctr_pens:celda(g('SCTR_PENSION')),
+        edu:null, banco:pad(g('BANCO'),3), cuenta:g('CUENTA').replace(/\D/g,'')
+      };
+      if(!RSALUD_CON_EPS.includes(d.rsalud)) d.eps='';
+      if(!AFP_CODES.includes(d.rpens)) d.cuspp='';
+      if(EDU_CON_E29.includes(d.siteduc)){
+        d.edu={peru:celda(g('EDU_PERU'))||'1', inst:g('EDU_INSTITUCION'), carrera:g('EDU_CARRERA'), anio:celda(g('EDU_ANIO'))};
+      }
+      // Validación por fila (mismas reglas que el formulario)
+      const ferr=[];
+      const edoc=validarDoc(d.tipodoc,d.numdoc); if(edoc)ferr.push(edoc);
+      if(!d.fnac)ferr.push('fecha de nacimiento inválida');
+      if(!d.appat && !d.apmat)ferr.push('falta apellido');
+      if(!d.nombres)ferr.push('faltan nombres');
+      const ec=validarCelular(d.celular); if(ec)ferr.push('celular inválido');
+      const em=validarCorreoSunat(d.correo); if(em)ferr.push('correo inválido');
+      if(!d.fini)ferr.push('fecha de inicio inválida');
+      if(d.remun===''||isNaN(+d.remun))ferr.push('remuneración inválida');
+      if(!/^\d{6}$/.test(d.ocup))ferr.push('ocupación debe ser código de 6 dígitos (T30)');
+      if(!/^\d{4}$/.test(d.estab))ferr.push('establecimiento inválido');
+      if(DOCS_CON_PAIS.includes(d.tipodoc) && !/^\d{3}$/.test(d.paisemisor))ferr.push('falta país emisor');
+      if(DOCS_EXTRANJERO.includes(d.tipodoc) && !/^\d{4}$/.test(d.nacionalidad))ferr.push('falta nacionalidad');
+      if(d.tipodoc!=='01')ferr.push('documento distinto a DNI: agrega la dirección desde el formulario web (edítalo tras importar)');
+      if(!TT_SIN_CATOCUP.includes(d.tt) && !d.catocup)ferr.push('falta categoría ocupacional (T24)');
+      if(RSALUD_CON_EPS.includes(d.rsalud) && !d.eps)ferr.push('falta EPS');
+      if(d.tipopago==='2' && (!d.banco||!d.cuenta))ferr.push('tipo de pago 2 exige banco y cuenta');
+      if(d.banco && d.cuenta){ const e2=validarCuenta(d.banco,d.cuenta); if(e2)ferr.push('cuenta: '+e2.toLowerCase()); }
+      if(d.edu && d.edu.peru==='1' && (!d.edu.inst||!d.edu.carrera||!/^\d{4}$/.test(d.edu.anio)))ferr.push('faltan datos de estudios concluidos (EDU_*)');
+      if(ferr.length){ errs.push(`Fila ${fila} (${numdoc||'sin doc'}): ${ferr.join('; ')}`); continue; }
+      items.push({op:'alta', data:d}); ok++;
+    }
+  }
+  if(hojaBaja){
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[hojaBaja], {header:1, defval:''});
+    const head=rows[0].map(h=>celda(h).toUpperCase());
+    const idx=n=>head.indexOf(n);
+    for(let r=1;r<rows.length;r++){
+      const row=rows[r];
+      if(!row.some(v=>celda(v)!=='')) continue;
+      const g=n=>{ const i=idx(n); return i>=0?celda(row[i]):''; };
+      const numdoc=g('NRO_DOC'); const fila=r+1;
+      if(numdoc==='03300605' && g('NOMBRE_REFERENCIA')==='JUAN CARLOS LOPEZ GARCIA'){ continue; }
+      const d={ tipodoc:pad(g('TIPO_DOC'),2)||'01', numdoc, paisemisor:pad(g('PAIS_EMISOR'),3),
+        nombre:up(g('NOMBRE_REFERENCIA')), ffin:fechaAiso(g('FECHA_FIN')), motivo:pad(g('MOTIVO_BAJA'),2) };
+      const ferr=[];
+      const edoc=validarDoc(d.tipodoc,d.numdoc); if(edoc)ferr.push(edoc);
+      if(!d.ffin)ferr.push('fecha de fin inválida');
+      if(!T17_MOTIVO.some(x=>x[0]===d.motivo))ferr.push('motivo de baja inválido (T17)');
+      if(DOCS_CON_PAIS.includes(d.tipodoc) && !/^\d{3}$/.test(d.paisemisor))ferr.push('falta país emisor');
+      if(ferr.length){ errs.push(`Fila ${fila} (${numdoc||'sin doc'}): ${ferr.join('; ')}`); continue; }
+      items.push({op:'baja', data:d}); ok++;
+    }
+  }
+  guardarLS(); renderCola();
+  rep.style.display='';
+  rep.innerHTML = `<div class="alert ${errs.length?'alert-warning':'alert-success'} py-2 mb-0" style="font-size:.83rem;">
+    <strong>${ok}</strong> registro(s) importados correctamente.
+    ${errs.length?`<br><strong>${errs.length} fila(s) con errores (no importadas):</strong><br>${errs.slice(0,20).join('<br>')}${errs.length>20?'<br>…':''}`:''}
+  </div>`;
+});
+
+/* ═══════════════════════ ARRANQUE ═══════════════════════ */
+cargarLS();
+renderCola();
+$('a_fini').value=hoyISO();
+$('a_estab').value=$('emp_estab').value||'0001';
+</script>
+</body>
+</html>
