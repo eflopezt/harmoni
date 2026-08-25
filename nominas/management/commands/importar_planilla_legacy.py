@@ -373,7 +373,7 @@ class Command(BaseCommand):
                             "grupo": personal.grupo_tareo or "",
                             "regimen_pension": personal.regimen_pension or "AFP",
                             "afp": personal.afp or "",
-                            "estado": "CERRADO",
+                            "estado": "APROBADO",
                         },
                     )
 
