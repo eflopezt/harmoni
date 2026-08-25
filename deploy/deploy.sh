@@ -63,7 +63,6 @@ ssh_vps "rm -f $LOG && nohup bash -c '
   docker compose -f $COMPOSE build web
   docker compose -f $COMPOSE run --rm web python manage.py migrate --noinput
   docker compose -f $COMPOSE run --rm -v /opt/harmoni/staticfiles:/app/staticfiles web python manage.py collectstatic --noinput
-  chmod -R 777 /opt/harmoni/staticfiles || true
   docker compose -f $COMPOSE up -d --force-recreate
   echo DEPLOY_OK
 ' > $LOG 2>&1 & echo '  ✓ build lanzado'"

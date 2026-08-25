@@ -6,6 +6,7 @@
 
 services:
   web:
+    image: harmoni-app:latest
     build:
       context: ..
       dockerfile: Dockerfile
@@ -41,9 +42,7 @@ services:
         --log-level warning
 
   celery:
-    build:
-      context: ..
-      dockerfile: Dockerfile
+    image: harmoni-app:latest
     container_name: harmoni-celery
     restart: unless-stopped
     env_file: .env.production
@@ -74,9 +73,7 @@ services:
         condition: service_healthy
 
   celery-beat:
-    build:
-      context: ..
-      dockerfile: Dockerfile
+    image: harmoni-app:latest
     container_name: harmoni-beat
     restart: unless-stopped
     env_file: .env.production

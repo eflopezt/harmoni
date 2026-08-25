@@ -50,7 +50,6 @@ COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml bu
 COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml run --rm web python manage.py migrate --noinput 2>&1 | tail -5
 COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml run --rm \
   -v /opt/harmoni/staticfiles:/app/staticfiles web python manage.py collectstatic --noinput 2>&1 | tail -1
-chmod -R 777 /opt/harmoni/staticfiles
 COMPOSE_PROJECT_NAME=harmoni docker compose -f deploy/docker-compose.prod.yml up -d --force-recreate 2>&1 | grep -E 'Started|Healthy'
 REMOTE
 
