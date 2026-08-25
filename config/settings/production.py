@@ -14,8 +14,9 @@ if not SECRET_KEY or SECRET_KEY.startswith('django-insecure'):
 
 ALLOWED_HOSTS = [host for host in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if host]
 
-# Siempre permitir plataformas de deploy y wildcard subdomains for multi-tenant
-for host in ['.onrender.com', '.harmoni.pe', '.nexotalent.pe']:
+# Loopback es necesario para health checks internos de Docker y del proxy.
+# Siempre permitir plataformas de deploy y wildcard subdomains for multi-tenant.
+for host in ['127.0.0.1', 'localhost', '.onrender.com', '.harmoni.pe', '.nexotalent.pe']:
     if host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(host)
 
