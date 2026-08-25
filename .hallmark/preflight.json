@@ -1,0 +1,14 @@
+{
+  "date": "2026-08-24",
+  "font_stack": "Inter and JetBrains Mono loaded in templates/landing.html",
+  "palette": "Deep teal, teal, mint and amber inline tokens",
+  "motion": "Scroll reveal, section dots and fixed navigation",
+  "spacing": "Inline pixel and clamp values without a named scale",
+  "framework": "Django template with standalone CSS and vanilla JavaScript",
+  "preserve": [
+    "Harmoni deep teal and amber identity",
+    "SEO, Open Graph and SoftwareApplication structured data",
+    "login route and WhatsApp sales links",
+    "published plan names, prices and FAQ conditions"
+  ]
+}
