@@ -12,5 +12,19 @@
     "slop_test": "pass: no gradients, decorative orbs, fake browser chrome, nested cards, excessive rounding or negative tracking",
     "responsive": "pass: 320, 375, 414, 768, 1024, 1280, 1440 and 1920 px; no overflow or clipped text; next section visible",
     "contrast": "pass: 196 rendered text pairs checked; minimum ratio 5.30:1; zero WCAG AA failures"
+  },
+  {
+    "date": "2026-08-25",
+    "macrostructure": "Operational proof + compact lifecycle",
+    "theme": "custom Harmoni brand",
+    "theme_axes": "light / rounded-sans / deep-green + amber",
+    "vibe": "capable, dense, local, operational",
+    "enrichment": "brand artwork and clearly labelled illustrative work queue",
+    "nav": "N10 Floating on scroll morph",
+    "footer": "Ft2 Inline single line",
+    "brief": "Harmoni landing density and responsive correction",
+    "slop_test": "pass: no gradients, fake metrics, decorative filler, tiny product captures, oversized blank bands or nested cards",
+    "responsive": "pass at 320, 375, 414, 768 and 1440 px; zero horizontal overflow; next band visible in the first viewport",
+    "contrast": "pass: existing verified brand tokens preserved"
   }
 ]

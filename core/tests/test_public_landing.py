@@ -12,6 +12,9 @@ class PublicLandingTests(TestCase):
         self.assertContains(self.response, '0.0 · PREPARA')
         self.assertContains(self.response, '3.0 · DECIDE')
         self.assertContains(self.response, 'images/brand/png/harmoni-mark-512.png')
+        self.assertContains(self.response, 'Centro de control')
+        self.assertContains(self.response, 'hm-flow-board')
+        self.assertNotContains(self.response, 'hm-stage__evidence')
         self.assertNotContains(self.response, 'img/landing-hallmark/')
 
     def test_public_landing_keeps_conversion_and_login(self):

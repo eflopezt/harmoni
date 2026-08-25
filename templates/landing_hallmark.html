@@ -71,29 +71,46 @@
 
   <main id="contenido">
     <section class="hm-hero" id="inicio" aria-labelledby="hero-title">
-      <div class="hm-shell hm-hero__intro">
-        <p class="hm-label">ERP de RRHH y planillas para el Perú</p>
-        <h1 id="hero-title">Harmoni</h1>
-        <p class="hm-hero__statement">Asistencia, aprobaciones, nómina, boletas y liquidaciones dentro del mismo flujo.</p>
-        <div class="hm-hero__actions">
-          <a class="hm-button hm-button--amber" href="https://wa.me/51977538028?text=Hola%2C%20quiero%20una%20demo%20de%20Harmoni" target="_blank" rel="noopener">Ver una demo guiada</a>
-          <a class="hm-button hm-button--light" href="#flujo">Recorrer el flujo</a>
+      <div class="hm-shell hm-hero__layout">
+        <div class="hm-hero__intro">
+          <p class="hm-label">ERP de RRHH y planillas para el Perú</p>
+          <h1 id="hero-title">Harmoni</h1>
+          <p class="hm-hero__statement">Asistencia, aprobaciones, nómina, boletas y liquidaciones dentro del mismo flujo.</p>
+          <div class="hm-hero__actions">
+            <a class="hm-button hm-button--amber" href="https://wa.me/51977538028?text=Hola%2C%20quiero%20una%20demo%20de%20Harmoni" target="_blank" rel="noopener">Ver una demo guiada</a>
+            <a class="hm-button hm-button--light" href="#flujo">Recorrer el flujo</a>
+          </div>
+          <p class="hm-hero__note">Demo en español. Sin tarjeta.</p>
         </div>
-        <p class="hm-hero__note">Demo en español. Sin tarjeta.</p>
+
+        <figure class="hm-operations" aria-label="Vista ilustrativa del flujo operativo de Harmoni">
+          <header class="hm-operations__bar">
+            <div><img src="{% static 'images/brand/png/harmoni-mark-512.png' %}" alt="" width="36" height="36" fetchpriority="high"><strong>Centro de control</strong></div>
+            <span>Vista ilustrativa</span>
+          </header>
+          <div class="hm-operations__headline">
+            <div><span>Periodo actual</span><strong>Operación por cerrar</strong></div>
+            <b>3 acciones</b>
+          </div>
+          <ol class="hm-operations__queue">
+            <li><span>01</span><div><strong>Asistencia</strong><small>Revisar incidencias y aprobar tareo</small></div><b>Atención</b></li>
+            <li><span>02</span><div><strong>Nómina</strong><small>Validar cálculo y variaciones</small></div><b>En curso</b></li>
+            <li><span>03</span><div><strong>Documentos</strong><small>Emitir boletas después de aprobar</small></div><b>Próximo</b></li>
+          </ol>
+          <figcaption>La información pasa de una etapa a la siguiente sin volver a capturarse.</figcaption>
+        </figure>
       </div>
-      <figure class="hm-hero__map" aria-label="Flujo conectado de Harmoni">
-        <div class="hm-hero__mark">
-          <img src="{% static 'images/brand/png/harmoni-mark-512.png' %}" alt="" width="160" height="160" fetchpriority="high">
-          <span>Un dato.<br>Todo el ciclo.</span>
+      <div class="hm-hero__map" aria-label="Flujo conectado de Harmoni">
+        <div class="hm-shell hm-hero__map-inner">
+          <strong>Un dato. Todo el ciclo.</strong>
+          <ol class="hm-hero__chain">
+            <li><span>01</span>Personas</li>
+            <li><span>02</span>Asistencia</li>
+            <li><span>03</span>Nómina</li>
+            <li><span>04</span>Decisiones</li>
+          </ol>
         </div>
-        <ol class="hm-hero__chain">
-          <li><span>01</span>Personas</li>
-          <li><span>02</span>Asistencia</li>
-          <li><span>03</span>Nómina</li>
-          <li><span>04</span>Decisiones</li>
-        </ol>
-        <figcaption>El dato avanza. La trazabilidad permanece.</figcaption>
-      </figure>
+      </div>
     </section>
 
     <nav class="hm-flow-index" aria-label="Etapas del flujo Harmoni">
@@ -111,98 +128,35 @@
         <h2 id="flujo-title">El trabajo de RRHH cambia de pantalla. El dato no se vuelve a perder.</h2>
         <p>Harmoni acompaña al colaborador desde la configuración inicial hasta el análisis de la operación. Cada etapa deja información lista para la siguiente.</p>
       </div>
-
-      <article class="hm-stage" id="etapa-0">
-        <div class="hm-shell">
-          <header class="hm-stage__intro">
-            <p class="hm-stage__number">0.0 · PREPARA</p>
-            <h2>Personas, contratos y reglas antes del primer cálculo.</h2>
-            <p>Configura empresas, perfiles, permisos, contratos, conceptos y tasas. El tablero muestra alertas y próximos pasos sin depender de una hoja paralela.</p>
-          </header>
-          <figure class="hm-stage__evidence">
-            <figcaption>Base operativa lista</figcaption>
-            <ol>
-              <li><span>01</span><strong>Registra</strong><small>Empresa, sede y colaborador</small></li>
-              <li><span>02</span><strong>Configura</strong><small>Contrato, rol y conceptos</small></li>
-              <li><span>03</span><strong>Activa</strong><small>Alertas y responsables</small></li>
-            </ol>
-          </figure>
-          <dl class="hm-stage__facts">
-            <div><dt>Entrada</dt><dd>Personal, contratos, roles y catálogos.</dd></div>
-            <div><dt>Control</dt><dd>Alertas de vencimiento y tareas pendientes.</dd></div>
-            <div><dt>Salida</dt><dd>Una base lista para asistencia y nómina.</dd></div>
-          </dl>
-        </div>
-      </article>
-
-      <article class="hm-stage hm-stage--paper" id="etapa-1">
-        <div class="hm-shell">
-          <header class="hm-stage__intro">
-            <p class="hm-stage__number">1.0 · OPERA</p>
-            <h2>La asistencia se convierte en información utilizable.</h2>
-            <p>Importa marcaciones, revisa roster, papeletas, horas extra y banco de horas. La operación diaria queda conectada con las aprobaciones y el cierre mensual.</p>
-          </header>
-          <figure class="hm-stage__evidence">
-            <figcaption>Operación diaria conectada</figcaption>
-            <ol>
-              <li><span>01</span><strong>Recibe</strong><small>Marcaciones, roster y solicitudes</small></li>
-              <li><span>02</span><strong>Revisa</strong><small>Faltas, permisos y horas extra</small></li>
-              <li><span>03</span><strong>Aprueba</strong><small>Tareo del periodo</small></li>
-            </ol>
-          </figure>
-          <dl class="hm-stage__facts">
-            <div><dt>Entrada</dt><dd>Reloj biométrico, roster y solicitudes.</dd></div>
-            <div><dt>Control</dt><dd>Faltas, permisos, HE y banco de horas.</dd></div>
-            <div><dt>Salida</dt><dd>Tareo validado para el periodo.</dd></div>
-          </dl>
-        </div>
-      </article>
-
-      <article class="hm-stage hm-stage--warm" id="etapa-2">
-        <div class="hm-shell">
-          <header class="hm-stage__intro">
-            <p class="hm-stage__number">2.0 · CIERRA</p>
-            <h2>La nómina parte de datos revisados, no de memoria.</h2>
-            <p>Gestiona periodos, conceptos, IR de quinta, reintegros, gratificaciones, liquidaciones y boletas. Cada cierre conserva estados y comparativos.</p>
-          </header>
-          <figure class="hm-stage__evidence">
-            <figcaption>Cierre con control</figcaption>
-            <ol>
-              <li><span>01</span><strong>Calcula</strong><small>Haberes, descuentos y aportes</small></li>
-              <li><span>02</span><strong>Compara</strong><small>Variaciones y observaciones</small></li>
-              <li><span>03</span><strong>Emite</strong><small>Boletas y archivos legales</small></li>
-            </ol>
-          </figure>
-          <dl class="hm-stage__facts">
-            <div><dt>Entrada</dt><dd>Tareo, incidencias y conceptos del periodo.</dd></div>
-            <div><dt>Control</dt><dd>Validaciones, comparativos y aprobación.</dd></div>
-            <div><dt>Salida</dt><dd>Boletas y archivos legales de cierre.</dd></div>
-          </dl>
-        </div>
-      </article>
-
-      <article class="hm-stage hm-stage--ink" id="etapa-3">
-        <div class="hm-shell">
-          <header class="hm-stage__intro">
-            <p class="hm-stage__number">3.0 · DECIDE</p>
-            <h2>La dirección ve la operación completa, no reportes aislados.</h2>
-            <p>Headcount, nómina, reclutamiento, alertas y cumplimiento se reúnen en una lectura ejecutiva con trazabilidad hacia el dato de origen.</p>
-          </header>
-          <figure class="hm-stage__evidence">
-            <figcaption>Lectura ejecutiva trazable</figcaption>
-            <ol>
-              <li><span>01</span><strong>Observa</strong><small>Headcount, costo y cumplimiento</small></li>
-              <li><span>02</span><strong>Investiga</strong><small>Alertas y variaciones</small></li>
-              <li><span>03</span><strong>Decide</strong><small>Con evidencia de origen</small></li>
-            </ol>
-          </figure>
-          <dl class="hm-stage__facts">
-            <div><dt>Lectura</dt><dd>Personal, costos y alertas urgentes.</dd></div>
-            <div><dt>Contexto</dt><dd>Operación, talento y cumplimiento.</dd></div>
-            <div><dt>Acción</dt><dd>Decisiones con evidencia verificable.</dd></div>
-          </dl>
-        </div>
-      </article>
+      <div class="hm-shell hm-flow-board">
+        <article id="etapa-0">
+          <p class="hm-stage__number">0.0 · PREPARA</p>
+          <h3>Personas y reglas</h3>
+          <p>Empresas, contratos, roles, conceptos y alertas listos antes de operar.</p>
+          <dl><div><dt>Entrada</dt><dd>Datos maestros</dd></div><div><dt>Salida</dt><dd>Base operativa</dd></div></dl>
+        </article>
+        <article id="etapa-1">
+          <p class="hm-stage__number">1.0 · OPERA</p>
+          <h3>Asistencia aprobada</h3>
+          <p>Marcaciones, roster, permisos, horas extra y tareo en el mismo control.</p>
+          <dl><div><dt>Entrada</dt><dd>Operación diaria</dd></div><div><dt>Salida</dt><dd>Tareo validado</dd></div></dl>
+        </article>
+        <article id="etapa-2">
+          <p class="hm-stage__number">2.0 · CIERRA</p>
+          <h3>Nómina verificable</h3>
+          <p>Haberes, descuentos, aportes, variaciones, boletas y archivos legales.</p>
+          <dl><div><dt>Entrada</dt><dd>Incidencias</dd></div><div><dt>Salida</dt><dd>Cierre emitido</dd></div></dl>
+        </article>
+        <article id="etapa-3">
+          <p class="hm-stage__number">3.0 · DECIDE</p>
+          <h3>Lectura ejecutiva</h3>
+          <p>Headcount, costo, talento, alertas y cumplimiento con evidencia de origen.</p>
+          <dl><div><dt>Entrada</dt><dd>Operación cerrada</dd></div><div><dt>Salida</dt><dd>Decisiones</dd></div></dl>
+        </article>
+      </div>
+      <div class="hm-shell hm-handoff" aria-label="Conexión entre las etapas">
+        <span>Personal configurado</span><i aria-hidden="true"></i><span>Tareo aprobado</span><i aria-hidden="true"></i><span>Nómina cerrada</span><i aria-hidden="true"></i><span>Dirección informada</span>
+      </div>
     </section>
 
     <section class="hm-section" id="capacidades" aria-labelledby="capacidades-title">
