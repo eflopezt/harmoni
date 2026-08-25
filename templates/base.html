@@ -299,6 +299,11 @@
                     <a href="{% url 'control_tower' %}" class="nav-item" data-match="^/personal/control-tower">
                         <i class="fas fa-satellite-dish"></i><span>Control Tower</span>
                     </a>
+                    {% if mod_analytics or user.is_superuser %}
+                    <a href="{% url 'data_quality_center' %}" class="nav-item" data-match="^/calidad-datos">
+                        <i class="fas fa-list-check"></i><span>Saneamiento</span>
+                    </a>
+                    {% endif %}
                     <a href="{% url 'personal_list' %}" class="nav-item" data-match="^/personal/$">
                         <i class="fas fa-users"></i><span>Empleados</span>
                     </a>

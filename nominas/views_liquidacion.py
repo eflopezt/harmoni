@@ -28,9 +28,20 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from personal.models import Personal
+from personal.permissions import filtrar_personal_por_request
 from .models import PeriodoNomina, RegistroNomina
 
 logger = logging.getLogger(__name__)
+
+
+def _personal_scope(request):
+    """Personal visible en la empresa activa o consolidado autorizado."""
+    return filtrar_personal_por_request(request)
+
+
+def _liquidacion_scope(request):
+    from .models import LiquidacionLaboral
+    return LiquidacionLaboral.objects.filter(personal__in=_personal_scope(request))
 
 # ── constantes (fallbacks — se sobreescriben con snapshot del período) ───────
 RMV        = Decimal('1130.00')
@@ -224,8 +235,9 @@ def liquidaciones_panel(request):
     """
     from nominas.models import LiquidacionLaboral
 
+    personal_scope = _personal_scope(request)
     liquidaciones = (
-        LiquidacionLaboral.objects
+        _liquidacion_scope(request)
         .select_related('personal', 'personal__subarea__area')
         .order_by('-fecha_cese')
     )
@@ -235,7 +247,7 @@ def liquidaciones_panel(request):
 
     con_liq_ids = {l.personal_id for l in liquidaciones}
     sin_liquidacion = list(
-        Personal.objects.filter(
+        personal_scope.filter(
             estado='Cesado', fecha_cese__isnull=False,
         ).exclude(pk__in=con_liq_ids)
         .select_related('subarea__area')
@@ -244,8 +256,8 @@ def liquidaciones_panel(request):
 
     # Períodos de liquidación recientes (histórico del flujo viejo)
     periodos_liq = PeriodoNomina.objects.filter(
-        tipo='LIQUIDACION'
-    ).order_by('-fecha_pago')[:20]
+        tipo='LIQUIDACION', registros__personal__in=personal_scope,
+    ).distinct().order_by('-fecha_pago')[:20]
 
     return render(request, 'nominas/liquidaciones_panel.html', {
         'titulo':          'Liquidaciones al Cese',
@@ -259,7 +271,7 @@ def liquidaciones_panel(request):
 @login_required
 def liquidacion_detalle(request, pk):
     """Vista detalle + preview de liquidación para un empleado cesado."""
-    personal = get_object_or_404(Personal, pk=pk, estado='Cesado')
+    personal = get_object_or_404(_personal_scope(request), pk=pk, estado='Cesado')
     liq      = _calcular_liquidacion(personal)
 
     # ¿Ya existe liquidación generada?
@@ -283,7 +295,7 @@ def liquidacion_generar(request, pk):
     Crea PeriodoNomina(tipo='LIQUIDACION') + RegistroNomina con los montos calculados.
     Idempotente: si ya existe, muestra mensaje y redirige.
     """
-    personal = get_object_or_404(Personal, pk=pk, estado='Cesado')
+    personal = get_object_or_404(_personal_scope(request), pk=pk, estado='Cesado')
 
     # Verificar si ya existe
     if RegistroNomina.objects.filter(personal=personal, periodo__tipo='LIQUIDACION').exists():
@@ -299,6 +311,7 @@ def liquidacion_generar(request, pk):
             tipo=  'LIQUIDACION',
             anio=  fecha_cese.year,
             mes=   fecha_cese.month,
+            empresa=personal.empresa,
             defaults={
                 'descripcion': f'Liquidaciones {fecha_cese:%m/%Y}',
                 'fecha_inicio': date(fecha_cese.year, fecha_cese.month, 1),
@@ -361,7 +374,7 @@ def liquidacion_pdf(request, pk):
     Genera PDF de la boleta de liquidación al cese.
     Usa WeasyPrint si disponible; fallback: HTML con cabecera de descarga.
     """
-    personal = get_object_or_404(Personal, pk=pk, estado='Cesado')
+    personal = get_object_or_404(_personal_scope(request), pk=pk, estado='Cesado')
     liq      = _calcular_liquidacion(personal)
 
     # Empresa
@@ -420,7 +433,7 @@ def api_liquidacion(request, personal_id):
     """
     from .models import LiquidacionLaboral
 
-    personal = get_object_or_404(Personal, pk=personal_id)
+    personal = get_object_or_404(_personal_scope(request), pk=personal_id)
     if personal.estado != 'Cesado':
         return JsonResponse({'error': 'no_cesado'}, status=400)
 
@@ -474,7 +487,7 @@ def liquidacion_laboral_detalle(request, liquidacion_id):
     from .models import LiquidacionLaboral
 
     liq = get_object_or_404(
-        LiquidacionLaboral.objects.select_related('personal', 'aprobada_por'),
+        _liquidacion_scope(request).select_related('personal', 'aprobada_por'),
         pk=liquidacion_id,
     )
 
@@ -547,7 +560,7 @@ def liquidacion_laboral_aprobar(request, liquidacion_id):
 
     from .models import LiquidacionLaboral
 
-    liq = get_object_or_404(LiquidacionLaboral, pk=liquidacion_id)
+    liq = get_object_or_404(_liquidacion_scope(request), pk=liquidacion_id)
 
     if liq.estado not in ('APROBADA', 'FIRMADA', 'PAGADA', 'CERRADA'):
         activos_pendientes = list(ActivoAsignado.objects.filter(
@@ -588,7 +601,7 @@ def liquidacion_laboral_pdf(request, liquidacion_id):
     """Reutiliza el generador PDF de boleta de liquidación legacy."""
     from .models import LiquidacionLaboral
 
-    liq = get_object_or_404(LiquidacionLaboral.objects.select_related('personal'),
+    liq = get_object_or_404(_liquidacion_scope(request).select_related('personal'),
                             pk=liquidacion_id)
     # Delegamos a la vista legacy con el personal.
     return liquidacion_pdf(request, pk=liq.personal_id)
@@ -610,7 +623,7 @@ def carta_no_adeudo_pdf(request, liquidacion_id):
     from .cartas import generar_carta_no_adeudo
 
     liq = get_object_or_404(
-        LiquidacionLaboral.objects.select_related('personal'),
+        _liquidacion_scope(request).select_related('personal'),
         pk=liquidacion_id,
     )
     pdf_bytes = generar_carta_no_adeudo(liq)
@@ -633,7 +646,7 @@ def certificado_trabajo_pdf(request, personal_id):
     """
     from .cartas import generar_certificado_trabajo
 
-    personal = get_object_or_404(Personal, pk=personal_id)
+    personal = get_object_or_404(_personal_scope(request), pk=personal_id)
     try:
         pdf_bytes = generar_certificado_trabajo(personal)
     except ValueError as exc:

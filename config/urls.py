@@ -191,6 +191,8 @@ urlpatterns = [
     path('tour/edo/', __import__('core.views_tour_edo', fromlist=['tour_edo']).tour_edo, name='tour_edo'),
     # Centro de Comando — dashboard ejecutivo "1 vista"
     path('comando/', __import__('core.views_centro_comando', fromlist=['centro_comando']).centro_comando, name='centro_comando'),
+    # Centro de Saneamiento — colas accionables de calidad de datos
+    path('calidad-datos/', __import__('core.views_data_quality', fromlist=['data_quality_center']).data_quality_center, name='data_quality_center'),
     # Calculadora ROI (público, sin login)
     path('roi/', __import__('core.views_roi', fromlist=['calculadora_roi']).calculadora_roi, name='calculadora_roi'),
     # Generador de Carga Masiva T-Registro SUNAT (público, sin login)

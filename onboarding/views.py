@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 
 from core.audit import log_create, log_update
 from personal.models import Personal, Area
+from personal.permissions import filtrar_personal_por_request
 from .models import (
     PlantillaOnboarding, PasoPlantilla,
     ProcesoOnboarding, PasoOnboarding,
@@ -25,6 +26,17 @@ from .models import (
 # RBAC (WS1): superuser o staff con mod_onboarding en su PerfilAcceso.
 from core.permisos import requiere_modulo
 solo_admin = requiere_modulo('onboarding')
+
+
+def _offboarding_scope(request):
+    """Procesos cuyo trabajador pertenece al alcance efectivo del request."""
+    return ProcesoOffboarding.objects.filter(
+        personal__in=filtrar_personal_por_request(request),
+    )
+
+
+def _paso_offboarding_scope(request):
+    return PasoOffboarding.objects.filter(proceso__in=_offboarding_scope(request))
 # ══════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════
@@ -471,7 +483,9 @@ def paso_plantilla_eliminar(request, tipo, pk):
 @solo_admin
 def offboarding_panel(request):
     """Panel principal de procesos de offboarding."""
-    qs = ProcesoOffboarding.objects.select_related('personal', 'plantilla', 'iniciado_por').all()
+    qs = _offboarding_scope(request).select_related(
+        'personal', 'plantilla', 'iniciado_por',
+    )
 
     estado = request.GET.get('estado', '')
     buscar = request.GET.get('q', '')
@@ -488,8 +502,9 @@ def offboarding_panel(request):
         )
 
     # Stats
-    en_curso = ProcesoOffboarding.objects.filter(estado='EN_CURSO').count()
-    completados = ProcesoOffboarding.objects.filter(estado='COMPLETADO').count()
+    base_scope = _offboarding_scope(request)
+    en_curso = base_scope.filter(estado='EN_CURSO').count()
+    completados = base_scope.filter(estado='COMPLETADO').count()
 
     context = {
         'titulo': 'Offboarding',
@@ -515,8 +530,11 @@ def offboarding_panel(request):
 def offboarding_crear(request):
     """Crear nuevo proceso de offboarding."""
     if request.method == 'POST':
+        personal = get_object_or_404(
+            filtrar_personal_por_request(request),
+            pk=request.POST.get('personal_id'),
+        )
         try:
-            personal = get_object_or_404(Personal, pk=request.POST['personal_id'])
             plantilla = get_object_or_404(PlantillaOffboarding, pk=request.POST['plantilla_id'])
             fecha_cese = date.fromisoformat(request.POST.get('fecha_cese', '') or date.today().isoformat())
 
@@ -549,7 +567,9 @@ def offboarding_crear(request):
 
     context = {
         'titulo': 'Nuevo Offboarding',
-        'personal_list': Personal.objects.filter(estado='Activo').order_by('apellidos_nombres'),
+        'personal_list': filtrar_personal_por_request(request).filter(
+            estado='Activo',
+        ).order_by('apellidos_nombres'),
         'plantillas': PlantillaOffboarding.objects.filter(activa=True),
     }
     return render(request, 'onboarding/offboarding_crear.html', context)
@@ -564,7 +584,7 @@ def offboarding_crear(request):
 def offboarding_detalle(request, pk):
     """Detalle de proceso de offboarding con checklist."""
     proceso = get_object_or_404(
-        ProcesoOffboarding.objects.select_related('personal', 'plantilla', 'iniciado_por'),
+        _offboarding_scope(request).select_related('personal', 'plantilla', 'iniciado_por'),
         pk=pk
     )
     pasos = proceso.pasos.select_related('responsable', 'completado_por').all()
@@ -586,7 +606,7 @@ def offboarding_detalle(request, pk):
 @require_POST
 def paso_off_completar(request, pk):
     """Marca un paso de offboarding como COMPLETADO (AJAX)."""
-    paso = get_object_or_404(PasoOffboarding, pk=pk)
+    paso = get_object_or_404(_paso_offboarding_scope(request), pk=pk)
     old_estado = paso.estado
     paso.estado = 'COMPLETADO'
     paso.fecha_completado = timezone.now()
@@ -633,7 +653,7 @@ def paso_off_completar(request, pk):
 @require_POST
 def paso_off_omitir(request, pk):
     """Marca un paso de offboarding como OMITIDO (AJAX)."""
-    paso = get_object_or_404(PasoOffboarding, pk=pk)
+    paso = get_object_or_404(_paso_offboarding_scope(request), pk=pk)
     old_estado = paso.estado
     paso.estado = 'OMITIDO'
     paso.comentarios = request.POST.get('comentarios', paso.comentarios)

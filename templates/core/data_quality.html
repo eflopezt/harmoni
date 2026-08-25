@@ -1,0 +1,205 @@
+{% extends "base_v2.html" %}
+{% load humanize %}
+{% block title %}Centro de Saneamiento | Harmoni{% endblock %}
+{% block extra_css %}
+<style>
+/* Hallmark · macrostructure: triage ledger · tone: operational · anchor hue: Harmoni teal
+ * Pre-emit critique: P5 H5 E4 S5 R5 V4
+ */
+.dq-shell { max-width: 1540px; margin: 0 auto; min-width: 0; color: var(--hm-slate-900); }
+.dq-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 24px 0 16px; border-bottom: 1px solid var(--hm-slate-200); }
+.dq-title { margin: 0; font-size: 1.8rem; font-weight: 800; letter-spacing: 0; overflow-wrap: anywhere; }
+.dq-subtitle { max-width: 720px; margin: 5px 0 0; color: var(--hm-slate-500); font-size: .84rem; line-height: 1.5; }
+.dq-updated { color: var(--hm-slate-500); font-family: var(--hm-font-mono); font-size: .68rem; white-space: nowrap; }
+.dq-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 16px 0 12px; border: 1px solid var(--hm-slate-200); background: var(--hm-paper); }
+.dq-stat { min-width: 0; padding: 13px 16px; border-right: 1px solid var(--hm-slate-200); }
+.dq-stat:last-child { border-right: 0; }
+.dq-stat-label { color: var(--hm-slate-500); font-size: .68rem; font-weight: 750; text-transform: uppercase; }
+.dq-stat-value { margin-top: 2px; font-family: var(--hm-font-mono); font-size: 1.3rem; font-weight: 800; }
+.dq-stat-note { color: var(--hm-slate-500); font-size: .66rem; }
+.dq-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+.dq-tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 10px; border: 1px solid var(--hm-slate-200); border-radius: var(--hm-r-sm); background: var(--hm-paper); color: var(--hm-slate-600); font-size: .73rem; font-weight: 750; text-decoration: none; white-space: nowrap; }
+.dq-tab:hover, .dq-tab:focus-visible { border-color: var(--hm-brand-500); color: var(--hm-brand-700); }
+.dq-tab:focus-visible, .dq-action:focus-visible { outline: 3px solid var(--hm-brand-200); outline-offset: 2px; }
+.dq-tab.is-active { border-color: var(--hm-brand-700); background: var(--hm-brand-700); color: var(--hm-paper); }
+.dq-tab-count { font-family: var(--hm-font-mono); font-size: .65rem; }
+.dq-section { margin: 0 0 16px; border: 1px solid var(--hm-slate-200); border-radius: var(--hm-r-md); background: var(--hm-paper); overflow: hidden; }
+.dq-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 13px 15px; border-bottom: 1px solid var(--hm-slate-200); }
+.dq-section-title { margin: 0; font-size: .86rem; font-weight: 800; }
+.dq-section-note { margin: 3px 0 0; color: var(--hm-slate-500); font-size: .7rem; line-height: 1.4; }
+.dq-severity { display: inline-flex; align-items: center; gap: 6px; color: var(--hm-slate-600); font-size: .69rem; font-weight: 750; white-space: nowrap; }
+.dq-severity::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--hm-slate-400); }
+.dq-severity.critical::before { background: var(--hm-error); }
+.dq-severity.warning::before { background: var(--hm-warning); }
+.dq-table-wrap { max-width: 100%; overflow-x: auto; }
+.dq-table { width: 100%; min-width: 840px; border-collapse: collapse; }
+.dq-table th { padding: 8px 13px; background: var(--hm-slate-50); color: var(--hm-slate-500); font-size: .65rem; font-weight: 800; text-align: left; text-transform: uppercase; }
+.dq-table td { padding: 10px 13px; border-top: 1px solid var(--hm-slate-100); font-size: .74rem; vertical-align: top; }
+.dq-name { display: block; color: var(--hm-slate-900); font-weight: 750; }
+.dq-meta { display: block; margin-top: 2px; color: var(--hm-slate-500); font-size: .66rem; }
+.dq-mono { font-family: var(--hm-font-mono); }
+.dq-issues { display: flex; flex-wrap: wrap; gap: 5px; }
+.dq-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 6px; border: 1px solid var(--hm-slate-200); border-radius: var(--hm-r-sm); color: var(--hm-slate-700); font-size: .65rem; font-weight: 700; }
+.dq-chip.critical { border-left: 3px solid var(--hm-error); }
+.dq-chip.warning { border-left: 3px solid var(--hm-warning); }
+.dq-impact { max-width: 360px; color: var(--hm-slate-500); font-size: .68rem; line-height: 1.4; }
+.dq-action { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 6px 9px; border: 1px solid var(--hm-slate-200); border-radius: var(--hm-r-sm); color: var(--hm-brand-700); font-size: .68rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.dq-action:hover { border-color: var(--hm-brand-500); color: var(--hm-brand-800); }
+.dq-company { display: grid; grid-template-columns: minmax(230px, .8fr) minmax(0, 1.8fr) auto; gap: 18px; align-items: start; padding: 13px 15px; border-top: 1px solid var(--hm-slate-100); }
+.dq-company:first-of-type { border-top: 0; }
+.dq-company-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; }
+.dq-field { min-width: 0; }
+.dq-field-label { font-size: .7rem; font-weight: 750; }
+.dq-field-motive { color: var(--hm-slate-500); font-size: .65rem; line-height: 1.35; }
+.dq-field.critical .dq-field-label { color: var(--hm-error); }
+.dq-empty { padding: 26px 16px; color: var(--hm-slate-500); font-size: .78rem; text-align: center; }
+.dq-footnote { padding: 9px 13px; border-top: 1px solid var(--hm-slate-100); color: var(--hm-slate-500); font-size: .66rem; }
+.dq-orphan-alert { padding: 11px 15px; border-bottom: 1px solid var(--hm-slate-200); background: var(--hm-slate-50); color: var(--hm-slate-700); font-size: .72rem; line-height: 1.45; }
+@media (max-width: 900px) {
+    .dq-head { align-items: flex-start; flex-direction: column; gap: 9px; }
+    .dq-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dq-stat:nth-child(2) { border-right: 0; }
+    .dq-stat:nth-child(-n+2) { border-bottom: 1px solid var(--hm-slate-200); }
+    .dq-company { grid-template-columns: 1fr; gap: 10px; }
+}
+@media (max-width: 560px) {
+    .dq-shell { overflow-x: clip; }
+    .dq-head { padding-top: 16px; }
+    .dq-title { font-size: 1.45rem; }
+    .dq-stats { grid-template-columns: 1fr; }
+    .dq-stat { border-right: 0; border-bottom: 1px solid var(--hm-slate-200); }
+    .dq-stat:last-child { border-bottom: 0; }
+    .dq-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dq-tab { justify-content: center; }
+    .dq-section-head { flex-direction: column; gap: 7px; }
+    .dq-company-list { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+{% block body %}
+<main class="dq-shell">
+    <header class="dq-head">
+        <div>
+            <h1 class="dq-title">Centro de Saneamiento</h1>
+            <p class="dq-subtitle">Datos que afectan documentos, planilla o cierres laborales. Cada fila abre el registro exacto; Harmoni no completa ni aprueba nada por su cuenta.</p>
+        </div>
+        <div class="dq-updated">Corte {{ generated_at|date:"d/m/Y H:i" }}</div>
+    </header>
+
+    <section class="dq-stats" aria-label="Resumen de calidad de datos">
+        <div class="dq-stat"><div class="dq-stat-label">Bloqueos</div><div class="dq-stat-value">{{ total_blockers }}</div><div class="dq-stat-note">Campos y procesos que requieren decision</div></div>
+        <div class="dq-stat"><div class="dq-stat-label">Datos legales</div><div class="dq-stat-value">{{ legal_critical }}</div><div class="dq-stat-note">{{ legal_recommended }} recomendados adicionales</div></div>
+        <div class="dq-stat"><div class="dq-stat-label">Legajos criticos</div><div class="dq-stat-value">{{ legajo_critical }}</div><div class="dq-stat-note">{{ legajo_total }} con alguna incidencia</div></div>
+        <div class="dq-stat"><div class="dq-stat-label">Liquidaciones</div><div class="dq-stat-value">{{ liquidacion_total }}</div><div class="dq-stat-note">{{ liquidacion_overdue }} con mas de 30 dias</div></div>
+    </section>
+
+    <nav class="dq-tabs" aria-label="Colas de saneamiento">
+        <a class="dq-tab {% if cola == 'todos' %}is-active{% endif %}" href="{% url 'data_quality_center' %}"><i class="fas fa-border-all" aria-hidden="true"></i>Todo</a>
+        <a class="dq-tab {% if cola == 'empresa' %}is-active{% endif %}" href="?cola=empresa"><i class="fas fa-building" aria-hidden="true"></i>Empresa <span class="dq-tab-count">{{ legal_critical }}</span></a>
+        <a class="dq-tab {% if cola == 'legajos' %}is-active{% endif %}" href="?cola=legajos"><i class="fas fa-address-card" aria-hidden="true"></i>Legajos <span class="dq-tab-count">{{ legajo_total }}</span></a>
+        <a class="dq-tab {% if cola == 'liquidaciones' %}is-active{% endif %}" href="?cola=liquidaciones"><i class="fas fa-receipt" aria-hidden="true"></i>Liquidaciones <span class="dq-tab-count">{{ liquidacion_total }}</span></a>
+        {% if user.is_superuser %}<a class="dq-tab {% if cola == 'huerfanos' %}is-active{% endif %}" href="?cola=huerfanos"><i class="fas fa-link-slash" aria-hidden="true"></i>Sin empresa <span class="dq-tab-count">{{ orphan_total }}</span></a>{% endif %}
+    </nav>
+
+    {% if cola == 'todos' or cola == 'empresa' %}
+    <section class="dq-section">
+        <div class="dq-section-head">
+            <div><h2 class="dq-section-title">Ficha legal de empresa</h2><p class="dq-section-note">Los campos criticos afectan SUNAT, contratos o boletas. Los recomendados mejoran la validez y presentacion documental.</p></div>
+            <span class="dq-severity {% if legal_critical %}critical{% endif %}">{{ legal_critical }} criticos</span>
+        </div>
+        {% for row in company_rows %}
+        <div class="dq-company">
+            <div><span class="dq-name">{{ row.empresa.nombre_display }}</span><span class="dq-meta dq-mono">RUC {{ row.empresa.ruc }}</span></div>
+            <div class="dq-company-list">
+                {% for item in row.criticos %}<div class="dq-field critical"><div class="dq-field-label">{{ item.label }}</div><div class="dq-field-motive">{{ item.motivo }}</div></div>{% endfor %}
+                {% for item in row.recomendados %}<div class="dq-field"><div class="dq-field-label">{{ item.label }}</div><div class="dq-field-motive">{{ item.motivo }}</div></div>{% endfor %}
+            </div>
+            {% if user.is_superuser %}<a class="dq-action" href="{{ row.url }}"><i class="fas fa-pen" aria-hidden="true"></i>Completar ficha</a>{% endif %}
+        </div>
+        {% empty %}<div class="dq-empty"><i class="fas fa-circle-check me-1" aria-hidden="true"></i>Las fichas de empresa del alcance actual estan completas.</div>{% endfor %}
+    </section>
+    {% endif %}
+
+    {% if cola == 'todos' or cola == 'legajos' %}
+    <section class="dq-section">
+        <div class="dq-section-head">
+            <div><h2 class="dq-section-title">Legajos activos por corregir</h2><p class="dq-section-note">Priorizados por impacto en calculos y documentos. No se muestran datos personales innecesarios.</p></div>
+            <span class="dq-severity {% if legajo_critical %}critical{% endif %}">{{ legajo_total }} registros</span>
+        </div>
+        <div class="dq-table-wrap">
+            <table class="dq-table">
+                <thead><tr><th>Persona</th><th>Empresa</th><th>Incidencias</th><th>Impacto</th><th>Accion</th></tr></thead>
+                <tbody>
+                    {% for row in legajo_rows %}
+                    <tr>
+                        <td><span class="dq-name">{{ row.personal.apellidos_nombres }}</span><span class="dq-meta">{{ row.personal.cargo|default:"Cargo pendiente" }}</span></td>
+                        <td>{{ row.personal.empresa.nombre_display|truncatechars:34 }}</td>
+                        <td><div class="dq-issues">{% for item in row.incidencias %}<span class="dq-chip {{ item.severity }}">{{ item.label }}</span>{% endfor %}</div></td>
+                        <td><div class="dq-impact">{% for item in row.incidencias %}{% if item.severity == 'critical' %}{{ item.impacto }}{% if not forloop.last %} {% endif %}{% endif %}{% endfor %}</div></td>
+                        <td><a class="dq-action" href="{{ row.url }}"><i class="fas fa-pen" aria-hidden="true"></i>Corregir</a></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="5" class="dq-empty">No hay legajos activos con estas incidencias.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if legajo_truncated %}<div class="dq-footnote">Se muestran los primeros 100 registros. Usa el listado de personal para continuar el saneamiento.</div>{% endif %}
+    </section>
+    {% endif %}
+
+    {% if cola == 'todos' or cola == 'liquidaciones' %}
+    <section class="dq-section">
+        <div class="dq-section-head">
+            <div><h2 class="dq-section-title">Liquidaciones pendientes de cierre</h2><p class="dq-section-note">La antiguedad mide dias desde la creacion. Cada cambio de estado sigue requiriendo revision humana.</p></div>
+            <span class="dq-severity {% if liquidacion_overdue %}critical{% elif liquidacion_total %}warning{% endif %}">{{ liquidacion_total }} abiertas</span>
+        </div>
+        <div class="dq-table-wrap">
+            <table class="dq-table">
+                <thead><tr><th>Trabajador</th><th>Empresa</th><th>Cese</th><th>Estado</th><th>Antiguedad</th><th>Neto calculado</th><th>Accion</th></tr></thead>
+                <tbody>
+                    {% for row in liquidacion_rows %}
+                    <tr>
+                        <td><span class="dq-name">{{ row.liquidacion.personal.apellidos_nombres }}</span><span class="dq-meta">{{ row.liquidacion.personal.cargo|default:"Sin cargo" }}</span></td>
+                        <td>{{ row.liquidacion.personal.empresa.nombre_display|truncatechars:30 }}</td>
+                        <td class="dq-mono">{{ row.liquidacion.fecha_cese|date:"d/m/Y" }}</td>
+                        <td><span class="dq-chip {{ row.priority }}">{{ row.liquidacion.get_estado_display }}</span></td>
+                        <td><span class="dq-name dq-mono">{{ row.age }} d</span><span class="dq-meta">{{ row.age_label }}</span></td>
+                        <td class="dq-mono">S/ {{ row.liquidacion.total_neto|floatformat:2|intcomma }}</td>
+                        <td><a class="dq-action" href="{{ row.url }}"><i class="fas fa-arrow-right" aria-hidden="true"></i>{{ row.action }}</a></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="7" class="dq-empty">No hay liquidaciones pendientes dentro del alcance actual.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if liquidacion_truncated %}<div class="dq-footnote">Se muestran las 100 liquidaciones mas antiguas.</div>{% endif %}
+    </section>
+    {% endif %}
+
+    {% if user.is_superuser and cola == 'todos' or user.is_superuser and cola == 'huerfanos' %}
+    <section class="dq-section">
+        <div class="dq-section-head">
+            <div><h2 class="dq-section-title">Registros historicos sin empresa</h2><p class="dq-section-note">Cola global separada. Nunca se incorpora a un cliente sin una asignacion explicita.</p></div>
+            <span class="dq-severity {% if orphan_active %}warning{% endif %}">{{ orphan_total }} registros</span>
+        </div>
+        <div class="dq-orphan-alert"><strong>{{ orphan_active }}</strong> personas activas y <strong>{{ orphan_liquidations }}</strong> liquidaciones abiertas no tienen empresa. Asignarlas cambia su alcance de datos, por eso Harmoni no lo hace automaticamente.</div>
+        <div class="dq-table-wrap">
+            <table class="dq-table">
+                <thead><tr><th>Persona</th><th>Estado</th><th>Cargo</th><th>Tipo</th><th>Sueldo registrado</th><th>Accion</th></tr></thead>
+                <tbody>
+                    {% for row in orphan_rows %}
+                    <tr>
+                        <td><span class="dq-name">{{ row.personal.apellidos_nombres }}</span></td>
+                        <td><span class="dq-chip">{{ row.personal.estado }}</span></td>
+                        <td>{{ row.personal.cargo|default:"Pendiente" }}</td>
+                        <td>{{ row.personal.tipo_trab|default:"Pendiente" }}</td>
+                        <td class="dq-mono">{% if row.personal.sueldo_base %}S/ {{ row.personal.sueldo_base|floatformat:2|intcomma }}{% else %}Pendiente{% endif %}</td>
+                        <td><a class="dq-action" href="{{ row.url }}"><i class="fas fa-building" aria-hidden="true"></i>Asignar empresa</a></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="6" class="dq-empty">No existen registros sin empresa.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if orphan_truncated %}<div class="dq-footnote">Se muestran 100 registros. La asignacion debe revisarse por lotes antes de modificar el alcance.</div>{% endif %}
+    </section>
+    {% endif %}
+</main>
+{% endblock %}

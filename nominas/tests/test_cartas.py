@@ -19,6 +19,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 
 from asistencia.models import ConfiguracionSistema
+from empresas.models import Empresa
 from nominas.cartas import (
     generar_carta_no_adeudo,
     generar_certificado_trabajo,
@@ -64,8 +65,22 @@ def admin_user(db):
 
 
 @pytest.fixture
-def admin_client(client, admin_user):
+def empresa(admin_user):
+    return Empresa.objects.create(
+        ruc='20555666777',
+        razon_social='Restaurante Sabores SAC',
+        direccion='Av. Demo 123, San Isidro, Lima',
+        activa=True,
+        creado_por=admin_user,
+    )
+
+
+@pytest.fixture
+def admin_client(client, admin_user, empresa):
     client.force_login(admin_user)
+    session = client.session
+    session['empresa_actual_id'] = empresa.pk
+    session.save()
     return client
 
 
@@ -80,8 +95,9 @@ def subarea(area):
 
 
 @pytest.fixture
-def worker_activo(db, subarea, empresa_config):
+def worker_activo(db, subarea, empresa_config, empresa):
     return Personal.objects.create(
+        empresa=empresa,
         nro_doc='70000001',
         apellidos_nombres='LOPEZ PEREZ, MARIA',
         cargo='Mozo',
@@ -96,8 +112,9 @@ def worker_activo(db, subarea, empresa_config):
 
 
 @pytest.fixture
-def worker_cesado(db, subarea, empresa_config):
+def worker_cesado(db, subarea, empresa_config, empresa):
     return Personal.objects.create(
+        empresa=empresa,
         nro_doc='70000002',
         apellidos_nombres='CARDENAS RUIZ, JUAN',
         cargo='Bartender',

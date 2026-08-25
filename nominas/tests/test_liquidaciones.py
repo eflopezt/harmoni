@@ -19,6 +19,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
+from empresas.models import Empresa
 from personal.models import Area, Personal, SubArea
 from nominas.models import LiquidacionLaboral
 
@@ -39,6 +40,16 @@ def client_logged(client, admin_user):
 
 
 @pytest.fixture
+def empresa(admin_user):
+    return Empresa.objects.create(
+        ruc='20876543210',
+        razon_social='Empresa Pruebas Liquidacion',
+        activa=True,
+        creado_por=admin_user,
+    )
+
+
+@pytest.fixture
 def area(db):
     return Area.objects.create(nombre='Operaciones LIQ')
 
@@ -49,9 +60,10 @@ def subarea(area):
 
 
 @pytest.fixture
-def worker_activo(db, subarea):
+def worker_activo(db, subarea, empresa):
     """Trabajador activo, sueldo S/3000, alta 2024-01-15."""
     return Personal.objects.create(
+        empresa=empresa,
         nro_doc='40000001',
         apellidos_nombres='TEST LIQUIDACION, JUAN',
         cargo='Operario',
@@ -66,9 +78,10 @@ def worker_activo(db, subarea):
 
 
 @pytest.fixture
-def worker_cesado(db, subarea):
+def worker_cesado(db, subarea, empresa):
     """Trabajador YA cesado al crear: 31 marzo 2026, motivo renuncia."""
     return Personal.objects.create(
+        empresa=empresa,
         nro_doc='40000002',
         apellidos_nombres='TEST CESADO, PEDRO',
         cargo='Mozo',

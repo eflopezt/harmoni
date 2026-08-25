@@ -67,8 +67,6 @@ def build_process_journey(request):
     empresa_ids = list(empresas.values_list('pk', flat=True))
     personal = Personal.objects.filter(empresa_id__in=empresa_ids)
     activos = personal.filter(estado='Activo')
-    primer_empresa = empresas.order_by('razon_social').first()
-
     issues = []
     stages = []
 
@@ -83,22 +81,19 @@ def build_process_journey(request):
     sin_fecha_alta = activos.filter(fecha_alta__isnull=True).count()
     sin_sueldo = activos.filter(Q(sueldo_base__isnull=True) | Q(sueldo_base__lte=0)).count()
     setup_blockers = criticos_empresa + sin_fecha_alta + sin_sueldo
-    setup_url = (
-        reverse('empresa_datos', args=[primer_empresa.pk])
-        if primer_empresa else reverse('empresas_panel')
-    )
+    setup_url = reverse('data_quality_center')
     if criticos_empresa:
         issues.append(_issue(
             'Preparacion', 'critical',
             f'{criticos_empresa} datos legales de empresa pendientes',
             'Pueden invalidar contratos, boletas o archivos SUNAT.',
-            setup_url, 'Completar empresa'))
+            f'{setup_url}?cola=empresa', 'Completar empresa'))
     if sin_fecha_alta or sin_sueldo:
         issues.append(_issue(
             'Preparacion', 'critical',
             f'{sin_fecha_alta + sin_sueldo} incidencias criticas en legajos',
             f'{sin_fecha_alta} sin fecha de alta y {sin_sueldo} sin sueldo base.',
-            reverse('personal_list'), 'Revisar personal'))
+            f'{setup_url}?cola=legajos', 'Revisar legajos'))
     stages.append(_stage(
         'setup', '01', 'Preparar',
         status='critical' if setup_blockers else ('info' if not activos.exists() else 'ready'),
@@ -106,7 +101,7 @@ def build_process_journey(request):
         metric_label='bloqueos' if setup_blockers else 'personas activas',
         summary='Empresa, legajos y datos necesarios para operar sin reprocesos.',
         action_url=setup_url,
-        action_label='Completar base', icon='fa-building-circle-check',
+        action_label='Sanear datos', icon='fa-building-circle-check',
     ))
 
     # 2. Reclutamiento
@@ -220,13 +215,17 @@ def build_process_journey(request):
             'Salida', 'critical' if pasos_off_vencidos else 'warning',
             f'{salida_total} cierres laborales en curso',
             f'{pasos_off_vencidos} tareas vencidas y {liquidaciones.count()} liquidaciones abiertas.',
-            reverse('offboarding_panel'), 'Cerrar salidas'))
+            (f'{reverse("data_quality_center")}?cola=liquidaciones'
+             if liquidaciones.exists() else reverse('offboarding_panel')),
+            'Cerrar salidas'))
     stages.append(_stage(
         'offboarding', '06', 'Desvincular',
         status='critical' if pasos_off_vencidos else ('warning' if salida_total else 'ready'),
         metric=salida_total, metric_label='salidas abiertas',
         summary='Activos, accesos, documentos y liquidacion con evidencia de cierre.',
-        action_url=reverse('offboarding_panel'), action_label='Ver salidas',
+        action_url=(f'{reverse("data_quality_center")}?cola=liquidaciones'
+                    if liquidaciones.exists() else reverse('offboarding_panel')),
+        action_label='Ver salidas',
         icon='fa-person-walking-arrow-right',
     ))
 
