@@ -11,6 +11,7 @@ from datetime import date, timedelta
 from django.db.models import Count, Q, Sum
 from django.core.cache import cache
 
+from core.permisos import requiere_modulo_o_staff
 from ..models import Personal, Roster
 from ..permissions import (
     filtrar_areas, filtrar_subareas, filtrar_personal,
@@ -278,11 +279,18 @@ def home(request):
             return redirect(destino)
 
     hoy = date.today()
+    empresa_actual = getattr(request, 'empresa_actual', None)
 
     # Filtros según rol del usuario
+    personal_filtrado = filtrar_personal(request.user, empresa=empresa_actual)
     gerencias_filtradas = filtrar_areas(request.user)
     areas_filtradas = filtrar_subareas(request.user)
-    personal_filtrado = filtrar_personal(request.user)
+    if empresa_actual is not None:
+        area_ids = personal_filtrado.exclude(
+            subarea__area_id__isnull=True,
+        ).values_list('subarea__area_id', flat=True)
+        gerencias_filtradas = gerencias_filtradas.filter(pk__in=area_ids)
+        areas_filtradas = areas_filtradas.filter(area_id__in=area_ids)
     personal_activo = personal_filtrado.filter(estado='Activo').only(
         'id', 'grupo_tareo', 'estado', 'fecha_nacimiento', 'fecha_alta',
         'apellidos_nombres', 'cargo', 'fecha_fin_contrato', 'sueldo_base',
@@ -327,14 +335,19 @@ def home(request):
             emp = getattr(request, 'empresa_actual', None) \
                 or getattr(getattr(request.user, 'personal_data', None), 'empresa', None)
             from nominas.models import ConceptoRemunerativo, PeriodoNomina
+            periodos_activacion = PeriodoNomina.objects.all()
+            portal_personal = Personal.objects.filter(usuario__isnull=False)
+            if emp is not None:
+                periodos_activacion = periodos_activacion.filter(empresa=emp)
+                portal_personal = portal_personal.filter(empresa=emp)
             pasos = {
                 'empresa_pk':   emp.pk if emp else None,
                 'rep_ok':       bool(emp and getattr(emp, 'representante_legal', '')
                                      and getattr(emp, 'direccion', '')),
                 'empleados_ok': total_activos > 0,
                 'conceptos_ok': ConceptoRemunerativo.objects.filter(activo=True).count() >= 5,
-                'planilla_ok':  PeriodoNomina.objects.exists(),
-                'portal_ok':    Personal.objects.filter(usuario__isnull=False).exists(),
+                'planilla_ok':  periodos_activacion.exists(),
+                'portal_ok':    portal_personal.exists(),
             }
             completados = sum(1 for k in (
                 'rep_ok', 'empleados_ok', 'conceptos_ok', 'planilla_ok', 'portal_ok',
@@ -513,9 +526,12 @@ def home(request):
     if request.user.is_superuser:
         try:
             from nominas.models import PeriodoNomina
-            ultimo_periodo = PeriodoNomina.objects.filter(
+            periodos_home = PeriodoNomina.objects.filter(
                 tipo='REGULAR', estado__in=['CALCULADO', 'APROBADO', 'CERRADO']
-            ).order_by('-anio', '-mes').first()
+            )
+            if empresa_actual is not None:
+                periodos_home = periodos_home.filter(empresa=empresa_actual)
+            ultimo_periodo = periodos_home.order_by('-anio', '-mes', '-pk').first()
             context['nominas_stats'] = {
                 'periodo':      ultimo_periodo,
                 'neto':         ultimo_periodo.total_neto if ultimo_periodo else None,
@@ -595,7 +611,12 @@ def home(request):
     if request.user.is_superuser:
         try:
             from analytics.models import AlertaRRHH
-            alertas_activas = AlertaRRHH.objects.filter(activa=True)
+            alertas_activas = AlertaRRHH.objects.filter(estado='ACTIVA')
+            if empresa_actual is not None:
+                area_ids = personal_activo.exclude(
+                    subarea__area_id__isnull=True,
+                ).values_list('subarea__area_id', flat=True)
+                alertas_activas = alertas_activas.filter(area_id__in=area_ids)
             context['alertas_rrhh_total'] = alertas_activas.count()
             context['alertas_rrhh_critical'] = alertas_activas.filter(severidad='CRITICAL').count()
         except Exception:
@@ -606,7 +627,8 @@ def home(request):
         try:
             from disciplinaria.models import MedidaDisciplinaria
             disc_activos = MedidaDisciplinaria.objects.filter(
-                estado__in=('BORRADOR', 'EN_DESCARGO', 'EN_RESOLUCION')
+                estado__in=('BORRADOR', 'EN_DESCARGO', 'DESCARGO_RECIBIDO'),
+                personal__in=personal_activo,
             ).count()
             context['disciplinaria_activos'] = disc_activos
         except Exception:
@@ -617,7 +639,8 @@ def home(request):
         try:
             from evaluaciones.models import Evaluacion
             eval_pendientes = Evaluacion.objects.filter(
-                estado__in=('PENDIENTE', 'EN_PROGRESO')
+                estado__in=('PENDIENTE', 'EN_PROGRESO'),
+                evaluado__in=personal_activo,
             ).count()
             context['evaluaciones_pendientes'] = eval_pendientes
         except Exception:
@@ -628,16 +651,17 @@ def home(request):
         try:
             from onboarding.models import ProcesoOnboarding
             context['onboarding_activos'] = ProcesoOnboarding.objects.filter(
-                estado__in=('EN_PROCESO', 'PENDIENTE'), tipo='ONBOARDING'
+                estado='EN_CURSO', personal__in=personal_activo,
             ).count()
-            context['offboarding_activos'] = ProcesoOnboarding.objects.filter(
-                estado__in=('EN_PROCESO', 'PENDIENTE'), tipo='OFFBOARDING'
+            from onboarding.models import ProcesoOffboarding
+            context['offboarding_activos'] = ProcesoOffboarding.objects.filter(
+                estado='EN_CURSO', personal__in=personal_activo,
             ).count()
         except Exception:
             pass
 
     # ── Encuestas activas (admin) ──
-    if request.user.is_superuser:
+    if request.user.is_superuser and empresa_actual is None:
         try:
             from encuestas.models import Encuesta
             context['encuestas_activas'] = Encuesta.objects.filter(estado='ACTIVA').count()
@@ -653,7 +677,7 @@ def home(request):
                     estado__in=['PUBLICADA', 'ACTIVA']
                 ).count(),
                 'candidatos_mes': Postulacion.objects.filter(
-                    creado_en__date__gte=hoy.replace(day=1)
+                    fecha_postulacion__date__gte=hoy.replace(day=1)
                 ).count(),
             }
         except Exception:
@@ -678,7 +702,8 @@ def home(request):
         try:
             from viaticos.models import ViaticoCDT
             context['viaticos_por_conciliar'] = ViaticoCDT.objects.filter(
-                estado__in=['ENTREGADO', 'EN_RENDICION']
+                estado__in=['ENTREGADO', 'EN_RENDICION'],
+                personal__in=personal_activo,
             ).count()
         except Exception:
             pass
@@ -686,7 +711,10 @@ def home(request):
     # ── Bandas salariales: cobertura (admin) ── cacheada 5 min
     if request.user.is_superuser:
         try:
-            cache_key_bandas = f'home_bandas_cobertura:{hoy.isoformat()}'
+            cache_key_bandas = (
+                f'home_bandas_cobertura:{request.user.pk}:'
+                f'{getattr(empresa_actual, "pk", "all")}:{hoy.isoformat()}'
+            )
             bandas = cache.get(cache_key_bandas)
             if bandas is None:
                 con_banda = personal_activo.filter(
@@ -708,8 +736,9 @@ def home(request):
             from capacitaciones.models import Capacitacion
             inicio_mes = hoy.replace(day=1)
             context['capacitaciones_mes'] = Capacitacion.objects.filter(
-                fecha__gte=inicio_mes, fecha__lte=hoy
-            ).count()
+                fecha_inicio__gte=inicio_mes, fecha_inicio__lte=hoy,
+                participantes__in=personal_activo,
+            ).distinct().count()
         except Exception:
             pass
 
@@ -717,12 +746,12 @@ def home(request):
     if request.user.is_superuser:
         try:
             inicio_mes = hoy.replace(day=1)
-            altas_mes = Personal.objects.filter(
+            altas_mes = personal_filtrado.filter(
                 fecha_alta__gte=inicio_mes, fecha_alta__lte=hoy
             ).count()
             # NOTA: el campo correcto es fecha_cese (Personal no tiene fecha_baja).
             # Sin este fix la metrica era siempre 0 y el except la silenciaba.
-            bajas_mes = Personal.objects.filter(
+            bajas_mes = personal_filtrado.filter(
                 fecha_cese__gte=inicio_mes, fecha_cese__lte=hoy
             ).count()
             context['headcount_tendencia'] = {
@@ -742,21 +771,25 @@ def home(request):
             from django.db.models import ExpressionWrapper, DecimalField as DField, F as DbF
             from asistencia.models import RegistroTareo
             mes_ini_t = hoy.replace(day=1)
-            cache_key = f'home_alertas_planilla:{hoy.isoformat()}'
+            cache_key = (
+                f'home_alertas_planilla:{request.user.pk}:'
+                f'{getattr(empresa_actual, "pk", "all")}:{hoy.isoformat()}'
+            )
             cached = cache.get(cache_key)
             if cached is None:
                 ss_mes = RegistroTareo.objects.filter(
                     codigo_dia='SS',
                     fecha__gte=mes_ini_t,
                     fecha__lte=hoy,
+                    personal__in=personal_activo,
                 ).count()
-                sin_dni = Personal.objects.filter(
+                sin_dni = personal_activo.filter(
                     Q(nro_doc__isnull=True) | Q(nro_doc=''),
-                    estado='Activo',
                 ).count()
                 he_elevadas_count = RegistroTareo.objects.filter(
                     fecha__gte=mes_ini_t, fecha__lte=hoy,
                     grupo='RCO',
+                    personal__in=personal_activo,
                 ).values('personal_id').annotate(
                     total_he=ExpressionWrapper(
                         DbF('he_25') + DbF('he_35') + DbF('he_100'),
@@ -810,8 +843,15 @@ def home(request):
     except Exception:
         pass
 
+    if request.user.is_staff or request.user.is_superuser:
+        try:
+            from core.process_journey import build_process_journey
+            context['process_journey'] = build_process_journey(request)
+        except Exception:
+            pass
+
     context['is_jefe'] = is_jefe
-    context.update(get_context_usuario(request.user))
+    context.update(get_context_usuario(request.user, empresa=empresa_actual))
     context['frase_dia'] = _get_frase_dia(hoy)
     return render(request, 'home.html', context)
 
@@ -919,7 +959,9 @@ def cmd_search(request):
 
     if len(q) >= 2:
         # Búsqueda de empleados
-        qs = filtrar_personal(request.user).filter(
+        qs = filtrar_personal(
+            request.user, empresa=getattr(request, 'empresa_actual', None),
+        ).filter(
             Q(apellidos_nombres__icontains=q) |
             Q(nro_doc__startswith=q) |
             Q(cargo__icontains=q)
@@ -1038,7 +1080,9 @@ def alertas_dia(request):
     hoy = date.today()
     alertas = []
 
-    personal_activo = filtrar_personal(request.user).filter(estado='Activo')
+    personal_activo = filtrar_personal(
+        request.user, empresa=getattr(request, 'empresa_actual', None),
+    ).filter(estado='Activo')
 
     # ── 1. Cumpleaños hoy ──────────────────────────────────────────────
     cump_hoy = personal_activo.filter(
@@ -1235,6 +1279,7 @@ def alertas_dia(request):
 
 @login_required
 @require_GET
+@requiere_modulo_o_staff('analytics')
 def hr_ask(request):
     """
     Endpoint de Q&A de RRHH en lenguaje natural.
@@ -1250,6 +1295,9 @@ def hr_ask(request):
 
     hoy = date.today()
     inicio_mes = date(hoy.year, hoy.month, 1)
+    personal_scope = filtrar_personal(
+        request.user, empresa=getattr(request, 'empresa_actual', None),
+    )
 
     # ── Helpers de normalización ─────────────────────────────────────────────
     def kw(*keywords):
@@ -1264,11 +1312,11 @@ def hr_ask(request):
     # ── Intent: Headcount total ───────────────────────────────────────────────
     if kw('cuántos', 'cuantos', 'total empleados', 'total de empleados', 'headcount',
           'cuántas personas', 'cuantas personas', 'total trabajadores'):
-        activos = Personal.objects.filter(estado='Activo')
+        activos = personal_scope.filter(estado='Activo')
         total = activos.count()
         staff = activos.filter(grupo_tareo='STAFF').count()
         rco = activos.filter(grupo_tareo='RCO').count()
-        cesados = Personal.objects.filter(estado='Cesado').count()
+        cesados = personal_scope.filter(estado='Cesado').count()
         return JsonResponse({
             'tipo': 'headcount',
             'respuesta': f'Actualmente hay **{total} colaboradores activos** — {staff} STAFF y {rco} RCO. Total histórico (incluye cesados): {total + cesados}.',
@@ -1281,7 +1329,7 @@ def hr_ask(request):
     if kw('cumpleaños', 'cumpleanos', 'cumple', 'birthday'):
         hoy_md = (hoy.month, hoy.day)
         fin_semana = hoy + timedelta(days=7)
-        cumple_hoy = Personal.objects.filter(
+        cumple_hoy = personal_scope.filter(
             estado='Activo',
             fecha_nacimiento__month=hoy.month,
             fecha_nacimiento__day=hoy.day,
@@ -1292,7 +1340,7 @@ def hr_ask(request):
         q_upcoming = Q()
         for d in upcoming_dates:
             q_upcoming |= Q(fecha_nacimiento__month=d.month, fecha_nacimiento__day=d.day)
-        cumple_semana = Personal.objects.filter(
+        cumple_semana = personal_scope.filter(
             Q(estado='Activo', fecha_nacimiento__isnull=False) & q_upcoming
         ).exclude(
             fecha_nacimiento__month=hoy.month,
@@ -1330,9 +1378,9 @@ def hr_ask(request):
     if kw('contrato', 'contratos', 'vence', 'vencen', 'por vencer', 'vencimiento'):
         en_30 = hoy + timedelta(days=30)
         en_60 = hoy + timedelta(days=60)
-        c30 = Personal.objects.filter(estado='Activo', tipo_contrato='PLAZO_FIJO',
+        c30 = personal_scope.filter(estado='Activo', tipo_contrato='PLAZO_FIJO',
                                        fecha_fin_contrato__gte=hoy, fecha_fin_contrato__lte=en_30)
-        c60 = Personal.objects.filter(estado='Activo', tipo_contrato='PLAZO_FIJO',
+        c60 = personal_scope.filter(estado='Activo', tipo_contrato='PLAZO_FIJO',
                                        fecha_fin_contrato__gt=en_30, fecha_fin_contrato__lte=en_60)
         resp = f'En los próximos 30 días vencen **{c30.count()} contratos**'
         if c60.count():
@@ -1358,9 +1406,13 @@ def hr_ask(request):
     if kw('ausentismo', 'faltas', 'ausencias', 'inasistencias', 'faltaron', 'faltó'):
         try:
             from asistencia.models import RegistroTareo
-            total_reg = RegistroTareo.objects.filter(fecha__gte=inicio_mes, fecha__lte=hoy).count()
+            total_reg = RegistroTareo.objects.filter(
+                fecha__gte=inicio_mes, fecha__lte=hoy,
+                personal__in=personal_scope,
+            ).count()
             faltas = RegistroTareo.objects.filter(
-                fecha__gte=inicio_mes, fecha__lte=hoy, codigo_dia__in=['F', 'FALTA']
+                fecha__gte=inicio_mes, fecha__lte=hoy,
+                codigo_dia__in=['F', 'FALTA'], personal__in=personal_scope,
             ).count()
             pct = round(faltas / total_reg * 100, 1) if total_reg else 0
             resp = f'Este mes el ausentismo es de **{pct}%** ({faltas} faltas de {total_reg} registros).'
@@ -1383,7 +1435,7 @@ def hr_ask(request):
 
     # ── Intent: Altas del mes ────────────────────────────────────────────────
     if kw('nuevos', 'nuevas', 'ingresaron', 'altas', 'ingresos del mes', 'incorporaciones'):
-        nuevos = Personal.objects.filter(fecha_alta__gte=inicio_mes, fecha_alta__lte=hoy)
+        nuevos = personal_scope.filter(fecha_alta__gte=inicio_mes, fecha_alta__lte=hoy)
         n = nuevos.count()
         resp = f'Este mes ingresaron **{n} colaborador{"es" if n != 1 else ""}**'
         if n > 0:
@@ -1403,7 +1455,7 @@ def hr_ask(request):
 
     # ── Intent: Bajas / cesados del mes ─────────────────────────────────────
     if kw('bajas', 'cesados', 'ceses', 'salidas', 'renuncias', 'renunciaron'):
-        bajas = Personal.objects.filter(
+        bajas = personal_scope.filter(
             fecha_cese__gte=inicio_mes, fecha_cese__lte=hoy, estado='Cesado'
         )
         n = bajas.count()
@@ -1423,7 +1475,7 @@ def hr_ask(request):
 
     # ── Intent: Distribución por área ───────────────────────────────────────
     if kw('área', 'area', 'áreas', 'areas', 'gerencia', 'gerencias', 'departamento'):
-        activos = Personal.objects.filter(estado='Activo')
+        activos = personal_scope.filter(estado='Activo')
         areas_data = (
             activos.values('subarea__area__nombre')
             .annotate(n=Count('id'))
@@ -1448,7 +1500,7 @@ def hr_ask(request):
     if kw('riesgo', 'fuga', 'rotación', 'rotacion', 'attrition', 'van a irse', 'podrían irse'):
         try:
             en_60d = hoy + timedelta(days=60)
-            activos = Personal.objects.filter(estado='Activo')
+            activos = personal_scope.filter(estado='Activo')
             total = activos.count()
             # Aproximación rápida: contratos por vencer + ausentismo alto
             riesgo_contratos = activos.filter(
@@ -1478,9 +1530,13 @@ def hr_ask(request):
     # ── Intent: Vacaciones ───────────────────────────────────────────────────
     if kw('vacaciones', 'descanso', 'días pendientes', 'dias pendientes', 'saldo vacacional'):
         try:
-            from vacaciones.models import SaldoVacacional, SolicitudVacaciones
-            pendientes = SolicitudVacaciones.objects.filter(estado='PENDIENTE').count()
-            criticos = SaldoVacacional.objects.filter(dias_pendientes__gt=30).count()
+            from vacaciones.models import SaldoVacacional, SolicitudVacacion
+            pendientes = SolicitudVacacion.objects.filter(
+                estado='PENDIENTE', personal__in=personal_scope,
+            ).count()
+            criticos = SaldoVacacional.objects.filter(
+                dias_pendientes__gt=30, personal__in=personal_scope,
+            ).count()
             resp = f'Hay **{pendientes} solicitud{"es" if pendientes!=1 else ""} de vacaciones pendientes** de aprobación.'
             if criticos:
                 resp += f' Además, **{criticos} empleado{"s" if criticos!=1 else ""}** tiene{"n" if criticos!=1 else ""} más de 30 días acumulados sin tomar.'
@@ -1498,8 +1554,11 @@ def hr_ask(request):
     # ── Intent: Evaluaciones ─────────────────────────────────────────────────
     if kw('evaluaci', 'desempeño', 'desempeno', 'performance', '360', '9-box', 'calificaciones'):
         try:
-            from evaluaciones.models import ProcesoEvaluacion
-            activos_eval = ProcesoEvaluacion.objects.filter(estado__in=['EN_PROCESO', 'INICIADO']).count()
+            from evaluaciones.models import CicloEvaluacion
+            activos_eval = CicloEvaluacion.objects.filter(
+                estado__in=['ABIERTO', 'EN_EVALUACION', 'CALIBRACION'],
+                evaluaciones__evaluado__in=personal_scope,
+            ).distinct().count()
             resp = f'Hay **{activos_eval} proceso{"s" if activos_eval!=1 else ""} de evaluación en curso**.'
             if activos_eval == 0:
                 resp = 'No hay procesos de evaluación activos en este momento.'
@@ -1517,10 +1576,9 @@ def hr_ask(request):
     # ── Intent: Planilla / nómina ────────────────────────────────────────────
     if kw('planilla', 'nómina', 'nomina', 'sueldo', 'sueldos', 'costo laboral', 'masa salarial'):
         try:
-            from personal.models import Personal as P
             from django.db.models import Sum, Count
             # Quick win perf audit: agregar en DB en vez de materializar 800 objects en memoria.
-            agg = P.objects.filter(estado='Activo', sueldo_base__isnull=False).aggregate(
+            agg = personal_scope.filter(estado='Activo', sueldo_base__isnull=False).aggregate(
                 total=Sum('sueldo_base'), n=Count('id')
             )
             total_planilla = float(agg['total'] or 0)

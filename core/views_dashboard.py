@@ -16,12 +16,11 @@ dashboard nunca rompa.
 from __future__ import annotations
 
 import logging
-from collections import OrderedDict
 from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -68,23 +67,28 @@ def _ultimos_n_meses(n: int, hoy: date) -> list[tuple[int, int, str]]:
 def dashboard_ejecutivo(request):
     """Dashboard ejecutivo unificado para CEO/Director."""
     hoy = timezone.localdate()
-    inicio_mes = hoy.replace(day=1)
     seis_meses = _ultimos_n_meses(6, hoy)
 
-    # Filtro opcional por empresa
+    # Alcance autorizado. El querystring solo puede reducirlo, nunca ampliarlo.
+    from empresas.acceso import empresas_del_request
+    empresas_scope = empresas_del_request(request)
     empresa_pk = request.GET.get('empresa') or ''
     try:
         empresa_filtro = int(empresa_pk) if empresa_pk else None
     except (TypeError, ValueError):
         empresa_filtro = None
+    if empresa_filtro and empresas_scope.filter(pk=empresa_filtro).exists():
+        empresas_scope = empresas_scope.filter(pk=empresa_filtro)
+    elif empresa_filtro:
+        empresa_filtro = None
+    empresa_ids = list(empresas_scope.values_list('pk', flat=True))
 
     # ──────────────────────────────────────────────────────────────
     # 1. EMPRESAS (locales activos)
     # ──────────────────────────────────────────────────────────────
     def _empresas_lista():
-        from empresas.models import Empresa
         return list(
-            Empresa.objects.filter(activa=True)
+            empresas_scope
             .order_by('razon_social')
             .values('id', 'razon_social', 'nombre_comercial')
         )
@@ -97,10 +101,8 @@ def dashboard_ejecutivo(request):
     # ──────────────────────────────────────────────────────────────
     def _personal_base():
         from personal.models import Personal
-        qs = Personal.objects.filter(estado='Activo')
-        if empresa_filtro:
-            qs = qs.filter(empresa_id=empresa_filtro)
-        return qs
+        return Personal.objects.filter(
+            estado='Activo', empresa_id__in=empresa_ids)
 
     personal_activo = _safe(lambda: _personal_base().count(), default=0)
 
@@ -132,12 +134,11 @@ def dashboard_ejecutivo(request):
                 fin = date(anio + 1, 1, 1) - timedelta(days=1)
             else:
                 fin = date(anio, mes + 1, 1) - timedelta(days=1)
-            qs = Personal.objects.filter(fecha_alta__lte=fin)
+            qs = Personal.objects.filter(
+                fecha_alta__lte=fin, empresa_id__in=empresa_ids)
             qs = qs.filter(
                 Q(fecha_cese__isnull=True) | Q(fecha_cese__gt=fin)
             )
-            if empresa_filtro:
-                qs = qs.filter(empresa_id=empresa_filtro)
             labels.append(label)
             valores.append(qs.count())
         return {'labels': labels, 'valores': valores}
@@ -154,11 +155,10 @@ def dashboard_ejecutivo(request):
         from nominas.models import PeriodoNomina
         qs = (
             PeriodoNomina.objects
-            .filter(estado__in=['CALCULADO', 'APROBADO', 'CERRADO'])
+            .filter(estado__in=['CALCULADO', 'APROBADO', 'CERRADO'],
+                    empresa_id__in=empresa_ids)
             .order_by('-anio', '-mes', '-id')
         )
-        if empresa_filtro:
-            qs = qs.filter(empresa_id=empresa_filtro)
         periodo = qs.first()
         if not periodo:
             return {'monto': Decimal('0'), 'anio': hoy.year, 'mes': hoy.month,
@@ -184,9 +184,8 @@ def dashboard_ejecutivo(request):
             qs = PeriodoNomina.objects.filter(
                 anio=anio, mes=mes,
                 estado__in=['CALCULADO', 'APROBADO', 'CERRADO'],
+                empresa_id__in=empresa_ids,
             )
-            if empresa_filtro:
-                qs = qs.filter(empresa_id=empresa_filtro)
             agg = qs.aggregate(total=Sum('total_neto'))
             valores.append(float(agg['total'] or 0))
             labels.append(label)
@@ -200,17 +199,19 @@ def dashboard_ejecutivo(request):
     # ──────────────────────────────────────────────────────────────
     # 4. RECLUTAMIENTO (vacantes, postulaciones, funnel, métricas)
     # ──────────────────────────────────────────────────────────────
+    from core.process_journey import recruitment_scope
+    vacantes_scope, postulaciones_scope = recruitment_scope(
+        request, empresas_scope)
+
     def _vacantes_abiertas():
-        from reclutamiento.models import Vacante
-        return Vacante.objects.filter(
+        return vacantes_scope.filter(
             estado__in=['PUBLICADA', 'EN_PROCESO']
         ).count()
 
     vacantes_abiertas = _safe(_vacantes_abiertas, default=0)
 
     def _postulaciones_mes():
-        from reclutamiento.models import Postulacion
-        return Postulacion.objects.filter(
+        return postulaciones_scope.filter(
             fecha_postulacion__year=hoy.year,
             fecha_postulacion__month=hoy.month,
         ).count()
@@ -218,8 +219,7 @@ def dashboard_ejecutivo(request):
     postulaciones_mes = _safe(_postulaciones_mes, default=0)
 
     def _contrataciones_mes():
-        from reclutamiento.models import Postulacion
-        return Postulacion.objects.filter(
+        return postulaciones_scope.filter(
             estado='CONTRATADA',
             fecha_postulacion__year=hoy.year,
             fecha_postulacion__month=hoy.month,
@@ -241,7 +241,10 @@ def dashboard_ejecutivo(request):
             EtapaPipeline.objects.filter(activa=True)
             .annotate(total=Count(
                 'postulaciones',
-                filter=Q(postulaciones__estado='ACTIVA'),
+                filter=Q(
+                    postulaciones__estado='ACTIVA',
+                    postulaciones__vacante__in=vacantes_scope,
+                ),
             ))
             .order_by('orden')[:6]
         )
@@ -258,8 +261,7 @@ def dashboard_ejecutivo(request):
 
     # Tiempo promedio de contratación (días entre postulación y CONTRATADA)
     def _tiempo_avg_contratacion():
-        from reclutamiento.models import Postulacion
-        contratadas = Postulacion.objects.filter(
+        contratadas = postulaciones_scope.filter(
             estado='CONTRATADA',
             personal_creado__isnull=False,
         ).select_related('personal_creado').order_by('-fecha_postulacion')[:50]
@@ -279,9 +281,8 @@ def dashboard_ejecutivo(request):
 
     # Top 3 vacantes con más candidatos activos
     def _top_vacantes():
-        from reclutamiento.models import Vacante
         return list(
-            Vacante.objects.filter(estado__in=['PUBLICADA', 'EN_PROCESO'])
+            vacantes_scope.filter(estado__in=['PUBLICADA', 'EN_PROCESO'])
             .annotate(
                 activos=Count(
                     'postulaciones',
@@ -296,10 +297,9 @@ def dashboard_ejecutivo(request):
 
     # Postulaciones por mes — chart bar
     def _postulaciones_historico():
-        from reclutamiento.models import Postulacion
         labels, valores = [], []
         for anio, mes, label in seis_meses:
-            cnt = Postulacion.objects.filter(
+            cnt = postulaciones_scope.filter(
                 fecha_postulacion__year=anio,
                 fecha_postulacion__month=mes,
             ).count()
@@ -320,8 +320,7 @@ def dashboard_ejecutivo(request):
         publicados = BriefingServicio.objects.filter(
             fecha=hoy, estado='PUBLICADO'
         )
-        if empresa_filtro:
-            publicados = publicados.filter(empresa_id=empresa_filtro)
+        publicados = publicados.filter(empresa_id__in=empresa_ids)
         # contar empresas distintas que publicaron
         publicados_count = publicados.values('empresa_id').distinct().count()
         return publicados_count
@@ -330,7 +329,9 @@ def dashboard_ejecutivo(request):
 
     def _papeletas_pendientes():
         from asistencia.models import RegistroPapeleta
-        return RegistroPapeleta.objects.filter(estado='PENDIENTE').count()
+        return RegistroPapeleta.objects.filter(
+            estado='PENDIENTE', personal__empresa_id__in=empresa_ids,
+        ).count()
 
     papeletas_pendientes = _safe(_papeletas_pendientes, default=0)
 
@@ -343,17 +344,18 @@ def dashboard_ejecutivo(request):
         return Capacitacion.objects.filter(
             fecha_inicio__gte=hoy, fecha_inicio__lte=en_30,
             estado__in=['PROGRAMADA', 'EN_CURSO'],
-        ).count()
+            asistencias__personal__empresa_id__in=empresa_ids,
+        ).distinct().count()
 
     capacitaciones_proximas = _safe(_capacitaciones_proximas, default=0)
 
     def _certificaciones_estado():
         from capacitaciones.models import CertificacionTrabajador
         por_vencer = CertificacionTrabajador.objects.filter(
-            estado='POR_VENCER'
+            estado='POR_VENCER', personal__empresa_id__in=empresa_ids,
         ).count()
         vencidas = CertificacionTrabajador.objects.filter(
-            estado='VENCIDA'
+            estado='VENCIDA', personal__empresa_id__in=empresa_ids,
         ).count()
         return {'por_vencer': por_vencer, 'vencidas': vencidas}
 
@@ -383,9 +385,8 @@ def dashboard_ejecutivo(request):
 
     # Vacantes sin actividad > 30 días
     def _vacantes_estancadas():
-        from reclutamiento.models import Vacante
         lim = hoy - timedelta(days=30)
-        return Vacante.objects.filter(
+        return vacantes_scope.filter(
             estado__in=['PUBLICADA', 'EN_PROCESO'],
             actualizado_en__date__lt=lim,
         ).count()
@@ -401,10 +402,9 @@ def dashboard_ejecutivo(request):
 
     # Postulaciones estancadas > 14 días sin nota
     def _postulaciones_estancadas():
-        from reclutamiento.models import Postulacion
         lim = timezone.now() - timedelta(days=14)
         # Las que no tienen notas recientes
-        return Postulacion.objects.filter(
+        return postulaciones_scope.filter(
             estado='ACTIVA',
             fecha_postulacion__lt=lim,
         ).exclude(

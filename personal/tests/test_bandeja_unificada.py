@@ -9,6 +9,7 @@ from decimal import Decimal
 import pytest
 from django.contrib.auth.models import User
 
+from empresas.models import Empresa
 from personal.models import Personal
 from vacaciones.models import SaldoVacacional, SolicitudPermiso, SolicitudVacacion, TipoPermiso
 
@@ -23,6 +24,7 @@ def admin_client(client, db):
 @pytest.fixture
 def personal(db):
     return Personal.objects.create(
+        empresa=Empresa.objects.filter(activa=True).first(),
         nro_doc='78888888',
         apellidos_nombres='BANDEJA TEST, LUIS',
         cargo='Analista',

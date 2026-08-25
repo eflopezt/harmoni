@@ -150,7 +150,12 @@ class TestVistaPortal:
 
     def test_post_crea_solicitud(self, client, user_vinculado, trabajador):
         client.login(username="carlos", password="x")
-        resp = client.post(reverse("portal_mi_adelanto"), {"monto": "300.00", "motivo": "test"})
+        # La disponibilidad cambia cada dia dentro del ciclo 22→21. Usar un
+        # monto valido para la fecha real evita que el test venza con el mes.
+        disponible = ewa.calcular_disponible(trabajador)['disponible']
+        monto = min(Decimal('300.00'), disponible)
+        assert monto >= ewa.MONTO_MINIMO
+        resp = client.post(reverse("portal_mi_adelanto"), {"monto": str(monto), "motivo": "test"})
         assert resp.status_code == 302
         p = Prestamo.objects.get(personal=trabajador, tipo__codigo=ewa.TIPO_CODIGO)
         assert p.estado == "PENDIENTE"

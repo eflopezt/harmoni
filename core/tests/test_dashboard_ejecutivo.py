@@ -125,3 +125,34 @@ class TestDashboardEjecutivoContext(TestCase):
         """Passing ?empresa=abc (non-int) must not break view."""
         resp = self.client.get(self.url + '?empresa=invalid')
         assert resp.status_code == 200
+
+    def test_staff_no_ve_datos_de_otra_empresa(self):
+        from empresas.models import Empresa
+        from personal.models import Personal
+
+        owner = User.objects.create_user(
+            username='tenant_dash', password='test1234', is_staff=True)
+        other = User.objects.create_user(
+            username='other_dash', password='test1234', is_staff=True)
+        propia = Empresa.objects.create(
+            ruc='20123456001', razon_social='Empresa propia',
+            activa=True, creado_por=owner)
+        ajena = Empresa.objects.create(
+            ruc='20123456002', razon_social='Empresa ajena',
+            activa=True, creado_por=other)
+        for empresa, doc in ((propia, '70000001'), (ajena, '70000002')):
+            Personal.objects.create(
+                empresa=empresa, nro_doc=doc, apellidos_nombres=doc,
+                cargo='Analista', tipo_trab='Empleado', estado='Activo')
+        self.client.logout()
+        self.client.login(username='tenant_dash', password='test1234')
+        session = self.client.session
+        session['empresa_actual_id'] = propia.pk
+        session.save()
+
+        resp = self.client.get(self.url)
+
+        assert resp.status_code == 200
+        assert resp.context['kpi_personal_activo'] == 1
+        assert len(resp.context['empresas']) == 1
+        assert resp.context['empresas'][0]['id'] == propia.pk

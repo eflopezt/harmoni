@@ -2,6 +2,7 @@
 Utilidades para manejo de permisos y filtros por usuario.
 """
 from functools import wraps
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.contrib import messages
 from .models import Area, SubArea, Personal
@@ -73,6 +74,16 @@ def filtrar_personal(user, empresa=None):
     """
     if user.is_superuser:
         qs = Personal.objects.all()
+    elif user.is_staff:
+        from empresas.acceso import empresas_accesibles
+        empresas = empresas_accesibles(user)
+        personal_propio = getattr(user, 'personal_data', None)
+        alcance = Q(empresa__in=empresas)
+        if personal_propio:
+            # Compatibilidad con fichas legacy sin empresa: el usuario nunca
+            # pierde acceso a su propio expediente por el aislamiento de RUC.
+            alcance |= Q(pk=personal_propio.pk)
+        qs = Personal.objects.filter(alcance)
     elif hasattr(user, 'personal_data') and user.personal_data:
         # Si también es responsable, ve su área completa
         areas = get_areas_responsable(user)
@@ -153,7 +164,7 @@ def solo_responsable(view_func):
     return wrapper
 
 
-def get_context_usuario(user):
+def get_context_usuario(user, empresa=None):
     """
     Retorna contexto común para el usuario (gerencia, es_responsable, etc).
     """
@@ -165,7 +176,10 @@ def get_context_usuario(user):
     # Contar cambios pendientes de aprobación
     cambios_pendientes = 0
     if user.is_superuser:
-        cambios_pendientes = Roster.objects.filter(estado='pendiente').count()
+        roster = Roster.objects.filter(estado='pendiente')
+        if empresa is not None:
+            roster = roster.filter(personal__empresa=empresa)
+        cambios_pendientes = roster.count()
     elif areas.exists():
         cambios_pendientes = Roster.objects.filter(
             estado='pendiente',

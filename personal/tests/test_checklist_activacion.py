@@ -13,6 +13,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
+from empresas.models import Empresa
 from personal.models import Area, Personal, SubArea
 
 
@@ -35,9 +36,17 @@ class TestChecklistActivacion:
         assert "Activa tu cuenta" in resp.content.decode()
 
     def test_con_empleados_sigue_visible_y_marca_paso(self, admin_client):
+        admin = User.objects.get(username='admin')
+        empresa = Empresa.objects.create(
+            creado_por=admin,
+            ruc='20123456789',
+            razon_social='Empresa checklist SAC',
+            activa=True,
+        )
         area = Area.objects.create(nombre="Ops")
         sa = SubArea.objects.create(nombre="Campo", area=area)
         Personal.objects.create(
+            empresa=empresa,
             nro_doc="71000090", apellidos_nombres="CHECK, LISTA",
             cargo="Op", tipo_trab="Empleado", estado="Activo",
             subarea=sa, fecha_alta=date(2024, 1, 1),

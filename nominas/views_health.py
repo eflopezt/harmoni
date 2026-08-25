@@ -51,7 +51,7 @@ def nominas_health(request):
     # Onboarding score (no expone qué está mal)
     try:
         from .views_onboarding_validator import build_onboarding_report
-        report = build_onboarding_report()
+        report = build_onboarding_report(empresa)
         payload['onboarding_score'] = report['score']
         if report['n_error'] > 0:
             payload['status'] = 'critico'

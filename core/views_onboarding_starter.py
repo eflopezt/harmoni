@@ -176,12 +176,20 @@ def onboarding_starter_step3(request):
         user.is_staff = True
         user.save(update_fields=['is_staff'])
 
+        # Fuente de autorizacion para el admin antes de que tenga una ficha
+        # Personal propia. La sesion por si sola nunca concede acceso a un RUC.
+        empresa.creado_por = user
+        empresa.save(update_fields=['creado_por', 'actualizado_en'])
+
         # Limpiar wizard de session
         request.session.pop('onboarding_starter', None)
 
         # Auto-login
         user.backend = f'{ModelBackend.__module__}.{ModelBackend.__name__}'
         login(request, user)
+        request.session['empresa_actual_id'] = empresa.pk
+        request.session['empresa_actual_nombre'] = empresa.nombre_display
+        request.session.pop('modo_consolidado', None)
         from core.planes import PLANES
         nombre_plan = PLANES.get(empresa.plan, {}).get('nombre', empresa.plan)
         messages.success(

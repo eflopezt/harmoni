@@ -92,8 +92,7 @@ def empresa_editar(request, pk):
 @require_POST
 def seleccionar_empresa(request):
     """
-    Cambia la empresa activa en la sesión.
-    Cualquier usuario autenticado puede cambiar su empresa activa.
+    Cambia la empresa activa en la sesión sin ampliar sus permisos.
     """
     empresa_id = request.POST.get('empresa_id')
     next_url   = request.POST.get('next', '/')
@@ -102,21 +101,23 @@ def seleccionar_empresa(request):
         next_url = '/'
 
     if empresa_id == 'all':
-        # Vista consolidada — mostrar trabajadores/asistencia de TODAS las empresas.
-        # Las planillas siguen siendo independientes por empresa.
-        request.session['modo_consolidado'] = True
-        request.session.pop('empresa_actual_id', None)
-        request.session.pop('empresa_actual_nombre', None)
-        messages.success(request, '🌐 Vista consolidada — Todas las empresas')
+        if request.user.is_superuser:
+            request.session['modo_consolidado'] = True
+            request.session.pop('empresa_actual_id', None)
+            request.session.pop('empresa_actual_nombre', None)
+            messages.success(request, 'Vista consolidada — Todas las empresas')
+        else:
+            messages.error(request, 'No tienes permiso para la vista consolidada.')
     elif empresa_id:
         try:
-            emp = Empresa.objects.get(pk=empresa_id, activa=True)
+            from .acceso import empresas_accesibles
+            emp = empresas_accesibles(request.user).get(pk=empresa_id)
             request.session['empresa_actual_id']     = emp.pk
             request.session['empresa_actual_nombre'] = emp.nombre_display
             request.session.pop('modo_consolidado', None)
             messages.success(request, f'Empresa activa: {emp.nombre_display}')
         except Empresa.DoesNotExist:
-            messages.error(request, 'Empresa no encontrada.')
+            messages.error(request, 'Empresa no encontrada o sin acceso.')
     else:
         # Limpiar selección (vuelve a la empresa principal)
         request.session.pop('empresa_actual_id', None)

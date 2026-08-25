@@ -15,7 +15,7 @@ from django.core.cache import cache
 _TTL_NOMINAS_ALERTS = 300  # 5 min — barato calcularlos pero no necesitamos refresh constante
 
 
-def _calcular_alertas():
+def _calcular_alertas(empresa=None):
     """Devuelve dict con todos los flags de alerta — uncached."""
     alertas = {
         'count':            0,
@@ -29,7 +29,7 @@ def _calcular_alertas():
     # Onboarding score
     try:
         from .views_onboarding_validator import build_onboarding_report
-        report = build_onboarding_report()
+        report = build_onboarding_report(empresa)
         alertas['onboarding_score'] = report['score']
         if report['n_error'] > 0:
             alertas['count'] += report['n_error']
@@ -75,7 +75,10 @@ def _calcular_alertas():
         firmados = AcuseReciboBoleta.objects.values_list('registro_nomina_id', flat=True)
         n = RegistroNomina.objects.filter(
             periodo__estado__in=['APROBADO', 'CERRADO'],
-        ).exclude(pk__in=firmados).count()
+        )
+        if empresa is not None:
+            n = n.filter(periodo__empresa=empresa)
+        n = n.exclude(pk__in=firmados).count()
         alertas['acuses_pendientes'] = n
     except Exception:
         pass
@@ -89,12 +92,13 @@ def nominas_alerts(request):
     if not (user and user.is_authenticated and user.is_superuser):
         return {}
 
-    key = f'nominas_alerts:v1:{user.pk}'
+    empresa = getattr(request, 'empresa_actual', None)
+    key = f'nominas_alerts:v2:{user.pk}:{getattr(empresa, "pk", "all")}'
     cached = cache.get(key)
     if cached is not None:
         return {'nominas_alerts': cached}
 
-    alertas = _calcular_alertas()
+    alertas = _calcular_alertas(empresa)
     cache.set(key, alertas, _TTL_NOMINAS_ALERTS)
     return {'nominas_alerts': alertas}
 

@@ -3,6 +3,7 @@ Formularios del modulo de Reclutamiento y Seleccion.
 """
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 from personal.models import Area
 from .models import (
@@ -44,9 +45,18 @@ class VacanteForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        empresa = kwargs.pop('empresa', None)
         super().__init__(*args, **kwargs)
         self.fields['area'].queryset = Area.objects.filter(activa=True)
-        self.fields['responsable'].queryset = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+        responsables = User.objects.filter(is_active=True)
+        if empresa is not None:
+            responsables = responsables.filter(
+                Q(personal_data__empresa=empresa) |
+                Q(pk=empresa.creado_por_id) |
+                Q(is_superuser=True)
+            ).distinct()
+        self.fields['responsable'].queryset = responsables.order_by(
+            'first_name', 'last_name')
 
 
 class PostulacionAdminForm(forms.ModelForm):

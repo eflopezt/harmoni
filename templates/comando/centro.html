@@ -1,381 +1,224 @@
 {% extends "base_v2.html" %}
 {% load humanize %}
-{% block title %}Centro de Comando — Harmoni{% endblock %}
+{% block title %}Centro de Comando | Harmoni{% endblock %}
 {% block extra_css %}
 <style>
-.cmd-hero {
-    background: linear-gradient(135deg, #0d2b27 0%, #134e4a 50%, #0f766e 100%);
-    color: #fff;
-    padding: 28px 32px;
-    border-radius: 16px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(15, 118, 110, 0.18);
+.ops-shell { max-width: 1540px; margin: 0 auto; color: var(--hm-slate-900); }
+.ops-head {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+    padding: 24px 0 18px; border-bottom: 1px solid var(--hm-slate-200);
 }
-.cmd-fecha {
-    font-size: .82rem;
-    color: rgba(255,255,255,.7);
-    text-transform: uppercase;
-    letter-spacing: .15em;
-    font-weight: 600;
+.ops-kicker { color: var(--hm-brand-700); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.ops-title { margin: 4px 0 2px; font-size: clamp(1.45rem, 2vw, 2rem); font-weight: 800; letter-spacing: 0; }
+.ops-subtitle { margin: 0; color: var(--hm-slate-500); font-size: .88rem; }
+.ops-scope { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
+.ops-scope-badge {
+    border: 1px solid var(--hm-slate-200); background: var(--hm-paper); color: var(--hm-slate-700);
+    border-radius: var(--hm-r-sm); padding: 8px 10px; font-size: .78rem; font-weight: 700;
 }
-.cmd-titulo {
-    font-size: 1.8rem;
-    font-weight: 800;
-    margin: 6px 0 0;
-    letter-spacing: -.02em;
+.ops-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px;
+    padding: 8px 13px; border-radius: var(--hm-r-sm); background: var(--hm-brand-700);
+    color: #fff; font-size: .8rem; font-weight: 750; text-decoration: none;
 }
-.cmd-saludo {
-    font-size: 1.02rem;
-    color: rgba(255,255,255,.85);
-    margin-top: 8px;
+.ops-primary:hover { background: var(--hm-brand-800); color: #fff; }
+.ops-stats {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    border: 1px solid var(--hm-slate-200); background: var(--hm-paper); margin: 18px 0;
 }
-.cmd-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-top: 22px;
+.ops-stat { min-width: 0; padding: 14px 18px; border-right: 1px solid var(--hm-slate-200); }
+.ops-stat:last-child { border-right: 0; }
+.ops-stat-label { color: var(--hm-slate-500); font-size: .7rem; font-weight: 700; text-transform: uppercase; }
+.ops-stat-value {
+    margin-top: 3px; color: var(--hm-slate-900); font-family: var(--hm-font-mono);
+    font-size: 1.35rem; font-weight: 800; overflow-wrap: anywhere;
 }
-.cmd-stat {
-    background: rgba(255,255,255,.08);
-    border-radius: 12px;
-    padding: 14px 18px;
-    backdrop-filter: blur(10px);
+.ops-section { margin: 18px 0; }
+.ops-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 9px; }
+.ops-section-title { margin: 0; font-size: .92rem; font-weight: 800; }
+.ops-section-note { color: var(--hm-slate-500); font-size: .74rem; }
+.ops-journey {
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+    background: var(--hm-paper); border: 1px solid var(--hm-slate-200); overflow: hidden;
 }
-.cmd-stat-label {
-    font-size: .72rem;
-    color: rgba(255,255,255,.65);
-    text-transform: uppercase;
-    letter-spacing: .08em;
+.ops-stage {
+    position: relative; min-width: 0; padding: 14px 13px 13px; border-right: 1px solid var(--hm-slate-200);
+    color: inherit; text-decoration: none;
 }
-.cmd-stat-value {
-    font-size: 1.6rem;
-    font-weight: 800;
-    margin-top: 4px;
-    line-height: 1;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -.02em;
+.ops-stage:last-child { border-right: 0; }
+.ops-stage:hover { background: var(--hm-slate-50); color: inherit; }
+.ops-stage::before { content: ""; position: absolute; inset: 0 auto auto 0; width: 100%; height: 3px; background: var(--hm-slate-300); }
+.ops-stage.status-critical::before { background: var(--hm-error); }
+.ops-stage.status-warning::before { background: var(--hm-warning); }
+.ops-stage.status-info::before { background: var(--hm-info); }
+.ops-stage.status-ready::before { background: var(--hm-success); }
+.ops-stage-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ops-stage-num { color: var(--hm-slate-400); font-family: var(--hm-font-mono); font-size: .68rem; font-weight: 700; }
+.ops-stage-icon { color: var(--hm-slate-500); font-size: .82rem; }
+.ops-stage-title { margin: 10px 0 3px; font-size: .85rem; font-weight: 800; }
+.ops-stage-metric { font-family: var(--hm-font-mono); font-size: 1rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.ops-stage-label { color: var(--hm-slate-500); font-size: .68rem; }
+.ops-stage-summary { margin: 9px 0 0; color: var(--hm-slate-600); font-size: .72rem; line-height: 1.42; }
+.ops-workbench { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, .75fr); gap: 16px; }
+.ops-panel { background: var(--hm-paper); border: 1px solid var(--hm-slate-200); border-radius: var(--hm-r-md); overflow: hidden; }
+.ops-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 15px; border-bottom: 1px solid var(--hm-slate-200); }
+.ops-panel-title { margin: 0; font-size: .82rem; font-weight: 800; }
+.ops-count { color: var(--hm-slate-500); font-family: var(--hm-font-mono); font-size: .72rem; }
+.ops-issue { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 11px; padding: 11px 15px; border-bottom: 1px solid var(--hm-slate-100); }
+.ops-issue:last-child { border-bottom: 0; }
+.ops-issue-icon { width: 28px; height: 28px; display: grid; place-items: center; background: var(--hm-slate-100); color: var(--hm-slate-600); border-radius: var(--hm-r-sm); }
+.ops-issue.priority-critical .ops-issue-icon { background: #fef2f2; color: #b91c1c; }
+.ops-issue.priority-warning .ops-issue-icon { background: #fffbeb; color: #b45309; }
+.ops-issue-stage { color: var(--hm-slate-500); font-size: .66rem; font-weight: 750; text-transform: uppercase; }
+.ops-issue-title { color: var(--hm-slate-900); font-size: .82rem; font-weight: 750; }
+.ops-issue-desc { color: var(--hm-slate-500); font-size: .72rem; line-height: 1.35; }
+.ops-issue-link { color: var(--hm-brand-700); font-size: .73rem; font-weight: 750; text-decoration: none; white-space: nowrap; }
+.ops-empty { padding: 28px 18px; text-align: center; color: var(--hm-slate-500); font-size: .8rem; }
+.ops-next { padding: 15px; border-bottom: 1px solid var(--hm-slate-200); }
+.ops-next-label { color: var(--hm-brand-700); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.ops-next-title { margin: 6px 0 4px; font-size: 1rem; font-weight: 800; line-height: 1.3; }
+.ops-next-desc { margin: 0 0 12px; color: var(--hm-slate-500); font-size: .75rem; line-height: 1.45; }
+.ops-briefing { padding: 11px 15px; border-bottom: 1px solid var(--hm-slate-100); }
+.ops-briefing:last-child { border-bottom: 0; }
+.ops-briefing-title { font-size: .78rem; font-weight: 750; }
+.ops-briefing-meta { color: var(--hm-slate-500); font-size: .68rem; }
+.ops-table-wrap { overflow-x: auto; }
+.ops-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.ops-table th { padding: 9px 13px; background: var(--hm-slate-50); color: var(--hm-slate-500); font-size: .67rem; font-weight: 800; text-align: left; text-transform: uppercase; }
+.ops-table td { padding: 10px 13px; border-top: 1px solid var(--hm-slate-100); font-size: .76rem; vertical-align: middle; }
+.ops-company { font-weight: 750; }
+.ops-company-ruc { display: block; color: var(--hm-slate-500); font-family: var(--hm-font-mono); font-size: .65rem; }
+.ops-num { font-family: var(--hm-font-mono); font-weight: 750; }
+.ops-danger { color: #b91c1c; }
+.ops-warn { color: #b45309; }
+.ops-state { display: inline-flex; padding: 3px 6px; border: 1px solid var(--hm-slate-200); border-radius: var(--hm-r-sm); color: var(--hm-slate-600); font-size: .68rem; font-weight: 700; }
+@media (max-width: 1100px) {
+    .ops-journey { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ops-stage:nth-child(3) { border-right: 0; }
+    .ops-stage:nth-child(-n+3) { border-bottom: 1px solid var(--hm-slate-200); }
 }
-
-.cmd-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 18px;
+@media (max-width: 820px) {
+    .ops-head { align-items: flex-start; flex-direction: column; }
+    .ops-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ops-stat:nth-child(2) { border-right: 0; }
+    .ops-stat:nth-child(-n+2) { border-bottom: 1px solid var(--hm-slate-200); }
+    .ops-workbench { grid-template-columns: 1fr; }
 }
-@media (max-width: 900px) { .cmd-grid { grid-template-columns: 1fr; } }
-
-.cmd-card {
-    background: #fff;
-    border-radius: 14px;
-    padding: 22px 24px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+@media (max-width: 560px) {
+    .ops-head { padding-top: 16px; }
+    .ops-scope { width: 100%; align-items: stretch; flex-direction: column; }
+    .ops-primary { width: 100%; }
+    .ops-journey { grid-template-columns: 1fr 1fr; }
+    .ops-stage { border-bottom: 1px solid var(--hm-slate-200); }
+    .ops-stage:nth-child(2n) { border-right: 0; }
+    .ops-stage:nth-last-child(-n+2) { border-bottom: 0; }
+    .ops-issue { grid-template-columns: 28px minmax(0, 1fr); }
+    .ops-issue-link { grid-column: 2; justify-self: start; }
 }
-.cmd-card-title {
-    font-size: .8rem;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    margin: 0 0 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* La cosa de hoy — top alerta */
-.cmd-top-alert {
-    background: linear-gradient(135deg, #fee2e2, #fef3c7);
-    border-left: 5px solid #dc2626;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
-}
-.cmd-top-alert-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 14px;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-    color: #dc2626;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(220,38,38,.15);
-}
-.cmd-top-alert-text {
-    flex: 1;
-}
-.cmd-top-alert-label {
-    font-size: .72rem;
-    color: #78350f;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-}
-.cmd-top-alert-title {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #0d2b27;
-    margin: 4px 0;
-}
-.cmd-top-alert-desc {
-    font-size: .88rem;
-    color: #64748b;
-}
-
-/* Alertas list */
-.cmd-alerta {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 14px;
-    border-left: 3px solid;
-    background: #f8fafc;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: transform .2s;
-}
-.cmd-alerta:hover { transform: translateX(3px); }
-.cmd-alerta-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-.cmd-alerta-text { flex: 1; }
-.cmd-alerta-title { font-weight: 700; color: #0d2b27; font-size: .92rem; }
-.cmd-alerta-desc { font-size: .78rem; color: #64748b; }
-.cmd-alerta-cta {
-    color: #0f766e;
-    font-size: .82rem;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-/* Mapa de calor locales */
-.cmd-locales-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
-}
-.cmd-local {
-    background: #fff;
-    border-radius: 10px;
-    padding: 14px 12px;
-    text-align: center;
-    border: 2px solid;
-    text-decoration: none;
-    color: inherit;
-    transition: transform .2s, box-shadow .2s;
-}
-.cmd-local:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0,0,0,.08);
-}
-.cmd-local-emoji { font-size: 1.4rem; }
-.cmd-local-nombre {
-    font-weight: 700;
-    color: #0d2b27;
-    font-size: .82rem;
-    margin: 6px 0 2px;
-    line-height: 1.2;
-}
-.cmd-local-workers { font-size: .7rem; color: #64748b; }
-.cmd-local-score {
-    font-size: 1.6rem;
-    font-weight: 900;
-    margin: 4px 0;
-    line-height: 1;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-variant-numeric: tabular-nums;
-}
-.cmd-local-estado {
-    font-size: .68rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: .05em;
-}
-
-/* Briefings */
-.cmd-briefing {
-    background: #f0fdf4;
-    border-left: 3px solid #16a34a;
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-}
-.cmd-briefing-titulo { font-weight: 700; font-size: .9rem; color: #0d2b27; }
-.cmd-briefing-empresa { font-size: .72rem; color: #64748b; }
-.cmd-briefing-snippet { font-size: .82rem; color: #475569; margin-top: 4px; }
 </style>
 {% endblock %}
 {% block body %}
-
-<!-- HERO ─────────────────────────────────────── -->
-<div class="cmd-hero">
-    <div class="cmd-fecha">
-        <i class="fas fa-broadcast-tower me-1"></i>
-        Centro de Comando · {{ fecha_hoy|date:"l, d \d\e F" }}
-    </div>
-    <h1 class="cmd-titulo">Buen día, {{ usuario.first_name|default:usuario.username }} 👋</h1>
-    <p class="cmd-saludo">
-        Resumen de los <strong>{{ total_empresas }} locales</strong> del Grupo —
-        lo más importante de hoy en una sola vista.
-    </p>
-
-    <div class="cmd-stats">
-        <div class="cmd-stat">
-            <div class="cmd-stat-label">Colaboradores activos</div>
-            <div class="cmd-stat-value count-up">{{ total_workers }}</div>
+<main class="ops-shell">
+    <header class="ops-head">
+        <div>
+            <div class="ops-kicker">Operacion de personas · {{ fecha_hoy|date:"d M Y" }}</div>
+            <h1 class="ops-title">Centro de Comando</h1>
+            <p class="ops-subtitle">El siguiente bloqueo de cada proceso, con alcance por empresa y sin indicadores simulados.</p>
         </div>
-        <div class="cmd-stat">
-            <div class="cmd-stat-label">Locales operando</div>
-            <div class="cmd-stat-value count-up">{{ total_empresas }}</div>
-        </div>
-        <div class="cmd-stat">
-            <div class="cmd-stat-label">Costo planilla est./mes</div>
-            <div class="cmd-stat-value count-up" data-currency="1">{{ costo_planilla_estimado|floatformat:0 }}</div>
-        </div>
-        <div class="cmd-stat">
-            <div class="cmd-stat-label">Alertas activas</div>
-            <div class="cmd-stat-value count-up">{{ alertas|length }}</div>
-        </div>
-    </div>
-</div>
-
-{% include "partials/count_up_animation.html" %}
-
-<!-- TOP ALERT ──────────────────────────────────── -->
-{% if alerta_top %}
-<div class="cmd-top-alert" style="border-left-color:{{ alerta_top.color }};">
-    <div class="cmd-top-alert-icon" style="color:{{ alerta_top.color }};">
-        <i class="fas {{ alerta_top.icon }}"></i>
-    </div>
-    <div class="cmd-top-alert-text">
-        <div class="cmd-top-alert-label">⚡ Una cosa para hacer hoy</div>
-        <div class="cmd-top-alert-title">{{ alerta_top.titulo }}</div>
-        <div class="cmd-top-alert-desc">{{ alerta_top.descripcion }}</div>
-    </div>
-    <a href="{{ alerta_top.url }}" style="background:{{ alerta_top.color }};color:#fff;padding:10px 22px;border-radius:10px;font-weight:600;text-decoration:none;white-space:nowrap;">
-        {{ alerta_top.cta }} →
-    </a>
-</div>
-{% endif %}
-
-<div class="cmd-grid">
-
-    <!-- COL IZQUIERDA: alertas + locales ─────────── -->
-    <div>
-        <!-- Locales heat map -->
-        <div class="cmd-card" style="margin-bottom:18px;">
-            <h3 class="cmd-card-title">
-                <i class="fas fa-map" style="color:#0f766e;"></i> Salud por local
-            </h3>
-            <div class="cmd-locales-grid">
-                {% for l in locales %}
-                <a href="{{ l.url }}" class="cmd-local" style="border-color:{{ l.color }};">
-                    <div class="cmd-local-emoji">{{ l.emoji }}</div>
-                    <div class="cmd-local-nombre">{{ l.empresa.razon_social|truncatechars:18 }}</div>
-                    <div class="cmd-local-workers">{{ l.workers }} colab.</div>
-                    <div class="cmd-local-score" style="color:{{ l.color }};">{{ l.score }}</div>
-                    <div class="cmd-local-estado" style="color:{{ l.color }};">{{ l.estado }}</div>
-                </a>
-                {% empty %}
-                <p style="color:#94a3b8;">Sin locales activos.</p>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Otras alertas -->
-        {% if alertas|length > 1 %}
-        <div class="cmd-card">
-            <h3 class="cmd-card-title">
-                <i class="fas fa-bell" style="color:#f59e0b;"></i> Bandeja de alertas
-            </h3>
-            {% for a in alertas %}
-            {% if a != alerta_top %}
-            <a href="{{ a.url }}" style="text-decoration:none;color:inherit;">
-            <div class="cmd-alerta" style="border-left-color:{{ a.color }};">
-                <div class="cmd-alerta-icon" style="background:{{ a.color }}1a;color:{{ a.color }};">
-                    <i class="fas {{ a.icon }}"></i>
-                </div>
-                <div class="cmd-alerta-text">
-                    <div class="cmd-alerta-title">{{ a.titulo }}</div>
-                    <div class="cmd-alerta-desc">{{ a.descripcion }}</div>
-                </div>
-                <div class="cmd-alerta-cta" style="color:{{ a.color }};">
-                    {{ a.cta }} →
-                </div>
-            </div>
-            </a>
+        <div class="ops-scope">
+            <span class="ops-scope-badge">
+                <i class="fas fa-building me-1" aria-hidden="true"></i>
+                {% if modo_consolidado %}Vista consolidada{% elif empresa_actual %}{{ empresa_actual.nombre_display|truncatechars:34 }}{% else %}Sin empresa activa{% endif %}
+            </span>
+            {% if next_action %}
+            <a class="ops-primary" href="{{ next_action.url }}"><i class="fas fa-arrow-right" aria-hidden="true"></i>{{ next_action.action }}</a>
             {% endif %}
+        </div>
+    </header>
+
+    <section class="ops-stats" aria-label="Resumen operativo">
+        <div class="ops-stat"><div class="ops-stat-label">Personas activas</div><div class="ops-stat-value">{{ total_workers }}</div></div>
+        <div class="ops-stat"><div class="ops-stat-label">Empresas en alcance</div><div class="ops-stat-value">{{ total_empresas }}</div></div>
+        <div class="ops-stat"><div class="ops-stat-label">Base salarial registrada</div><div class="ops-stat-value">S/ {{ base_salarial|floatformat:0|intcomma }}</div></div>
+        <div class="ops-stat"><div class="ops-stat-label">Frentes que requieren atencion</div><div class="ops-stat-value">{{ total_pending }}</div></div>
+    </section>
+
+    <section class="ops-section">
+        <div class="ops-section-head">
+            <h2 class="ops-section-title">Recorrido operativo</h2>
+            <span class="ops-section-note">Cada etapa abre el lugar exacto donde se resuelve.</span>
+        </div>
+        <div class="ops-journey">
+            {% for stage in stages %}
+            <a class="ops-stage status-{{ stage.status }}" href="{{ stage.action_url }}">
+                <div class="ops-stage-top"><span class="ops-stage-num">{{ stage.number }}</span><i class="fas {{ stage.icon }} ops-stage-icon" aria-hidden="true"></i></div>
+                <h3 class="ops-stage-title">{{ stage.title }}</h3>
+                <div class="ops-stage-metric">{{ stage.metric }}</div>
+                <div class="ops-stage-label">{{ stage.metric_label }}</div>
+                <p class="ops-stage-summary">{{ stage.summary }}</p>
+            </a>
             {% endfor %}
         </div>
-        {% endif %}
-    </div>
+    </section>
 
-    <!-- COL DERECHA: briefings de hoy + quick actions ── -->
-    <div>
-        <!-- Briefings -->
-        <div class="cmd-card" style="margin-bottom:18px;">
-            <h3 class="cmd-card-title">
-                <i class="fas fa-clipboard-list" style="color:#16a34a;"></i> Briefings de hoy
-            </h3>
-            {% for b in briefings_hoy %}
-            <div class="cmd-briefing">
-                <div class="cmd-briefing-titulo">{{ b.titulo|default:"Briefing del día" }}</div>
-                <div class="cmd-briefing-empresa">{{ b.empresa.razon_social|truncatechars:30 }} · {{ b.turno }}</div>
-                <div class="cmd-briefing-snippet">{{ b.contenido|truncatechars:90 }}</div>
+    <section class="ops-workbench">
+        <div class="ops-panel">
+            <div class="ops-panel-head"><h2 class="ops-panel-title">Bandeja priorizada</h2><span class="ops-count">{{ issues|length }} frentes</span></div>
+            {% for issue in issues %}
+            <div class="ops-issue priority-{{ issue.priority }}">
+                <div class="ops-issue-icon"><i class="fas {% if issue.priority == 'critical' %}fa-triangle-exclamation{% else %}fa-clock{% endif %}" aria-hidden="true"></i></div>
+                <div>
+                    <div class="ops-issue-stage">{{ issue.stage }}</div>
+                    <div class="ops-issue-title">{{ issue.title }}</div>
+                    <div class="ops-issue-desc">{{ issue.description }}</div>
+                </div>
+                <a class="ops-issue-link" href="{{ issue.url }}">{{ issue.action }} <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
             </div>
             {% empty %}
-            <p style="color:#94a3b8;font-size:.85rem;text-align:center;padding:14px 0;">
-                Sin briefings publicados hoy.
-                <a href="/asistencia/briefing/" style="display:block;margin-top:6px;color:#0f766e;">Crear briefing →</a>
-            </p>
+            <div class="ops-empty"><i class="fas fa-circle-check me-1" aria-hidden="true"></i>No hay bloqueos operativos en el alcance actual.</div>
             {% endfor %}
-            {% if briefings_hoy %}
-            <a href="/asistencia/briefing/" style="display:block;text-align:center;margin-top:10px;font-size:.85rem;color:#0f766e;">
-                Ver todos los briefings →
-            </a>
-            {% endif %}
         </div>
 
-        <!-- Quick actions -->
-        <div class="cmd-card">
-            <h3 class="cmd-card-title">
-                <i class="fas fa-bolt" style="color:#0891b2;"></i> Acceso rápido
-            </h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <a href="/empresas/pulse/" style="background:#f0fdf4;color:#0d2b27;padding:12px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:600;text-align:center;">
-                    <i class="fas fa-heart-pulse d-block mb-1" style="color:#16a34a;"></i>
-                    Pulse del Grupo
-                </a>
-                <a href="/sistema/dashboard/ejecutivo/" style="background:#f0f9ff;color:#0d2b27;padding:12px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:600;text-align:center;">
-                    <i class="fas fa-chart-line d-block mb-1" style="color:#0891b2;"></i>
-                    Dashboard Ejec.
-                </a>
-                <a href="/nominas/" style="background:#fef3c7;color:#0d2b27;padding:12px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:600;text-align:center;">
-                    <i class="fas fa-file-invoice-dollar d-block mb-1" style="color:#d97706;"></i>
-                    Nóminas
-                </a>
-                <a href="/reclutamiento/pipeline/" style="background:#f5f3ff;color:#0d2b27;padding:12px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:600;text-align:center;">
-                    <i class="fas fa-rocket d-block mb-1" style="color:#a855f7;"></i>
-                    Reclutamiento
-                </a>
+        <aside class="ops-panel">
+            {% if next_action %}
+            <div class="ops-next">
+                <div class="ops-next-label">Siguiente mejor accion</div>
+                <div class="ops-next-title">{{ next_action.title }}</div>
+                <p class="ops-next-desc">{{ next_action.description }}</p>
+                <a class="ops-primary" href="{{ next_action.url }}">{{ next_action.action }}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
             </div>
+            {% endif %}
+            <div class="ops-panel-head"><h2 class="ops-panel-title">Briefings publicados hoy</h2><span class="ops-count">{{ briefings_hoy|length }}</span></div>
+            {% for briefing in briefings_hoy %}
+            <div class="ops-briefing">
+                <div class="ops-briefing-title">{{ briefing.get_servicio_display }}</div>
+                <div class="ops-briefing-meta">{{ briefing.empresa.nombre_display|truncatechars:32 }} · {{ briefing.covers_esperados }} covers</div>
+            </div>
+            {% empty %}
+            <div class="ops-empty">No hay briefings publicados para hoy.</div>
+            {% endfor %}
+        </aside>
+    </section>
+
+    <section class="ops-section ops-panel">
+        <div class="ops-panel-head"><h2 class="ops-panel-title">Control por empresa</h2><span class="ops-count">Registros operativos verificables</span></div>
+        <div class="ops-table-wrap">
+            <table class="ops-table">
+                <thead><tr><th>Empresa</th><th>Personal activo</th><th>Contratos por vencer</th><th>Ingreso vencido</th><th>Ultima planilla</th><th>Estado</th></tr></thead>
+                <tbody>
+                    {% for row in operaciones %}
+                    <tr>
+                        <td><span class="ops-company">{{ row.empresa.nombre_display }}</span><span class="ops-company-ruc">RUC {{ row.empresa.ruc }}</span></td>
+                        <td class="ops-num">{{ row.activos }}</td>
+                        <td class="ops-num {% if row.contratos_por_vencer %}ops-danger{% endif %}">{{ row.contratos_por_vencer }}</td>
+                        <td class="ops-num {% if row.onboarding_vencido %}ops-warn{% endif %}">{{ row.onboarding_vencido }}</td>
+                        <td>{% if row.nomina %}{{ row.nomina.mes|stringformat:"02d" }}/{{ row.nomina.anio }}{% else %}Sin periodo{% endif %}</td>
+                        <td><span class="ops-state">{% if row.nomina %}{{ row.nomina.get_estado_display }}{% else %}Pendiente de configurar{% endif %}</span></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="6" class="ops-empty">No hay empresas con personal activo en este alcance.</td></tr>{% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
-
-</div>
-
+    </section>
+</main>
 {% endblock %}

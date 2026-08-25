@@ -46,9 +46,13 @@ class EtapaPipelineViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelVi
 class VacanteViewSet(EmpresaFilteredViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """Vacantes abiertas.
 
-    Vacante no tiene ruta ORM a Empresa (area es catálogo global) →
-    deny-by-default por API hasta que el modelo gane tenancy."""
-    queryset = Vacante.objects.select_related('area', 'responsable').prefetch_related('postulaciones').all()
+    Cada vacante pertenece a un RUC y se filtra por la empresa activa."""
+    empresa_field = 'empresa'
+    # El mixin aplica tenancy al evaluar el request. El queryset de clase debe
+    # nacer sin el ContextVar web porque urls.py puede importarse dentro del
+    # primer request del proceso.
+    queryset = Vacante.all_objects.select_related(
+        'area', 'responsable').prefetch_related('postulaciones').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['area', 'estado', 'prioridad', 'tipo_contrato', 'publica']
@@ -78,8 +82,7 @@ class PostulacionViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
     """
     Postulaciones a vacantes con acciones de pipeline.
 
-    Postulacion (PII de candidatos) no tiene ruta ORM a Empresa →
-    deny-by-default por API: solo superuser lee/escribe.
+    La empresa se deriva de la vacante para aislar la PII del candidato.
 
     Extra actions:
     - POST /api/reclutamiento/postulaciones/<pk>/mover-etapa/  — mover etapa
@@ -88,7 +91,8 @@ class PostulacionViewSet(EmpresaFilteredViewSetMixin, viewsets.ModelViewSet):
     - POST /api/reclutamiento/postulaciones/bulk/              — acciones masivas
     - GET  /api/reclutamiento/postulaciones/funnel-stats/      — stats por etapa
     """
-    queryset = Postulacion.objects.select_related('vacante', 'etapa').all()
+    empresa_field = 'vacante__empresa'
+    queryset = Postulacion.all_objects.select_related('vacante', 'etapa').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['vacante', 'etapa', 'estado', 'fuente']

@@ -16,6 +16,7 @@ from django.db import models
 from decimal import Decimal
 
 from personal.models import Area, Personal
+from .managers import PostulacionManager, VacanteManager
 
 
 # ══════════════════════════════════════════════════════════════
@@ -64,6 +65,14 @@ class Vacante(models.Model):
     ]
 
     titulo = models.CharField(max_length=200, verbose_name="Titulo del Puesto")
+    empresa = models.ForeignKey(
+        'empresas.Empresa',
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='vacantes_harmoni',
+        verbose_name='Empresa',
+        help_text='RUC empleador al que pertenece la requisicion.',
+    )
     area = models.ForeignKey(
         Area,
         on_delete=models.SET_NULL,
@@ -169,11 +178,15 @@ class Vacante(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
+    objects = VacanteManager()
+    all_objects = models.Manager()
+
     class Meta:
         verbose_name = "Vacante"
         verbose_name_plural = "Vacantes"
         ordering = ['-creado_en']
         indexes = [
+            models.Index(fields=['empresa', 'estado'], name='vacante_empresa_estado_idx'),
             models.Index(fields=['estado']),
             models.Index(fields=['area']),
             models.Index(fields=['prioridad']),
@@ -367,6 +380,9 @@ class Postulacion(models.Model):
         verbose_name="Etiquetas",
         help_text="Lista de etiquetas (TAG_CHOICES codes) asignadas al candidato.",
     )
+
+    objects = PostulacionManager()
+    all_objects = models.Manager()
 
     class Meta:
         verbose_name = "Postulacion"

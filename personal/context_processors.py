@@ -70,7 +70,7 @@ def harmoni_context(request):
 
     # Multi-empresa
     base['empresa_actual'] = getattr(request, 'empresa_actual', None)
-    base['empresas_disponibles'] = _get_empresas_disponibles()
+    base['empresas_disponibles'] = _get_empresas_disponibles(user)
     base['modo_consolidado'] = getattr(request, 'modo_consolidado', False)
 
     # Demo: el selector solo muestra las empresas del escenario elegido
@@ -126,26 +126,27 @@ def _get_tiene_empleado(user) -> bool:
     return val
 
 
-def _get_empresas_disponibles() -> list:
+def _get_empresas_disponibles(user) -> list:
     """Retorna lista de empresas activas para el selector del sidebar. Cached 5 min.
 
     Filtra empresas que (a) tengan al menos 1 trabajador Y (b) cuyo nombre/razón
     no coincida con el patrón de seeds-residuo (configurable vía
     settings.HIDE_EMPRESAS_NAMES).
     """
-    cache_key = 'harmoni_ctx_empresas_v3'  # v3: filtra por nombre residuo
+    version = cache.get('harmoni_ctx_empresas_version', 1)
+    cache_key = f'harmoni_ctx_empresas_v4_{version}_{user.pk}'
     data = cache.get(cache_key)
     if data is None:
         try:
             from django.conf import settings
             from django.db.models import Count, Q
-            from empresas.models import Empresa
+            from empresas.acceso import empresas_accesibles
             # Default vacío: empresas se filtran solo por _n__gt=0 (sin trabajadores).
             # Si una instalación quiere ocultar empresas específicas (residuos seed,
             # divisiones legacy, etc.), define HIDE_EMPRESAS_NAMES en settings.
             hide_names = getattr(settings, 'HIDE_EMPRESAS_NAMES', [])
             qs = (
-                Empresa.objects.filter(activa=True)
+                empresas_accesibles(user)
                 .annotate(_n=Count('personal'))
                 .filter(_n__gt=0)
             )
@@ -402,7 +403,11 @@ def invalidar_rol(user_pk: int):
 
 def invalidar_empresas():
     """Invalida cache de empresas disponibles. Llamar en Empresa.save()."""
-    cache.delete('harmoni_ctx_empresas_v3')
+    key = 'harmoni_ctx_empresas_version'
+    try:
+        cache.incr(key)
+    except (ValueError, NotImplementedError):
+        cache.set(key, 2, None)
 
 
 def invalidar_perfil(user_pk: int | None = None):

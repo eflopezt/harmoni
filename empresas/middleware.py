@@ -27,52 +27,58 @@ class EmpresaMiddleware:
 
         # 1. Subdomain takes priority (already resolved by SubdomainMiddleware)
         empresa_from_subdomain = getattr(request, 'empresa_subdomain', None)
-        if empresa_from_subdomain:
-            request.empresa_actual = empresa_from_subdomain
+        if empresa_from_subdomain and request.user.is_authenticated:
+            from empresas.acceso import empresa_es_accesible
+            if empresa_es_accesible(request.user, empresa_from_subdomain):
+                request.empresa_actual = empresa_from_subdomain
         elif request.user.is_authenticated:
             # 2a. Modo consolidado explícito?
-            if request.session.get('modo_consolidado') is True:
+            if (request.session.get('modo_consolidado') is True
+                    and request.user.is_superuser):
                 request.modo_consolidado = True
                 request.empresa_actual = None  # explícito: sin filtro de empresa
             else:
+                request.session.pop('modo_consolidado', None)
                 # 2b. Session-based lookup
                 empresa_id = request.session.get('empresa_actual_id')
                 if empresa_id:
                     try:
-                        from empresas.models import Empresa
-                        request.empresa_actual = Empresa.objects.get(pk=empresa_id, activa=True)
+                        from empresas.acceso import empresas_accesibles
+                        request.empresa_actual = empresas_accesibles(
+                            request.user
+                        ).get(pk=empresa_id)
                     except Exception:
-                        pass
+                        request.session.pop('empresa_actual_id', None)
+                        request.session.pop('empresa_actual_nombre', None)
 
                 # 3. Fallback to principal empresa
                 if not request.empresa_actual:
                     try:
-                        from empresas.models import Empresa
-                        principal = Empresa.objects.filter(
-                            activa=True, es_principal=True
-                        ).first()
-                        # Si la principal no tiene personal (instancia recién
-                        # sembrada / demo), arrancar en modo CONSOLIDADO en vez
-                        # de mostrar "Empleados" y demás vistas vacías.
-                        if principal and principal.personal.exists():
-                            request.empresa_actual = principal
-                            request.session['empresa_actual_id']     = principal.pk
-                            request.session['empresa_actual_nombre'] = principal.nombre_display
-                        else:
+                        from empresas.acceso import empresas_accesibles
+                        permitidas = empresas_accesibles(request.user)
+                        principal = permitidas.filter(es_principal=True).first()
+                        elegida = principal or permitidas.order_by('razon_social').first()
+                        if elegida:
+                            request.empresa_actual = elegida
+                            request.session['empresa_actual_id'] = elegida.pk
+                            request.session['empresa_actual_nombre'] = elegida.nombre_display
+                        elif request.user.is_superuser:
                             request.modo_consolidado = True
                             request.empresa_actual = None
                     except Exception:
                         pass
 
-        # Setear empresa en thread-local para el email backend
+        # Setear empresa en thread-local para el email backend y el alcance
+        # defensivo de modelos que contienen PII multiempresa.
         if request.empresa_actual:
             from empresas.email_backend import set_current_empresa
             set_current_empresa(request.empresa_actual)
+        from empresas.request_scope import activate_request_scope, reset_request_scope
+        scope_token = activate_request_scope(request)
 
-        response = self.get_response(request)
-
-        # Limpiar thread-local después del request
-        from empresas.email_backend import set_current_empresa
-        set_current_empresa(None)
-
-        return response
+        try:
+            return self.get_response(request)
+        finally:
+            reset_request_scope(scope_token)
+            from empresas.email_backend import set_current_empresa
+            set_current_empresa(None)

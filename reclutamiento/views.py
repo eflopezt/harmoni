@@ -159,17 +159,22 @@ def vacantes_panel(request):
 @solo_admin
 def vacante_crear(request):
     """Formulario para crear una nueva vacante."""
+    empresa = getattr(request, 'empresa_actual', None)
+    if empresa is None:
+        messages.warning(request, 'Selecciona una empresa antes de crear la vacante.')
+        return redirect('vacantes_panel')
     if request.method == 'POST':
-        form = VacanteForm(request.POST)
+        form = VacanteForm(request.POST, empresa=empresa)
         if form.is_valid():
             vacante = form.save(commit=False)
+            vacante.empresa = empresa
             vacante.creado_por = request.user
             vacante.save()
             log_create(request, vacante)
             messages.success(request, f'Vacante "{vacante.titulo}" creada exitosamente.')
             return redirect('vacante_detalle', pk=vacante.pk)
     else:
-        form = VacanteForm()
+        form = VacanteForm(empresa=empresa)
 
     return render(request, 'reclutamiento/vacante_crear.html', {
         'titulo': 'Nueva Vacante',
@@ -245,7 +250,7 @@ def vacante_editar(request, pk):
     vacante = get_object_or_404(Vacante, pk=pk)
 
     if request.method == 'POST':
-        form = VacanteForm(request.POST, instance=vacante)
+        form = VacanteForm(request.POST, instance=vacante, empresa=vacante.empresa)
         if form.is_valid():
             cambios = {}
             for field in form.changed_data:
@@ -259,7 +264,7 @@ def vacante_editar(request, pk):
             messages.success(request, f'Vacante "{vacante.titulo}" actualizada.')
             return redirect('vacante_detalle', pk=vacante.pk)
     else:
-        form = VacanteForm(instance=vacante)
+        form = VacanteForm(instance=vacante, empresa=vacante.empresa)
 
     return render(request, 'reclutamiento/vacante_crear.html', {
         'titulo': f'Editar: {vacante.titulo}',

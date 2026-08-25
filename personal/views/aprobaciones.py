@@ -26,6 +26,8 @@ def dashboard_aprobaciones(request):
     # ── Permisos ──
     areas_responsable = Area.objects.none()
     is_admin = request.user.is_superuser
+    from empresas.acceso import empresas_del_request
+    empresas_scope = empresas_del_request(request)
 
     if not is_admin:
         areas_responsable = get_areas_responsable(request.user)
@@ -35,7 +37,9 @@ def dashboard_aprobaciones(request):
 
     def filtro_area(qs, field='personal__subarea__area__in'):
         if is_admin:
-            return qs
+            if getattr(request, 'modo_consolidado', False):
+                return qs
+            return qs.filter(personal__empresa__in=empresas_scope)
         return qs.filter(**{field: areas_responsable})
 
     # ── Filtros desde GET ──
@@ -57,13 +61,21 @@ def dashboard_aprobaciones(request):
     if is_admin:
         try:
             from prestamos.models import Prestamo
-            prestamos_qs = Prestamo.objects.filter(estado__in=['BORRADOR', 'PENDIENTE'])
+            prestamos_qs = Prestamo.objects.filter(
+                estado__in=['BORRADOR', 'PENDIENTE'])
+            if not getattr(request, 'modo_consolidado', False):
+                prestamos_qs = prestamos_qs.filter(
+                    personal__empresa__in=empresas_scope)
         except Exception:
             prestamos_qs = None
         try:
+            # InstanciaFlujo no tiene ruta estable a Empresa. Solo se muestra
+            # en el consolidado del superusuario para no mezclar tenants.
+            if not getattr(request, 'modo_consolidado', False):
+                raise LookupError('workflow sin alcance de empresa')
             from workflows.models import InstanciaFlujo
             wf_qs = (InstanciaFlujo.objects.filter(estado='EN_PROCESO')
-                     .select_related('flujo').order_by('-creado_en')[:100])
+                     .select_related('flujo').order_by('-iniciado_en')[:100])
             workflow_items = [w for w in wf_qs]
         except Exception:
             workflow_items = []

@@ -16,6 +16,9 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import Vacante
+from core.permisos import requiere_modulo
+
+solo_reclutamiento = requiere_modulo('reclutamiento')
 
 
 def _puede_aprobar(user):
@@ -27,6 +30,7 @@ def _puede_aprobar(user):
 
 
 @login_required
+@solo_reclutamiento
 @require_POST
 def vacante_solicitar_aprobacion(request, pk):
     v = get_object_or_404(Vacante, pk=pk)
@@ -46,6 +50,7 @@ def vacante_solicitar_aprobacion(request, pk):
 
 
 @login_required
+@solo_reclutamiento
 @require_POST
 def vacante_aprobar(request, pk):
     v = get_object_or_404(Vacante, pk=pk)
@@ -65,6 +70,7 @@ def vacante_aprobar(request, pk):
 
 
 @login_required
+@solo_reclutamiento
 @require_POST
 def vacante_rechazar(request, pk):
     v = get_object_or_404(Vacante, pk=pk)

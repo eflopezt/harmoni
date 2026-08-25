@@ -9,10 +9,6 @@ No ejecutamos pg_dump real (requeriría server PG en CI). En su lugar:
 """
 from __future__ import annotations
 
-import os
-import stat
-import subprocess
-import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest import mock
@@ -94,9 +90,11 @@ class TestCeleryTask:
         assert callable(backup_db_diario)
 
     def test_task_registrada_en_celery(self):
-        """La task debe estar registrada con el nombre que usa el beat schedule."""
-        from core.tasks_backup import backup_db_diario
-        assert backup_db_diario.name == 'core.tasks_backup.backup_db_diario'
+        """El worker debe descubrir la task sin importarla manualmente."""
+        from config.celery import app
+
+        app.autodiscover_tasks(force=True)
+        assert 'core.tasks_backup.backup_db_diario' in app.tasks
 
     def test_task_falla_limpio_si_script_ausente(self, tmp_path, monkeypatch):
         """Si deploy/backup-db.sh no existe, debe levantar FileNotFoundError (no crashear silenciosamente)."""

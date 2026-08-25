@@ -296,9 +296,9 @@ class PeriodoNomina(models.Model):
             # Permite solo un período de cada tipo (REGULAR, GRATIFICACION, etc.) por mes,
             # excepto LIQUIDACION donde puede haber uno por empleado cesado en el mismo mes.
             models.UniqueConstraint(
-                fields=['tipo', 'anio', 'mes'],
+                fields=['empresa', 'tipo', 'anio', 'mes'],
                 condition=~Q(tipo='LIQUIDACION'),
-                name='nominas_periodo_unique_no_liquidacion',
+                name='nominas_periodo_empresa_unique_no_liq',
             ),
         ]
 

@@ -59,6 +59,9 @@ def login_en_empresa(client, user, empresa=None):
     """Login + deja `empresa` como empresa activa en sesión (equivalente a
     elegirla en el selector). Sin empresa: sesión limpia (el middleware
     cae a la empresa principal si existe; en tests no suele existir)."""
+    if empresa is not None and not user.is_superuser and empresa.creado_por_id is None:
+        empresa.creado_por = user
+        empresa.save(update_fields=['creado_por', 'actualizado_en'])
     client.force_login(user)
     if empresa is not None:
         session = client.session

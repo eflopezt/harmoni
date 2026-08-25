@@ -195,15 +195,18 @@ def _check_conceptos():
 
 
 # ─── Personal ─────────────────────────────────────────────────────
-def _check_personal():
+def _check_personal(empresa=None):
     checks = []
     try:
         from personal.models import Personal
     except ImportError:
         return checks
 
-    total   = Personal.objects.count()
-    activos = Personal.objects.filter(activo=True).count() if hasattr(Personal, 'activo') else total
+    personal = Personal.objects.all()
+    if empresa is not None:
+        personal = personal.filter(empresa=empresa)
+    total = personal.count()
+    activos = personal.filter(estado='Activo').count()
 
     if total == 0:
         checks.append(_check(
@@ -220,7 +223,7 @@ def _check_personal():
 
     # CUSPP para los que están en AFP
     try:
-        afp_sin_cuspp = Personal.objects.filter(
+        afp_sin_cuspp = personal.filter(
             sistema_pensionario__in=['AFP', 'AFP_INTEGRA', 'AFP_HABITAT', 'AFP_PROFUTURO', 'AFP_PRIMA'],
         ).exclude(cuspp__isnull=False).exclude(cuspp__gt='').count()
         if afp_sin_cuspp:
@@ -236,7 +239,7 @@ def _check_personal():
 
     # Sin fecha de alta
     try:
-        sin_fecha = Personal.objects.filter(fecha_alta__isnull=True).count()
+        sin_fecha = personal.filter(estado='Activo', fecha_alta__isnull=True).count()
         if sin_fecha:
             checks.append(_check(
                 CAT_PERSONAL, f'{sin_fecha} trabajadores sin fecha de alta',
@@ -250,10 +253,13 @@ def _check_personal():
 
 
 # ─── Planilla ─────────────────────────────────────────────────────
-def _check_planilla():
+def _check_planilla(empresa=None):
     checks = []
-    n_periodos = PeriodoNomina.objects.filter(tipo='REGULAR').count()
-    n_aprob    = PeriodoNomina.objects.filter(tipo='REGULAR', estado__in=['APROBADO', 'CERRADO']).count()
+    periodos = PeriodoNomina.objects.filter(tipo='REGULAR')
+    if empresa is not None:
+        periodos = periodos.filter(empresa=empresa)
+    n_periodos = periodos.count()
+    n_aprob = periodos.filter(estado__in=['APROBADO', 'CERRADO']).count()
 
     if n_periodos == 0:
         checks.append(_check(
@@ -276,10 +282,13 @@ def _check_planilla():
     # Saldos de apertura
     try:
         from .models import SaldoAperturaTrabajador
-        if SaldoAperturaTrabajador.objects.exists():
+        saldos = SaldoAperturaTrabajador.objects.all()
+        if empresa is not None:
+            saldos = saldos.filter(personal__empresa=empresa)
+        if saldos.exists():
             checks.append(_check(
                 CAT_PLANILLA, 'Saldos de apertura cargados',
-                f'{SaldoAperturaTrabajador.objects.count()} saldos iniciales registrados.',
+                f'{saldos.count()} saldos iniciales registrados.',
                 'ok', peso=10,
             ))
         else:
@@ -324,7 +333,7 @@ def _url_exists(name):
 
 
 # ─── Builder principal — usable por vista + API ──────────────────
-def build_onboarding_report():
+def build_onboarding_report(empresa=None):
     """
     Construye reporte completo de onboarding.
 
@@ -333,19 +342,19 @@ def build_onboarding_report():
     - n_ok, n_warn, n_error, n_info, total, pendientes
     """
     # Empresa activa
-    empresa = None
-    try:
-        from empresas.models import Empresa
-        empresa = Empresa.objects.order_by('pk').first()
-    except Exception:
-        pass
+    if empresa is None:
+        try:
+            from empresas.models import Empresa
+            empresa = Empresa.objects.order_by('pk').first()
+        except Exception:
+            pass
 
     # Recolectar todos los checks
     checks = []
     checks.extend(_check_empresa(empresa))
     checks.extend(_check_conceptos())
-    checks.extend(_check_personal())
-    checks.extend(_check_planilla())
+    checks.extend(_check_personal(empresa))
+    checks.extend(_check_planilla(empresa))
     checks.extend(_check_tasas())
 
     # Score: cada error resta su peso completo, warn resta 50% del peso
@@ -425,12 +434,13 @@ def build_onboarding_report():
 @solo_admin
 def onboarding_validador(request):
     """Checklist consolidado: muestra estado de configuración de la empresa."""
-    report = build_onboarding_report()
+    report = build_onboarding_report(getattr(request, 'empresa_actual', None))
     return render(request, 'nominas/onboarding_validador.html', report)
 
 
 # ─── API JSON ────────────────────────────────────────────────────
 @login_required
+@solo_admin
 def onboarding_validador_api(request):
     """
     GET /api/v1/nominas/onboarding/  →  JSON con score + checks.
@@ -439,7 +449,7 @@ def onboarding_validador_api(request):
     """
     from django.http import JsonResponse
 
-    report = build_onboarding_report()
+    report = build_onboarding_report(getattr(request, 'empresa_actual', None))
     # Serializar a JSON-friendly: empresa→dict, checks ya son dicts puros
     empresa = report['empresa']
     empresa_dict = None
@@ -487,7 +497,7 @@ def onboarding_validador_pdf(request):
     from django.template.loader import render_to_string
     from django.utils import timezone as dj_tz
 
-    report = build_onboarding_report()
+    report = build_onboarding_report(getattr(request, 'empresa_actual', None))
     report['fecha_emision'] = dj_tz.now()
 
     html = render_to_string('nominas/onboarding_validador_pdf.html', report)
