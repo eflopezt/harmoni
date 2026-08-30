@@ -56,7 +56,8 @@
     <link rel="stylesheet" href="{% static 'css/harmoni-v2.css' %}?v=1">
 
     <!-- Harmoni global overlays: toast system + notif drawer (handoff design) -->
-    <link rel="stylesheet" href="{% static 'css/harmoni-global.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/harmoni-global.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'css/harmoni-suite.css' %}?v=3">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -1045,7 +1046,7 @@
     <!-- User footer -->
     <div class="sidebar-footer">
         <div class="dropdown dropup">
-            <a href="#" class="user-card-link" data-bs-toggle="dropdown" aria-expanded="false">
+            <button type="button" class="user-card-link" data-bs-toggle="dropdown" aria-expanded="false">
                 <div class="user-avatar">{{ user.username|slice:":1"|upper }}</div>
                 <div class="user-info">
                     <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
@@ -1056,7 +1057,7 @@
                     </span>
                 </div>
                 <i class="fas fa-chevron-up" style="font-size:0.7rem;color:var(--sidebar-section-title);margin-left:auto;flex-shrink:0"></i>
-            </a>
+            </button>
             <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:220px">
                 <li class="px-3 py-2">
                     <div class="fw-semibold text-dark" style="font-size:.875rem">{{ user.get_full_name|default:user.username }}</div>
@@ -1276,6 +1277,7 @@
             </a>
           </div>
         {% endif %}
+        {% include 'partials/process_bridge.html' %}
         {% block content %}{% endblock %}
     </main>
 </div>
@@ -2352,21 +2354,30 @@ function render(data, q) {
 function renderDefault() {
     // ── Acciones (estilo handoff: lo primero, son verbos creadores) ──
     const acciones = [
-        {label:'Crear empleado',     url:'/personal/crear/',                 icon:'fa-user-plus',    color:'accion'},
-        {label:'Procesar planilla',  url:'/nominas/',                        icon:'fa-file-invoice-dollar', color:'accion'},
-        {label:'Aprobar pendientes', url:'/aprobaciones/',                   icon:'fa-circle-check', color:'accion'},
-        {label:'Ver alertas',        url:'/analytics/alertas/',              icon:'fa-bell',         color:'accion'},
+        {label:'Crear empleado',      url:'{% url "personal_create" %}',       icon:'fa-user-plus',           color:'accion'},
+        {label:'Contratar express',   url:'{% url "personal_create_express" %}', icon:'fa-bolt',              color:'accion'},
+        {label:'Procesar planilla',   url:'{% url "workflow_mes" %}',          icon:'fa-file-invoice-dollar', color:'accion'},
+        {label:'Aprobar pendientes',  url:'{% url "dashboard_aprobaciones" %}', icon:'fa-circle-check',       color:'accion'},
+        {label:'Importar asistencia', url:'{% url "asistencia_importar" %}',   icon:'fa-file-import',         color:'accion'},
+        {label:'Crear campaña',       url:'{% url "com_campana_crear" %}',     icon:'fa-bullhorn',            color:'accion'},
+        {label:'Ver alertas',         url:'{% url "analytics_alertas" %}',     icon:'fa-bell',                color:'accion'},
     ];
     // ── Ir a (navegación) ──
     const nav_items = [
-        {label:'Personal',      url:'/personal/',      icon:'fa-users'},
-        {label:'Asistencia',    url:'/tareo/',         icon:'fa-fingerprint'},
-        {label:'Vacaciones',    url:'/vacaciones/',    icon:'fa-umbrella-beach'},
-        {label:'Nóminas',       url:'/nominas/',       icon:'fa-file-invoice-dollar'},
-        {label:'Analytics',     url:'/analytics/',     icon:'fa-chart-bar'},
-        {label:'Documentos',    url:'/documentos/',    icon:'fa-folder-open'},
-        {label:'Reclutamiento', url:'/reclutamiento/', icon:'fa-briefcase'},
-        {label:'Mi Portal',     url:'/mi-portal/',     icon:'fa-user-circle'},
+        {label:'Personal',        url:'{% url "personal_list" %}',        icon:'fa-users'},
+        {label:'Asistencia',      url:'{% url "asistencia_dashboard" %}', icon:'fa-fingerprint'},
+        {label:'Vacaciones',      url:'{% url "vacaciones_panel" %}',     icon:'fa-umbrella-beach'},
+        {label:'Nómina Perú',     url:'{% url "nominas_panel" %}',        icon:'fa-file-invoice-dollar'},
+        {label:'Talento',         url:'{% url "evaluaciones_dashboard" %}', icon:'fa-star-half-alt'},
+        {label:'Encuestas',       url:'{% url "encuestas_panel" %}',      icon:'fa-poll'},
+        {label:'Capacitaciones',  url:'{% url "capacitaciones_panel" %}', icon:'fa-graduation-cap'},
+        {label:'Analytics',       url:'{% url "analytics_dashboard" %}',  icon:'fa-chart-bar'},
+        {label:'Documentos',      url:'{% url "documentos_panel" %}',     icon:'fa-folder-open'},
+        {label:'Reclutamiento',   url:'{% url "vacantes_panel" %}',       icon:'fa-briefcase'},
+        {label:'Comunicaciones',  url:'{% url "com_notificaciones_panel" %}', icon:'fa-bullhorn'},
+        {label:'Integraciones',   url:'{% url "integraciones_panel" %}',  icon:'fa-plug'},
+        {label:'Centro comando',  url:'{% url "centro_comando" %}',       icon:'fa-compass'},
+        {label:'Mi Portal',       url:'{% url "portal_home" %}',          icon:'fa-user-circle'},
     ];
 
     let html = `<div class="cmd-section-label"><i class="fas fa-bolt"></i>Acciones<span class="cmd-section-count">${acciones.length}</span></div>`;

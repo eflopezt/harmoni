@@ -617,6 +617,119 @@ class TestCalcularGratificacion:
         assert r['gratif_bruto'] == Decimal('2113.00')
 
 
+@pytest.mark.django_db
+class TestGratificacionRemuneracionVariable:
+    """Art. 3.1 D.S. 005-2002-TR: remuneraciones complementarias variables o
+    imprecisas (bonos, comisiones) regulares (>=3 de 6 meses del semestre) se
+    promedian (suma semestre / 6) y se suman a la base computable."""
+
+    def _concepto_variable(self, codigo='test-bono-var', formula='MANUAL'):
+        from nominas.models import ConceptoRemunerativo
+        c, _ = ConceptoRemunerativo.objects.get_or_create(
+            codigo=codigo,
+            defaults={
+                'nombre': 'Bono Variable Test', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+                'formula': formula, 'afecto_gratif': True, 'orden': 99,
+            },
+        )
+        return c
+
+    def _crear_linea(self, personal, empresa, mes, concepto, monto, anio=2026):
+        from nominas.models import RegistroNomina, LineaNomina
+        per = _crear_periodo(empresa, tipo='REGULAR', mes=mes, anio=anio)
+        reg, _ = RegistroNomina.objects.get_or_create(
+            periodo=per, personal=personal,
+            defaults={
+                'sueldo_base': personal.sueldo_base, 'dias_trabajados': 30,
+                'regimen_pension': personal.regimen_pension,
+            },
+        )
+        LineaNomina.objects.create(registro=reg, concepto=concepto, monto=Decimal(str(monto)))
+        return reg
+
+    def _periodo_gratif_julio(self, emp):
+        from nominas.models import PeriodoNomina
+        per, _ = PeriodoNomina.objects.get_or_create(
+            tipo='GRATIFICACION', anio=2026, mes=7,
+            defaults={
+                'fecha_inicio': date(2026, 1, 1), 'fecha_fin': date(2026, 6, 30),
+                'estado': 'BORRADOR', 'empresa': emp,
+            },
+        )
+        return per
+
+    def test_variable_regular_3_de_6_meses_se_promedia(self):
+        from nominas.models import RegistroNomina
+        emp = _empresa_test()
+        concepto = self._concepto_variable()
+        p = _crear_personal(emp, sueldo=Decimal('3000'), regimen='ONP')
+        for mes, monto in [(1, 300), (3, 300), (5, 300)]:  # 3/6 meses -> regular
+            self._crear_linea(p, emp, mes, concepto, monto)
+
+        reg_grat = RegistroNomina.objects.create(
+            periodo=self._periodo_gratif_julio(emp), personal=p,
+            sueldo_base=Decimal('3000'), dias_trabajados=6, regimen_pension='ONP',
+        )
+        r = calcular_gratificacion(reg_grat)
+        # (300+300+300) / 6 = 150
+        assert r['promedio_variable'] == Decimal('150.00')
+        assert r['rem_computable'] == Decimal('3150.00')
+        assert r['gratif_bruto'] == Decimal('3150.00')
+
+    def test_variable_irregular_2_de_6_meses_se_excluye(self):
+        from nominas.models import RegistroNomina
+        emp = _empresa_test()
+        concepto = self._concepto_variable(codigo='test-bono-var-2')
+        p = _crear_personal(emp, sueldo=Decimal('3000'), regimen='ONP')
+        for mes, monto in [(2, 300), (4, 300)]:  # solo 2/6 meses -> NO regular
+            self._crear_linea(p, emp, mes, concepto, monto)
+
+        reg_grat = RegistroNomina.objects.create(
+            periodo=self._periodo_gratif_julio(emp), personal=p,
+            sueldo_base=Decimal('3000'), dias_trabajados=6, regimen_pension='ONP',
+        )
+        r = calcular_gratificacion(reg_grat)
+        assert r['promedio_variable'] == Decimal('0.00')
+        assert r['rem_computable'] == Decimal('3000.00')
+
+    def test_concepto_fijo_no_se_duplica_en_promedio(self):
+        """sueldo-basico (formula=DIAS_TRABAJADOS, afecto_gratif=True) no debe
+        sumarse de nuevo via el promedio variable — ya está en rem_base."""
+        from nominas.models import ConceptoRemunerativo, RegistroNomina
+        emp = _empresa_test()
+        concepto_fijo, _ = ConceptoRemunerativo.objects.get_or_create(
+            codigo='sueldo-basico',
+            defaults={
+                'nombre': 'Sueldo Básico', 'tipo': 'INGRESO', 'subtipo': 'REMUNERATIVO',
+                'formula': 'DIAS_TRABAJADOS', 'afecto_gratif': True, 'orden': 1,
+            },
+        )
+        p = _crear_personal(emp, sueldo=Decimal('3000'), regimen='ONP')
+        for mes in (1, 2, 3, 4, 5, 6):
+            self._crear_linea(p, emp, mes, concepto_fijo, 3000)
+
+        reg_grat = RegistroNomina.objects.create(
+            periodo=self._periodo_gratif_julio(emp), personal=p,
+            sueldo_base=Decimal('3000'), dias_trabajados=6, regimen_pension='ONP',
+        )
+        r = calcular_gratificacion(reg_grat)
+        assert r['promedio_variable'] == Decimal('0.00')
+        assert r['gratif_bruto'] == Decimal('3000.00')
+
+    def test_sin_personal_ni_periodo_reales_no_rompe(self):
+        """Un registro tipo SimpleNamespace (sin .personal/.periodo persistidos,
+        como en los tests unitarios de test_engine.py) debe degradar a
+        promedio_variable=0 sin lanzar excepción."""
+        from types import SimpleNamespace
+        registro = SimpleNamespace(
+            sueldo_base=Decimal('2000'), dias_trabajados=6,
+            regimen_pension='ONP', afp='', asignacion_familiar=False,
+        )
+        r = calcular_gratificacion(registro)
+        assert r['promedio_variable'] == Decimal('0')
+        assert r['gratif_bruto'] == Decimal('2000.00')
+
+
 # ════════════════════════════════════════════════════════════════════
 # Calcular CTS
 # ════════════════════════════════════════════════════════════════════

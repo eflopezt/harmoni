@@ -143,6 +143,45 @@
   <style>
     .wfm-step-toggle:hover { background: var(--hm-canvas); }
     .wfm-step-row.wfm-hidden { display: none !important; }
+
+    @media (max-width: 640px) {
+      .hm-hero .meta-row {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .hm-hero .meta-row .it {
+        min-width: 0;
+        width: 100%;
+      }
+
+      #wfm-personalizar-btn {
+        justify-content: center;
+        max-width: 100%;
+        min-height: 40px;
+        white-space: normal;
+        width: 100%;
+      }
+
+      .wfm-step-row {
+        gap: 10px !important;
+      }
+
+      .wfm-step-row .hm-panel {
+        min-width: 0;
+      }
+
+      .wfm-step-row .hm-panel > div > div:first-child > div {
+        align-items: flex-start !important;
+        flex-wrap: wrap;
+      }
+
+      .wfm-step-row .hm-badge {
+        text-align: center;
+        white-space: normal;
+      }
+    }
   </style>
 
   <script>

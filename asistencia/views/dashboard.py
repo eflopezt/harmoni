@@ -208,7 +208,7 @@ def tareo_dashboard(request):
         })
 
     context = {
-        'titulo': 'Módulo Tareo',
+        'titulo': 'Módulo Asistencia',
         'anio_sel': anio_sel,
         'mes_sel': mes_sel,
         'mes_nombre': mes_nombre,

@@ -68,9 +68,9 @@
       "icons": [{"src": "/static/images/brand/png/harmoni-favicon-180.png", "sizes": "180x180", "type": "image/png"}]
     },
     {
-      "name": "Registrar Tareo",
-      "short_name": "Tareo",
-      "url": "/tareo/",
+      "name": "Registrar Asistencia",
+      "short_name": "Asistencia",
+      "url": "/asistencia/",
       "description": "Control de asistencia diario",
       "icons": [{"src": "/static/images/brand/png/harmoni-favicon-180.png", "sizes": "180x180", "type": "image/png"}]
     },

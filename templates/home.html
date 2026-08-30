@@ -207,7 +207,7 @@
 .hw-mod {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 11px;
   padding: 14px 10px; display: flex; flex-direction: column; align-items: center;
-  text-decoration: none; color: #475569; transition: all .14s; gap: 7px; text-align: center;
+  text-decoration: none; color: #475569; transition: background-color .14s, border-color .14s, color .14s, transform .14s, box-shadow .14s; gap: 7px; text-align: center;
 }
 .hw-mod:hover {
   background: #f0fdfa; border-color: #99f6e4; color: #0f766e;
@@ -365,7 +365,7 @@
 {% endif %}
 
 {# ── Welcome — Hero greeting Notion-style (handoff Cockpit) ────── #}
-<div class="hw-welcome" style="background:var(--brand-gradient,linear-gradient(135deg,#0f766e 0%,#0d2b27 100%));border-radius:14px;padding:18px 22px;margin-bottom:1.25rem;box-shadow:0 2px 12px rgba(15,118,110,.18);">
+<div class="hw-welcome hm-command-hero">
   <div style="min-width:0;flex:1;">
     <div class="hw-greeting" id="greetingText" style="color:#fff;font-size:1.35rem;letter-spacing:-.01em;line-height:1.2;">Bienvenido, {{ user.get_full_name|default:user.username }}</div>
     {# Mensaje contextual — Notion-style summary line #}
@@ -410,7 +410,7 @@
       <input type="number" name="anio" value="2026" min="2020" max="2100"
              style="width:62px;font-size:.75rem;padding:2px 4px;background:transparent;color:#fff;border:none;text-align:center;" aria-label="Año">
       <button type="submit" class="btn btn-sm" style="background:rgba(255,255,255,.25);color:#fff;border:none;font-weight:600;padding:2px 10px;font-size:.75rem;">
-        📊 Reporte BI Mensual
+        Reporte BI Mensual
       </button>
     </form>
     {% endif %}
@@ -447,6 +447,236 @@
   </a>
 </section>
 {% endif %}
+
+<section class="hm-suite-workbench" aria-labelledby="hm-suite-title">
+  <div class="hm-suite-panel">
+    <span class="hm-suite-label">
+      <i class="fas fa-layer-group" aria-hidden="true"></i>
+      Harmoni Hub
+    </span>
+    <h2 class="hm-suite-title" id="hm-suite-title">RRHH, planilla y talento en una sola lectura.</h2>
+    <p class="hm-suite-copy">
+      El mercado de RRHH ya no muestra módulos aislados. Harmoni puede competir como una suite conectada:
+      cada dato de asistencia, contrato, clima, desempeño o nómina debe terminar en una acción clara.
+    </p>
+    <div class="hm-suite-actions">
+      {% if user.is_superuser %}
+      <a class="hm-suite-link is-primary" href="{% url 'dashboard_ejecutivo' %}">
+        <i class="fas fa-chart-pie" aria-hidden="true"></i>Dirección
+      </a>
+      {% endif %}
+      <a class="hm-suite-link" href="{% url 'dashboard_aprobaciones' %}">
+        <i class="fas fa-clipboard-check" aria-hidden="true"></i>Aprobaciones
+      </a>
+      <a class="hm-suite-link" href="{% url 'portal_home' %}">
+        <i class="fas fa-mobile-screen" aria-hidden="true"></i>Portal
+      </a>
+      <a class="hm-suite-link" href="{% url 'analytics_dashboard' %}">
+        <i class="fas fa-chart-line" aria-hidden="true"></i>Analytics
+      </a>
+    </div>
+  </div>
+  <div class="hm-suite-map" aria-label="Mapa de módulos conectados">
+    <a class="hm-suite-node" href="{% url 'asistencia_dashboard' %}" style="--node-color:var(--hms-blue);">
+      <small>Operación</small>
+      <strong>Tiempo listo para planilla</strong>
+      <span>Asistencia, roster, HE, faltas y alertas que llegan al cierre.</span>
+      <b>{{ total_personal|default:0 }} colaboradores</b>
+    </a>
+    <a class="hm-suite-node" href="{% url 'workflow_mes' %}" style="--node-color:var(--hms-teal);">
+      <small>Nómina Perú</small>
+      <strong>Cierre con trazabilidad</strong>
+      <span>Boletas, PLAME, AFPNet, T-Registro, CTS, gratificación e IR 5ta.</span>
+      <b>{% if nominas_stats.periodo %}{{ nominas_stats.estado }}{% else %}sin periodo activo{% endif %}</b>
+    </a>
+    <a class="hm-suite-node" href="{% url 'evaluaciones_dashboard' %}" style="--node-color:var(--hms-violet);">
+      <small>Talento</small>
+      <strong>Desempeño hacia desarrollo</strong>
+      <span>Evaluaciones, OKR, 360, Nine Box, PDI y brechas de competencia.</span>
+      <b>{{ evaluaciones_pendientes|default:0 }} evaluaciones</b>
+    </a>
+    <a class="hm-suite-node" href="{% url 'encuestas_panel' %}" style="--node-color:var(--hms-amber);">
+      <small>Voz interna</small>
+      <strong>Clima que dispara planes</strong>
+      <span>Encuestas, pulse y escucha continua con seguimiento accionable.</span>
+      <b>{{ encuestas_activas|default:0 }} encuestas activas</b>
+    </a>
+  </div>
+</section>
+
+<div class="hm-signal-strip" aria-label="Señales principales de Harmoni">
+  <a class="hm-signal" href="{% url 'dashboard_aprobaciones' %}" style="--signal-color:var(--hms-amber);--signal-bg:var(--hms-amber-soft);--signal-border:var(--hms-amber);">
+    <i class="fas fa-inbox" aria-hidden="true"></i>
+    <span><strong>{{ cambios_pendientes|default:0 }}</strong>aprobaciones</span>
+  </a>
+  <a class="hm-signal" href="{% url 'personal_list' %}?contratos=vencen" style="--signal-color:var(--hms-rose);--signal-bg:var(--hms-rose-soft);--signal-border:var(--hms-rose);">
+    <i class="fas fa-file-contract" aria-hidden="true"></i>
+    <span><strong>{{ contratos_vencen|default:0 }}</strong>contratos por vencer</span>
+  </a>
+  <a class="hm-signal" href="{% url 'capacitaciones_panel' %}" style="--signal-color:var(--hms-violet);--signal-bg:var(--hms-violet-soft);--signal-border:var(--hms-violet);">
+    <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+    <span><strong>{{ capacitaciones_mes|default:0 }}</strong>capacitaciones del mes</span>
+  </a>
+  <a class="hm-signal" href="{% url 'analytics_alertas' %}" style="--signal-color:var(--hms-blue);--signal-bg:var(--hms-blue-soft);--signal-border:var(--hms-blue);">
+    <i class="fas fa-heartbeat" aria-hidden="true"></i>
+    <span><strong>{{ alertas_rrhh_critical|default:0 }}</strong>alertas críticas</span>
+  </a>
+</div>
+
+<section class="hm-pathway" aria-labelledby="hm-pathway-title">
+  <div class="hm-pathway__head">
+    <div>
+      <h2 id="hm-pathway-title">Ciclo del colaborador</h2>
+      <p>La ventaja de Harmoni está en unir experiencia del trabajador con cumplimiento peruano.</p>
+    </div>
+    <a class="hm-suite-link" href="{% url 'centro_comando' %}">
+      <i class="fas fa-compass" aria-hidden="true"></i>Centro comando
+    </a>
+  </div>
+  <div class="hm-pathway__rail">
+    <a class="hm-pathway__item" href="{% url 'pipeline_panel' %}">
+      <small>01</small>
+      <strong>Ingreso</strong>
+      <span>Reclutamiento, onboarding, documentos y alta.</span>
+    </a>
+    <a class="hm-pathway__item" href="{% url 'asistencia_dashboard' %}">
+      <small>02</small>
+      <strong>Operación diaria</strong>
+      <span>Roster, asistencia, solicitudes y alertas.</span>
+    </a>
+    <a class="hm-pathway__item" href="{% url 'workflow_mes' %}">
+      <small>03</small>
+      <strong>Cierre laboral</strong>
+      <span>Planilla, boletas, SUNAT, bancos y auditoría.</span>
+    </a>
+    <a class="hm-pathway__item" href="{% url 'evaluaciones_dashboard' %}">
+      <small>04</small>
+      <strong>Desarrollo</strong>
+      <span>Clima, desempeño, PDI y aprendizaje continuo.</span>
+    </a>
+  </div>
+</section>
+
+<section class="hm-flow-board" aria-labelledby="hm-flow-title">
+  <div class="hm-flow-board__head">
+    <div>
+      <span class="hm-suite-label">
+        <i class="fas fa-link" aria-hidden="true"></i>
+        Rutas conectadas
+      </span>
+      <h2 id="hm-flow-title">Cada módulo debe dejarte en el siguiente paso.</h2>
+      <p>Este tablero une el trabajo de RRHH como flujo: captar, activar, operar, pagar, escuchar y desarrollar.</p>
+    </div>
+    <a class="hm-suite-link" href="{% url 'dashboard_aprobaciones' %}">
+      <i class="fas fa-inbox" aria-hidden="true"></i>Bandeja
+    </a>
+  </div>
+  <div class="hm-flow-board__grid">
+    <article class="hm-flow-card" style="--flow-color:var(--hms-rose);--flow-bg:var(--hms-rose-soft);">
+      <div class="hm-flow-card__title">
+        <i class="fas fa-user-plus" aria-hidden="true"></i>
+        Ingreso a legajo
+      </div>
+      <div class="hm-flow-links">
+        {% if mod_reclutamiento %}
+        <a href="{% url 'pipeline_panel' %}">Pipeline</a>
+        {% endif %}
+        <a href="{% url 'onboarding_panel' %}">Onboarding</a>
+        <a href="{% url 'personal_create_express' %}">Alta express</a>
+        {% if mod_documentos %}
+        <a href="{% url 'documentos_panel' %}">Legajo digital</a>
+        {% endif %}
+      </div>
+      {% if user.is_superuser %}
+      <a class="hm-flow-next" href="{% url 'contratos_panel' %}">
+        Preparar contrato <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+      {% endif %}
+    </article>
+
+    <article class="hm-flow-card" style="--flow-color:var(--hms-blue);--flow-bg:var(--hms-blue-soft);">
+      <div class="hm-flow-card__title">
+        <i class="fas fa-calendar-check" aria-hidden="true"></i>
+        Operación diaria
+      </div>
+      <div class="hm-flow-links">
+        <a href="{% url 'roster_matricial' %}">Roster</a>
+        <a href="{% url 'asistencia_dashboard' %}">Asistencia</a>
+        <a href="{% url 'vacaciones_panel' %}">Vacaciones</a>
+        <a href="{% url 'permisos_panel' %}">Permisos</a>
+      </div>
+      <a class="hm-flow-next" href="{% url 'asistencia_exportar_panel' %}">
+        Enviar datos a cierre <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="hm-flow-card" style="--flow-color:var(--hms-teal);--flow-bg:var(--hms-teal-wash);">
+      <div class="hm-flow-card__title">
+        <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
+        Nómina y cumplimiento
+      </div>
+      <div class="hm-flow-links">
+        <a href="{% url 'pre_planilla' %}">Pre-planilla</a>
+        <a href="{% url 'workflow_mes' %}">Workflow mes</a>
+        <a href="{% url 'nominas_emision_boletas' %}">Boletas</a>
+        <a href="{% url 'integraciones_panel' %}">SUNAT y bancos</a>
+      </div>
+      <a class="hm-flow-next" href="{% url 'analytics_dashboard' %}">
+        Revisar impacto <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="hm-flow-card" style="--flow-color:var(--hms-violet);--flow-bg:var(--hms-violet-soft);">
+      <div class="hm-flow-card__title">
+        <i class="fas fa-star-half-alt" aria-hidden="true"></i>
+        Talento y voz interna
+      </div>
+      <div class="hm-flow-links">
+        <a href="{% url 'encuestas_panel' %}">Encuestas</a>
+        <a href="{% url 'pulse_dashboard' %}">Pulse</a>
+        <a href="{% url 'evaluaciones_dashboard' %}">Desempeño</a>
+        <a href="{% url 'capacitaciones_panel' %}">Capacitaciones</a>
+      </div>
+      <a class="hm-flow-next" href="{% url 'planes_panel' %}">
+        Crear plan de acción <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="hm-flow-card" style="--flow-color:var(--hms-amber);--flow-bg:var(--hms-amber-soft);">
+      <div class="hm-flow-card__title">
+        <i class="fas fa-bullhorn" aria-hidden="true"></i>
+        Comunicación y portal
+      </div>
+      <div class="hm-flow-links">
+        <a href="{% url 'com_notificaciones_panel' %}">Notificaciones</a>
+        <a href="{% url 'com_comunicados_panel' %}">Comunicados</a>
+        <a href="{% url 'campanas_panel' %}">Campañas</a>
+        <a href="{% url 'portal_home' %}">Portal trabajador</a>
+      </div>
+      <a class="hm-flow-next" href="{% url 'mis_notificaciones_com' %}">
+        Ver experiencia colaborador <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="hm-flow-card" style="--flow-color:var(--hms-command-2);--flow-bg:var(--hms-paper-soft);">
+      <div class="hm-flow-card__title">
+        <i class="fas fa-chart-line" aria-hidden="true"></i>
+        Dirección y mejora continua
+      </div>
+      <div class="hm-flow-links">
+        {% if user.is_superuser %}
+        <a href="{% url 'dashboard_ejecutivo' %}">Dirección</a>
+        {% endif %}
+        <a href="{% url 'analytics_alertas' %}">Alertas</a>
+        <a href="{% url 'predictor_rotacion_panel' %}">Rotación</a>
+        <a href="{% url 'centro_comando' %}">Centro comando</a>
+      </div>
+      <a class="hm-flow-next" href="{% url 'cierre_dashboard' %}">
+        Auditar el ciclo <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+  </div>
+</section>
 
 {# ── Checklist de activación — 5 pasos hasta la primera planilla ──── #}
 {% if primeros_pasos %}
@@ -1214,7 +1444,7 @@
         <div id="aiInsightsContent" style="display:none;font-size:.79rem;line-height:1.65;padding-bottom:8px"></div>
         <div id="aiInsightsError" style="display:none;" class="text-center py-4 text-muted">
           <i class="fas fa-robot fa-2x mb-2 d-block opacity-25"></i>
-          <div style="font-size:.79rem">IA no disponible. <a href="#" id="aiInsightsRetry">Reintentar</a></div>
+          <div style="font-size:.79rem">IA no disponible. <button type="button" class="hm-inline-link" id="aiInsightsRetry">Reintentar</button></div>
         </div>
       </div>
     </div>

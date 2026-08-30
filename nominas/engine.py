@@ -1153,12 +1153,75 @@ BONIF_EXTRAORDINARIA_TASA     = Decimal('9.00')    # % Ley 29351 — trabajadore
 BONIF_EXTRAORDINARIA_TASA_EPS = Decimal('6.75')    # % cuando trabajador tiene EPS (Ley 26790)
 
 
+def _promedio_remuneracion_variable_semestre(personal, periodo) -> Decimal:
+    """
+    Art. 3.1 D.S. 005-2002-TR: remuneraciones complementarias de naturaleza
+    imprecisa o variable (comisiones y otros conceptos marcados
+    afecto_gratif=True que no sean fijos) se consideran REGULARES si el
+    trabajador las percibió en al menos 3 de los 6 meses del semestre
+    correspondiente. Para las regulares, se suma lo percibido en TODO el
+    semestre (períodos REGULAR) y el resultado se divide SIEMPRE entre 6
+    (no entre los meses efectivamente trabajados) — se agrega tal cual a
+    la remuneración computable de la gratificación.
+
+    Conceptos fijos (sueldo básico `formula=DIAS_TRABAJADOS`, asignación
+    familiar `formula=FIJO`) quedan excluidos: ya están en `rem_base`
+    directamente con el valor vigente al cierre del semestre.
+
+    Degrada a 0 si `personal`/`periodo` no son objetos persistidos en BD
+    (p.ej. en tests unitarios que usan un `SimpleNamespace` sin `.pk`),
+    igual que ya hace `tiene_eps` más abajo — no rompe cálculos aislados.
+    """
+    from .models import PeriodoNomina, LineaNomina
+
+    if personal is None or not getattr(personal, 'pk', None):
+        return Decimal('0')
+    if periodo is None or not getattr(periodo, 'pk', None):
+        return Decimal('0')
+
+    # El semestre real lo marca `fecha_inicio` (mes de PAGO julio/diciembre no
+    # equivale al mes de INICIO del semestre: julio paga el semestre ene-jun).
+    inicio = getattr(periodo, 'fecha_inicio', None)
+    if inicio is None:
+        return Decimal('0')
+    mes_inicio = inicio.month
+    anio_inicio = inicio.year
+    meses_semestre = range(mes_inicio, mes_inicio + 6)
+
+    periodos_semestre = PeriodoNomina.objects.filter(
+        tipo='REGULAR', empresa=periodo.empresa, anio=anio_inicio, mes__in=meses_semestre,
+    )
+    lineas = LineaNomina.objects.filter(
+        registro__personal=personal,
+        registro__periodo__in=periodos_semestre,
+        concepto__afecto_gratif=True,
+    ).exclude(
+        concepto__formula__in=['FIJO', 'DIAS_TRABAJADOS'],
+    ).values('concepto_id', 'registro__periodo__mes', 'monto')
+
+    por_concepto = {}
+    for l in lineas:
+        montos_mes = por_concepto.setdefault(l['concepto_id'], {})
+        mes = l['registro__periodo__mes']
+        montos_mes[mes] = montos_mes.get(mes, Decimal('0')) + l['monto']
+
+    total_regular = Decimal('0')
+    for montos_mes in por_concepto.values():
+        meses_con_monto = sum(1 for monto in montos_mes.values() if monto > 0)
+        if meses_con_monto >= 3:
+            total_regular += sum(montos_mes.values())
+
+    return _redondear(total_regular / Decimal('6'))
+
+
 def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     """
     Calcula la gratificación semestral (julio o diciembre).
 
-    Base legal: Ley 27735 + Ley 29351
-    - Computable: sueldo_base + asig_familiar  (HE no computan)
+    Base legal: Ley 27735 + Ley 29351 + D.S. 005-2002-TR (Art. 3.1)
+    - Computable: sueldo_base + asig_familiar (vigentes al cierre del semestre)
+      + promedio de remuneraciones complementarias variables/imprecisas
+      regulares del semestre (ver `_promedio_remuneracion_variable_semestre`).
     - Proporcional: base × (meses_trabajados / 6)
       → usa registro.dias_trabajados como 'meses trabajados en el semestre' (1-6)
     - Bonificación extraordinaria 9% (empleador → no descuenta al trabajador)
@@ -1187,10 +1250,12 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     # Snapshot RMV del período si existe
     periodo = getattr(p, 'periodo', None)
     rmv = _rmv_efectivo(periodo)
+    _personal_obj = getattr(p, 'personal', None)
 
-    # ── 1. Remuneración computable (solo sueldo + asig_fam) ──────────────
+    # ── 1. Remuneración computable ────────────────────────────────────────
     asig_fam   = _redondear(rmv * Decimal('0.10')) if p.asignacion_familiar else Decimal('0')
-    rem_base   = sueldo + asig_fam
+    promedio_variable = _promedio_remuneracion_variable_semestre(_personal_obj, periodo)
+    rem_base   = sueldo + asig_fam + promedio_variable
 
     # ── 2. Gratificación proporcional ────────────────────────────────────
     gratif     = _redondear(rem_base * Decimal(meses) / Decimal('6'))
@@ -1201,7 +1266,6 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     #      - 9.00% si trabajador está en ESSALUD regular (sin EPS)
     #      - 6.75% si trabajador está afiliado a EPS — porque la diferencia (2.25%)
     #        ya está cubierta por el aporte a la EPS particular (Ley 26790 art. 15)
-    _personal_obj = getattr(p, 'personal', None)
     tiene_eps = bool(getattr(_personal_obj, 'tiene_eps', False)) if _personal_obj else False
     bonif_tasa = BONIF_EXTRAORDINARIA_TASA_EPS if tiene_eps else BONIF_EXTRAORDINARIA_TASA
     bonif_extra = _redondear(gratif * bonif_tasa / Decimal('100'))
@@ -1239,7 +1303,8 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
 
     # Ingreso
     _ag('gratificacion',         rem_base,   Decimal('0'), gratif,
-        f'{meses}/6 meses — base S/{rem_base}')
+        f'{meses}/6 meses — base S/{rem_base}'
+        + (f' (incl. S/{promedio_variable} prom. variable regular)' if promedio_variable > 0 else ''))
     _ag('bonif-extraordinaria',  gratif,     bonif_tasa, bonif_extra,
         f'Ley 29351 — {"6.75% (EPS)" if tiene_eps else "9% (ESSALUD reg.)"}')
 
@@ -1269,6 +1334,7 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
         'gratif_bruto':        gratif,
         'bonif_extra':         bonif_extra,
         'meses_trabajados':    meses,
+        'promedio_variable':   promedio_variable,
     }
 
 

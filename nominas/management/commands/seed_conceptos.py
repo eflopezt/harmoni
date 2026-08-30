@@ -17,9 +17,9 @@ CONCEPTOS = [
     # ── INGRESOS REMUNERATIVOS ──────────────────────────────────────
     ('sueldo-basico',       'Sueldo Básico',                'INGRESO', 'REMUNERATIVO',    'DIAS_TRABAJADOS', 0,    True, True, True, True,  1),
     ('asig-familiar',       'Asignación Familiar',          'INGRESO', 'REMUNERATIVO',    'FIJO',            0,    True, True, True, True,  2),
-    ('he-25',               'Horas Extra 25%',              'INGRESO', 'REMUNERATIVO',    'HE_25',           25,   True, True, False,False, 3),
-    ('he-35',               'Horas Extra 35%',              'INGRESO', 'REMUNERATIVO',    'HE_35',           35,   True, True, False,False, 4),
-    ('he-100',              'Horas Extra 100% (Feriados)',  'INGRESO', 'REMUNERATIVO',    'HE_100',          100,  True, True, False,False, 5),
+    ('he-25',               'Horas Extra 25%',              'INGRESO', 'REMUNERATIVO',    'HE_25',           25,   True, True, False,True,  3),
+    ('he-35',               'Horas Extra 35%',              'INGRESO', 'REMUNERATIVO',    'HE_35',           35,   True, True, False,True,  4),
+    ('he-100',              'Horas Extra 100% (Feriados)',  'INGRESO', 'REMUNERATIVO',    'HE_100',          100,  True, True, False,True,  5),
     ('bono-productividad',  'Bono de Productividad',        'INGRESO', 'REMUNERATIVO',    'MANUAL',          0,    True, True, False,False, 6),
     ('bono-puntualidad',    'Bono de Puntualidad',          'INGRESO', 'REMUNERATIVO',    'MANUAL',          0,    True, True, False,False, 7),
     ('comisiones',          'Comisiones por Ventas',        'INGRESO', 'REMUNERATIVO',    'MANUAL',          0,    True, True, True, True,  8),

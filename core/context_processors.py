@@ -39,6 +39,21 @@ def rol_context(request):
     }
 
 
+def process_bridge_context(request):
+    """Mapa de continuidad entre procesos RRHH para pantallas admin."""
+    try:
+        from core.process_map import build_process_bridge
+
+        return {
+            'harmoni_process_bridge': build_process_bridge(
+                request,
+                puede_ver_admin=_puede_ver_admin(request),
+            )
+        }
+    except Exception:
+        return {'harmoni_process_bridge': {'show': False}}
+
+
 def plan_starter_context(request):
     """
     Inyecta info del plan y flags de ocultación de módulos a TODOS los templates,

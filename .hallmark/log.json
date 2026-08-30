@@ -1,5 +1,20 @@
 [
   {
+    "date": "2026-08-30",
+    "scope": "app",
+    "macrostructure": "Workbench",
+    "theme": "design.md locked Harmoni system after HR SaaS market scan",
+    "theme_axes": "light app surfaces / deep Harmoni teal command areas / restrained amber, blue and rose status accents",
+    "vibe": "connected, route-aware, role-based, operational, Peru-local",
+    "enrichment": "none on app surfaces; linked workflow maps and command paths carry the design",
+    "nav": "existing Harmoni sidebar plus expanded global command search",
+    "footer": "none for authenticated app pages",
+    "brief": "Connect Harmoni end-to-end so admin and worker surfaces route into each related module after studying Mandu Hub, Buk, Rankmi, Factorial, Runa, Deel and HiBob",
+    "slop_test": "pass: browser-tested 13 main admin routes, 26 bridge destinations and Peru compliance links; no visible hash anchors, no legacy /tareo/ hrefs, no 404s, no server-error pages",
+    "responsive": "pass: bridge, Peru compliance block, payroll workflow, evaluations and analytics render at 320, 375, 414 and 768 px with zero measured horizontal overflow",
+    "contrast": "tokenized app surfaces and focus states preserved"
+  },
+  {
     "date": "2026-08-25",
     "macrostructure": "Triage ledger",
     "theme": "existing Harmoni application system",

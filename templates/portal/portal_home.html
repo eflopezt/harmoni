@@ -47,7 +47,7 @@
     display:flex; flex-direction:column; align-items:center; gap:5px; padding:12px 6px;
     border-radius:8px; border:1px solid #e2e8f0; background:#fff;
     text-decoration:none; color:#334155; font-size:.75rem; font-weight:500;
-    transition:all .15s; text-align:center;
+    transition:background-color .15s, border-color .15s, color .15s; text-align:center;
 }
 .qa-mini-btn:hover { background:#f0fdfa; border-color:#99f6e4; color:#0f766e; }
 .qa-mini-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.8rem; }
@@ -84,6 +84,110 @@
         </p>
     </div>
 </div>
+
+<section class="hm-portal-focus" aria-labelledby="hm-portal-focus-title">
+    <div class="hm-portal-focus__person">
+        <span class="hm-suite-label">
+            <i class="fas fa-user-clock" aria-hidden="true"></i>
+            Mi día en Harmoni
+        </span>
+        <h2 class="hm-portal-focus__title" id="hm-portal-focus-title">
+            Tus pendientes, documentos y desarrollo en un solo lugar.
+        </h2>
+        <p class="hm-portal-focus__text">
+            El portal resume lo importante para ti: asistencia, boletas, vacaciones,
+            encuestas, evaluaciones, capacitaciones y documentos laborales.
+        </p>
+        <div class="hm-suite-actions">
+            {% if encuestas_badge > 0 %}
+            <a class="hm-suite-link is-primary" href="{% url 'mis_encuestas' %}">
+                <i class="fas fa-poll" aria-hidden="true"></i>Responder encuesta
+            </a>
+            {% elif pulse_pendiente %}
+            <a class="hm-suite-link is-primary" href="{% url 'portal_pulse_responder' %}">
+                <i class="fas fa-heart-pulse" aria-hidden="true"></i>Responder pulse
+            </a>
+            {% elif total_pendientes > 0 %}
+            <a class="hm-suite-link is-primary" href="{% url 'mis_papeletas' %}">
+                <i class="fas fa-inbox" aria-hidden="true"></i>Ver pendientes
+            </a>
+            {% else %}
+            <a class="hm-suite-link is-primary" href="{% url 'portal_mi_nomina' %}">
+                <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>Ver mi boleta
+            </a>
+            {% endif %}
+            <a class="hm-suite-link" href="{% url 'mi_timeline' %}">
+                <i class="fas fa-stream" aria-hidden="true"></i>Mi historia
+            </a>
+        </div>
+    </div>
+    <div class="hm-portal-actions" aria-label="Accesos principales del portal">
+        <a class="hm-portal-action" href="{% url 'mi_asistencia' %}" style="--action-color:var(--hms-blue);--action-bg:var(--hms-blue-soft);">
+            <i class="fas fa-fingerprint" aria-hidden="true"></i>
+            <span>
+                <strong>Asistencia</strong>
+                <span>{% if roster_hoy %}Roster {{ roster_hoy.codigo|default:"asignado" }}{% else %}Ver marcaciones{% endif %}</span>
+            </span>
+        </a>
+        <a class="hm-portal-action" href="{% url 'portal_mi_nomina' %}" style="--action-color:var(--hms-teal);--action-bg:var(--hms-teal-wash);">
+            <i class="fas fa-receipt" aria-hidden="true"></i>
+            <span>
+                <strong>Boletas</strong>
+                <span>{% if ultimo_recibo %}Último neto S/ {{ ultimo_recibo.neto_a_pagar|floatformat:0 }}{% else %}Consultar recibos{% endif %}</span>
+            </span>
+        </a>
+        <a class="hm-portal-action" href="{% url 'portal_mis_vacaciones' %}" style="--action-color:var(--hms-amber);--action-bg:var(--hms-amber-soft);">
+            <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
+            <span>
+                <strong>Vacaciones</strong>
+                <span>{% if vac_proxima %}Próxima {{ vac_proxima.fecha_inicio|date:"d/m" }}{% elif dias_vac_disponibles is not None %}{{ dias_vac_disponibles|floatformat:0 }} días disponibles{% else %}Solicitar descanso{% endif %}</span>
+            </span>
+        </a>
+        <a class="hm-portal-action {% if encuestas_badge > 0 or pulse_pendiente %}is-hot{% endif %}" href="{% if encuestas_badge > 0 %}{% url 'mis_encuestas' %}{% elif pulse_pendiente %}{% url 'portal_pulse_responder' %}{% else %}{% url 'portal_mis_evaluaciones' %}{% endif %}" style="--action-color:var(--hms-violet);--action-bg:var(--hms-violet-soft);">
+            <i class="fas fa-star-half-alt" aria-hidden="true"></i>
+            <span>
+                <strong>Talento</strong>
+                <span>{% if encuestas_badge > 0 %}{{ encuestas_badge }} encuesta{{ encuestas_badge|pluralize:"s" }} pendiente{{ encuestas_badge|pluralize:"s" }}{% elif pulse_pendiente %}Pulse semanal pendiente{% else %}Evaluaciones y cursos{% endif %}</span>
+            </span>
+        </a>
+    </div>
+</section>
+
+<section class="hm-portal-loop" aria-labelledby="hm-portal-loop-title">
+    <div class="hm-portal-loop__head">
+        <span class="hm-suite-label">
+            <i class="fas fa-route" aria-hidden="true"></i>
+            Todo enlazado
+        </span>
+        <h2 id="hm-portal-loop-title">De una necesidad a su trámite, documento o historial.</h2>
+    </div>
+    <div class="hm-portal-loop__links">
+        <a href="{% url 'papeleta_crear_portal' %}">
+            <i class="fas fa-file-circle-plus" aria-hidden="true"></i>
+            Solicitar papeleta
+        </a>
+        <a href="{% url 'solicitud_he_crear_portal' %}">
+            <i class="fas fa-business-time" aria-hidden="true"></i>
+            Solicitar HE
+        </a>
+        <a href="{% url 'justificacion_crear' %}">
+            <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+            Justificar marca
+        </a>
+        <a href="{% url 'mis_documentos' %}">
+            <i class="fas fa-folder-open" aria-hidden="true"></i>
+            Ver legajo
+        </a>
+        <a href="{% url 'mis_comunicados_com' %}">
+            <i class="fas fa-bullhorn" aria-hidden="true"></i>
+            Comunicados
+        </a>
+        <a href="{% url 'mi_timeline' %}">
+            <i class="fas fa-stream" aria-hidden="true"></i>
+            Mi historia
+        </a>
+    </div>
+</section>
 
 <!-- Briefing del Día (gastronomía premium) -->
 {% if briefing_hoy %}
@@ -201,6 +305,17 @@
         {% if sol_pendientes > 0 %}<span class="badge text-white ms-1" style="background:#7c3aed">{{ sol_pendientes }} HE</span>{% endif %}
         {% if just_pendientes > 0 %}<span class="badge bg-warning text-dark ms-1">{{ just_pendientes }} justif.</span>{% endif %}
     </div>
+    <div class="hm-alert-links" aria-label="Abrir solicitudes pendientes">
+        {% if pap_pendientes > 0 %}
+        <a href="{% url 'mis_papeletas' %}">Papeletas</a>
+        {% endif %}
+        {% if sol_pendientes > 0 %}
+        <a href="{% url 'mis_solicitudes_he' %}">HE</a>
+        {% endif %}
+        {% if just_pendientes > 0 %}
+        <a href="{% url 'mis_justificaciones' %}">Justificaciones</a>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
 
@@ -238,22 +353,26 @@
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <div class="portal-kpi">
-            <div class="portal-kpi-icon" style="color:#7c3aed"><i class="fas fa-clock"></i></div>
-            <div class="portal-kpi-num" style="color:#7c3aed">{{ he_total_mes|floatformat:1 }}h</div>
-            <div class="portal-kpi-lbl">HE este mes</div>
-        </div>
+        <a href="{% url 'mis_solicitudes_he' %}" class="text-decoration-none">
+            <div class="portal-kpi">
+                <div class="portal-kpi-icon" style="color:#7c3aed"><i class="fas fa-clock"></i></div>
+                <div class="portal-kpi-num" style="color:#7c3aed">{{ he_total_mes|floatformat:1 }}h</div>
+                <div class="portal-kpi-lbl">HE este mes</div>
+            </div>
+        </a>
     </div>
 </div>
 
 {# ── Fila secundaria: roster hoy + próxima vacación + notificaciones ── #}
 <div class="row g-2 mb-4">
     <div class="col-6 col-md-3">
-        <div class="portal-kpi" style="padding:10px;">
-            <div class="portal-kpi-icon text-warning" style="font-size:.8rem;margin-bottom:3px;"><i class="fas fa-calendar-day"></i></div>
-            <div class="portal-kpi-num text-warning" style="font-size:1.1rem;">{% if roster_hoy %}{{ roster_hoy.codigo|default:"—" }}{% else %}—{% endif %}</div>
-            <div class="portal-kpi-lbl">Roster hoy</div>
-        </div>
+        <a href="{% url 'mi_roster' %}" class="text-decoration-none">
+            <div class="portal-kpi" style="padding:10px;">
+                <div class="portal-kpi-icon text-warning" style="font-size:.8rem;margin-bottom:3px;"><i class="fas fa-calendar-day"></i></div>
+                <div class="portal-kpi-num text-warning" style="font-size:1.1rem;">{% if roster_hoy %}{{ roster_hoy.codigo|default:"—" }}{% else %}—{% endif %}</div>
+                <div class="portal-kpi-lbl">Roster hoy</div>
+            </div>
+        </a>
     </div>
     {% if vac_proxima %}
     <div class="col-6 col-md-3">
@@ -268,13 +387,15 @@
     {% endif %}
     {% if antiguedad %}
     <div class="col-6 col-md-3">
-        <div class="portal-kpi" style="padding:10px;">
-            <div class="portal-kpi-icon" style="font-size:.8rem;margin-bottom:3px;color:#6366f1;"><i class="fas fa-medal"></i></div>
-            <div class="portal-kpi-num" style="font-size:.95rem;color:#6366f1;">
-                {{ antiguedad.anios }}a {{ antiguedad.meses }}m
+        <a href="{% url 'mi_timeline' %}" class="text-decoration-none">
+            <div class="portal-kpi" style="padding:10px;">
+                <div class="portal-kpi-icon" style="font-size:.8rem;margin-bottom:3px;color:#6366f1;"><i class="fas fa-medal"></i></div>
+                <div class="portal-kpi-num" style="font-size:.95rem;color:#6366f1;">
+                    {{ antiguedad.anios }}a {{ antiguedad.meses }}m
+                </div>
+                <div class="portal-kpi-lbl">Antigüedad</div>
             </div>
-            <div class="portal-kpi-lbl">Antigüedad</div>
-        </div>
+        </a>
     </div>
     {% endif %}
     {% if notif_recientes %}
@@ -379,6 +500,7 @@
         <div class="portal-card">
             <div class="portal-card-hdr">
                 <i class="fas fa-calendar-alt text-info"></i> Papeletas Próximas
+                <a href="{% url 'mis_papeletas' %}" class="btn btn-outline-secondary btn-sm ms-auto" style="font-size:.72rem">Ver todo</a>
             </div>
             <div class="portal-card-body" style="padding:8px 16px">
                 {% for p in papeletas_prox %}

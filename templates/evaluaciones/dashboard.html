@@ -113,17 +113,45 @@
     padding-bottom: .35rem; border-bottom: 2px solid #f0fdf4;
     margin-bottom: .85rem;
 }
+
+@media (max-width: 576px) {
+    .eval-page-head {
+        align-items: flex-start !important;
+        flex-direction: column;
+        gap: .85rem;
+    }
+
+    .eval-page-title {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .eval-page-actions {
+        display: grid !important;
+        gap: .5rem;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .eval-page-actions .btn {
+        display: inline-flex;
+        justify-content: center;
+        min-height: 38px;
+        white-space: nowrap;
+        width: 100%;
+    }
+}
 </style>
 {% endblock %}
 
 {% block body %}
 <!-- Header -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
+<div class="eval-page-head d-flex justify-content-between align-items-center mb-3">
+    <div class="eval-page-title">
         <h2 class="mb-0"><i class="fas fa-chart-bar me-2" style="color:#0f766e;"></i>{{ titulo }}</h2>
         <small class="text-muted">Resumen ejecutivo del módulo de evaluaciones</small>
     </div>
-    <div class="d-flex gap-2">
+    <div class="eval-page-actions d-flex gap-2">
         <a href="{% url 'ninebox_grid' %}" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-th me-1"></i>9-Box Grid
         </a>

@@ -1,0 +1,64 @@
+{% with bridge=harmoni_process_bridge %}
+{% if bridge.show and bridge.current %}
+<section class="hm-process-bridge" aria-labelledby="hm-process-title">
+  <div class="hm-process-bridge__top">
+    <div class="hm-process-bridge__intro">
+      <span class="hm-suite-label"><i class="fas fa-link" aria-hidden="true"></i> Flujo conectado</span>
+      <h2 id="hm-process-title">{{ bridge.current.label }}</h2>
+      <p>{{ bridge.current.description }}</p>
+    </div>
+    {% if bridge.next_stage %}
+    <a class="hm-process-next" href="{{ bridge.next_stage.url }}">
+      <span>Siguiente</span>
+      <strong>{{ bridge.next_stage.label }}</strong>
+      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+    </a>
+    {% endif %}
+  </div>
+
+  <nav class="hm-process-rail" aria-label="Mapa de procesos Harmoni">
+    {% for stage in bridge.stages %}
+    <a class="hm-process-step{% if stage.is_current %} is-current{% endif %}" href="{{ stage.url }}">
+      <span class="hm-process-step__number">{{ stage.number }}</span>
+      <i class="fas {{ stage.icon }}" aria-hidden="true"></i>
+      <span class="hm-process-step__label">{{ stage.label }}</span>
+    </a>
+    {% endfor %}
+  </nav>
+
+  <div class="hm-process-bridge__bottom">
+    <div class="hm-process-actions" aria-label="Acciones del proceso actual">
+      {% for action in bridge.actions %}
+      <a class="hm-process-action" href="{{ action.url }}">
+        <i class="fas {{ action.icon }}" aria-hidden="true"></i>
+        <span>{{ action.label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    <div class="hm-process-sidecar">
+      <div class="hm-process-notes">
+        <p><i class="fas fa-robot" aria-hidden="true"></i>{{ bridge.current.automation }}</p>
+        <p><i class="fas fa-shield-alt" aria-hidden="true"></i>{{ bridge.current.duplicate_guard }}</p>
+      </div>
+      {% if bridge.peru_focus %}
+      <div class="hm-process-peru" aria-label="Cumplimiento Perú">
+        <div class="hm-process-peru__head">
+          <i class="fas fa-map-location-dot" aria-hidden="true"></i>
+          <span>Cumplimiento Perú</span>
+        </div>
+        <div class="hm-process-peru__links">
+          {% for item in bridge.peru_focus %}
+          <a href="{{ item.url }}">
+            <i class="fas {{ item.icon }}" aria-hidden="true"></i>
+            <span>{{ item.label }}</span>
+            <small>{{ item.detail }}</small>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endwith %}

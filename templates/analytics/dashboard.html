@@ -66,6 +66,8 @@
     border-radius: .75rem;
     padding: 1.25rem 1.5rem;
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    min-width: 0;
+    overflow: hidden;
 }
 
 /* ── People Risk Widget ── */
@@ -203,6 +205,19 @@
     justify-content: space-between;
 }
 .alertas-table-widget .widget-header h6 { margin: 0; font-weight: 600; }
+.alertas-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.alertas-table-scroll .table {
+    margin-bottom: 0;
+    width: 100%;
+}
+.alertas-table-scroll th,
+.alertas-table-scroll td {
+    overflow-wrap: anywhere;
+}
 .at-sev-CRITICAL { background: #fee2e2; color: #dc2626; }
 .at-sev-WARN     { background: #fef3c7; color: #b45309; }
 .at-sev-INFO     { background: #dbeafe; color: #1d4ed8; }
@@ -323,18 +338,139 @@
     border-radius: 999px;
     letter-spacing: .04em;
 }
+
+@media (max-width: 576px) {
+    .analytics-page-head {
+        align-items: flex-start !important;
+        flex-direction: column;
+        gap: .9rem;
+    }
+
+    .analytics-page-title {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .analytics-page-actions {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .analytics-page-actions form,
+    .analytics-page-actions .btn {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .risk-widget .widget-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: .65rem;
+    }
+
+    .risk-widget .widget-header .btn,
+    .risk-widget-footer .btn {
+        display: inline-flex;
+        justify-content: center;
+        min-height: 38px;
+        width: 100%;
+    }
+
+    .risk-mini-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .risk-mini-card {
+        border-bottom: 1px solid #f3f4f6;
+        border-right: 0;
+        text-align: left;
+    }
+
+    .risk-mini-card:last-child {
+        border-bottom: 0;
+    }
+
+    .risk-widget-footer {
+        flex-direction: column;
+    }
+
+    .analytics-chart-split {
+        align-items: stretch !important;
+        flex-direction: column;
+    }
+
+    .analytics-chart-split > div:first-child {
+        flex: 0 0 auto !important;
+        width: 100%;
+    }
+
+    .chart-container canvas {
+        max-width: 100% !important;
+    }
+
+    .alertas-table-widget .widget-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: .65rem;
+    }
+
+    .alertas-table-widget .widget-header .btn {
+        display: inline-flex;
+        justify-content: center;
+        min-height: 38px;
+        width: 100%;
+    }
+
+    .alertas-table-scroll,
+    .alertas-table-scroll .table,
+    .alertas-table-scroll tbody,
+    .alertas-table-scroll tr,
+    .alertas-table-scroll td {
+        display: block;
+        width: 100%;
+    }
+
+    .alertas-table-scroll thead {
+        display: none;
+    }
+
+    .alertas-table-scroll tr {
+        border-bottom: 1px solid #f3f4f6;
+        padding: .8rem 1rem;
+    }
+
+    .alertas-table-scroll tr:last-child {
+        border-bottom: 0;
+    }
+
+    .alertas-table-scroll td {
+        border: 0 !important;
+        padding: .18rem 0 !important;
+        text-align: left !important;
+    }
+
+    .alertas-table-scroll td:nth-child(3) {
+        margin-top: .25rem;
+    }
+
+    .alertas-table-scroll td:nth-child(4) {
+        color: #6b7280;
+        font-size: .72rem;
+        white-space: normal !important;
+    }
+}
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
+<div class="analytics-page-head d-flex justify-content-between align-items-center mb-4">
+    <div class="analytics-page-title">
         <h2 class="mb-0" style="letter-spacing:-.01em;font-weight:800;color:#0F172A;">
           <i class="fas fa-chart-line me-2" style="color:#0F766E"></i>Analytics &amp; People Intelligence
         </h2>
         <p class="text-muted mb-0" style="font-size:.82rem">Datos en tiempo real del periodo actual</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="analytics-page-actions d-flex gap-2">
         <a href="{% url 'analytics_snapshots' %}" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-camera me-1"></i>Snapshots
         </a>
@@ -594,7 +730,7 @@
             <h6 class="mb-2 fw-semibold" style="font-size:.82rem">
                 <i class="fas fa-building me-1 text-muted"></i>Distribución por Área
             </h6>
-            <div class="d-flex align-items-center gap-3">
+            <div class="analytics-chart-split d-flex align-items-center gap-3">
                 <div style="position:relative;height:200px;flex:0 0 160px"><canvas id="chartAreas"></canvas></div>
                 <div id="areasLegend" style="font-size:.72rem;line-height:1.8;flex:1;min-width:0;overflow:hidden"></div>
             </div>
@@ -688,7 +824,7 @@
                     <i class="fas fa-list me-1"></i>Ver todas
                 </a>
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive alertas-table-scroll">
                 <table class="table table-hover mb-0" style="font-size:.82rem">
                     <thead style="background:#f9fafb">
                         <tr>
