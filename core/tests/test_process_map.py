@@ -1,4 +1,4 @@
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from core.process_map import (
@@ -8,7 +8,7 @@ from core.process_map import (
 )
 
 
-class ProcessMapTests(SimpleTestCase):
+class ProcessMapTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
 
