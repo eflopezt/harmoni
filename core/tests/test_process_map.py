@@ -22,11 +22,17 @@ class ProcessMapTests(TestCase):
             self.assertNotIn("/tareo/", stage["url"])
             self.assertGreaterEqual(len(stage["actions"]), 3)
             self.assertGreaterEqual(len(stage["peru_focus"]), 3)
+            self.assertEqual(len(stage["handoff"]), 3)
             for action in stage["actions"]:
                 self.assertTrue(action["url"].startswith("/"))
                 self.assertNotIn("#", action["url"])
                 self.assertNotIn("/tareo/", action["url"])
             for item in stage["peru_focus"]:
+                self.assertTrue(item["url"].startswith("/"))
+                self.assertNotIn("#", item["url"])
+                self.assertNotIn("/tareo/", item["url"])
+            for item in stage["handoff"]:
+                self.assertIn(item["step"], {"Recibe", "Automatiza", "Deja listo"})
                 self.assertTrue(item["url"].startswith("/"))
                 self.assertNotIn("#", item["url"])
                 self.assertNotIn("/tareo/", item["url"])
@@ -57,6 +63,11 @@ class ProcessMapTests(TestCase):
         )
         self.assertGreaterEqual(len(bridge["actions"]), 3)
         self.assertGreaterEqual(len(bridge["peru_focus"]), 3)
+        self.assertEqual(
+            [item["step"] for item in bridge["handoff"]],
+            ["Recibe", "Automatiza", "Deja listo"],
+        )
+        self.assertEqual(bridge["handoff"][-1]["route_name"], "pre_planilla")
 
     def test_bridge_is_hidden_when_admin_permission_is_false(self):
         request = self.factory.get(reverse("asistencia_dashboard"))

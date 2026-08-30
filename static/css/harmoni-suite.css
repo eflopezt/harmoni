@@ -811,12 +811,22 @@ button.user-card-link {
   flex: 0 0 auto;
 }
 
-.hm-process-step__label,
+.hm-process-step__label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.12;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
 .hm-process-action span {
   display: block;
   font-size: 0.76rem;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.12;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -834,6 +844,120 @@ button.user-card-link {
   color: var(--hms-command-ink);
 }
 
+.hm-process-handoff {
+  border-bottom: 1px solid var(--hms-rule-soft);
+  border-top: 1px solid var(--hms-rule-soft);
+  display: grid;
+  gap: var(--hms-space-sm);
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  padding: var(--hms-space-xs) 0;
+}
+
+.hm-process-handoff__head {
+  align-self: center;
+  min-width: 0;
+}
+
+.hm-process-handoff__head span {
+  align-items: center;
+  color: var(--hms-ink);
+  display: flex;
+  font-size: 0.82rem;
+  font-weight: 900;
+  gap: var(--hms-space-2xs);
+  line-height: 1.15;
+}
+
+.hm-process-handoff__head i {
+  color: var(--hms-teal);
+  flex: 0 0 auto;
+}
+
+.hm-process-handoff__head small {
+  color: var(--hms-muted);
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  margin-top: var(--hms-space-2xs);
+  max-width: 42ch;
+}
+
+.hm-process-handoff__grid {
+  background: var(--hms-rule-soft);
+  border: 1px solid var(--hms-rule-soft);
+  border-radius: var(--hms-radius-card);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hm-process-handoff__item {
+  align-items: flex-start;
+  background: var(--hms-paper-soft);
+  color: var(--hms-ink-soft);
+  display: grid;
+  gap: var(--hms-space-xs);
+  grid-template-columns: 32px minmax(0, 1fr);
+  min-height: 76px;
+  min-width: 0;
+  padding: var(--hms-space-xs);
+  text-decoration: none;
+  transition: background-color var(--hms-dur-short) var(--hms-ease-out),
+              color var(--hms-dur-short) var(--hms-ease-out),
+              transform var(--hms-dur-short) var(--hms-ease-out);
+}
+
+.hm-process-handoff__item i {
+  align-items: center;
+  background: var(--hms-paper);
+  border: 1px solid var(--hms-rule);
+  border-radius: var(--hms-radius-card);
+  color: var(--hms-teal);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.hm-process-handoff__item > span {
+  display: block;
+  min-width: 0;
+}
+
+.hm-process-handoff__item small {
+  color: var(--hms-muted-2);
+  display: block;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.64rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.hm-process-handoff__item strong {
+  color: var(--hms-ink);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.15;
+  margin-top: 0.22rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-process-handoff__item em {
+  color: var(--hms-muted);
+  display: block;
+  font-size: 0.68rem;
+  font-style: normal;
+  line-height: 1.28;
+  margin-top: 0.18rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .hm-process-bridge__bottom {
   align-items: start;
   display: grid;
@@ -844,7 +968,7 @@ button.user-card-link {
 .hm-process-actions {
   display: grid;
   gap: var(--hms-space-2xs);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
 }
 
 .hm-process-action {
@@ -981,6 +1105,7 @@ button.user-card-link {
   }
 
   .hm-process-step:hover,
+  .hm-process-handoff__item:hover,
   .hm-process-action:hover,
   .hm-process-peru__links a:hover {
     background: var(--hms-teal-wash);
@@ -999,6 +1124,7 @@ button.user-card-link {
   .hm-suite-workbench,
   .hm-flow-board__grid,
   .hm-portal-focus,
+  .hm-process-handoff,
   .hm-process-bridge__bottom {
     grid-template-columns: 1fr;
   }
@@ -1028,6 +1154,7 @@ button.user-card-link {
   .hm-portal-actions,
   .hm-process-bridge__top,
   .hm-process-rail,
+  .hm-process-handoff__grid,
   .hm-process-actions,
   .hm-process-peru__links {
     grid-template-columns: 1fr;
@@ -1060,6 +1187,7 @@ button.user-card-link {
   .hm-process-action,
   .hm-process-step,
   .hm-process-next,
+  .hm-process-handoff__item,
   .hm-process-peru__links a {
     font-size: 0.7rem;
     justify-content: flex-start;
@@ -1080,6 +1208,41 @@ button.user-card-link {
 
   .hm-process-next {
     justify-content: space-between;
+  }
+
+  .hm-process-bridge {
+    gap: var(--hms-space-xs);
+  }
+
+  .hm-process-rail {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .hm-process-step {
+    flex: 0 0 min(78vw, 13rem);
+    scroll-snap-align: start;
+  }
+
+  .hm-process-handoff {
+    gap: var(--hms-space-xs);
+  }
+
+  .hm-process-handoff__head small {
+    max-width: none;
+  }
+
+  .hm-process-handoff__item {
+    min-height: 64px;
+  }
+
+  .hm-process-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hm-process-notes {
+    display: none;
   }
 
   .portal-kpi {
@@ -1110,6 +1273,7 @@ button.user-card-link {
   .hm-suite-node:hover,
   .hm-process-next:hover,
   .hm-process-step:hover,
+  .hm-process-handoff__item:hover,
   .hm-process-action:hover,
   .hm-process-peru__links a:hover,
   .hw-mod:hover,

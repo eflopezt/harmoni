@@ -1,14 +1,29 @@
 """
 Vistas del módulo core — Audit Trail viewer + búsqueda global.
 """
+from __future__ import annotations
+
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from core.models import AuditLog, PreferenciaUsuario
 
 solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
+
+
+def _can_use_process_shortcuts(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    try:
+        from core.permisos import puede_aprobar
+
+        return puede_aprobar(user)
+    except Exception:
+        return False
 
 
 @login_required
@@ -75,7 +90,12 @@ def global_search(request):
     if len(q) < 2:
         return JsonResponse({'results': []})
 
-    results = []
+    if _can_use_process_shortcuts(request.user):
+        from core.process_map import get_process_search_shortcuts
+
+        results = get_process_search_shortcuts(q)
+    else:
+        results = []
 
     # ── Empleados ──
     from personal.models import Personal
@@ -161,7 +181,6 @@ def global_search(request):
     if request.user.is_superuser:
         try:
             from vacaciones.models import SolicitudVacacion
-            from django.db.models import Q as Qv
             vacs = SolicitudVacacion.objects.filter(
                 Q(personal__apellidos_nombres__icontains=q)
             ).select_related('personal').order_by('-creado_en')[:4]
@@ -528,9 +547,6 @@ def preferencias_api(request):
 
     return JsonResponse({'ok': False, 'error': 'Campo no permitido'}, status=400)
 
-
-from django.shortcuts import get_object_or_404, redirect
-
 # ─────────────────────────────────────────────────────────────────────
 # PERMISOS GRANULARES (INFRA.3)
 # ─────────────────────────────────────────────────────────────────────
@@ -540,7 +556,8 @@ from django.shortcuts import get_object_or_404, redirect
 def permisos_panel(request):
     """Panel de gestión de permisos granulares por módulo."""
     from django.contrib.auth import get_user_model
-    from core.models import PermisoModulo, MODULOS_SISTEMA
+
+    from core.models import MODULOS_SISTEMA, PermisoModulo
     User = get_user_model()
 
     usuarios = User.objects.filter(is_active=True, is_superuser=False).order_by('username')
@@ -583,7 +600,8 @@ def permisos_panel(request):
 def permisos_guardar(request, user_id):
     """Guarda permisos de un usuario vía POST."""
     from django.contrib.auth import get_user_model
-    from core.models import PermisoModulo, MODULOS_SISTEMA
+
+    from core.models import MODULOS_SISTEMA, PermisoModulo
     User = get_user_model()
 
     if request.method != 'POST':

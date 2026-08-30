@@ -26,6 +26,27 @@
     {% endfor %}
   </nav>
 
+  {% if bridge.handoff %}
+  <div class="hm-process-handoff" aria-label="Continuidad sin doble registro">
+    <div class="hm-process-handoff__head">
+      <span><i class="fas fa-arrows-rotate" aria-hidden="true"></i> Sin doble registro</span>
+      <small>Corrige el dato en origen y Harmoni lo reutiliza en todo el ciclo.</small>
+    </div>
+    <div class="hm-process-handoff__grid">
+      {% for item in bridge.handoff %}
+      <a class="hm-process-handoff__item" href="{{ item.url }}">
+        <i class="fas {{ item.icon }}" aria-hidden="true"></i>
+        <span>
+          <small>{{ item.step }}</small>
+          <strong>{{ item.label }}</strong>
+          <em>{{ item.detail }}</em>
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="hm-process-bridge__bottom">
     <div class="hm-process-actions" aria-label="Acciones del proceso actual">
       {% for action in bridge.actions %}
