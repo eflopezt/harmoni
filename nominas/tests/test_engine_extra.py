@@ -14,11 +14,12 @@ Cubre:
 """
 from datetime import date
 from decimal import Decimal
-from time import time
 
 import pytest
 
 from nominas.engine import (
+    _calcular_ir_5ta_sunat,
+    _ir_anual,
     calcular_bonif_escolaridad,
     calcular_cts,
     calcular_embargo_civil,
@@ -32,10 +33,7 @@ from nominas.engine import (
     calcular_subsidio_maternidad,
     generar_periodo,
     valor_hora,
-    _calcular_ir_5ta_sunat,
-    _ir_anual,
 )
-
 
 # ════════════════════════════════════════════════════════════════════
 # Helpers puros — no DB
@@ -635,7 +633,7 @@ class TestGratificacionRemuneracionVariable:
         return c
 
     def _crear_linea(self, personal, empresa, mes, concepto, monto, anio=2026):
-        from nominas.models import RegistroNomina, LineaNomina
+        from nominas.models import LineaNomina, RegistroNomina
         per = _crear_periodo(empresa, tipo='REGULAR', mes=mes, anio=anio)
         reg, _ = RegistroNomina.objects.get_or_create(
             periodo=per, personal=personal,
@@ -814,7 +812,7 @@ class TestCalcularCTS:
 @pytest.mark.django_db
 class TestGenerarPeriodo:
     def test_genera_registros_para_2_trabajadores_regular(self):
-        from nominas.models import PeriodoNomina, RegistroNomina
+        from nominas.models import PeriodoNomina
         emp = _empresa_test()
         # 2 trabajadores activos
         _crear_personal(emp, sueldo=Decimal('2000'), regimen='ONP')
@@ -853,8 +851,9 @@ class TestGenerarPeriodo:
         laborados (FA/LSG/SAI → dias_falta, dias_trabajados=30−faltas) y las HE
         PAGABLES (he_al_banco=False; las de STAFF que van al banco se excluyen)."""
         from datetime import date as _date
+
+        from asistencia.models import RegistroTareo, TareoImportacion
         from nominas.models import PeriodoNomina, RegistroNomina
-        from asistencia.models import TareoImportacion, RegistroTareo
         emp = _empresa_test()
         p = _crear_personal(emp, sueldo=Decimal('3000'), regimen='ONP')
         imp = TareoImportacion.objects.create(
@@ -886,8 +885,9 @@ class TestGenerarPeriodo:
         """Item E1: generar_periodo auto-descuenta la cuota del préstamo del mes
         (cronograma) en RegistroNomina.descuento_prestamo."""
         from datetime import date as _date
+
         from nominas.models import PeriodoNomina, RegistroNomina
-        from prestamos.models import TipoPrestamo, Prestamo, CuotaPrestamo
+        from prestamos.models import CuotaPrestamo, Prestamo, TipoPrestamo
         emp = _empresa_test()
         p = _crear_personal(emp, sueldo=Decimal('3000'), regimen='ONP')
         tipo = TipoPrestamo.objects.create(nombre='Personal X', codigo='px', max_cuotas=12)
@@ -995,8 +995,8 @@ class TestHENoCompensadasBanco:
     """valor_he_banco_no_compensadas: deuda de HE banqueadas no compensadas al cese."""
 
     def test_valoriza_saldo_no_compensado_proporcional(self):
-        from nominas.engine import valor_he_banco_no_compensadas
         from asistencia.models import BancoHoras
+        from nominas.engine import valor_he_banco_no_compensadas
         emp = _empresa_test()
         p = _crear_personal(emp, sueldo=Decimal('3000'))
         BancoHoras.objects.create(
@@ -1017,8 +1017,8 @@ class TestHENoCompensadasBanco:
         assert valor_he_banco_no_compensadas(p, Decimal('3000')) == Decimal('0')
 
     def test_saldo_totalmente_compensado_es_cero(self):
-        from nominas.engine import valor_he_banco_no_compensadas
         from asistencia.models import BancoHoras
+        from nominas.engine import valor_he_banco_no_compensadas
         emp = _empresa_test()
         p = _crear_personal(emp, sueldo=Decimal('3000'))
         BancoHoras.objects.create(
@@ -1035,6 +1035,7 @@ class TestDescuentosJudiciales:
 
     def _registro(self, emp, sueldo, regimen='ONP'):
         from datetime import date as _date
+
         from nominas.models import PeriodoNomina, RegistroNomina
         p = _crear_personal(emp, sueldo=Decimal(str(sueldo)), regimen=regimen)
         per, _ = PeriodoNomina.objects.get_or_create(
@@ -1092,10 +1093,12 @@ class TestCierreMarcaCuotasPrestamo:
 
     def test_cierre_marca_cuota_pagada(self, client):
         from datetime import date as _date
+
         from django.contrib.auth.models import User
         from django.urls import reverse
+
         from nominas.models import PeriodoNomina
-        from prestamos.models import TipoPrestamo, Prestamo, CuotaPrestamo
+        from prestamos.models import CuotaPrestamo, Prestamo, TipoPrestamo
         admin = User.objects.create_user('cierre_admin', password='x',
                                          is_superuser=True, is_staff=True)
         client.force_login(admin)

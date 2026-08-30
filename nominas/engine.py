@@ -20,7 +20,7 @@ Referencia legal:
 - CTS: DL 650 Art. 21 — 1/12 sueldo por mes trabajado
 """
 import logging
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
 from django.utils import timezone
@@ -386,6 +386,7 @@ def valor_he_banco_no_compensadas(personal, sueldo_mensual: Decimal) -> Decimal:
     if not personal or sueldo_mensual is None or Decimal(sueldo_mensual) <= 0:
         return Decimal('0')
     from django.db.models import Sum
+
     from asistencia.models import BancoHoras
 
     agg = BancoHoras.objects.filter(personal=personal).aggregate(
@@ -1022,7 +1023,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         _agregar('otros-ingresos',  Decimal('0'),  Decimal('0'), otros_ing)
 
     # Conceptos manuales tipo INGRESO (importados Excel o edición individual)
-    for cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():
+    for _cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():
         if es_ing:
             lineas.append({
                 'concepto': c_obj, 'base_calculo': Decimal('0'),
@@ -1053,7 +1054,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
         _agregar('descuento-interno', Decimal('0'), Decimal('0'), _monto, _obs)
 
     # Conceptos manuales tipo DESCUENTO
-    for cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():
+    for _cod, (c_obj, monto, es_ing) in conceptos_manuales_data.items():
         if not es_ing:
             lineas.append({
                 'concepto': c_obj, 'base_calculo': Decimal('0'),
@@ -1084,7 +1085,7 @@ def calcular_registro(registro, conceptos_activos=None) -> dict:
     # que no se hayan emitido arriba, calculándolos sobre la remuneración
     # computable (PORCENTAJE) o su monto_fijo (FIJO). Opt-in por concepto para no
     # alterar planillas existentes. SCTR/Vida Ley se manejan explícitamente arriba.
-    _emitidos = {l['concepto'].codigo for l in lineas}
+    _emitidos = {linea['concepto'].codigo for linea in lineas}
     _ing_auto = Decimal('0')
     _desc_auto = Decimal('0')
     _aporte_auto = Decimal('0')
@@ -1172,7 +1173,7 @@ def _promedio_remuneracion_variable_semestre(personal, periodo) -> Decimal:
     (p.ej. en tests unitarios que usan un `SimpleNamespace` sin `.pk`),
     igual que ya hace `tiene_eps` más abajo — no rompe cálculos aislados.
     """
-    from .models import PeriodoNomina, LineaNomina
+    from .models import LineaNomina, PeriodoNomina
 
     if personal is None or not getattr(personal, 'pk', None):
         return Decimal('0')
@@ -1200,10 +1201,10 @@ def _promedio_remuneracion_variable_semestre(personal, periodo) -> Decimal:
     ).values('concepto_id', 'registro__periodo__mes', 'monto')
 
     por_concepto = {}
-    for l in lineas:
-        montos_mes = por_concepto.setdefault(l['concepto_id'], {})
-        mes = l['registro__periodo__mes']
-        montos_mes[mes] = montos_mes.get(mes, Decimal('0')) + l['monto']
+    for linea in lineas:
+        montos_mes = por_concepto.setdefault(linea['concepto_id'], {})
+        mes = linea['registro__periodo__mes']
+        montos_mes[mes] = montos_mes.get(mes, Decimal('0')) + linea['monto']
 
     total_regular = Decimal('0')
     for montos_mes in por_concepto.values():
@@ -1244,7 +1245,6 @@ def calcular_gratificacion(registro, conceptos_activos=None) -> dict:
     # caer al fallback 6 vía `or`. Solo cuando es None se asume semestre completo.
     dias_trab  = p.dias_trabajados if p.dias_trabajados is not None else 6
     meses      = max(1, min(int(dias_trab), 6))
-    pension    = p.regimen_pension
     afp_nombre = p.afp or 'Prima'
 
     # Snapshot RMV del período si existe
@@ -1437,7 +1437,8 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
         dict con stats del proceso
     """
     from personal.models import Personal
-    from .models import RegistroNomina, LineaNomina, ConceptoRemunerativo
+
+    from .models import ConceptoRemunerativo, LineaNomina, RegistroNomina
 
     conceptos = ConceptoRemunerativo.objects.filter(activo=True).order_by('tipo', 'orden')
 
@@ -1486,9 +1487,10 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
     tareo_map = {}
     if tipo not in ('GRATIFICACION', 'CTS'):
         try:
-            from django.db.models import Sum, Count, Q
+            from django.db.models import Count, Q, Sum
+
             from asistencia.models import RegistroTareo
-            from asistencia.services.periodo_helper import get_periodo, TIPO_MES_CORTE
+            from asistencia.services.periodo_helper import TIPO_MES_CORTE, get_periodo
             ciclo = get_periodo(TIPO_MES_CORTE, periodo.anio, periodo.mes)
             _agg = (RegistroTareo.objects
                     .filter(fecha__gte=ciclo.fecha_inicio, fecha__lte=ciclo.fecha_fin,
@@ -1515,6 +1517,7 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
     if tipo not in ('GRATIFICACION', 'CTS'):
         try:
             from django.db.models import Sum
+
             from prestamos.models import CuotaPrestamo
             _cuotas = (CuotaPrestamo.objects
                        .filter(prestamo__estado='EN_CURSO',
@@ -1586,14 +1589,14 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
                 LineaNomina.objects.bulk_create([
                     LineaNomina(
                         registro=registro,
-                        concepto=l.get('concepto') or _cmap.get(l.get('codigo')),
-                        base_calculo=l['base_calculo'],
-                        porcentaje_aplicado=l['porcentaje_aplicado'],
-                        monto=l['monto'],
-                        observacion=l['observacion'],
+                        concepto=linea.get('concepto') or _cmap.get(linea.get('codigo')),
+                        base_calculo=linea['base_calculo'],
+                        porcentaje_aplicado=linea['porcentaje_aplicado'],
+                        monto=linea['monto'],
+                        observacion=linea['observacion'],
                     )
-                    for l in resultado['lineas']
-                    if l.get('concepto') or _cmap.get(l.get('codigo'))
+                    for linea in resultado['lineas']
+                    if linea.get('concepto') or _cmap.get(linea.get('codigo'))
                 ])
 
                 # Actualizar totales

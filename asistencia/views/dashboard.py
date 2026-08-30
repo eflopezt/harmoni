@@ -10,8 +10,7 @@ from django.db import models
 from django.db.models import Count, Q, Sum
 from django.shortcuts import render
 
-from asistencia.views._common import solo_admin, _qs_staff_dedup
-
+from asistencia.views._common import _qs_staff_dedup, solo_admin
 
 # ---------------------------------------------------------------------------
 # DASHBOARD
@@ -21,8 +20,8 @@ from asistencia.views._common import solo_admin, _qs_staff_dedup
 @solo_admin
 def tareo_dashboard(request):
     """Panel principal del módulo Tareo (solo admin)."""
-    from personal.models import Personal
     from asistencia.models import BancoHoras, RegistroTareo, TareoImportacion
+    from personal.models import Personal
 
     # ── Selector de mes ──────────────────────────────────────────
     MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',

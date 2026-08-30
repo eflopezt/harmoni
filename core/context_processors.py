@@ -67,9 +67,8 @@ def plan_starter_context(request):
     """
     user = getattr(request, 'user', None)
     try:
-        from core.planes import (PLANES, PLAN_DEFAULT, plan_nivel,
-                                  modulos_por_nivel)
         from core.middleware_plan_starter import resolve_plan
+        from core.planes import PLAN_DEFAULT, PLANES, modulos_por_nivel, plan_nivel
 
         if user is not None and getattr(user, 'is_superuser', False):
             plan_code = PLAN_DEFAULT          # staff Harmoni ve todo

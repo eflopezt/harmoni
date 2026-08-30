@@ -9,8 +9,8 @@ Uso:
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
-from nominas.models import ConceptoRemunerativo
 
+from nominas.models import ConceptoRemunerativo
 
 # (codigo, nombre, tipo, subtipo, formula, %, afecto_ess, afecto_renta, afecto_cts, afecto_gratif, orden)
 CONCEPTOS = [

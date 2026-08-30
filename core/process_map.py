@@ -11,7 +11,6 @@ from typing import Any
 
 from django.urls import NoReverseMatch, reverse
 
-
 PROCESS_STAGES: tuple[dict[str, Any], ...] = (
     {
         "id": "ingreso",
