@@ -302,6 +302,14 @@
   gap: .5rem;
   justify-content: space-between;
 }
+.payroll-action-dock__head-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  justify-content: flex-end;
+}
+.payroll-action-dock__head-actions form { margin: 0; }
 .payroll-action-dock__head strong,
 .payroll-review-bar__intro strong {
   color: var(--hms-ink, #0f172a);
@@ -781,6 +789,12 @@
           Pago {{ periodo.fecha_pago|date:"d/m/Y" }}
         </span>
         {% endif %}
+        {% if periodo.cerrado_en %}
+        <span class="payroll-chip">
+          <i class="fas fa-lock" aria-hidden="true"></i>
+          Cerrado {{ periodo.cerrado_en|date:"d/m/Y H:i" }}
+        </span>
+        {% endif %}
       </div>
     </div>
 
@@ -802,8 +816,8 @@
       </form>
       {% elif periodo.estado == 'APROBADO' %}
       <a href="#acciones-planilla" class="payroll-primary-action">
-        <i class="fas fa-paper-plane" aria-hidden="true"></i>
-        Preparar entregables
+        <i class="fas fa-route" aria-hidden="true"></i>
+        Salidas y cierre
       </a>
       {% elif periodo.estado == 'CERRADO' %}
       <a href="#acciones-planilla" class="payroll-primary-action is-soft">
@@ -920,11 +934,30 @@
   <div class="payroll-action-dock__head">
     <div>
       <strong><i class="fas fa-diagram-project me-1" style="color:#0f766e;"></i>Acciones conectadas</strong>
-      <span class="ms-2">Cada salida nace de este período; evita descargar, ajustar o declarar por caminos separados.</span>
+      <span class="ms-2">Cada salida nace de este período; al final congela la planilla desde aquí.</span>
     </div>
-    <a href="{% url 'workflow_mes' %}?mes={{ periodo.mes }}&anio={{ periodo.anio }}" class="btn btn-sm btn-outline-secondary">
-      <i class="fas fa-route me-1"></i>Flujo mensual
-    </a>
+    <div class="payroll-action-dock__head-actions">
+      {% if periodo.estado == 'APROBADO' and registros %}
+      <form method="post" action="{% url 'nominas_periodo_cerrar' periodo.pk %}"
+            onsubmit="return confirm('¿Cerrar este período? La planilla quedará congelada para auditoría.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-dark btn-sm">
+          <i class="fas fa-lock me-1"></i>Cerrar período
+        </button>
+      </form>
+      {% elif periodo.estado == 'APROBADO' %}
+      <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
+        <i class="fas fa-lock me-1"></i>Sin boletas para cerrar
+      </button>
+      {% elif periodo.estado == 'CERRADO' %}
+      <button type="button" class="btn btn-dark btn-sm" disabled>
+        <i class="fas fa-lock me-1"></i>Período cerrado
+      </button>
+      {% endif %}
+      <a href="{% url 'workflow_mes' %}?mes={{ periodo.mes }}&anio={{ periodo.anio }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-route me-1"></i>Flujo mensual
+      </a>
+    </div>
   </div>
 
   <div class="payroll-action-dock__groups">
@@ -1211,19 +1244,6 @@
         {% else %}
         <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
           <i class="fas fa-lock me-1"></i>Contabilidad al aprobar
-        </button>
-        {% endif %}
-        {% if periodo.estado == 'APROBADO' %}
-        <form method="post" action="{% url 'nominas_periodo_cerrar' periodo.pk %}" class="d-inline"
-              onsubmit="return confirm('¿Cerrar este período? La planilla quedará congelada para auditoría.');">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-dark btn-sm">
-            <i class="fas fa-lock me-1"></i>Cerrar período
-          </button>
-        </form>
-        {% elif periodo.estado == 'CERRADO' %}
-        <button type="button" class="btn btn-dark btn-sm" disabled>
-          <i class="fas fa-lock me-1"></i>Período cerrado
         </button>
         {% endif %}
       </div>

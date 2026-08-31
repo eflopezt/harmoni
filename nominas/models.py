@@ -272,6 +272,9 @@ class PeriodoNomina(models.Model):
     aprobado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name='+')
     aprobado_en  = models.DateTimeField(null=True, blank=True)
+    cerrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                    null=True, blank=True, related_name='+')
+    cerrado_en  = models.DateTimeField(null=True, blank=True)
     observaciones = models.TextField(blank=True)
 
     # ── Tracking de contabilización (audit perf 2026-05-20) ─────────────

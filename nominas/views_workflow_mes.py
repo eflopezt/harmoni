@@ -23,6 +23,8 @@ checklist por usuario sin migrar BD.
 
 URL: /nominas/workflow-mes/
 """
+from urllib.parse import urlencode
+
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
 from django.shortcuts import render
@@ -65,6 +67,16 @@ def _parse_periodo_request(request, hoy):
 
 def _periodo_query(mes, anio):
     return f'mes={mes}&anio={anio}'
+
+
+def _periodo_create_url(mes, anio):
+    query = urlencode({
+        'tipo': 'REGULAR',
+        'mes': mes,
+        'anio': anio,
+        'origen': 'workflow',
+    })
+    return f'{reverse("nominas_periodo_crear")}?{query}'
 
 
 def _status_from_step(step):
@@ -152,7 +164,7 @@ def _construir_steps(periodo, anio, mes, request):
         steps.append({
             'n': 3, 'key': 'periodo', 'icon': 'fas fa-calendar-plus', 'titulo': 'Crear período del mes',
             'descripcion': f'Crea el período REGULAR de {mes:02d}/{anio}',
-            'done': False, 'link': reverse('nominas_periodo_crear'),
+            'done': False, 'link': _periodo_create_url(mes, anio),
             'phase': 'preparar', 'origen': 'Calendario de planilla',
             'resultado': 'Abre el contenedor del cálculo mensual',
             'cta': 'Crear período',
@@ -393,7 +405,7 @@ def _resumen_cierre(periodo, next_step, pendientes_post_cierre, mes, anio):
                 'trabajen sobre el mismo cierre.'
             ),
             'label': 'Crear período',
-            'url': reverse('nominas_periodo_crear'),
+            'url': _periodo_create_url(mes, anio),
             'icon': 'fas fa-calendar-plus',
         }
     if periodo.estado == 'CERRADO':

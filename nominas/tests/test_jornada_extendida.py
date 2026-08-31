@@ -13,7 +13,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from nominas.models import ConceptoRemunerativo, PeriodoNomina
+from nominas.models import ConceptoRemunerativo, PeriodoNomina, RegistroNomina
 
 User = get_user_model()
 
@@ -141,6 +141,220 @@ class WorkflowMesTests(TestCase):
         self.assertEqual(resp.context['anio'], 2026)
         self.assertContains(resp, 'Marzo 2026')
         self.assertContains(resp, 'Estado del cierre')
+
+    def test_workflow_mes_crear_periodo_conserva_mes_y_anio(self):
+        resp = self.client.get('/nominas/workflow-mes/?mes=4&anio=2026')
+
+        self.assertEqual(resp.status_code, 200)
+        step_periodo = next(s for s in resp.context['steps'] if s['key'] == 'periodo')
+        self.assertIn('tipo=REGULAR', step_periodo['link'])
+        self.assertIn('mes=4', step_periodo['link'])
+        self.assertIn('anio=2026', step_periodo['link'])
+        self.assertIn('origen=workflow', step_periodo['link'])
+        self.assertContains(
+            resp,
+            '/nominas/periodos/nuevo/?tipo=REGULAR&amp;mes=4&amp;anio=2026&amp;origen=workflow',
+        )
+
+    def test_periodo_crear_prefill_desde_workflow(self):
+        resp = self.client.get(
+            '/nominas/periodos/nuevo/?tipo=REGULAR&mes=4&anio=2026&origen=workflow')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['tipo_actual'], 'REGULAR')
+        self.assertEqual(resp.context['mes_actual'], 4)
+        self.assertEqual(resp.context['anio_actual'], 2026)
+        self.assertEqual(resp.context['fecha_inicio_default'], date(2026, 3, 22))
+        self.assertEqual(resp.context['fecha_fin_default'], date(2026, 4, 21))
+        self.assertEqual(resp.context['fecha_pago_default'], date(2026, 4, 25))
+        self.assertContains(resp, 'Abril 2026')
+        self.assertContains(resp, 'value="2026-03-22"')
+        self.assertContains(resp, 'value="2026-04-21"')
+        self.assertContains(resp, 'value="2026-04-25"')
+        self.assertContains(resp, 'name="origen" value="workflow"')
+        self.assertContains(resp, '/nominas/workflow-mes/?mes=4&amp;anio=2026')
+
+    def test_periodo_crear_asocia_empresa_actual_y_no_duplica(self):
+        from empresas.models import Empresa
+
+        empresa = Empresa.objects.create(
+            ruc='20987654321',
+            razon_social='Empresa Nómina Test SAC',
+            activa=True,
+            es_principal=True,
+        )
+        session = self.client.session
+        session['empresa_actual_id'] = empresa.pk
+        session.save()
+
+        payload = {
+            'origen': 'workflow',
+            'tipo': 'REGULAR',
+            'anio': '2026',
+            'mes': '4',
+            'descripcion': '',
+            'fecha_inicio': '2026-03-22',
+            'fecha_fin': '2026-04-21',
+            'fecha_pago': '2026-04-25',
+        }
+        resp = self.client.post('/nominas/periodos/nuevo/', payload)
+
+        periodo = PeriodoNomina.objects.get(tipo='REGULAR', anio=2026, mes=4)
+        self.assertEqual(periodo.empresa, empresa)
+        self.assertEqual(periodo.descripcion, 'Planilla regular Abril 2026')
+        self.assertRedirects(
+            resp,
+            f'/nominas/periodos/{periodo.pk}/',
+            fetch_redirect_response=False,
+        )
+
+        resp_dup = self.client.post('/nominas/periodos/nuevo/', payload)
+
+        self.assertEqual(
+            PeriodoNomina.objects.filter(tipo='REGULAR', anio=2026, mes=4).count(),
+            1,
+        )
+        self.assertRedirects(
+            resp_dup,
+            f'/nominas/periodos/{periodo.pk}/',
+            fetch_redirect_response=False,
+        )
+
+    def test_periodo_cerrar_bloquea_vacio_y_guarda_trazabilidad(self):
+        from personal.models import Personal
+
+        periodo = PeriodoNomina.objects.create(
+            tipo='REGULAR',
+            anio=2026,
+            mes=4,
+            descripcion='Planilla regular Abril 2026',
+            fecha_inicio=date(2026, 3, 22),
+            fecha_fin=date(2026, 4, 21),
+            fecha_pago=date(2026, 4, 25),
+            estado='APROBADO',
+        )
+
+        resp_vacio = self.client.post(f'/nominas/periodos/{periodo.pk}/cerrar/')
+
+        self.assertRedirects(
+            resp_vacio,
+            f'/nominas/periodos/{periodo.pk}/',
+            fetch_redirect_response=False,
+        )
+        periodo.refresh_from_db()
+        self.assertEqual(periodo.estado, 'APROBADO')
+        self.assertIsNone(periodo.cerrado_en)
+        self.assertIsNone(periodo.cerrado_por)
+
+        trabajador = Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc='49990001',
+            apellidos_nombres='TRABAJADOR CIERRE, ANA',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Activo',
+            sueldo_base=Decimal('3000'),
+            fecha_alta=date(2025, 1, 1),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        RegistroNomina.objects.create(
+            periodo=periodo,
+            personal=trabajador,
+            sueldo_base=Decimal('3000'),
+            dias_trabajados=30,
+            regimen_pension='ONP',
+            total_ingresos=Decimal('3000'),
+            total_descuentos=Decimal('390'),
+            neto_a_pagar=Decimal('2610'),
+            estado='APROBADO',
+        )
+
+        resp_cierre = self.client.post(f'/nominas/periodos/{periodo.pk}/cerrar/')
+
+        self.assertRedirects(
+            resp_cierre,
+            f'/nominas/periodos/{periodo.pk}/',
+            fetch_redirect_response=False,
+        )
+        periodo.refresh_from_db()
+        self.assertEqual(periodo.estado, 'CERRADO')
+        self.assertEqual(periodo.cerrado_por, self.user)
+        self.assertIsNotNone(periodo.cerrado_en)
+
+    def test_cierre_marzo_a_julio_flujo_completo_aislado(self):
+        from empresas.models import Empresa
+        from personal.models import Personal
+
+        empresa = Empresa.objects.create(
+            ruc='20987654322',
+            razon_social='Empresa Cierre Mensual SAC',
+            activa=True,
+            es_principal=True,
+        )
+        session = self.client.session
+        session['empresa_actual_id'] = empresa.pk
+        session.save()
+        Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc='49990002',
+            apellidos_nombres='TRABAJADOR MENSUAL, LUIS',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa,
+            sueldo_base=Decimal('3000'),
+            fecha_alta=date(2025, 1, 1),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+
+        for mes in range(3, 8):
+            mes_anterior = 12 if mes == 1 else mes - 1
+            anio_anterior = 2025 if mes == 1 else 2026
+            resp_workflow = self.client.get(f'/nominas/workflow-mes/?mes={mes}&anio=2026')
+            self.assertEqual(resp_workflow.status_code, 200)
+            self.assertIn(f'mes={mes}', resp_workflow.context['resumen_cierre']['url'])
+
+            self.client.post('/nominas/periodos/nuevo/', {
+                'origen': 'workflow',
+                'tipo': 'REGULAR',
+                'anio': '2026',
+                'mes': str(mes),
+                'descripcion': '',
+                'fecha_inicio': f'{anio_anterior}-{mes_anterior:02d}-22',
+                'fecha_fin': f'2026-{mes:02d}-21',
+                'fecha_pago': f'2026-{mes:02d}-25',
+            })
+            periodo = PeriodoNomina.objects.get(
+                tipo='REGULAR',
+                anio=2026,
+                mes=mes,
+                empresa=empresa,
+            )
+            self.assertEqual(periodo.estado, 'BORRADOR')
+
+            self.client.post(f'/nominas/periodos/{periodo.pk}/generar/')
+            periodo.refresh_from_db()
+            self.assertEqual(periodo.estado, 'CALCULADO')
+            self.assertGreater(periodo.registros.count(), 0)
+
+            self.client.post(f'/nominas/periodos/{periodo.pk}/aprobar/')
+            periodo.refresh_from_db()
+            self.assertEqual(periodo.estado, 'APROBADO')
+            resp_detalle = self.client.get(f'/nominas/periodos/{periodo.pk}/')
+            self.assertContains(resp_detalle, 'Salidas y cierre')
+            self.assertContains(resp_detalle, 'Cada salida nace de este período')
+            self.assertContains(resp_detalle, 'Cerrar período')
+
+            self.client.post(f'/nominas/periodos/{periodo.pk}/cerrar/')
+            periodo.refresh_from_db()
+            self.assertEqual(periodo.estado, 'CERRADO')
+            self.assertEqual(periodo.cerrado_por, self.user)
+            self.assertIsNotNone(periodo.cerrado_en)
+
+            resp_cerrado = self.client.get(f'/nominas/workflow-mes/?mes={mes}&anio=2026')
+            self.assertEqual(resp_cerrado.context['periodo'], periodo)
 
     def test_pre_planilla_cerrada_es_consulta_y_vuelve_al_cierre(self):
         PeriodoNomina.objects.create(

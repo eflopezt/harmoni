@@ -11,6 +11,7 @@ import logging
 import zipfile
 from datetime import date
 from decimal import Decimal
+from urllib.parse import urlencode
 
 logger = logging.getLogger('nominas.views')
 
@@ -20,6 +21,7 @@ from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -61,6 +63,35 @@ _ESTADO_META = {
     'CERRADO':    {'label': 'Cerrado',      'badge': 'dark',      'icon': 'fas fa-lock'},
     'ANULADO':    {'label': 'Anulado',      'badge': 'danger',    'icon': 'fas fa-times-circle'},
 }
+
+MESES_NOMINA = [
+    '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
+
+
+def _int_en_rango(value, default, minimo, maximo):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    if parsed < minimo or parsed > maximo:
+        return default
+    return parsed
+
+
+def _fechas_planilla_regular(anio, mes):
+    mes_anterior = 12 if mes == 1 else mes - 1
+    anio_anterior = anio - 1 if mes == 1 else anio
+    return (
+        date(anio_anterior, mes_anterior, 22),
+        date(anio, mes, 21),
+        date(anio, mes, 25),
+    )
+
+
+def _workflow_mes_url(mes, anio):
+    return f'{reverse("workflow_mes")}?{urlencode({"mes": mes, "anio": anio})}'
 
 
 def _urgency(dias):
@@ -313,40 +344,94 @@ def nominas_panel(request):
 @solo_admin
 def periodo_crear(request):
     """Formulario para crear un nuevo período."""
+    hoy = timezone.localdate()
+    tipos_validos = {value for value, _label in PeriodoNomina.TIPO_CHOICES}
+
     if request.method == 'POST':
-        tipo  = request.POST.get('tipo', 'REGULAR')
+        origen = request.POST.get('origen', '')
+        tipo = request.POST.get('tipo', 'REGULAR')
+        if tipo not in tipos_validos:
+            tipo = 'REGULAR'
         try:
-            anio  = int(request.POST.get('anio', timezone.now().year))
-            mes   = int(request.POST.get('mes', timezone.now().month))
+            anio = int(request.POST.get('anio', hoy.year))
+            mes = int(request.POST.get('mes', hoy.month))
         except (ValueError, TypeError):
             messages.error(request, 'Año o mes inválido.')
             return redirect('nominas_panel')
-        desc  = request.POST.get('descripcion', '')
-        fi    = date.fromisoformat(request.POST['fecha_inicio']) if request.POST.get('fecha_inicio') else None
-        ff    = date.fromisoformat(request.POST['fecha_fin']) if request.POST.get('fecha_fin') else None
-        fp    = date.fromisoformat(request.POST['fecha_pago']) if request.POST.get('fecha_pago') else None
+        if mes < 1 or mes > 12:
+            messages.error(request, 'Mes inválido.')
+            return redirect(_workflow_mes_url(hoy.month, hoy.year) if origen == 'workflow' else 'nominas_panel')
 
-        if PeriodoNomina.objects.filter(tipo=tipo, anio=anio, mes=mes).exists():
-            messages.error(request, 'Ya existe un período con ese tipo/año/mes.')
-            return redirect('nominas_panel')
+        desc = request.POST.get('descripcion', '').strip()
+        if not desc and tipo == 'REGULAR':
+            desc = f'Planilla regular {MESES_NOMINA[mes]} {anio}'
+        try:
+            fi = date.fromisoformat(request.POST['fecha_inicio']) if request.POST.get('fecha_inicio') else None
+            ff = date.fromisoformat(request.POST['fecha_fin']) if request.POST.get('fecha_fin') else None
+            fp = date.fromisoformat(request.POST['fecha_pago']) if request.POST.get('fecha_pago') else None
+        except ValueError:
+            messages.error(request, 'Revisa las fechas del período.')
+            return redirect(_workflow_mes_url(mes, anio) if origen == 'workflow' else 'nominas_panel')
+        if tipo == 'REGULAR' and (not fi or not ff or not fp):
+            fi_default, ff_default, fp_default = _fechas_planilla_regular(anio, mes)
+            fi = fi or fi_default
+            ff = ff or ff_default
+            fp = fp or fp_default
+        if not fi or not ff:
+            messages.error(request, 'Fecha de inicio y fecha de fin son obligatorias.')
+            return redirect(_workflow_mes_url(mes, anio) if origen == 'workflow' else 'nominas_panel')
+
+        empresa = getattr(request, 'empresa_actual', None)
+        existentes = PeriodoNomina.objects.filter(tipo=tipo, anio=anio, mes=mes)
+        if empresa is not None:
+            existentes = existentes.filter(Q(empresa=empresa) | Q(empresa__isnull=True))
+        else:
+            existentes = existentes.filter(empresa__isnull=True)
+        existente = existentes.order_by('-empresa_id', '-pk').first()
+        if existente:
+            messages.info(request, 'Ese período ya existe. Te llevé al cierre existente.')
+            return redirect('nominas_periodo_detalle', pk=existente.pk)
 
         p = PeriodoNomina.objects.create(
             tipo=tipo, anio=anio, mes=mes,
             descripcion=desc,
             fecha_inicio=fi, fecha_fin=ff, fecha_pago=fp,
+            empresa=empresa,
         )
         messages.success(request, f'Período {p.descripcion or p} creado.')
         return redirect('nominas_periodo_detalle', pk=p.pk)
 
     # GET
-    hoy = timezone.now()
+    tipo_actual = request.GET.get('tipo', 'REGULAR')
+    if tipo_actual not in tipos_validos:
+        tipo_actual = 'REGULAR'
+    anio_actual = _int_en_rango(request.GET.get('anio'), hoy.year, hoy.year - 5, hoy.year + 2)
+    mes_actual = _int_en_rango(request.GET.get('mes'), hoy.month, 1, 12)
+    fecha_inicio_default = fecha_fin_default = fecha_pago_default = None
+    if tipo_actual == 'REGULAR':
+        fecha_inicio_default, fecha_fin_default, fecha_pago_default = _fechas_planilla_regular(
+            anio_actual, mes_actual)
+    viene_de_workflow = request.GET.get('origen') == 'workflow' or request.GET.get('from_workflow') == '1'
+    workflow_context_label = f'{MESES_NOMINA[mes_actual]} {anio_actual}'
+    anio_min = min(hoy.year - 1, anio_actual)
+    anio_max = max(hoy.year + 1, anio_actual)
     return render(request, 'nominas/periodo_form.html', {
         'titulo': 'Nuevo período de nómina',
         'tipo_choices': PeriodoNomina.TIPO_CHOICES,
-        'anio_actual': hoy.year,
-        'mes_actual':  hoy.month,
+        'tipo_actual': tipo_actual,
+        'anio_actual': anio_actual,
+        'mes_actual': mes_actual,
+        'descripcion_default': (
+            f'Planilla regular {workflow_context_label}'
+            if tipo_actual == 'REGULAR' else ''
+        ),
+        'fecha_inicio_default': fecha_inicio_default,
+        'fecha_fin_default': fecha_fin_default,
+        'fecha_pago_default': fecha_pago_default,
+        'workflow_return_url': _workflow_mes_url(mes_actual, anio_actual) if viene_de_workflow else '',
+        'workflow_context_label': workflow_context_label,
         'meses': range(1, 13),
-        'anios': range(hoy.year - 1, hoy.year + 2),
+        'anios': range(anio_min, anio_max + 1),
     })
 
 
@@ -575,9 +660,14 @@ def periodo_cerrar(request, pk):
     if periodo.estado != 'APROBADO':
         messages.error(request, 'Solo se puede cerrar un período en estado APROBADO.')
         return redirect('nominas_periodo_detalle', pk=pk)
+    if not periodo.registros.exists():
+        messages.error(request, 'No se puede cerrar un período sin boletas calculadas.')
+        return redirect('nominas_periodo_detalle', pk=pk)
 
     periodo.estado = 'CERRADO'
-    periodo.save(update_fields=['estado'])
+    periodo.cerrado_por = request.user
+    periodo.cerrado_en = timezone.now()
+    periodo.save(update_fields=['estado', 'cerrado_por', 'cerrado_en'])
 
     # Al cerrar la planilla REGULAR, marca como PAGADAS las cuotas de préstamo del
     # mes (las que generar_periodo descontó, item E1). Imprescindible para que el
@@ -3412,7 +3502,6 @@ def saldos_apertura_plantilla(request):
     TEAL     = 'FF0D2B27'
     HDR_FONT = Font(color='FFFFFFFF', bold=True, size=10)
     HDR_FILL = PatternFill(fill_type='solid', fgColor=TEAL)
-    HINT_FILL = PatternFill(fill_type='solid', fgColor='FFFEF3C7')
 
     headers = [
         'DNI',

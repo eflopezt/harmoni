@@ -11,7 +11,7 @@
 /* ── Form Card ──────────────────────────────────────────────── */
 .form-card {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 10px;
   box-shadow: 0 2px 12px rgba(0,0,0,.08);
   overflow: hidden;
 }
@@ -49,7 +49,7 @@
   align-items: center;
   gap: .5rem;
   padding: 1rem .75rem;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 2px solid #e5e7eb;
   cursor: pointer;
   transition: all .18s;
@@ -77,6 +77,68 @@
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
+}
+
+.workflow-context-box {
+  align-items: center;
+  background: var(--hms-paper, #fff);
+  border: 1px solid var(--hms-rule, #dbe8e4);
+  border-radius: var(--hms-radius-panel, 10px);
+  box-shadow: var(--hms-shadow-soft, 0 14px 34px -28px rgba(15,23,42,.38));
+  color: var(--hms-ink, #0f172a);
+  display: flex;
+  gap: .85rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  min-width: 0;
+  padding: .8rem .95rem;
+}
+.workflow-context-box__main {
+  align-items: center;
+  display: flex;
+  gap: .65rem;
+  min-width: 0;
+}
+.workflow-context-box__icon {
+  align-items: center;
+  background: var(--hms-teal-wash, #f0fdfa);
+  border: 1px solid var(--hms-teal-soft, #ccfbf1);
+  border-radius: var(--hms-radius-card, 8px);
+  color: var(--hms-teal, #0f766e);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+.workflow-context-box span {
+  color: var(--hms-muted, #64748b);
+  display: block;
+  font-size: .72rem;
+  font-weight: 800;
+}
+.workflow-context-box strong {
+  display: block;
+  font-size: .92rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.workflow-context-box a {
+  align-items: center;
+  border: 1px solid var(--hms-rule, #dbe8e4);
+  border-radius: var(--hms-radius-card, 8px);
+  color: var(--hms-ink-soft, #334155);
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 800;
+  gap: .4rem;
+  min-height: 34px;
+  padding: 0 .7rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.workflow-context-box a:hover {
+  background: var(--hms-teal-wash, #f0fdfa);
+  color: var(--hms-teal, #0f766e);
 }
 .tipo-name {
   font-size: .78rem;
@@ -202,6 +264,14 @@
   margin-top: .5rem;
   transition: background .2s;
 }
+
+@media (max-width: 640px) {
+  .workflow-context-box {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .workflow-context-box a { justify-content: center; width: 100%; }
+}
 </style>
 {% endblock %}
 
@@ -214,17 +284,42 @@
       <i class="fas fa-calendar-plus me-2 text-accent"></i>Nuevo período de nómina
     </h1>
     <p class="page-subtitle">
+      {% if workflow_return_url %}
+      <a href="{{ workflow_return_url }}" class="text-muted text-decoration-none">
+        <i class="fas fa-chevron-left me-1" style="font-size:.7rem;"></i>Cierre mensual
+      </a>
+      <span class="text-muted mx-1">/</span>
+      {{ workflow_context_label }}
+      {% else %}
       <a href="{% url 'nominas_panel' %}" class="text-muted text-decoration-none">
         <i class="fas fa-chevron-left me-1" style="font-size:.7rem;"></i>Nóminas
       </a>
       <span class="text-muted mx-1">/</span>
       Crear período
+      {% endif %}
     </p>
   </div>
 </div>
 
 <div class="row justify-content-center">
   <div class="col-lg-8 col-xl-7">
+
+    {% if workflow_return_url %}
+    <div class="workflow-context-box">
+      <div class="workflow-context-box__main">
+        <span class="workflow-context-box__icon">
+          <i class="fas fa-route" aria-hidden="true"></i>
+        </span>
+        <div>
+          <span>Viene del cierre mensual</span>
+          <strong>{{ workflow_context_label }}</strong>
+        </div>
+      </div>
+      <a href="{{ workflow_return_url }}">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>Volver al cierre
+      </a>
+    </div>
+    {% endif %}
 
     <div class="form-card">
 
@@ -244,6 +339,9 @@
       <div class="form-card-body">
         <form method="post" id="form-periodo">
           {% csrf_token %}
+          {% if workflow_return_url %}
+          <input type="hidden" name="origen" value="workflow">
+          {% endif %}
 
           {# ── TIPO DE PERÍODO ─────────────────────────────────────────────── #}
           <div class="field-group">
@@ -257,7 +355,7 @@
               {# REGULAR #}
               <div>
                 <input type="radio" name="tipo" id="tipo_REGULAR" value="REGULAR"
-                       class="tipo-option" checked>
+                       class="tipo-option" {% if tipo_actual == 'REGULAR' %}checked{% endif %}>
                 <label for="tipo_REGULAR" class="tipo-label">
                   <div class="tipo-icon icon-regular"><i class="fas fa-calendar-alt"></i></div>
                   <div class="tipo-name">Regular</div>
@@ -269,7 +367,7 @@
               {% for v,l in tipo_choices %}
                 {% if v == 'GRATIFICACION' %}
               <div>
-                <input type="radio" name="tipo" id="tipo_GRATIFICACION" value="GRATIFICACION" class="tipo-option">
+                <input type="radio" name="tipo" id="tipo_GRATIFICACION" value="GRATIFICACION" class="tipo-option" {% if tipo_actual == 'GRATIFICACION' %}checked{% endif %}>
                 <label for="tipo_GRATIFICACION" class="tipo-label">
                   <div class="tipo-icon icon-gratificacion"><i class="fas fa-gift"></i></div>
                   <div class="tipo-name">Gratificación</div>
@@ -279,7 +377,7 @@
                 {% endif %}
                 {% if v == 'CTS' %}
               <div>
-                <input type="radio" name="tipo" id="tipo_CTS" value="CTS" class="tipo-option">
+                <input type="radio" name="tipo" id="tipo_CTS" value="CTS" class="tipo-option" {% if tipo_actual == 'CTS' %}checked{% endif %}>
                 <label for="tipo_CTS" class="tipo-label">
                   <div class="tipo-icon icon-cts"><i class="fas fa-piggy-bank"></i></div>
                   <div class="tipo-name">CTS</div>
@@ -289,7 +387,7 @@
                 {% endif %}
                 {% if v == 'UTILIDADES' %}
               <div>
-                <input type="radio" name="tipo" id="tipo_UTILIDADES" value="UTILIDADES" class="tipo-option">
+                <input type="radio" name="tipo" id="tipo_UTILIDADES" value="UTILIDADES" class="tipo-option" {% if tipo_actual == 'UTILIDADES' %}checked{% endif %}>
                 <label for="tipo_UTILIDADES" class="tipo-label">
                   <div class="tipo-icon icon-utilidades"><i class="fas fa-chart-line"></i></div>
                   <div class="tipo-name">Utilidades</div>
@@ -299,7 +397,7 @@
                 {% endif %}
                 {% if v == 'LIQUIDACION' %}
               <div>
-                <input type="radio" name="tipo" id="tipo_LIQUIDACION" value="LIQUIDACION" class="tipo-option">
+                <input type="radio" name="tipo" id="tipo_LIQUIDACION" value="LIQUIDACION" class="tipo-option" {% if tipo_actual == 'LIQUIDACION' %}checked{% endif %}>
                 <label for="tipo_LIQUIDACION" class="tipo-label">
                   <div class="tipo-icon icon-liquidacion"><i class="fas fa-file-contract"></i></div>
                   <div class="tipo-name">Liquidación</div>
@@ -364,6 +462,7 @@
             <input type="text" name="descripcion" id="id-descripcion"
                    class="nom-form-control"
                    placeholder="Ej: Planilla regular {{ mes_actual }}/{{ anio_actual }}"
+                   value="{{ descripcion_default }}"
                    maxlength="200">
             <div style="font-size:.72rem;color:#9ca3af;margin-top:.35rem;">
               Identificador adicional para diferenciar el período (máx. 200 caracteres).
@@ -379,20 +478,23 @@
             <div class="row g-3">
               <div class="col-md-4">
                 <label class="nom-form-label" for="id-fecha-inicio">Fecha inicio</label>
-                <input type="date" name="fecha_inicio" id="id-fecha-inicio" class="nom-form-control">
-                <div style="font-size:.7rem;color:#9ca3af;margin-top:.3rem;">Día 21 mes anterior</div>
+                <input type="date" name="fecha_inicio" id="id-fecha-inicio" class="nom-form-control"
+                       value="{{ fecha_inicio_default|date:'Y-m-d' }}">
+                <div style="font-size:.7rem;color:#9ca3af;margin-top:.3rem;">Día 22 mes anterior</div>
               </div>
               <div class="col-md-4">
                 <label class="nom-form-label" for="id-fecha-fin">Fecha fin</label>
-                <input type="date" name="fecha_fin" id="id-fecha-fin" class="nom-form-control">
-                <div style="font-size:.7rem;color:#9ca3af;margin-top:.3rem;">Día 20 mes actual</div>
+                <input type="date" name="fecha_fin" id="id-fecha-fin" class="nom-form-control"
+                       value="{{ fecha_fin_default|date:'Y-m-d' }}">
+                <div style="font-size:.7rem;color:#9ca3af;margin-top:.3rem;">Día 21 mes actual</div>
               </div>
               <div class="col-md-4">
                 <label class="nom-form-label" for="id-fecha-pago">
                   Fecha de pago
                   <span style="color:#dc2626;font-size:.75rem;"></span>
                 </label>
-                <input type="date" name="fecha_pago" id="id-fecha-pago" class="nom-form-control">
+                <input type="date" name="fecha_pago" id="id-fecha-pago" class="nom-form-control"
+                       value="{{ fecha_pago_default|date:'Y-m-d' }}">
                 <div style="font-size:.7rem;color:#9ca3af;margin-top:.3rem;">Fecha de depósito</div>
               </div>
             </div>
@@ -403,7 +505,7 @@
             <button type="submit" class="btn btn-primary px-4" style="border-radius:10px;font-weight:600;">
               <i class="fas fa-check me-2"></i>Crear período
             </button>
-            <a href="{% url 'nominas_panel' %}" class="btn btn-outline-secondary px-4" style="border-radius:10px;">
+            <a href="{% if workflow_return_url %}{{ workflow_return_url }}{% else %}{% url 'nominas_panel' %}{% endif %}" class="btn btn-outline-secondary px-4" style="border-radius:10px;">
               Cancelar
             </a>
             <span class="ms-auto text-muted" style="font-size:.75rem;">

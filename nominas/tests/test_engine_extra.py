@@ -1097,7 +1097,7 @@ class TestCierreMarcaCuotasPrestamo:
         from django.contrib.auth.models import User
         from django.urls import reverse
 
-        from nominas.models import PeriodoNomina
+        from nominas.models import PeriodoNomina, RegistroNomina
         from prestamos.models import CuotaPrestamo, Prestamo, TipoPrestamo
         admin = User.objects.create_user('cierre_admin', password='x',
                                          is_superuser=True, is_staff=True)
@@ -1116,6 +1116,12 @@ class TestCierreMarcaCuotasPrestamo:
             tipo='REGULAR', anio=2026, mes=6,
             fecha_inicio=_date(2026, 6, 1), fecha_fin=_date(2026, 6, 30),
             estado='APROBADO', empresa=emp)
+        RegistroNomina.objects.create(
+            periodo=per, personal=p,
+            sueldo_base=Decimal('3000'), dias_trabajados=30,
+            regimen_pension='ONP', estado='APROBADO',
+            total_ingresos=Decimal('3000'), total_descuentos=Decimal('490'),
+            neto_a_pagar=Decimal('2510'))
         resp = client.post(reverse('nominas_periodo_cerrar', args=[per.pk]))
         assert resp.status_code in (200, 302)
         c1.refresh_from_db()
