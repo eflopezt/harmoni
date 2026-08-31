@@ -10,12 +10,13 @@ Complementa a `workflow_mes` (que cubre el PROCESO de emisión), no lo reemplaza
 Todas las consultas son defensivas: si un modelo/campo no existe, el check se
 marca "no disponible" en vez de romper la página.
 """
-from datetime import date
 import calendar as _cal
+from datetime import date
 
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.shortcuts import render
-from django.urls import reverse, NoReverseMatch
+from django.urls import NoReverseMatch, reverse
 
 from personal.permissions import filtrar_personal_por_request
 
@@ -41,6 +42,16 @@ def _url(name):
         return None
 
 
+def _periodos_regulares(request):
+    from nominas.models import PeriodoNomina
+
+    qs = PeriodoNomina.objects.filter(tipo='REGULAR')
+    empresa = getattr(request, 'empresa_actual', None)
+    if empresa is not None:
+        qs = qs.filter(Q(empresa=empresa) | Q(empresa__isnull=True))
+    return qs
+
+
 def _chk(clave, label, icono, valor, ok_si, tipo, detalle, url_name):
     """Arma un check. `ok_si` decide verde; si valor es None => 'no disponible'."""
     if valor is None:
@@ -64,6 +75,10 @@ def pre_planilla(request):
         mes = int(request.GET.get('mes', hoy.month))
     except (TypeError, ValueError):
         anio, mes = hoy.year, hoy.month
+    if mes < 1 or mes > 12:
+        mes = hoy.month
+    if anio < 2000 or anio > hoy.year + 2:
+        anio = hoy.year
     ini = date(anio, mes, 1)
     fin = date(anio, mes, _cal.monthrange(anio, mes)[1])
 
@@ -75,7 +90,10 @@ def pre_planilla(request):
     n_activos = len(activos_ids)
 
     from asistencia.models import (
-        RegistroPapeleta, SolicitudHE, JustificacionNoMarcaje, RegistroTareo,
+        JustificacionNoMarcaje,
+        RegistroPapeleta,
+        RegistroTareo,
+        SolicitudHE,
     )
     from personal.models import Contrato
 
@@ -162,9 +180,7 @@ def pre_planilla(request):
 
     # 9. Periodo de planilla del mes
     def _periodo():
-        from nominas.models import PeriodoNomina
-        return PeriodoNomina.objects.filter(
-            anio=anio, mes=mes, tipo='REGULAR').first()
+        return _periodos_regulares(request).filter(anio=anio, mes=mes).order_by('-pk').first()
     per = _safe(_periodo)
     if per is None:
         per_estado, per_det = 'warn', 'Sin período creado aún'
@@ -181,7 +197,13 @@ def pre_planilla(request):
     # ── Resumen / semáforo global ──
     n_error = sum(1 for c in checks if c['estado'] == 'error')
     n_warn = sum(1 for c in checks if c['estado'] == 'warn')
-    if n_error:
+    modo_cerrado = bool(per and per.estado == 'CERRADO')
+    if modo_cerrado:
+        estado_global, resumen = (
+            'cerrado',
+            'Período cerrado: datos congelados para auditoría',
+        )
+    elif n_error:
         estado_global, resumen = 'critico', 'Faltan puntos críticos por resolver'
     elif n_warn:
         estado_global, resumen = 'mejorable', 'Casi listo: revisa los pendientes'
@@ -199,5 +221,6 @@ def pre_planilla(request):
         'meses': MESES,
         'anios': range(hoy.year - 2, hoy.year + 2),
         'n_activos': n_activos,
+        'modo_cerrado': modo_cerrado,
     }
     return render(request, 'nominas/pre_planilla.html', context)

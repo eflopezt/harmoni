@@ -12,9 +12,10 @@
         flex-wrap: wrap; gap: 14px;
         padding: 16px 20px; border-radius: 14px; margin-bottom: 18px; color: #fff;
     }
-    .pp-hero.listo     { background: linear-gradient(135deg,#0f766e,#22c55e); }
-    .pp-hero.mejorable { background: linear-gradient(135deg,#b45309,#f59e0b); }
-    .pp-hero.critico   { background: linear-gradient(135deg,#991b1b,#ef4444); }
+    .pp-hero.listo     { background: #0f766e; }
+    .pp-hero.mejorable { background: #b45309; }
+    .pp-hero.critico   { background: #991b1b; }
+    .pp-hero.cerrado   { background: #0d2b27; }
     .pp-hero-txt strong { font-size: 1.15rem; font-weight: 800; }
     .pp-hero-txt span { display:block; opacity:.85; font-size:.86rem; margin-top:2px; }
     .pp-hero-badges .b {
@@ -53,13 +54,17 @@
     .pp-check.warn .pp-state  { color:#f59e0b; }
     .pp-check.error .pp-state { color:#ef4444; }
     .pp-check.info .pp-state, .pp-check.na .pp-state { color:#94a3b8; }
+    .pp-grid.is-readonly .pp-check.error,
+    .pp-grid.is-readonly .pp-check.warn {
+        --c:#0ea5e9;
+    }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="pp-head">
-    <h2><i class="fas fa-clipboard-check me-2 text-success"></i>Alistamiento de planilla</h2>
-    <p class="text-muted mb-0">Antes de generar la planilla, revisa que todo esté listo. Complementa al workflow del mes.</p>
+    <h2><i class="fas fa-clipboard-check me-2 text-success"></i>Preparar datos de planilla</h2>
+    <p class="text-muted mb-0">La preparación alimenta el cierre de planilla del mismo mes, sin volver a digitar datos.</p>
 </div>
 
 <!-- Selector de período -->
@@ -95,28 +100,30 @@
 <div class="pp-hero {{ estado_global }}">
     <div class="pp-hero-txt">
         <strong>
-            {% if estado_global == 'listo' %}<i class="fas fa-check-circle me-1"></i>Listo para generar planilla
+            {% if modo_cerrado %}<i class="fas fa-lock me-1"></i>Período cerrado
+            {% elif estado_global == 'listo' %}<i class="fas fa-check-circle me-1"></i>Listo para generar planilla
             {% elif estado_global == 'mejorable' %}<i class="fas fa-exclamation-circle me-1"></i>Casi listo
             {% else %}<i class="fas fa-times-circle me-1"></i>Faltan puntos críticos{% endif %}
         </strong>
         <span>{{ resumen }} · {{ mes_nombre }} {{ anio }} · {{ n_activos }} activos</span>
     </div>
     <div class="pp-hero-badges">
-        {% if n_error %}<span class="b">{{ n_error }} críticos</span>{% endif %}
-        {% if n_warn %}<span class="b">{{ n_warn }} por revisar</span>{% endif %}
-        {% if not n_error and not n_warn %}<span class="b">Todo en verde</span>{% endif %}
+        {% if modo_cerrado %}<span class="b">Datos congelados</span>
+        {% elif n_error %}<span class="b">{{ n_error }} críticos</span>{% endif %}
+        {% if not modo_cerrado and n_warn %}<span class="b">{{ n_warn }} por revisar</span>{% endif %}
+        {% if not modo_cerrado and not n_error and not n_warn %}<span class="b">Todo en verde</span>{% endif %}
     </div>
 </div>
 
 <!-- Checks -->
-<div class="pp-grid">
+<div class="pp-grid {% if modo_cerrado %}is-readonly{% endif %}">
     {% for c in checks %}
     <div class="pp-check {{ c.estado }}">
         <span class="pp-ico"><i class="fas {{ c.icono }}"></i></span>
         <div class="pp-body">
             <div class="pp-label">{{ c.label }}</div>
             <div class="pp-det">{{ c.detalle }}</div>
-            {% if c.url and c.estado != 'ok' %}
+            {% if c.url and c.estado != 'ok' and not modo_cerrado %}
             <a href="{{ c.url }}" class="pp-link">Resolver <i class="fas fa-arrow-right"></i></a>
             {% endif %}
         </div>
@@ -133,7 +140,7 @@
 
 <div class="mt-3">
     <a href="{% url 'workflow_mes' %}?mes={{ mes }}&anio={{ anio }}" class="btn btn-success">
-        <i class="fas fa-arrow-right me-1"></i>Ir al workflow del mes
+        <i class="fas fa-arrow-right me-1"></i>Volver al cierre de planilla
     </a>
 </div>
 {% endblock %}

@@ -1,20 +1,19 @@
 """
 Tests E2E para todos los features de la jornada extendida:
 - Calculadora simulador + pública + comparar + AFP + PDF
-- Workflow del mes
+- Cierre mensual de planilla
 - Detector duplicados
 - Health endpoint
 - Detector anomalías
 - Reporte ejecutivo PDF
 """
+from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from django.urls import reverse
 
-from nominas.models import ConceptoRemunerativo
-
+from nominas.models import ConceptoRemunerativo, PeriodoNomina
 
 User = get_user_model()
 
@@ -106,13 +105,61 @@ class WorkflowMesTests(TestCase):
     def test_workflow_mes_render(self):
         resp = self.client.get('/nominas/workflow-mes/')
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'Workflow del Mes')
+        self.assertContains(resp, 'Cierre de planilla')
         # Debe haber 12 steps (se añadió 'Pago a banco' como paso #10, entre
         # AFPNet y Asiento Contable, renumerando los siguientes).
         self.assertEqual(len(resp.context['steps']), 12)
         # Progreso siempre entre 0 y 100
         self.assertGreaterEqual(resp.context['progreso_pct'], 0)
         self.assertLessEqual(resp.context['progreso_pct'], 100)
+
+    def test_workflow_mes_respeta_periodo_elegido(self):
+        marzo = PeriodoNomina.objects.create(
+            tipo='REGULAR',
+            anio=2026,
+            mes=3,
+            descripcion='Marzo 2026',
+            fecha_inicio=date(2026, 3, 1),
+            fecha_fin=date(2026, 3, 31),
+            estado='CERRADO',
+        )
+        PeriodoNomina.objects.create(
+            tipo='REGULAR',
+            anio=2026,
+            mes=8,
+            descripcion='Agosto 2026',
+            fecha_inicio=date(2026, 8, 1),
+            fecha_fin=date(2026, 8, 31),
+            estado='BORRADOR',
+        )
+
+        resp = self.client.get('/nominas/workflow-mes/?mes=3&anio=2026')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['periodo'], marzo)
+        self.assertEqual(resp.context['mes'], 3)
+        self.assertEqual(resp.context['anio'], 2026)
+        self.assertContains(resp, 'Marzo 2026')
+        self.assertContains(resp, 'Estado del cierre')
+
+    def test_pre_planilla_cerrada_es_consulta_y_vuelve_al_cierre(self):
+        PeriodoNomina.objects.create(
+            tipo='REGULAR',
+            anio=2026,
+            mes=3,
+            descripcion='Marzo 2026',
+            fecha_inicio=date(2026, 3, 1),
+            fecha_fin=date(2026, 3, 31),
+            estado='CERRADO',
+        )
+
+        resp = self.client.get('/nominas/pre-planilla/?mes=3&anio=2026')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context['modo_cerrado'])
+        self.assertContains(resp, 'Período cerrado')
+        self.assertContains(resp, '/nominas/workflow-mes/?mes=3&anio=2026')
+        self.assertNotContains(resp, 'Resolver <i')
 
 
 class DetectorDuplicadosTests(TestCase):
