@@ -119,7 +119,7 @@ def build_mi_dia_report(usuario):
         # Boletas de períodos APROBADOS o CERRADOS sin acuse de recibo
         # AcuseReciboBoleta tiene FK a RegistroNomina
         try:
-            from .models import AcuseReciboBoleta  # opcional
+            from documentos.models import AcuseReciboBoleta  # opcional
             firmados = AcuseReciboBoleta.objects.values_list('registro_nomina_id', flat=True)
             acuses_pendientes = RegistroNomina.objects.filter(
                 periodo__estado__in=['APROBADO', 'CERRADO'],

@@ -1276,6 +1276,11 @@
               {% if nominas_alerts.onboarding_score is not None and nominas_alerts.onboarding_score < 80 %}
                 Onboarding score <strong>{{ nominas_alerts.onboarding_score }}/100</strong>
                 <a href="{% url 'onboarding_validador' %}" style="color:inherit;text-decoration:underline;font-weight:600;">resolver →</a>
+                {% if nominas_alerts.sin_plame > 5 or nominas_alerts.inconsistencias or nominas_alerts.acuses_pendientes %}·{% endif %}
+              {% endif %}
+              {% if nominas_alerts.sin_plame > 5 %}
+                <span><strong>{{ nominas_alerts.sin_plame }}</strong> concepto{{ nominas_alerts.sin_plame|pluralize:"s" }} sin código PLAME</span>
+                <a href="{% url 'conceptos_lista' %}" style="color:inherit;text-decoration:underline;font-weight:600;">completar →</a>
                 {% if nominas_alerts.inconsistencias or nominas_alerts.acuses_pendientes %}·{% endif %}
               {% endif %}
               {% if nominas_alerts.inconsistencias %}

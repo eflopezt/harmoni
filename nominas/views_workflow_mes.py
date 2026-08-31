@@ -230,7 +230,7 @@ def _construir_steps(periodo, anio, mes, request):
         acuses_count = 0
         firmados = 0
         try:
-            from .models import AcuseReciboBoleta
+            from documentos.models import AcuseReciboBoleta
             firmados_pks = set(AcuseReciboBoleta.objects.values_list('registro_nomina_id', flat=True))
             registros = RegistroNomina.objects.filter(periodo=periodo).values_list('pk', flat=True)
             acuses_count = len(registros)

@@ -12,7 +12,7 @@
 
 {% block extra_css %}
 <style>
-/* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V4 */
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 /* ══════════════════════════════════════════════════════════════
    PERIODO DETALLE — Harmoni Design System
@@ -36,11 +36,11 @@
 }
 
 .payroll-command__header {
-  align-items: start;
+  align-items: center;
   display: grid;
-  gap: .85rem;
-  grid-template-columns: minmax(0, 1fr) minmax(14rem, auto);
-  padding: .95rem 1rem .85rem;
+  gap: .65rem 1rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: .78rem .95rem .66rem;
 }
 
 .payroll-command__intro,
@@ -56,17 +56,19 @@
   align-items: center;
   color: var(--hms-muted, #64748b);
   display: inline-flex;
-  font-size: .78rem;
+  font-size: .74rem;
   font-weight: 800;
   gap: .38rem;
-  margin-bottom: .3rem;
+  margin-bottom: .22rem;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: none;
   white-space: nowrap;
 }
-.payroll-command__crumb:hover { color: var(--hms-teal, #0f766e); }
+@media (hover: hover) and (pointer: fine) {
+  .payroll-command__crumb:hover { color: var(--hms-teal, #0f766e); }
+}
 
 .payroll-command__title-row {
   align-items: center;
@@ -74,9 +76,21 @@
   flex-wrap: wrap;
   gap: .55rem;
 }
+.payroll-command__stage {
+  display: grid;
+  gap: .08rem;
+  min-width: 0;
+}
+.payroll-command__stage span {
+  color: var(--hms-muted, #64748b);
+  font-size: .67rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
 .payroll-command__title-row h2 {
   color: var(--hms-ink, #0f172a);
-  font-size: 1.22rem;
+  font-size: 1.02rem;
   font-weight: 850;
   letter-spacing: 0;
   line-height: 1.15;
@@ -85,10 +99,10 @@
 }
 .payroll-command__copy {
   color: var(--hms-muted, #64748b);
-  font-size: .86rem;
+  font-size: .8rem;
   line-height: 1.45;
-  margin: .35rem 0 0;
-  max-width: 72ch;
+  margin: .28rem 0 0;
+  max-width: 84ch;
 }
 
 .payroll-command__meta,
@@ -100,7 +114,7 @@
   gap: .5rem;
 }
 
-.payroll-command__meta { margin-top: .65rem; }
+.payroll-command__meta { margin-top: .45rem; }
 
 .payroll-chip,
 .payroll-status,
@@ -108,11 +122,11 @@
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
-  font-size: .74rem;
+  font-size: .7rem;
   font-weight: 800;
   gap: .35rem;
-  min-height: 28px;
-  padding: 0 .65rem;
+  min-height: 26px;
+  padding: 0 .56rem;
   white-space: nowrap;
 }
 .payroll-chip {
@@ -133,21 +147,21 @@
 .payroll-status--anulado { background: #fff1f2; color: #be123c; }
 
 .payroll-next {
-  align-self: stretch;
-  background: var(--hms-canvas, #f4faf7);
-  border: 1px solid var(--hms-rule-soft, #edf5f2);
-  border-radius: var(--hms-radius-card, 8px);
-  display: grid;
-  gap: .45rem;
-  justify-items: stretch;
-  padding: .68rem;
+  align-items: center;
+  align-self: center;
+  display: inline-flex;
+  gap: .5rem;
+  justify-content: flex-end;
+  justify-self: end;
+  min-width: 0;
 }
 .payroll-next__label {
   color: var(--hms-muted, #64748b);
-  font-size: .68rem;
+  font-size: .7rem;
   font-weight: 850;
   letter-spacing: 0;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .payroll-primary-action {
   align-items: center;
@@ -156,19 +170,36 @@
   border-radius: var(--hms-radius-card, 8px);
   color: var(--hms-command-ink, #fff);
   display: inline-flex;
-  font-size: .84rem;
+  font-size: .8rem;
   font-weight: 850;
   gap: .45rem;
   justify-content: center;
-  min-height: 40px;
-  padding: 0 .95rem;
+  min-height: 38px;
+  padding: 0 .85rem;
   text-decoration: none;
-  transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+  transition: background-color .16s var(--hms-ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+              border-color .16s var(--hms-ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+              color .16s var(--hms-ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+              transform .12s var(--hms-ease-out, cubic-bezier(0.16, 1, 0.3, 1));
   white-space: nowrap;
 }
-.payroll-primary-action:hover {
-  color: var(--hms-command-ink, #fff);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .payroll-primary-action:hover {
+    color: var(--hms-command-ink, #fff);
+    transform: translateY(-1px);
+  }
+}
+.payroll-primary-action:active { transform: translateY(0); }
+.payroll-primary-action:focus-visible,
+.payroll-command__crumb:focus-visible,
+.payroll-step:focus-visible {
+  outline: 2px solid var(--hms-focus, #5eead4);
+  outline-offset: 2px;
+}
+.payroll-primary-action:disabled,
+.payroll-primary-action[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .55;
 }
 .payroll-primary-action.is-warning {
   background: #b45309;
@@ -192,8 +223,8 @@
 .payroll-summary-item {
   border-inline-start: 1px solid var(--hms-rule-soft, #edf5f2);
   display: grid;
-  gap: .15rem;
-  padding: .68rem .85rem;
+  gap: .08rem;
+  padding: .52rem .78rem;
 }
 .payroll-summary-item:first-child { border-inline-start: 0; }
 .payroll-summary-item.is-neto {
@@ -203,14 +234,14 @@
   align-items: center;
   color: var(--hms-muted, #64748b);
   display: flex;
-  font-size: .7rem;
+  font-size: .65rem;
   font-weight: 850;
   gap: .35rem;
   text-transform: uppercase;
 }
 .payroll-summary-item b {
   color: var(--hms-ink, #0f172a);
-  font-size: .96rem;
+  font-size: .94rem;
   font-variant-numeric: tabular-nums;
   font-weight: 850;
   line-height: 1.15;
@@ -218,7 +249,8 @@
 }
 .payroll-summary-item small {
   color: var(--hms-muted, #64748b);
-  font-size: .7rem;
+  display: none;
+  font-size: .68rem;
   line-height: 1.25;
 }
 .payroll-summary-item.is-neto b { color: var(--hms-teal, #0f766e); }
@@ -236,19 +268,24 @@
   background: var(--hms-paper, #fff);
   color: var(--hms-ink-soft, #334155);
   display: flex;
-  gap: .55rem;
-  min-height: 54px;
-  padding: .55rem .68rem;
+  gap: .48rem;
+  min-height: 42px;
+  padding: .44rem .6rem;
   text-decoration: none;
-  transition: background-color .16s ease, color .16s ease, transform .16s ease;
+  transition: background-color .16s var(--hms-ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+              color .16s var(--hms-ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+              transform .12s var(--hms-ease-out, cubic-bezier(0.16, 1, 0.3, 1));
 }
-.payroll-step:hover {
-  background: var(--hms-teal-wash, #f0fdfa);
-  color: var(--hms-teal, #0f766e);
+@media (hover: hover) and (pointer: fine) {
+  .payroll-step:hover {
+    background: var(--hms-teal-wash, #f0fdfa);
+    color: var(--hms-teal, #0f766e);
+  }
 }
 .payroll-step.is-current {
-  background: var(--hms-command, #0d2b27);
-  color: var(--hms-command-ink, #fff);
+  background: var(--hms-teal-wash, #f0fdfa);
+  box-shadow: inset 0 -2px 0 var(--hms-command, #0d2b27);
+  color: var(--hms-command, #0d2b27);
 }
 .payroll-step.is-done { background: #fbfefd; }
 .payroll-step.is-pending { color: var(--hms-muted, #64748b); }
@@ -261,27 +298,30 @@
   display: inline-flex;
   flex: 0 0 auto;
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: .72rem;
+  font-size: .68rem;
   font-weight: 850;
-  height: 28px;
+  height: 24px;
   justify-content: center;
-  width: 32px;
+  width: 28px;
 }
 .payroll-step.is-current .payroll-step__number {
-  background: rgba(255,255,255,.12);
-  border-color: rgba(255,255,255,.18);
-  color: #fff;
+  background: var(--hms-command, #0d2b27);
+  border-color: var(--hms-command, #0d2b27);
+  color: var(--hms-command-ink, #fff);
 }
 .payroll-step__body { display: grid; gap: .15rem; min-width: 0; }
 .payroll-step strong {
   color: inherit;
-  font-size: .8rem;
+  font-size: .76rem;
   font-weight: 850;
   line-height: 1.14;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .payroll-step small {
   color: currentColor;
-  display: block;
+  display: none;
   font-size: .7rem;
   line-height: 1.25;
   opacity: .72;
@@ -292,8 +332,8 @@
 
 .payroll-action-dock {
   display: grid;
-  gap: .55rem;
-  padding: .7rem .85rem;
+  gap: .48rem;
+  padding: .64rem .78rem;
 }
 .payroll-action-dock__head {
   align-items: center;
@@ -322,17 +362,16 @@
   font-size: .76rem;
 }
 .payroll-action-dock__groups {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: .65rem 1rem;
+  gap: .48rem .86rem;
 }
 .payroll-action-group {
-  align-content: start;
-  display: grid;
-  flex: 1 1 13.2rem;
-  gap: .42rem;
-  min-width: min(100%, 13.2rem);
+  align-items: center;
+  display: inline-flex;
+  gap: .38rem;
+  min-width: 0;
 }
 .payroll-action-group__label {
   align-self: start;
@@ -343,20 +382,22 @@
 }
 .payroll-action-group__label i { color: var(--hms-teal, #0f766e); }
 .payroll-action-group__buttons {
-  align-self: start;
-  gap: .45rem;
-  width: 100%;
+  align-items: center;
+  display: inline-flex;
+  gap: .34rem;
+  width: auto;
 }
 .payroll-action-group .btn {
   align-items: center;
   border-radius: var(--hms-radius-card, 8px);
   display: inline-flex;
-  font-size: .78rem;
+  font-size: .74rem;
   font-weight: 800;
   justify-content: center;
   max-width: 100%;
-  min-height: 34px;
+  min-height: 32px;
   overflow: hidden;
+  padding-inline: .56rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -386,19 +427,17 @@
 }
 
 @media (max-width: 1280px) {
-  .payroll-action-group { flex-basis: 13rem; }
+  .payroll-action-dock__groups { gap: .44rem .68rem; }
 }
 @media (max-width: 900px) {
   .payroll-command__header,
   .payroll-review-bar {
     grid-template-columns: 1fr;
   }
-  .payroll-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .payroll-process-rail {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .payroll-next {
+    justify-content: flex-start;
+    justify-self: stretch;
   }
-  .payroll-action-group { flex-basis: 100%; }
-  .payroll-step small { white-space: normal; }
 }
 @media (max-width: 640px) {
   .payroll-command__header { gap: .65rem; }
@@ -413,11 +452,23 @@
     min-height: 26px;
     padding: 0 .5rem;
   }
-  .payroll-summary-item { padding: .55rem .62rem; }
+  .payroll-summary-strip {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+  .payroll-summary-item {
+    border-inline-start: 0;
+    border-inline-end: 1px solid var(--hms-rule-soft, #edf5f2);
+    flex: 0 0 8.4rem;
+    padding: .52rem .62rem;
+    scroll-snap-align: start;
+  }
   .payroll-summary-item span { font-size: .64rem; }
   .payroll-summary-item b { font-size: .86rem; }
+  .payroll-process-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .payroll-step {
-    min-height: 46px;
+    min-height: 44px;
     padding: .48rem .52rem;
   }
   .payroll-step__number {
@@ -428,6 +479,23 @@
   .payroll-action-dock,
   .payroll-review-bar {
     padding: .85rem;
+  }
+  .payroll-action-dock__groups {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .payroll-action-group {
+    align-items: flex-start;
+    display: grid;
+  }
+  .payroll-action-group__buttons { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .payroll-primary-action,
+  .payroll-step {
+    transition-duration: 150ms;
+    transform: none !important;
   }
 }
 
@@ -737,7 +805,18 @@
       </a>
 
       <div class="payroll-command__title-row">
-        <h2 id="payroll-title">{{ periodo }}</h2>
+        <div class="payroll-command__stage">
+          <span>Paso actual</span>
+          <h2 id="payroll-title">
+            {% if periodo.estado == 'BORRADOR' and not registros %}Preparar datos
+            {% elif periodo.estado == 'BORRADOR' %}Calcular planilla
+            {% elif periodo.estado == 'CALCULADO' %}Revisión y aprobación
+            {% elif periodo.estado == 'APROBADO' %}Pagar, emitir y cerrar
+            {% elif periodo_cerrado_sin_calculo %}Regularizar cierre vacío
+            {% elif periodo.estado == 'CERRADO' %}Entregables finales
+            {% else %}Revisar período{% endif %}
+          </h2>
+        </div>
         <span class="payroll-status
           {% if periodo.estado == 'BORRADOR' %}payroll-status--borrador
           {% elif periodo.estado == 'CALCULADO' %}payroll-status--calculado
@@ -756,15 +835,15 @@
 
       <p class="payroll-command__copy">
         {% if periodo.estado == 'BORRADOR' %}
-          Revisa datos de personal, asistencia y conceptos antes de calcular; luego Harmoni reutiliza ese mismo período para boletas, banco, SUNAT y contabilidad.
+          Valida personal, contratos, asistencia y conceptos; luego calcula una sola versión del período.
         {% elif periodo.estado == 'CALCULADO' %}
-          El cálculo ya está armado. El siguiente paso es revisar variaciones, corregir lo necesario y aprobar una sola versión de planilla.
+          Revisa variaciones y aprueba; después se habilitan bancos, boletas, SUNAT y cierre.
         {% elif periodo.estado == 'APROBADO' %}
-          La planilla está aprobada. Desde este mismo cierre salen boletas, archivo banco, PLAME, AFPNet y asiento contable.
+          Emite pagos y entregables desde este período. Cierra al terminar para auditoría.
         {% elif periodo_cerrado_sin_calculo %}
-          Este cierre quedó congelado sin boletas. Regularízalo aquí para reconstruir la planilla antes de emitir, pagar o exportar.
+          Reconstruye la planilla antes de emitir, pagar o exportar.
         {% elif periodo.estado == 'CERRADO' %}
-          Cierre congelado para auditoría. Usa estos entregables finales sin volver a procesar ni duplicar archivos.
+          Cierre congelado para auditoría; usa entregables sin recalcular ni duplicar archivos.
         {% else %}
           Revisa el estado del período antes de continuar con el proceso de planilla.
         {% endif %}
@@ -801,7 +880,7 @@
     </div>
 
     <div class="payroll-next">
-      <span class="payroll-next__label">Siguiente acción</span>
+      <span class="payroll-next__label">Sigue</span>
       {% if puede_aprobar %}
       <a href="{% url 'nominas_periodo_revision' periodo.pk %}" class="payroll-primary-action">
         <i class="fas fa-clipboard-check" aria-hidden="true"></i>
@@ -865,6 +944,7 @@
 
   <nav class="payroll-process-rail" aria-label="Flujo de planilla">
     <a class="payroll-step {% if periodo.estado == 'BORRADOR' and not registros %}is-current{% else %}is-done{% endif %}"
+       {% if periodo.estado == 'BORRADOR' and not registros %}aria-current="step"{% endif %}
        href="{% url 'pre_planilla' %}?mes={{ periodo.mes }}&anio={{ periodo.anio }}">
       <span class="payroll-step__number">1</span>
       <span class="payroll-step__body">
@@ -873,6 +953,7 @@
       </span>
     </a>
     <a class="payroll-step {% if periodo.estado == 'BORRADOR' %}is-current{% elif periodo.estado == 'CALCULADO' or periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}is-done{% else %}is-pending{% endif %}"
+       {% if periodo.estado == 'BORRADOR' %}aria-current="step"{% endif %}
        href="#acciones-planilla">
       <span class="payroll-step__number">2</span>
       <span class="payroll-step__body">
@@ -881,6 +962,7 @@
       </span>
     </a>
     <a class="payroll-step {% if periodo.estado == 'CALCULADO' %}is-current{% elif periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}is-done{% else %}is-pending{% endif %}"
+       {% if periodo.estado == 'CALCULADO' %}aria-current="step"{% endif %}
        href="{% if periodo.estado == 'CALCULADO' %}{% url 'nominas_periodo_revision' periodo.pk %}{% else %}#tabla-nomina{% endif %}">
       <span class="payroll-step__number">3</span>
       <span class="payroll-step__body">
@@ -889,6 +971,7 @@
       </span>
     </a>
     <a class="payroll-step {% if periodo.estado == 'APROBADO' %}is-current{% elif periodo.estado == 'CERRADO' %}is-done{% else %}is-pending{% endif %}"
+       {% if periodo.estado == 'APROBADO' %}aria-current="step"{% endif %}
        href="#acciones-planilla">
       <span class="payroll-step__number">4</span>
       <span class="payroll-step__body">
@@ -897,6 +980,7 @@
       </span>
     </a>
     <a class="payroll-step {% if periodo.estado == 'CERRADO' %}is-current{% elif periodo.estado == 'APROBADO' %}is-pending{% else %}is-pending{% endif %}"
+       {% if periodo.estado == 'CERRADO' %}aria-current="step"{% endif %}
        href="#acciones-planilla">
       <span class="payroll-step__number">5</span>
       <span class="payroll-step__body">

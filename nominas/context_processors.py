@@ -66,12 +66,15 @@ def _calcular_alertas(empresa=None):
         alertas['sin_plame'] = n
         if n > 5:
             alertas['count'] += 1
+            if alertas['severidad'] == 'ok':
+                alertas['severidad'] = 'warn'
     except Exception:
         pass
 
     # Acuses pendientes (boletas APROBADO/CERRADO sin firma)
     try:
-        from .models import AcuseReciboBoleta, RegistroNomina
+        from documentos.models import AcuseReciboBoleta
+        from .models import RegistroNomina
         firmados = AcuseReciboBoleta.objects.values_list('registro_nomina_id', flat=True)
         n = RegistroNomina.objects.filter(
             periodo__estado__in=['APROBADO', 'CERRADO'],
@@ -80,6 +83,10 @@ def _calcular_alertas(empresa=None):
             n = n.filter(periodo__empresa=empresa)
         n = n.exclude(pk__in=firmados).count()
         alertas['acuses_pendientes'] = n
+        if n > 0:
+            alertas['count'] += n
+            if alertas['severidad'] == 'ok':
+                alertas['severidad'] = 'warn'
     except Exception:
         pass
 
@@ -106,7 +113,7 @@ def nominas_alerts(request):
 def invalidar_nominas_alerts(user_pk=None):
     """Llamado por signals al cambiar conceptos. Si user_pk dado, invalida solo ese."""
     if user_pk is not None:
-        cache.delete(f'nominas_alerts:v1:{user_pk}')
+        cache.delete(f'nominas_alerts:v2:{user_pk}:all')
     else:
         # Borrado masivo — Django cache no soporta pattern delete portable.
         # En su lugar, el TTL de 5 min asegura refresh natural.
