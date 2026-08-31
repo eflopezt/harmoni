@@ -42,6 +42,13 @@ def _url(name):
         return None
 
 
+def _url_kwargs(name, **kwargs):
+    try:
+        return reverse(name, kwargs=kwargs)
+    except NoReverseMatch:
+        return None
+
+
 def _periodos_regulares(request):
     from nominas.models import PeriodoNomina
 
@@ -52,7 +59,20 @@ def _periodos_regulares(request):
     return qs
 
 
-def _chk(clave, label, icono, valor, ok_si, tipo, detalle, url_name):
+def _chk(
+    clave,
+    label,
+    icono,
+    valor,
+    ok_si,
+    tipo,
+    detalle,
+    url_name,
+    *,
+    items=None,
+    url=None,
+    action_label='Resolver',
+):
     """Arma un check. `ok_si` decide verde; si valor es None => 'no disponible'."""
     if valor is None:
         estado = 'na'
@@ -63,7 +83,9 @@ def _chk(clave, label, icono, valor, ok_si, tipo, detalle, url_name):
     return {
         'clave': clave, 'label': label, 'icono': icono,
         'valor': valor, 'estado': estado, 'detalle': detalle,
-        'url': _url(url_name),
+        'url': url if url is not None else _url(url_name),
+        'action_label': action_label,
+        'items': items or [],
     }
 
 
@@ -101,11 +123,94 @@ def _ids_con_cobertura_contractual(personal_qs, ids, ini, fin):
     return con_contrato | con_ficha
 
 
-def _contratos_que_terminan_sin_continuidad(personal_qs, ids, ini, fin):
-    """Cuenta trabajadores cuyo contrato termina en el período y no tiene renovación."""
+def _ultimo_contrato_por_personal(ids):
     from personal.models import Contrato
 
-    pendientes = set()
+    contratos = (
+        Contrato.objects.filter(personal_id__in=ids)
+        .order_by('personal_id', '-fecha_inicio', '-pk')
+    )
+    mapa = {}
+    for contrato in contratos:
+        mapa.setdefault(contrato.personal_id, contrato)
+    return mapa
+
+
+def _area_persona(persona):
+    subarea = getattr(persona, 'subarea', None)
+    area = getattr(subarea, 'area', None) if subarea else None
+    if area:
+        return area.nombre
+    if subarea:
+        return subarea.nombre
+    return 'Sin área'
+
+
+def _contrato_item_base(persona, motivo, action_label, action_url, *, fecha_inicio=None, fecha_fin=None):
+    return {
+        'nombre': persona.apellidos_nombres,
+        'dni': persona.nro_doc or 'Sin DNI',
+        'area': _area_persona(persona),
+        'cargo': persona.cargo or 'Sin cargo',
+        'motivo': motivo,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'action_label': action_label,
+        'action_url': action_url,
+        'secondary_label': 'Ver historial',
+        'secondary_url': _url_kwargs('contrato_detalle', pk=persona.pk),
+    }
+
+
+def _motivo_sin_cobertura(persona, contrato, ini, fin):
+    fecha_inicio = persona.fecha_inicio_contrato or (contrato.fecha_inicio if contrato else None)
+    fecha_fin = persona.fecha_fin_contrato or (contrato.fecha_fin if contrato else None)
+
+    if not fecha_inicio and not fecha_fin and not persona.tipo_contrato and contrato is None:
+        return 'No tiene contrato registrado en ficha ni historial.'
+    if fecha_inicio and fecha_inicio > fin:
+        return 'El contrato registrado inicia después del mes de planilla.'
+    if fecha_fin and fecha_fin < ini:
+        return 'El contrato registrado terminó antes del mes de planilla.'
+    if not fecha_inicio:
+        return 'Falta fecha de inicio contractual para validar el mes.'
+    return 'No hay contrato documental que cubra todo o parte del período.'
+
+
+def _trabajadores_sin_cobertura_contractual(personal_qs, ids, ini, fin):
+    cubiertos = _ids_con_cobertura_contractual(personal_qs, ids, ini, fin)
+    faltantes = [personal_id for personal_id in ids if personal_id not in cubiertos]
+    if not faltantes:
+        return []
+
+    contratos = _ultimo_contrato_por_personal(faltantes)
+    personas = (
+        personal_qs.filter(pk__in=faltantes)
+        .select_related('subarea__area')
+        .order_by('apellidos_nombres')
+    )
+
+    items = []
+    for persona in personas:
+        contrato = contratos.get(persona.pk)
+        fecha_inicio = persona.fecha_inicio_contrato or (contrato.fecha_inicio if contrato else None)
+        fecha_fin = persona.fecha_fin_contrato or (contrato.fecha_fin if contrato else None)
+        items.append(_contrato_item_base(
+            persona,
+            _motivo_sin_cobertura(persona, contrato, ini, fin),
+            'Crear contrato',
+            _url_kwargs('contrato_crear', personal_pk=persona.pk),
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+        ))
+    return items
+
+
+def _trabajadores_con_contrato_sin_continuidad(personal_qs, ids, ini, fin):
+    """Trabajadores cuyo contrato termina en el período y no tiene renovación."""
+    from personal.models import Contrato
+
+    pendientes = {}
 
     def _tiene_continuidad(personal_id, fecha_fin):
         inicio_siguiente = fecha_fin + timedelta(days=1)
@@ -133,7 +238,7 @@ def _contratos_que_terminan_sin_continuidad(personal_qs, ids, ini, fin):
     ).values_list('personal_id', 'fecha_fin')
     for personal_id, fecha_fin in contratos_terminan:
         if fecha_fin and not _tiene_continuidad(personal_id, fecha_fin):
-            pendientes.add(personal_id)
+            pendientes[personal_id] = max(fecha_fin, pendientes.get(personal_id, fecha_fin))
 
     fichas_terminan = personal_qs.filter(
         fecha_fin_contrato__gte=ini,
@@ -141,9 +246,33 @@ def _contratos_que_terminan_sin_continuidad(personal_qs, ids, ini, fin):
     ).values_list('id', 'fecha_fin_contrato')
     for personal_id, fecha_fin in fichas_terminan:
         if fecha_fin and not _tiene_continuidad(personal_id, fecha_fin):
-            pendientes.add(personal_id)
+            pendientes[personal_id] = max(fecha_fin, pendientes.get(personal_id, fecha_fin))
 
-    return len(pendientes)
+    if not pendientes:
+        return []
+
+    personas = (
+        personal_qs.filter(pk__in=pendientes)
+        .select_related('subarea__area')
+        .order_by('apellidos_nombres')
+    )
+    items = []
+    for persona in personas:
+        fecha_fin = pendientes[persona.pk]
+        inicio_siguiente = fecha_fin + timedelta(days=1)
+        items.append(_contrato_item_base(
+            persona,
+            f'Termina el {fecha_fin:%d/%m/%Y}; falta contrato desde el {inicio_siguiente:%d/%m/%Y}.',
+            'Renovar con continuidad',
+            _url_kwargs('contrato_renovar_personal', personal_pk=persona.pk),
+            fecha_inicio=inicio_siguiente,
+            fecha_fin=fecha_fin,
+        ))
+    return items
+
+
+def _contratos_que_terminan_sin_continuidad(personal_qs, ids, ini, fin):
+    return len(_trabajadores_con_contrato_sin_continuidad(personal_qs, ids, ini, fin))
 
 
 @login_required
@@ -213,22 +342,28 @@ def pre_planilla(request):
         f'{n_just or 0} pendientes', 'asistencia_justificaciones'))
 
     # 5. Empleados del período sin cobertura contractual
-    def _sin_contrato():
-        cubiertos = _ids_con_cobertura_contractual(personal_qs, ids, ini, fin)
-        return sum(1 for i in ids if i not in cubiertos)
-    n_sin = _safe(_sin_contrato)
+    items_sin_contrato = _safe(lambda: _trabajadores_sin_cobertura_contractual(
+        personal_qs, ids, ini, fin))
+    n_sin = len(items_sin_contrato) if items_sin_contrato is not None else None
     checks.append(_chk(
         'contratos', 'Trabajadores sin contrato del período', 'fa-file-contract',
         n_sin, lambda v: v == 0, 'error',
-        f'{n_sin or 0} de {n_activos} trabajadores', 'contratos_panel'))
+        f'{n_sin or 0} de {n_activos} trabajadores', 'contratos_panel',
+        items=items_sin_contrato,
+        url='#pp-detail-contratos' if items_sin_contrato else None,
+        action_label='Ver casos'))
 
     # 6. Contratos que terminan y todavía no tienen continuidad
-    n_venc = _safe(lambda: _contratos_que_terminan_sin_continuidad(
+    items_sin_continuidad = _safe(lambda: _trabajadores_con_contrato_sin_continuidad(
         personal_qs, ids, ini, fin))
+    n_venc = len(items_sin_continuidad) if items_sin_continuidad is not None else None
     checks.append(_chk(
         'vencen', 'Contratos que terminan sin continuidad', 'fa-calendar-times',
         n_venc, lambda v: v == 0, 'warn',
-        f'{n_venc or 0} por enlazar', 'contratos_panel'))
+        f'{n_venc or 0} por enlazar', 'contratos_panel',
+        items=items_sin_continuidad,
+        url='#pp-detail-vencen' if items_sin_continuidad else None,
+        action_label='Ver casos'))
 
     # 7. Préstamos activos a descontar (informativo)
     n_prest = _safe(lambda: __import__(
@@ -287,6 +422,10 @@ def pre_planilla(request):
 
     context = {
         'checks': checks,
+        'resolution_groups': [
+            check for check in checks
+            if check.get('items') and check['estado'] in ('error', 'warn')
+        ],
         'estado_global': estado_global,
         'resumen': resumen,
         'n_error': n_error,

@@ -377,6 +377,98 @@ class WorkflowMesTests(TestCase):
         self.assertEqual(check_contratos['estado'], 'ok')
         self.assertContains(resp, 'Trabajadores sin contrato del período')
 
+    def test_pre_planilla_muestra_detalle_de_contratos_faltantes(self):
+        from empresas.models import Empresa
+        from nominas.tests._helpers import unique_dni, unique_ruc
+        from personal.models import Contrato, Personal
+
+        empresa = Empresa.objects.create(
+            ruc=unique_ruc(),
+            razon_social='Empresa Detalle Contratos SAC',
+            activa=True,
+            es_principal=True,
+        )
+        session = self.client.session
+        session['empresa_actual_id'] = empresa.pk
+        session.save()
+        cubierto = Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='CONTRATO OK, MARIA',
+            cargo='Cajera',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa,
+            sueldo_base=Decimal('2500'),
+            fecha_alta=date(2026, 1, 1),
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio_contrato=date(2026, 1, 1),
+            fecha_fin_contrato=date(2026, 12, 31),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='SIN CONTRATO, PEDRO',
+            cargo='Mozo',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa,
+            sueldo_base=Decimal('1800'),
+            fecha_alta=date(2026, 1, 1),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        inicia_despues = Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='CONTRATO FUTURO, ROSA',
+            cargo='Anfitriona',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa,
+            sueldo_base=Decimal('1900'),
+            fecha_alta=date(2026, 1, 1),
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio_contrato=date(2026, 4, 1),
+            fecha_fin_contrato=date(2026, 12, 31),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        Contrato.objects.create(
+            personal=cubierto,
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio=date(2026, 1, 1),
+            fecha_fin=date(2026, 12, 31),
+            estado='VIGENTE',
+            sueldo_pactado=Decimal('2500'),
+        )
+        Contrato.objects.create(
+            personal=inicia_despues,
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio=date(2026, 4, 1),
+            fecha_fin=date(2026, 12, 31),
+            estado='VIGENTE',
+            sueldo_pactado=Decimal('1900'),
+        )
+
+        resp = self.client.get('/nominas/pre-planilla/?mes=3&anio=2026')
+
+        self.assertEqual(resp.status_code, 200)
+        check_contratos = next(c for c in resp.context['checks'] if c['clave'] == 'contratos')
+        self.assertEqual(check_contratos['valor'], 2)
+        self.assertEqual(check_contratos['estado'], 'error')
+        self.assertEqual(len(check_contratos['items']), 2)
+        self.assertEqual(check_contratos['url'], '#pp-detail-contratos')
+        self.assertContains(resp, 'Casos exactos por resolver')
+        self.assertContains(resp, 'SIN CONTRATO, PEDRO')
+        self.assertContains(resp, 'CONTRATO FUTURO, ROSA')
+        self.assertContains(resp, 'No tiene contrato registrado en ficha ni historial.')
+        self.assertContains(resp, 'El contrato registrado inicia después del mes de planilla.')
+        self.assertContains(resp, 'Crear contrato')
+        self.assertContains(resp, 'Ver historial')
+
     def test_pre_planilla_detecta_solo_contratos_sin_continuidad(self):
         from empresas.models import Empresa
         from nominas.tests._helpers import unique_dni, unique_ruc
@@ -458,6 +550,10 @@ class WorkflowMesTests(TestCase):
         self.assertEqual(check_vencen['valor'], 1)
         self.assertEqual(check_vencen['estado'], 'warn')
         self.assertEqual(check_vencen['detalle'], '1 por enlazar')
+        self.assertEqual(check_vencen['url'], '#pp-detail-vencen')
+        self.assertEqual(len(check_vencen['items']), 1)
+        self.assertContains(resp, 'CONTRATO SIN CONTINUIDAD, ROSA')
+        self.assertContains(resp, 'Renovar con continuidad')
         self.assertContains(resp, 'Contratos que terminan sin continuidad')
 
     def test_generar_periodo_respeta_empresa_y_trabajadores_del_periodo(self):

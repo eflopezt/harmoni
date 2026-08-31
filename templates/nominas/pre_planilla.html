@@ -41,6 +41,89 @@
     .pp-label { font-weight:700; color:#0f2926; font-size:.92rem; }
     .pp-det { color:#64748b; font-size:.82rem; margin-top:2px; }
     .pp-link { font-size:.78rem; font-weight:700; text-decoration:none; }
+    .pp-resolve {
+        margin-top: 18px;
+        display: grid;
+        gap: 12px;
+    }
+    .pp-resolve-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .pp-resolve-head h3 {
+        margin: 0;
+        color: #0f2926;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+    .pp-resolve-head p {
+        margin: 2px 0 0;
+        color: #64748b;
+        font-size: .84rem;
+    }
+    .pp-resolve-group {
+        border: 1px solid #e2e8f0;
+        border-left: 5px solid var(--c,#f59e0b);
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+    }
+    .pp-resolve-group.error { --c:#ef4444; }
+    .pp-resolve-group.warn { --c:#f59e0b; }
+    .pp-resolve-summary {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px 16px;
+        color: #0f2926;
+        font-weight: 800;
+    }
+    .pp-resolve-summary span {
+        color: #64748b;
+        font-size: .82rem;
+        font-weight: 700;
+    }
+    .pp-issue-list {
+        border-top: 1px solid #e2e8f0;
+    }
+    .pp-issue {
+        display: grid;
+        grid-template-columns: minmax(15rem, 1.4fr) minmax(12rem, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 16px;
+        border-top: 1px solid #f1f5f9;
+    }
+    .pp-issue:first-child { border-top: 0; }
+    .pp-issue strong {
+        display: block;
+        color: #0f172a;
+        font-size: .88rem;
+        line-height: 1.25;
+    }
+    .pp-issue small,
+    .pp-issue-meta span {
+        display: block;
+        color: #64748b;
+        font-size: .78rem;
+        line-height: 1.35;
+    }
+    .pp-issue-motive {
+        color: #334155;
+        font-size: .82rem;
+        line-height: 1.35;
+    }
+    .pp-issue-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
 
     .pp-check.ok    { --c:#22c55e; }
     .pp-check.warn  { --c:#f59e0b; }
@@ -57,6 +140,13 @@
     .pp-grid.is-readonly .pp-check.error,
     .pp-grid.is-readonly .pp-check.warn {
         --c:#0ea5e9;
+    }
+    @media (max-width: 760px) {
+        .pp-issue {
+            grid-template-columns: 1fr;
+            align-items: stretch;
+        }
+        .pp-issue-actions { justify-content: flex-start; }
     }
 </style>
 {% endblock %}
@@ -124,7 +214,7 @@
             <div class="pp-label">{{ c.label }}</div>
             <div class="pp-det">{{ c.detalle }}</div>
             {% if c.url and c.estado != 'ok' and not modo_cerrado %}
-            <a href="{{ c.url }}" class="pp-link">Resolver <i class="fas fa-arrow-right"></i></a>
+            <a href="{{ c.url }}" class="pp-link">{{ c.action_label|default:"Resolver" }} <i class="fas fa-arrow-right"></i></a>
             {% endif %}
         </div>
         <span class="pp-state">
@@ -137,6 +227,51 @@
     </div>
     {% endfor %}
 </div>
+
+{% if resolution_groups and not modo_cerrado %}
+<section class="pp-resolve" aria-labelledby="pp-resolve-title">
+    <div class="pp-resolve-head">
+        <div>
+            <h3 id="pp-resolve-title"><i class="fas fa-list-check me-2"></i>Casos exactos por resolver</h3>
+            <p>Estos son los trabajadores que explican las alertas de arriba. Corrige desde su contrato y vuelve a esta pre-planilla.</p>
+        </div>
+    </div>
+
+    {% for group in resolution_groups %}
+    <details id="pp-detail-{{ group.clave }}" class="pp-resolve-group {{ group.estado }}" open>
+        <summary class="pp-resolve-summary">
+            {{ group.label }}
+            <span>{{ group.detalle }}</span>
+        </summary>
+        <div class="pp-issue-list">
+            {% for item in group.items %}
+            <article class="pp-issue">
+                <div>
+                    <strong>{{ item.nombre }}</strong>
+                    <small>DNI {{ item.dni }} · {{ item.area }} · {{ item.cargo }}</small>
+                </div>
+                <div>
+                    <div class="pp-issue-motive">{{ item.motivo }}</div>
+                    <div class="pp-issue-meta">
+                        {% if item.fecha_inicio %}<span>Inicio detectado: {{ item.fecha_inicio|date:"d/m/Y" }}</span>{% endif %}
+                        {% if item.fecha_fin %}<span>Fin detectado: {{ item.fecha_fin|date:"d/m/Y" }}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="pp-issue-actions">
+                    {% if item.action_url %}
+                    <a href="{{ item.action_url }}" class="btn btn-primary btn-sm">{{ item.action_label }}</a>
+                    {% endif %}
+                    {% if item.secondary_url %}
+                    <a href="{{ item.secondary_url }}" class="btn btn-outline-secondary btn-sm">{{ item.secondary_label }}</a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </details>
+    {% endfor %}
+</section>
+{% endif %}
 
 <div class="mt-3">
     <a href="{% url 'workflow_mes' %}?mes={{ mes }}&anio={{ anio }}" class="btn btn-success">
