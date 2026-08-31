@@ -63,8 +63,36 @@ def test_panel_contratos_muestra_renovacion_masiva_en_vencidos(client_admin, sub
     assert "Renovación masiva" in html
     assert "Inicio automático" in html
     assert "Renovar con continuidad" in html
+
+
+@pytest.mark.django_db
+def test_panel_contratos_modal_masivo_esta_amarrado_al_form(client_admin, subarea):
+    persona = crear_personal(
+        subarea,
+        "47770001",
+        "TRABAJADOR MODAL, ANA",
+        date(2026, 3, 31),
+    )
+    Contrato.objects.create(
+        personal=persona,
+        tipo_contrato="PLAZO_FIJO",
+        fecha_inicio=date(2026, 1, 1),
+        fecha_fin=date(2026, 3, 31),
+        estado="VENCIDO",
+    )
+
+    resp = client_admin.get(reverse("contratos_panel"))
+    html = resp.content.decode()
+
+    assert 'id="renovarMasivoForm"' in html
+    assert 'name="tipo_contrato" class="form-select" form="renovarMasivoForm"' in html
+    assert 'id="bulkRenewEndDate"' in html
+    assert html.count('form="renovarMasivoForm"') >= 5
+    assert 'name="duracion_meses" id="bulkRenewDuration" value="3" form="renovarMasivoForm"' in html
+    assert 'id="bulkRenewSubmit" form="renovarMasivoForm"' in html
+    assert 'id="bulkRenewProcessing"' in html
     assert reverse("contratos_renovar_masivo") in html
-    assert reverse("contrato_renovar_personal", args=[Personal.objects.get(nro_doc="70000000").pk]) in html
+    assert reverse("contrato_renovar_personal", args=[persona.pk]) in html
 
 
 @pytest.mark.django_db

@@ -85,6 +85,66 @@
     border-top: 1px solid var(--hms-rule-soft, #edf5f2);
   }
 
+  .contratos-bulk-processing {
+    background: rgba(15, 23, 42, .56);
+    display: none;
+    inset: 0;
+    place-items: center;
+    position: fixed;
+    z-index: 200000;
+  }
+
+  .contratos-bulk-processing.is-visible {
+    display: grid;
+  }
+
+  .contratos-bulk-processing-card {
+    background: var(--hms-paper, #fff);
+    border: 1px solid var(--hms-rule, #dbe8e4);
+    border-radius: var(--hms-radius-panel, 10px);
+    box-shadow: 0 24px 60px -30px rgba(15, 23, 42, .75);
+    color: var(--hms-ink, #0f172a);
+    display: grid;
+    gap: .7rem;
+    max-width: min(28rem, calc(100vw - 2rem));
+    padding: 1.2rem;
+    text-align: center;
+  }
+
+  .contratos-bulk-processing-icon {
+    align-items: center;
+    background: var(--hms-teal-wash, #f0fdfa);
+    border: 1px solid var(--hms-teal-soft, #ccfbf1);
+    border-radius: var(--hms-radius-card, 8px);
+    color: var(--hms-teal, #0f766e);
+    display: inline-flex;
+    height: 46px;
+    justify-content: center;
+    justify-self: center;
+    width: 46px;
+  }
+
+  .contratos-bulk-processing-title {
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  .contratos-bulk-processing-copy {
+    color: var(--hms-muted, #64748b);
+    font-size: .88rem;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  #renovarMasivoForm.is-submitting {
+    cursor: wait;
+  }
+
+  #renovarMasivoForm.is-submitting .contrato-row-check,
+  #renovarMasivoForm.is-submitting #bulkRenewToggleAll {
+    pointer-events: none;
+  }
+
   @media (max-width: 767.98px) {
     .contratos-bulk-strip {
       align-items: stretch !important;
@@ -367,7 +427,7 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label fw-semibold">Modalidad</label>
-                <select name="tipo_contrato" class="form-select">
+                <select name="tipo_contrato" class="form-select" form="renovarMasivoForm">
                   <option value="__MANTENER__">Mantener modalidad actual</option>
                   {% for val, label in tipos %}
                   <option value="{{ val }}">{{ label }}</option>
@@ -377,6 +437,7 @@
               <div class="col-md-6">
                 <label class="form-label fw-semibold">Nuevo vencimiento común</label>
                 <input type="date" name="fecha_fin" id="bulkRenewEndDate" class="form-control"
+                       form="renovarMasivoForm"
                        value="{{ fecha_fin_masiva_default|date:'Y-m-d' }}" min="{{ hoy|date:'Y-m-d' }}">
                 <div class="form-text">El inicio no se edita: Harmoni lo calcula por trabajador.</div>
               </div>
@@ -386,7 +447,7 @@
                   <button type="button" class="btn btn-outline-secondary bulk-duration-btn" data-months="6">Vence en 6 meses</button>
                   <button type="button" class="btn btn-outline-secondary bulk-duration-btn" data-months="12">Vence en 12 meses</button>
                 </div>
-                <input type="hidden" name="duracion_meses" id="bulkRenewDuration" value="3">
+                <input type="hidden" name="duracion_meses" id="bulkRenewDuration" value="3" form="renovarMasivoForm">
               </div>
               <div class="col-12">
                 <label class="form-label fw-semibold">Vista previa de continuidad</label>
@@ -396,24 +457,36 @@
               </div>
               <div class="col-md-7">
                 <label class="form-label fw-semibold">Motivo</label>
-                <textarea name="motivo" class="form-control" rows="2">Renovación masiva por continuidad operativa.</textarea>
+                <textarea name="motivo" class="form-control" rows="2" form="renovarMasivoForm">Renovación masiva por continuidad operativa.</textarea>
               </div>
               <div class="col-md-5">
                 <label class="form-label fw-semibold">Observaciones</label>
-                <textarea name="observaciones" class="form-control" rows="2" placeholder="Opcional"></textarea>
+                <textarea name="observaciones" class="form-control" rows="2" placeholder="Opcional" form="renovarMasivoForm"></textarea>
               </div>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-check me-1"></i>Confirmar renovación
+            <button type="submit" class="btn btn-primary" id="bulkRenewSubmit" form="renovarMasivoForm">
+              <span class="bulk-submit-ready"><i class="fas fa-check me-1"></i>Confirmar renovación</span>
+              <span class="bulk-submit-loading d-none"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Procesando...</span>
             </button>
           </div>
         </div>
       </div>
     </div>
   </form>
+  <div class="contratos-bulk-processing" id="bulkRenewProcessing" role="status" aria-live="polite" aria-hidden="true">
+    <div class="contratos-bulk-processing-card">
+      <span class="contratos-bulk-processing-icon">
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+      </span>
+      <div class="contratos-bulk-processing-title">Renovando contratos</div>
+      <p class="contratos-bulk-processing-copy" id="bulkRenewProcessingCopy">
+        Estamos cerrando contratos anteriores, creando los nuevos y enlazando el historial.
+      </p>
+    </div>
+  </div>
   {% endif %}
 
   {# Contratos por vencer en 30 días #}
@@ -787,14 +860,18 @@
   const selectAllBtn = document.getElementById('bulkRenewSelectAll');
   const clearBtn = document.getElementById('bulkRenewClear');
   const openBtn = document.getElementById('bulkRenewOpen');
+  const submitBtn = document.getElementById('bulkRenewSubmit');
   const countEl = document.getElementById('bulkRenewCount');
   const modalCountEl = document.getElementById('bulkRenewModalCount');
   const endDateInput = document.getElementById('bulkRenewEndDate');
   const durationInput = document.getElementById('bulkRenewDuration');
   const previewEl = document.getElementById('bulkRenewPreview');
-  const tipoSelect = form.querySelector('select[name="tipo_contrato"]');
-  const durationButtons = Array.from(form.querySelectorAll('.bulk-duration-btn'));
+  const processingOverlay = document.getElementById('bulkRenewProcessing');
+  const processingCopy = document.getElementById('bulkRenewProcessingCopy');
+  const tipoSelect = document.querySelector('select[name="tipo_contrato"][form="renovarMasivoForm"]');
+  const durationButtons = Array.from(document.querySelectorAll('.bulk-duration-btn'));
   const todayIso = '{{ hoy|date:"Y-m-d" }}';
+  let isSubmitting = false;
 
   function selectedCount() {
     return checks.filter(check => check.checked).length;
@@ -878,6 +955,29 @@
     endDateInput.required = !esIndefinido;
   }
 
+  function showProcessingState() {
+    const count = selectedCount();
+    isSubmitting = true;
+    if (processingCopy) {
+      processingCopy.textContent = `Estamos renovando ${count} contrato${count === 1 ? '' : 's'}: cerrando el anterior, creando el vigente y enlazando el historial.`;
+    }
+    if (processingOverlay) {
+      processingOverlay.classList.add('is-visible');
+      processingOverlay.setAttribute('aria-hidden', 'false');
+    }
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      const ready = submitBtn.querySelector('.bulk-submit-ready');
+      const loading = submitBtn.querySelector('.bulk-submit-loading');
+      if (ready) ready.classList.add('d-none');
+      if (loading) loading.classList.remove('d-none');
+    }
+    if (openBtn) openBtn.disabled = true;
+    if (selectAllBtn) selectAllBtn.disabled = true;
+    if (clearBtn) clearBtn.disabled = true;
+    form.classList.add('is-submitting');
+  }
+
   checks.forEach(check => check.addEventListener('change', updateSelectionState));
   if (toggleAll) toggleAll.addEventListener('change', () => setAll(toggleAll.checked));
   if (selectAllBtn) selectAllBtn.addEventListener('click', () => setAll(true));
@@ -899,10 +999,16 @@
   });
 
   form.addEventListener('submit', (event) => {
+    if (isSubmitting) {
+      event.preventDefault();
+      return;
+    }
     if (selectedCount() === 0) {
       event.preventDefault();
       updateSelectionState();
+      return;
     }
+    showProcessingState();
   });
 
   syncTipoContrato();
