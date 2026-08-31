@@ -44,7 +44,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 
     <!-- Harmoni ERP CSS -->
-    <link rel="stylesheet" href="{% static 'css/harmoni.css' %}?v=8">
+    <link rel="stylesheet" href="{% static 'css/harmoni.css' %}?v=12">
     <link rel="stylesheet" href="{% static 'css/harmoni-ai.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/portal-polish.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'css/responsive-mobile.css' %}?v=2">
@@ -157,9 +157,22 @@
     </div>
     {% endif %}
 
+    <div class="sidebar-context" id="sidebarContext" aria-live="polite" hidden>
+        <span class="sidebar-context-kicker">Estás en</span>
+        <span class="sidebar-context-label" id="sidebarContextLabel">Dashboard</span>
+    </div>
+
+    <div class="sidebar-search" role="search">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <input id="sidebarSearchInput" type="search" placeholder="Buscar módulo" aria-label="Buscar en el menú">
+        <button type="button" class="sidebar-search-clear" id="sidebarSearchClear" aria-label="Limpiar búsqueda" title="Limpiar búsqueda" hidden>
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+    </div>
+
     <!-- Nav -->
     <div class="sidebar-body">
-        <nav>
+        <nav aria-label="Navegación principal">
 
             <!-- ══ PRINCIPAL (no collapsible) ══ -->
             <div class="nav-section">
@@ -437,8 +450,8 @@
                     <a href="{% url 'reintegros_lista' %}" class="nav-item" data-match="/nominas/reintegros">
                         <i class="fas fa-undo"></i><span>Reintegros</span>
                     </a>
-                    <a href="{% url 'pre_planilla' %}" class="nav-item" data-match="/nominas/pre-planilla">
-                        <i class="fas fa-clipboard-check"></i><span>Alistar Planilla</span>
+                    <a href="{% url 'pre_planilla' %}" class="nav-item" data-match="/nominas/(pre-planilla|workflow-mes)">
+                        <i class="fas fa-clipboard-check"></i><span>Procesar Nómina</span>
                     </a>
                     {# Workflow del Mes, Nuevo Período, Procesos Especiales y Validador Onboarding viven en sus hubs (Mi Día / Períodos) #}
                     <a href="{% url 'nominas_panel' %}" class="nav-item" data-match="^/nominas/$">
@@ -1041,6 +1054,9 @@
             </div>
             {% endif %}
 
+            <div class="sidebar-empty-state" id="sidebarEmptyState" hidden>
+                Sin coincidencias
+            </div>
         </nav>
     </div>
     <!-- User footer -->
@@ -1433,14 +1449,20 @@
 
     // ── Active nav-item based on current URL ────────────────
     const currentPath = window.location.pathname;
+    const navCandidates = [];
     document.querySelectorAll('.nav-item[data-match]').forEach(function (link) {
         const pattern = link.getAttribute('data-match');
         try {
             if (new RegExp(pattern).test(currentPath)) {
-                link.classList.add('active');
+                navCandidates.push({ link: link, score: pattern.length });
             }
         } catch (e) {}
     });
+    if (navCandidates.length) {
+        navCandidates.sort(function (a, b) { return b.score - a.score; });
+        navCandidates[0].link.classList.add('active');
+        navCandidates[0].link.setAttribute('aria-current', 'page');
+    }
 
     // ── Close sidebar on nav-item click (mobile) ────────────
     document.querySelectorAll('.nav-item').forEach(function (link) {
@@ -1452,116 +1474,285 @@
         });
     });
 
-    // ── Sidebar category tabs ────────────────────────────────
-    (function initSidebarTabs() {
-        var TAB_KEY   = 'harmoni_tab_v1';
-        var DEFAULT   = 'personal';
-        var tabsEl    = document.getElementById('sidebarTabs');
+    // ── Sidebar navigation: tabs, context, accordion and search ──
+    (function initSidebarNavigation() {
+        var TAB_KEY = 'harmoni_tab_v2';
+        var SECTION_KEY = 'harmoni_open_section_v2';
+        var DEFAULT_GROUP = 'personal';
+        var tabsEl = document.getElementById('sidebarTabs');
+        var searchInput = document.getElementById('sidebarSearchInput');
+        var searchClear = document.getElementById('sidebarSearchClear');
+        var emptyState = document.getElementById('sidebarEmptyState');
+        var context = document.getElementById('sidebarContext');
+        var contextLabel = document.getElementById('sidebarContextLabel');
+        var activeItem = document.querySelector('.nav-item.active');
+        var activeSection = activeItem ? activeItem.closest('.nav-section[data-section]') : null;
+        var activeGroup = activeSection ? activeSection.getAttribute('data-group') : null;
+        var selectedGroup = null;
 
-        // Auto-detect tab from active nav-item
-        var autoGroup = null;
-        document.querySelectorAll('.nav-item.active').forEach(function(item) {
-            var sec = item.closest('.nav-section[data-group]');
-            if (sec) autoGroup = sec.getAttribute('data-group');
-        });
-
-        function showTab(group) {
-            // Show/hide grouped sections
-            document.querySelectorAll('.nav-section[data-group]').forEach(function(sec) {
-                sec.classList.toggle('group-visible', sec.getAttribute('data-group') === group);
-            });
-            // Update tab buttons (if present)
-            document.querySelectorAll('.sidebar-tab[data-tab]').forEach(function(btn) {
-                btn.classList.toggle('active', btn.getAttribute('data-tab') === group);
-            });
-            if (tabsEl) {
-                try { localStorage.setItem(TAB_KEY, group); } catch(e) {}
-            }
+        function safeGet(key, fallback) {
+            try { return localStorage.getItem(key) || fallback; }
+            catch (e) { return fallback; }
         }
 
-        // Trabajadores SIN tabs (no admin): siempre mostrar grupo "portal".
-        // No persistir preferencia — el trabajador no tiene cómo cambiar de tab.
-        if (!tabsEl) {
-            showTab(autoGroup || 'portal');
-            return;
+        function safeSet(key, value) {
+            try { localStorage.setItem(key, value); } catch (e) {}
         }
 
-        function loadTab() {
-            try { return localStorage.getItem(TAB_KEY) || DEFAULT; } catch(e) { return DEFAULT; }
-        }
-
-        // Bind clicks
-        document.querySelectorAll('.sidebar-tab[data-tab]').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                showTab(btn.getAttribute('data-tab'));
-            });
-        });
-
-        // Initial render: active-page group wins, else saved, else default.
-        // Validar que el grupo tenga tab visible (el admin ya no tiene "portal").
-        function grupoValido(g) {
-            return !!(g && tabsEl.querySelector('.sidebar-tab[data-tab="' + g + '"]'));
-        }
-        var target = autoGroup || loadTab();
-        if (!grupoValido(target)) {
-            var primera = tabsEl.querySelector('.sidebar-tab[data-tab]');
-            target = primera ? primera.getAttribute('data-tab') : 'personal';
-        }
-        showTab(target);
-    })();
-
-    // ── Collapsible nav sections ─────────────────────────────
-    (function initCollapsibleSections() {
-        var STORAGE_KEY = 'harmoni_nav_v1';
-
-        function loadState() {
-            try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+        function loadOpenState() {
+            try { return JSON.parse(localStorage.getItem(SECTION_KEY) || '{}'); }
             catch (e) { return {}; }
         }
-        function saveState(state) {
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+
+        function saveOpenState(state) {
+            try { localStorage.setItem(SECTION_KEY, JSON.stringify(state)); } catch (e) {}
         }
 
-        // Find which sections contain the active link
-        var activeSections = new Set();
-        document.querySelectorAll('.nav-item.active').forEach(function (item) {
-            var sec = item.closest('.nav-section[data-section]');
-            if (sec) activeSections.add(sec.getAttribute('data-section'));
-        });
+        function normalizeText(value) {
+            var text = (value || '').toString().toLowerCase();
+            try { text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+            return text;
+        }
 
-        var state = loadState();
+        function sectionsByGroup(group) {
+            return Array.prototype.slice.call(document.querySelectorAll('.nav-section[data-group]'))
+                .filter(function (section) { return section.getAttribute('data-group') === group; });
+        }
+
+        function hasGroup(group) {
+            return sectionsByGroup(group).length > 0;
+        }
+
+        function firstAvailableGroup() {
+            var firstTab = tabsEl ? tabsEl.querySelector('.sidebar-tab[data-tab]') : null;
+            if (firstTab) return firstTab.getAttribute('data-tab');
+            var firstSection = document.querySelector('.nav-section[data-group]');
+            return firstSection ? firstSection.getAttribute('data-group') : DEFAULT_GROUP;
+        }
+
+        function validGroup(group) {
+            if (!group) return false;
+            if (tabsEl) return !!tabsEl.querySelector('.sidebar-tab[data-tab="' + group + '"]');
+            return hasGroup(group);
+        }
+
+        function inferGroupFromPath(path) {
+            if (/^\/mi-portal\//.test(path)) return 'portal';
+            if (/^\/(nominas|prestamos|descuentos|viaticos|salarios)\//.test(path)) return 'nominas';
+            if (/^\/(personal|asistencia|vacaciones|roster|calendario|documentos|onboarding|contratos|areas|subareas|organigrama)\//.test(path)) return 'personal';
+            if (/^\/(reclutamiento|evaluaciones|capacitaciones|encuestas|clima|disciplinaria)\//.test(path)) return 'talento';
+            if (/^\/(analytics|empresas|usuarios|accesos|sistema|integraciones|cierre|workflows|suscripciones|comunicaciones)\//.test(path)) return 'gestion';
+            return null;
+        }
+
+        function isSearchActive() {
+            return !!(searchInput && searchInput.value.trim());
+        }
+
+        function setSectionOpen(section, open) {
+            var toggle = section.querySelector('.nav-section-toggle');
+            var body = section.querySelector('.nav-section-body');
+            if (!toggle || !body) return;
+            toggle.classList.toggle('is-open', open);
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            body.classList.toggle('is-open', open);
+        }
+
+        function openPreferredSection(group) {
+            if (isSearchActive()) return;
+            var sections = sectionsByGroup(group);
+            if (!sections.length) return;
+
+            var state = loadOpenState();
+            var activeKey = activeSection && activeSection.getAttribute('data-group') === group
+                ? activeSection.getAttribute('data-section')
+                : null;
+            var preferredKey = activeKey || state[group];
+            var preferred = preferredKey
+                ? sections.find(function (section) { return section.getAttribute('data-section') === preferredKey; })
+                : null;
+            if (!preferred) preferred = sections[0];
+
+            sections.forEach(function (section) {
+                setSectionOpen(section, section === preferred);
+            });
+        }
+
+        function updateContext() {
+            if (!context || !contextLabel) return;
+            var label = '';
+            if (activeItem) {
+                var itemText = activeItem.querySelector('span') ? activeItem.querySelector('span').textContent.trim() : activeItem.textContent.trim();
+                var sectionText = activeSection && activeSection.querySelector('.nav-section-toggle span')
+                    ? activeSection.querySelector('.nav-section-toggle span').textContent.trim()
+                    : '';
+                label = sectionText && sectionText !== itemText ? sectionText + ' / ' + itemText : itemText;
+            }
+            if (!label) {
+                var h1 = document.querySelector('.topbar-title h1');
+                label = h1 ? h1.textContent.trim() : document.title.replace(/\s*[—–|]\s*Harmoni$/i, '').trim();
+            }
+            contextLabel.textContent = label || 'Dashboard';
+            context.hidden = false;
+        }
+
+        function showTab(group, persist) {
+            if (!validGroup(group)) group = firstAvailableGroup();
+            if (!group) return;
+            selectedGroup = group;
+
+            document.querySelectorAll('.sidebar-body nav > .nav-section:not([data-group])').forEach(function (section) {
+                section.hidden = false;
+            });
+            document.querySelectorAll('.nav-section[data-group]').forEach(function (section) {
+                section.hidden = false;
+                section.classList.remove('is-search-hit');
+                section.classList.toggle('group-visible', section.getAttribute('data-group') === group);
+            });
+            document.querySelectorAll('.sidebar-tab[data-tab]').forEach(function (button) {
+                button.classList.toggle('active', button.getAttribute('data-tab') === group);
+                button.setAttribute('aria-selected', button.getAttribute('data-tab') === group ? 'true' : 'false');
+            });
+            if (persist && tabsEl) safeSet(TAB_KEY, group);
+            openPreferredSection(group);
+            updateContext();
+        }
+
+        function updateSubheaders(section) {
+            var pending = null;
+            var hasVisibleItem = false;
+            section.querySelectorAll('.nav-section-body > .nav-subheader, .nav-section-body > .nav-item').forEach(function (child) {
+                if (child.classList.contains('nav-subheader')) {
+                    if (pending) pending.hidden = !hasVisibleItem;
+                    pending = child;
+                    hasVisibleItem = false;
+                } else if (child.classList.contains('nav-item') && !child.hidden) {
+                    hasVisibleItem = true;
+                }
+            });
+            if (pending) pending.hidden = !hasVisibleItem;
+        }
+
+        function resetSearchView() {
+            document.querySelectorAll('.nav-item[hidden], .nav-subheader[hidden]').forEach(function (element) {
+                element.hidden = false;
+            });
+            if (emptyState) emptyState.hidden = true;
+            if (searchClear) searchClear.hidden = true;
+            if (sidebar) sidebar.classList.remove('is-searching');
+            showTab(selectedGroup || activeGroup || inferGroupFromPath(currentPath) || safeGet(TAB_KEY, DEFAULT_GROUP), false);
+        }
+
+        function applySearch() {
+            if (!searchInput) return;
+            var query = normalizeText(searchInput.value.trim());
+            if (!query) {
+                resetSearchView();
+                return;
+            }
+
+            var found = false;
+            if (searchClear) searchClear.hidden = false;
+            if (sidebar) sidebar.classList.add('is-searching');
+
+            document.querySelectorAll('.sidebar-body nav > .nav-section:not([data-group])').forEach(function (section) {
+                var sectionFound = false;
+                section.querySelectorAll('.nav-item').forEach(function (item) {
+                    var matches = normalizeText(item.textContent).indexOf(query) !== -1;
+                    item.hidden = !matches;
+                    sectionFound = sectionFound || matches;
+                });
+                section.hidden = !sectionFound;
+                found = found || sectionFound;
+            });
+
+            document.querySelectorAll('.nav-section[data-group]').forEach(function (section) {
+                var toggleText = section.querySelector('.nav-section-toggle span') ? section.querySelector('.nav-section-toggle span').textContent : '';
+                var sectionMatches = normalizeText(toggleText).indexOf(query) !== -1;
+                var itemMatches = 0;
+
+                section.querySelectorAll('.nav-item').forEach(function (item) {
+                    var matches = sectionMatches || normalizeText(item.textContent).indexOf(query) !== -1;
+                    item.hidden = !matches;
+                    if (matches) itemMatches += 1;
+                });
+
+                updateSubheaders(section);
+                var sectionFound = sectionMatches || itemMatches > 0;
+                section.hidden = false;
+                section.classList.toggle('group-visible', sectionFound);
+                section.classList.toggle('is-search-hit', sectionFound);
+                setSectionOpen(section, sectionFound);
+                found = found || sectionFound;
+            });
+
+            if (emptyState) emptyState.hidden = found;
+        }
 
         document.querySelectorAll('.nav-section[data-section]').forEach(function (section) {
-            var key    = section.getAttribute('data-section');
+            var key = section.getAttribute('data-section');
             var toggle = section.querySelector('.nav-section-toggle');
-            var body   = section.querySelector('.nav-section-body');
-            if (!toggle || !body) return;
+            var body = section.querySelector('.nav-section-body');
+            if (!key || !toggle || !body) return;
 
-            // Active section always open.
-            // Others: use saved state. Default: 'miportal' open, rest closed.
-            var defaultOpen = (key === 'miportal');
-            var isOpen;
-            if (activeSections.has(key)) {
-                isOpen = true;
-            } else if (state.hasOwnProperty(key)) {
-                isOpen = state[key];
-            } else {
-                isOpen = defaultOpen;
-            }
-
-            if (isOpen) {
-                toggle.classList.add('is-open');
-                body.classList.add('is-open');
-            }
+            if (!body.id) body.id = 'nav-section-' + key + '-body';
+            toggle.setAttribute('aria-controls', body.id);
+            toggle.setAttribute('aria-expanded', 'false');
+            section.classList.toggle('is-current-section', section === activeSection);
 
             toggle.addEventListener('click', function () {
-                var nowOpen = toggle.classList.toggle('is-open');
-                body.classList.toggle('is-open', nowOpen);
-                var s = loadState();
-                s[key] = nowOpen;
-                saveState(s);
+                var nowOpen = !body.classList.contains('is-open');
+                if (isSearchActive()) {
+                    setSectionOpen(section, nowOpen);
+                    return;
+                }
+
+                var group = section.getAttribute('data-group');
+                var state = loadOpenState();
+                if (nowOpen) {
+                    sectionsByGroup(group).forEach(function (sibling) {
+                        if (sibling !== section) setSectionOpen(sibling, false);
+                    });
+                    state[group] = key;
+                } else if (state[group] === key) {
+                    delete state[group];
+                }
+                saveOpenState(state);
+                setSectionOpen(section, nowOpen);
             });
         });
+
+        document.querySelectorAll('.sidebar-tab[data-tab]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (searchInput && searchInput.value) {
+                    searchInput.value = '';
+                    resetSearchView();
+                }
+                showTab(button.getAttribute('data-tab'), true);
+            });
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', applySearch);
+            searchInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && searchInput.value) {
+                    searchInput.value = '';
+                    applySearch();
+                }
+            });
+        }
+        if (searchClear && searchInput) {
+            searchClear.addEventListener('click', function () {
+                searchInput.value = '';
+                applySearch();
+                searchInput.focus();
+            });
+        }
+
+        selectedGroup = activeGroup || inferGroupFromPath(currentPath) || safeGet(TAB_KEY, DEFAULT_GROUP);
+        if (!validGroup(selectedGroup)) selectedGroup = firstAvailableGroup();
+        showTab(selectedGroup, false);
+        window.HarmoniSidebarNav = { showTab: showTab, applySearch: applySearch };
     })();
 })();
 
