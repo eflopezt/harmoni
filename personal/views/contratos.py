@@ -21,6 +21,13 @@ from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 
 from personal.models import Personal, Contrato, RenovacionContrato, Adenda, PlantillaContrato
 from personal.forms import ContratoForm, AdendaForm, RenovacionContratoForm
+from personal.services.contrato_rules import (
+    MANTENER_MODALIDAD,
+    contratos_solapados,
+    describir_periodo,
+    fecha_fin_por_duracion,
+    fecha_inicio_continuidad,
+)
 
 solo_admin = user_passes_test(lambda u: u.is_superuser, login_url='login')
 
@@ -160,6 +167,12 @@ def contratos_panel(request):
         'contrato_original__personal',
     ).order_by('-creado_en')[:5]
 
+    vencidos = list(vencidos)
+    vencen_30 = list(vencen_30)
+    vencen_60 = list(vencen_60)
+    vencen_90 = list(vencen_90)
+    _enriquecer_personas_con_continuidad(vencidos, vencen_30, vencen_60, vencen_90)
+
     context = {
         'hoy': hoy,
         'total_activos': total_activos,
@@ -192,9 +205,93 @@ def contratos_panel(request):
 
 def _fecha_inicio_renovacion(personal):
     """Mantiene continuidad documental tomando el día siguiente al vencimiento."""
-    if personal.fecha_fin_contrato:
-        return personal.fecha_fin_contrato + relativedelta(days=1)
-    return timezone.localdate()
+    return fecha_inicio_continuidad(personal=personal)
+
+
+def _alinear_contrato_base_con_ficha(contrato, personal):
+    """Asegura que el contrato base represente el dato vigente de la ficha."""
+    update_fields = []
+
+    if personal.tipo_contrato and contrato.tipo_contrato != personal.tipo_contrato:
+        contrato.tipo_contrato = personal.tipo_contrato
+        update_fields.append('tipo_contrato')
+
+    ficha_fin_mas_reciente = (
+        personal.fecha_fin_contrato
+        and (not contrato.fecha_fin or personal.fecha_fin_contrato > contrato.fecha_fin)
+    )
+
+    if (
+        ficha_fin_mas_reciente
+        and personal.fecha_inicio_contrato
+        and contrato.fecha_inicio != personal.fecha_inicio_contrato
+    ):
+        contrato.fecha_inicio = personal.fecha_inicio_contrato
+        update_fields.append('fecha_inicio')
+
+    if ficha_fin_mas_reciente and contrato.fecha_fin != personal.fecha_fin_contrato:
+        contrato.fecha_fin = personal.fecha_fin_contrato
+        update_fields.append('fecha_fin')
+
+    if contrato.renovacion_automatica != personal.renovacion_automatica:
+        contrato.renovacion_automatica = personal.renovacion_automatica
+        update_fields.append('renovacion_automatica')
+
+    if personal.sueldo_base and not contrato.sueldo_pactado:
+        contrato.sueldo_pactado = personal.sueldo_base
+        update_fields.append('sueldo_pactado')
+
+    if personal.cargo and not contrato.cargo_contrato:
+        contrato.cargo_contrato = personal.cargo
+        update_fields.append('cargo_contrato')
+
+    if update_fields:
+        contrato.save(update_fields=update_fields)
+
+    return contrato
+
+
+def _ultimo_contrato_por_personal(personal_ids):
+    contratos = (
+        Contrato.objects.filter(personal_id__in=personal_ids)
+        .order_by('personal_id', '-fecha_inicio', '-pk')
+    )
+    mapa = {}
+    for contrato in contratos:
+        mapa.setdefault(contrato.personal_id, contrato)
+    return mapa
+
+
+def _enriquecer_personas_con_continuidad(*grupos):
+    personas = []
+    vistos = set()
+    for grupo in grupos:
+        for persona in grupo:
+            if persona.pk not in vistos:
+                personas.append(persona)
+                vistos.add(persona.pk)
+
+    contratos_base = _ultimo_contrato_por_personal(vistos) if vistos else {}
+    for persona in personas:
+        contrato_base = contratos_base.get(persona.pk)
+        fechas_fin = [fecha for fecha in [
+            persona.fecha_fin_contrato,
+            contrato_base.fecha_fin if contrato_base else None,
+        ] if fecha]
+        ultimo_fin = max(fechas_fin) if fechas_fin else None
+        persona.contrato_renovacion_id = contrato_base.pk if contrato_base else None
+        persona.ultimo_fin_contrato_detectado = ultimo_fin
+        persona.dias_para_vencimiento_detectado = (
+            (ultimo_fin - timezone.localdate()).days if ultimo_fin else None
+        )
+        persona.inicio_renovacion_sugerido = fecha_inicio_continuidad(
+            contrato=contrato_base,
+            personal=persona,
+        )
+        persona.fin_renovacion_3m = fecha_fin_por_duracion(
+            persona.inicio_renovacion_sugerido,
+            3,
+        )
 
 
 def _contrato_base_para_renovar(personal, usuario):
@@ -205,7 +302,7 @@ def _contrato_base_para_renovar(personal, usuario):
         .first()
     )
     if contrato:
-        return contrato
+        return _alinear_contrato_base_con_ficha(contrato, personal)
 
     contrato = (
         Contrato.objects.select_for_update()
@@ -214,19 +311,25 @@ def _contrato_base_para_renovar(personal, usuario):
         .first()
     )
     if contrato:
-        return contrato
+        return _alinear_contrato_base_con_ficha(contrato, personal)
 
     fecha_inicio = (
         personal.fecha_inicio_contrato
         or personal.fecha_alta
         or _fecha_inicio_renovacion(personal)
     )
+    estado_base = 'VENCIDO'
+    if not personal.fecha_fin_contrato:
+        estado_base = 'VIGENTE'
+    elif personal.fecha_fin_contrato >= timezone.localdate():
+        estado_base = 'VIGENTE'
+
     return Contrato.objects.create(
         personal=personal,
         tipo_contrato=personal.tipo_contrato or 'PLAZO_FIJO',
         fecha_inicio=fecha_inicio,
         fecha_fin=personal.fecha_fin_contrato,
-        estado='RENOVADO',
+        estado=estado_base,
         renovacion_automatica=personal.renovacion_automatica,
         sueldo_pactado=personal.sueldo_base,
         cargo_contrato=personal.cargo,
@@ -254,26 +357,30 @@ def contratos_renovar_masivo(request):
         messages.warning(request, "Selecciona al menos un contrato vencido para renovar.")
         return redirect(redirect_url)
 
-    tipo_solicitado = request.POST.get('tipo_contrato', '__MANTENER__')
+    tipo_solicitado = request.POST.get('tipo_contrato', MANTENER_MODALIDAD)
     tipos_validos = {valor for valor, _ in Personal.TIPO_CONTRATO_CHOICES}
-    if tipo_solicitado != '__MANTENER__' and tipo_solicitado not in tipos_validos:
+    if tipo_solicitado != MANTENER_MODALIDAD and tipo_solicitado not in tipos_validos:
         messages.error(request, "La modalidad elegida no es válida.")
         return redirect(redirect_url)
 
-    fecha_fin_nueva = None
+    fecha_fin_comun = None
     fecha_fin_txt = request.POST.get('fecha_fin', '').strip()
+    duracion_txt = request.POST.get('duracion_meses', '3').strip() or '3'
+    try:
+        duracion_meses = max(1, min(int(duracion_txt), 60))
+    except ValueError:
+        duracion_meses = 3
+
     if tipo_solicitado != 'INDEFINIDO':
-        if not fecha_fin_txt:
-            messages.error(request, "Indica la nueva fecha fin para renovar contratos a plazo.")
-            return redirect(redirect_url)
-        try:
-            fecha_fin_nueva = date.fromisoformat(fecha_fin_txt)
-        except ValueError:
-            messages.error(request, "La nueva fecha fin no tiene un formato válido.")
-            return redirect(redirect_url)
-        if fecha_fin_nueva < hoy:
-            messages.error(request, "La nueva fecha fin debe ser hoy o una fecha futura.")
-            return redirect(redirect_url)
+        if fecha_fin_txt:
+            try:
+                fecha_fin_comun = date.fromisoformat(fecha_fin_txt)
+            except ValueError:
+                messages.error(request, "El nuevo vencimiento no tiene un formato válido.")
+                return redirect(redirect_url)
+            if fecha_fin_comun < hoy:
+                messages.error(request, "El nuevo vencimiento debe dejar contratos vigentes.")
+                return redirect(redirect_url)
 
     motivo = (
         request.POST.get('motivo', '').strip()
@@ -300,17 +407,48 @@ def contratos_renovar_masivo(request):
 
             tipo_nuevo = (
                 personal.tipo_contrato
-                if tipo_solicitado == '__MANTENER__'
+                if tipo_solicitado == MANTENER_MODALIDAD
                 else tipo_solicitado
             ) or 'PLAZO_FIJO'
-            fin_nuevo = None if tipo_nuevo == 'INDEFINIDO' else fecha_fin_nueva
-            inicio_nuevo = _fecha_inicio_renovacion(personal)
-            if fin_nuevo and inicio_nuevo > fin_nuevo:
+            contrato_original = _contrato_base_para_renovar(personal, request.user)
+            if not contrato_original.fecha_fin:
                 omitidos += 1
                 nombres_omitidos.append(personal.apellidos_nombres)
                 continue
 
-            contrato_original = _contrato_base_para_renovar(personal, request.user)
+            inicio_nuevo = fecha_inicio_continuidad(
+                contrato=contrato_original,
+                personal=personal,
+            )
+            fin_nuevo = None
+            if tipo_nuevo != 'INDEFINIDO':
+                fin_nuevo = fecha_fin_comun or fecha_fin_por_duracion(
+                    inicio_nuevo,
+                    duracion_meses,
+                )
+
+            if fin_nuevo and inicio_nuevo > fin_nuevo:
+                omitidos += 1
+                nombres_omitidos.append(personal.apellidos_nombres)
+                continue
+            if fin_nuevo and fin_nuevo < hoy:
+                omitidos += 1
+                nombres_omitidos.append(personal.apellidos_nombres)
+                continue
+
+            conflicto = contratos_solapados(
+                personal,
+                inicio_nuevo,
+                fin_nuevo,
+                excluir_pk=contrato_original.pk,
+            ).first()
+            if conflicto:
+                omitidos += 1
+                nombres_omitidos.append(
+                    f"{personal.apellidos_nombres} ({describir_periodo(conflicto)})"
+                )
+                continue
+
             sueldo_pactado = contrato_original.sueldo_pactado or personal.sueldo_base
             cargo_contrato = contrato_original.cargo_contrato or personal.cargo
 
@@ -358,8 +496,8 @@ def contratos_renovar_masivo(request):
         messages.warning(
             request,
             (
-                f"{omitidos} registro(s) no se tocaron porque ya no estaban vencidos "
-                f"o tenían fechas incompatibles.{detalle}"
+                f"{omitidos} registro(s) no se tocaron porque ya no estaban vencidos, "
+                f"eran indefinidos o tenían cruces de fechas.{detalle}"
             ),
         )
 
@@ -526,11 +664,14 @@ def contrato_detalle(request, pk):
         estado_contrato = 'SIN_DATOS'
 
     contrato_vigente = contratos.filter(estado='VIGENTE').first()
+    contrato_para_renovar = contrato_vigente or contratos.filter(fecha_fin__isnull=False).first()
 
     context = {
         'personal': personal,
         'contratos': contratos,
         'contrato_vigente': contrato_vigente,
+        'contrato_para_renovar': contrato_para_renovar,
+        'puede_renovar_contrato': bool(contrato_para_renovar or personal.fecha_fin_contrato),
         'timeline': timeline,
         'dias_restantes': dias_restantes,
         'estado_contrato': estado_contrato,
@@ -581,9 +722,17 @@ def contrato_editar(request, pk):
 def contrato_crear(request, personal_pk):
     """Crea un nuevo contrato para un empleado usando el modelo Contrato."""
     personal = get_object_or_404(Personal, pk=personal_pk)
+    contrato_referencia = (
+        Contrato.objects.filter(personal=personal).order_by('-fecha_inicio', '-pk').first()
+    )
+    inicio_continuidad_sugerido = (
+        fecha_inicio_continuidad(contrato=contrato_referencia, personal=personal)
+        if contrato_referencia or personal.fecha_fin_contrato
+        else None
+    )
 
     if request.method == 'POST':
-        form = ContratoForm(request.POST, request.FILES)
+        form = ContratoForm(request.POST, request.FILES, personal=personal)
         if form.is_valid():
             contrato = form.save(commit=False)
             contrato.personal = personal
@@ -596,8 +745,15 @@ def contrato_crear(request, personal_pk):
     else:
         initial = {
             'tipo_contrato': personal.tipo_contrato,
-            'fecha_inicio': personal.fecha_inicio_contrato,
-            'fecha_fin': personal.fecha_fin_contrato,
+            'fecha_inicio': inicio_continuidad_sugerido or personal.fecha_inicio_contrato,
+            'fecha_fin': (
+                max(
+                    timezone.localdate() + relativedelta(months=3),
+                    fecha_fin_por_duracion(inicio_continuidad_sugerido, 3),
+                )
+                if inicio_continuidad_sugerido
+                else personal.fecha_fin_contrato
+            ),
             'sueldo_pactado': personal.sueldo_base,
             'cargo_contrato': personal.cargo,
             'renovacion_automatica': personal.renovacion_automatica,
@@ -610,6 +766,8 @@ def contrato_crear(request, personal_pk):
         'form': form,
         'es_nuevo': True,
         'plantillas': plantillas,
+        'contrato_referencia': contrato_referencia,
+        'inicio_continuidad_sugerido': inicio_continuidad_sugerido,
     }
     return render(request, 'personal/contrato_form.html', context)
 
@@ -625,7 +783,7 @@ def contrato_editar_obj(request, pk):
     personal = contrato.personal
 
     if request.method == 'POST':
-        form = ContratoForm(request.POST, request.FILES, instance=contrato)
+        form = ContratoForm(request.POST, request.FILES, instance=contrato, personal=personal)
         if form.is_valid():
             form.save()
             if contrato.estado == 'VIGENTE':
@@ -653,57 +811,94 @@ def contrato_renovar(request, pk):
     """Renueva un contrato existente creando uno nuevo y vinculándolos."""
     contrato_original = get_object_or_404(Contrato, pk=pk)
     personal = contrato_original.personal
+    contrato_original = _alinear_contrato_base_con_ficha(contrato_original, personal)
+    inicio_sugerido = fecha_inicio_continuidad(contrato=contrato_original, personal=personal)
+    fecha_fin_default = max(
+        timezone.localdate() + relativedelta(months=3),
+        fecha_fin_por_duracion(inicio_sugerido, 3),
+    )
+
+    if not contrato_original.fecha_fin:
+        messages.warning(
+            request,
+            "Este contrato es indefinido. Para cambiar sueldo, cargo o condiciones use una adenda.",
+        )
+        return redirect('contrato_detalle', pk=personal.pk)
 
     if request.method == 'POST':
-        form = RenovacionContratoForm(request.POST)
+        form = RenovacionContratoForm(request.POST, contrato_original=contrato_original)
         if form.is_valid():
-            # Marcar original como renovado
-            contrato_original.estado = 'RENOVADO'
-            contrato_original.save(update_fields=['estado'])
+            with transaction.atomic():
+                contrato_original = Contrato.objects.select_for_update().get(pk=pk)
+                personal = contrato_original.personal
+                contrato_original = _alinear_contrato_base_con_ficha(contrato_original, personal)
 
-            # Crear nuevo contrato
-            nuevo = Contrato.objects.create(
-                personal=personal,
-                tipo_contrato=form.cleaned_data['tipo_contrato'],
-                fecha_inicio=form.cleaned_data['fecha_inicio'],
-                fecha_fin=form.cleaned_data['fecha_fin'],
-                sueldo_pactado=form.cleaned_data.get('sueldo_pactado') or contrato_original.sueldo_pactado,
-                cargo_contrato=contrato_original.cargo_contrato,
-                jornada_semanal=contrato_original.jornada_semanal,
-                renovacion_automatica=contrato_original.renovacion_automatica,
-                observaciones=form.cleaned_data.get('observaciones', ''),
-                estado='VIGENTE',
-                registrado_por=request.user,
-            )
+                contrato_original.estado = 'RENOVADO'
+                contrato_original.save(update_fields=['estado'])
 
-            # Registrar renovación
-            RenovacionContrato.objects.create(
-                contrato_original=contrato_original,
-                contrato_nuevo=nuevo,
-                fecha_renovacion=timezone.localdate(),
-                motivo=form.cleaned_data.get('motivo', ''),
-                registrado_por=request.user,
-            )
+                nuevo = Contrato.objects.create(
+                    personal=personal,
+                    tipo_contrato=form.cleaned_data['tipo_contrato'],
+                    fecha_inicio=form.cleaned_data['fecha_inicio'],
+                    fecha_fin=form.cleaned_data['fecha_fin'],
+                    sueldo_pactado=form.cleaned_data.get('sueldo_pactado') or contrato_original.sueldo_pactado,
+                    cargo_contrato=contrato_original.cargo_contrato,
+                    jornada_semanal=contrato_original.jornada_semanal,
+                    renovacion_automatica=contrato_original.renovacion_automatica,
+                    observaciones=form.cleaned_data.get('observaciones', ''),
+                    estado='VIGENTE',
+                    registrado_por=request.user,
+                )
 
-            # Sincronizar con Personal
-            nuevo.sincronizar_con_personal()
+                RenovacionContrato.objects.create(
+                    contrato_original=contrato_original,
+                    contrato_nuevo=nuevo,
+                    fecha_renovacion=timezone.localdate(),
+                    motivo=form.cleaned_data.get('motivo', ''),
+                    registrado_por=request.user,
+                )
+
+                nuevo.sincronizar_con_personal()
 
             messages.success(request, f"Contrato de {personal.apellidos_nombres} renovado exitosamente.")
             return redirect('contrato_detalle', pk=personal.pk)
     else:
         initial = {
             'tipo_contrato': contrato_original.tipo_contrato,
-            'fecha_inicio': contrato_original.fecha_fin + relativedelta(days=1) if contrato_original.fecha_fin else timezone.localdate(),
+            'fecha_inicio': inicio_sugerido,
+            'fecha_fin': fecha_fin_default,
             'sueldo_pactado': contrato_original.sueldo_pactado,
+            'motivo': 'Renovación por continuidad laboral.',
         }
-        form = RenovacionContratoForm(initial=initial)
+        form = RenovacionContratoForm(initial=initial, contrato_original=contrato_original)
 
     context = {
         'personal': personal,
         'contrato_original': contrato_original,
         'form': form,
+        'inicio_sugerido': inicio_sugerido,
+        'fecha_fin_default': fecha_fin_default,
+        'dias_regularizados': max((timezone.localdate() - inicio_sugerido).days, 0),
+        'hoy': timezone.localdate(),
     }
     return render(request, 'personal/contrato_renovar.html', context)
+
+
+@solo_admin
+def contrato_renovar_personal(request, personal_pk):
+    """Abre la renovación desde la ficha, creando historial base si falta."""
+    personal = get_object_or_404(Personal, pk=personal_pk)
+    with transaction.atomic():
+        contrato = _contrato_base_para_renovar(personal, request.user)
+
+    if not contrato.fecha_fin:
+        messages.warning(
+            request,
+            "El trabajador tiene contrato indefinido o sin vencimiento. Registre una adenda si necesita cambiar condiciones.",
+        )
+        return redirect('contrato_detalle', pk=personal.pk)
+
+    return redirect('contrato_renovar', pk=contrato.pk)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

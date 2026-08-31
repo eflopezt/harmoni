@@ -1,90 +1,340 @@
 {% extends "base_v2.html" %}
-{% block title %}Renovar Contrato — {{ personal.apellidos_nombres }}{% endblock %}
+{% block title %}Renovar contrato — {{ personal.apellidos_nombres }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hm-renewal-shell {
+    max-width: 1160px;
+    margin: 0 auto;
+  }
+
+  .hm-renewal-header,
+  .hm-renewal-card,
+  .hm-renewal-flow {
+    background: var(--hms-paper, #fff);
+    border: 1px solid var(--hms-rule, #dbe8e4);
+    border-radius: var(--hms-radius-card, 8px);
+    box-shadow: var(--hms-shadow-soft, 0 14px 34px -28px rgba(15, 23, 42, .38));
+  }
+
+  .hm-renewal-header {
+    padding: var(--hms-space-sm, 1rem) var(--hms-space-md, 1.5rem);
+    margin-bottom: var(--hms-space-sm, 1rem);
+  }
+
+  .hm-renewal-kicker {
+    color: var(--hms-teal, #0f766e);
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .hm-renewal-flow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--hms-space-xs, .75rem);
+    padding: var(--hms-space-sm, 1rem);
+    margin-bottom: var(--hms-space-sm, 1rem);
+  }
+
+  .hm-renewal-step {
+    border: 1px solid var(--hms-rule-soft, #edf5f2);
+    border-radius: var(--hms-radius-card, 8px);
+    padding: var(--hms-space-xs, .75rem);
+    min-width: 0;
+  }
+
+  .hm-renewal-step strong {
+    display: block;
+    color: var(--hms-ink, #0f172a);
+    font-size: .92rem;
+  }
+
+  .hm-renewal-step span {
+    color: var(--hms-muted, #64748b);
+    display: block;
+    font-size: .82rem;
+    margin-top: .2rem;
+  }
+
+  .hm-renewal-step.is-current {
+    background: var(--hms-teal-wash, #f0fdfa);
+    border-color: var(--hms-teal-soft, #ccfbf1);
+  }
+
+  .hm-renewal-card {
+    overflow: hidden;
+  }
+
+  .hm-renewal-card-header {
+    border-bottom: 1px solid var(--hms-rule-soft, #edf5f2);
+    padding: var(--hms-space-sm, 1rem);
+  }
+
+  .hm-renewal-card-body {
+    padding: var(--hms-space-sm, 1rem);
+  }
+
+  .hm-renewal-evidence {
+    display: grid;
+    gap: .65rem;
+  }
+
+  .hm-renewal-evidence-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    border-bottom: 1px solid var(--hms-rule-soft, #edf5f2);
+    padding-bottom: .65rem;
+  }
+
+  .hm-renewal-evidence-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .hm-renewal-evidence-row span {
+    color: var(--hms-muted, #64748b);
+    font-size: .84rem;
+  }
+
+  .hm-renewal-evidence-row strong {
+    color: var(--hms-ink, #0f172a);
+    text-align: right;
+  }
+
+  .hm-renewal-lock {
+    align-items: center;
+    background: var(--hms-teal-wash, #f0fdfa);
+    border: 1px solid var(--hms-teal-soft, #ccfbf1);
+    border-radius: var(--hms-radius-card, 8px);
+    color: var(--hms-command, #0d2b27);
+    display: flex;
+    gap: .7rem;
+    padding: .75rem .85rem;
+  }
+
+  .hm-renewal-duration {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .hm-renewal-duration button.active {
+    background: var(--hms-command, #0d2b27);
+    border-color: var(--hms-command, #0d2b27);
+    color: var(--hms-command-ink, #fff);
+  }
+
+  @media (max-width: 767.98px) {
+    .hm-renewal-flow {
+      grid-template-columns: 1fr;
+    }
+
+    .hm-renewal-header .btn-toolbar {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="d-flex align-items-center mb-4">
-  <a href="{% url 'contrato_detalle' personal.pk %}" class="btn btn-outline-secondary me-3">
-    <i class="fas fa-arrow-left"></i>
-  </a>
-  <div>
-    <h2 class="mb-0"><i class="fas fa-sync me-2"></i>Renovar Contrato</h2>
-    <small class="text-muted">{{ personal.apellidos_nombres }} · {{ personal.cargo }}</small>
-  </div>
-</div>
-
-<div class="row justify-content-center">
-  <div class="col-lg-8">
-
-    {# Info del contrato original #}
-    <div class="alert alert-info border d-flex gap-3 align-items-start mb-4">
-      <i class="fas fa-file-contract fs-4 mt-1"></i>
+<div class="hm-renewal-shell">
+  <div class="hm-renewal-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{% url 'contrato_detalle' personal.pk %}" class="btn btn-outline-secondary btn-sm" title="Volver al historial">
+        <i class="fas fa-arrow-left"></i>
+      </a>
       <div>
-        <strong>Contrato a renovar</strong>
-        <div class="small">
-          {{ contrato_original.get_tipo_contrato_display }}
-          · {{ contrato_original.fecha_inicio|date:"d/m/Y" }}
-          — {{ contrato_original.fecha_fin|date:"d/m/Y"|default:"Indefinido" }}
-          {% if contrato_original.sueldo_pactado %}
-          · S/ {{ contrato_original.sueldo_pactado|floatformat:2 }}
-          {% endif %}
-        </div>
+        <div class="hm-renewal-kicker">Continuidad laboral</div>
+        <h2 class="h4 mb-0">Renovar contrato</h2>
+        <small class="text-muted">{{ personal.apellidos_nombres }} · {{ personal.cargo|default:"Cargo sin registrar" }}</small>
       </div>
     </div>
+    <div class="btn-toolbar d-flex gap-2">
+      <a href="{% url 'contrato_detalle' personal.pk %}#historial-pane" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-stream me-1"></i>Historial
+      </a>
+      <a href="{% url 'adenda_crear' contrato_original.pk %}" class="btn btn-outline-info btn-sm">
+        <i class="fas fa-file-medical me-1"></i>Adenda
+      </a>
+    </div>
+  </div>
 
-    <div class="card shadow-sm">
-      <div class="card-header"><strong>Datos del Nuevo Contrato</strong></div>
-      <div class="card-body">
-        <form method="post">
-          {% csrf_token %}
+  <div class="hm-renewal-flow">
+    <div class="hm-renewal-step">
+      <strong>1. Contrato anterior</strong>
+      <span>{{ contrato_original.fecha_inicio|date:"d/m/Y" }} - {{ contrato_original.fecha_fin|date:"d/m/Y" }}</span>
+    </div>
+    <div class="hm-renewal-step is-current">
+      <strong>2. Inicio automático</strong>
+      <span>{{ inicio_sugerido|date:"d/m/Y" }} sin huecos ni solapes</span>
+    </div>
+    <div class="hm-renewal-step">
+      <strong>3. Cierre del trámite</strong>
+      <span>Se enlaza historial, ficha y documento</span>
+    </div>
+  </div>
 
-          {% if form.errors %}
-          <div class="alert alert-danger">
-            <ul class="mb-0">
-              {% for field, errors in form.errors.items %}
-                {% for error in errors %}
-                <li>{{ error }}</li>
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <section class="hm-renewal-card h-100">
+        <div class="hm-renewal-card-header">
+          <strong><i class="fas fa-file-contract me-2 text-primary"></i>Base que se renueva</strong>
+        </div>
+        <div class="hm-renewal-card-body hm-renewal-evidence">
+          <div class="hm-renewal-evidence-row">
+            <span>Modalidad</span>
+            <strong>{{ contrato_original.get_tipo_contrato_display }}</strong>
+          </div>
+          <div class="hm-renewal-evidence-row">
+            <span>Periodo anterior</span>
+            <strong>{{ contrato_original.fecha_inicio|date:"d/m/Y" }} - {{ contrato_original.fecha_fin|date:"d/m/Y" }}</strong>
+          </div>
+          <div class="hm-renewal-evidence-row">
+            <span>Sueldo pactado</span>
+            <strong>{% if contrato_original.sueldo_pactado %}S/ {{ contrato_original.sueldo_pactado|floatformat:2 }}{% else %}-{% endif %}</strong>
+          </div>
+          <div class="hm-renewal-evidence-row">
+            <span>Cargo</span>
+            <strong>{{ contrato_original.cargo_contrato|default:personal.cargo|default:"-" }}</strong>
+          </div>
+          <div class="hm-renewal-evidence-row">
+            <span>Regularización</span>
+            <strong>{% if dias_regularizados %}{{ dias_regularizados }} día{{ dias_regularizados|pluralize }} cubierto{{ dias_regularizados|pluralize }}{% else %}Al día{% endif %}</strong>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-lg-8">
+      <section class="hm-renewal-card">
+        <div class="hm-renewal-card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <strong><i class="fas fa-sync-alt me-2 text-success"></i>Nuevo periodo</strong>
+          <span class="badge bg-success-subtle text-success border border-success-subtle">Renovación enlazada</span>
+        </div>
+        <div class="hm-renewal-card-body">
+          <form method="post" id="contratoRenovarForm">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="alert alert-danger">
+              <strong>Revise antes de renovar:</strong>
+              <ul class="mb-0 mt-1">
+                {% for field, errors in form.errors.items %}
+                  {% for error in errors %}
+                  <li>{{ error }}</li>
+                  {% endfor %}
                 {% endfor %}
-              {% endfor %}
-            </ul>
-          </div>
-          {% endif %}
+              </ul>
+            </div>
+            {% endif %}
 
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Modalidad del nuevo contrato <span class="text-danger">*</span></label>
-              {{ form.tipo_contrato }}
+            <div class="hm-renewal-lock mb-3">
+              <i class="fas fa-link"></i>
+              <div>
+                <strong>El inicio se calcula desde el contrato anterior.</strong>
+                <div class="small">Si hubo corte real, corresponde registrar cese y nuevo contrato; no una renovación.</div>
+              </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Sueldo pactado (S/)</label>
-              {{ form.sueldo_pactado }}
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Inicio del nuevo contrato <span class="text-danger">*</span></label>
-              {{ form.fecha_inicio }}
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Fin del nuevo contrato</label>
-              {{ form.fecha_fin }}
-              <div class="form-text">Dejar vacío para contrato indefinido.</div>
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Motivo de renovación</label>
-              {{ form.motivo }}
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Observaciones</label>
-              {{ form.observaciones }}
-            </div>
-          </div>
 
-          <div class="d-flex gap-2 mt-4">
-            <button type="submit" class="btn btn-success">
-              <i class="fas fa-sync me-1"></i>Renovar contrato
-            </button>
-            <a href="{% url 'contrato_detalle' personal.pk %}" class="btn btn-outline-secondary">Cancelar</a>
-          </div>
-        </form>
-      </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Modalidad del nuevo contrato</label>
+                {{ form.tipo_contrato }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Sueldo pactado (S/)</label>
+                {{ form.sueldo_pactado }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Inicio automático</label>
+                {{ form.fecha_inicio }}
+                {% if form.fecha_inicio.help_text %}<div class="form-text">{{ form.fecha_inicio.help_text }}</div>{% endif %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nuevo vencimiento</label>
+                {{ form.fecha_fin }}
+                <div class="form-text">Déjelo vacío solo si la nueva modalidad será indefinida.</div>
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Atajos de vencimiento</label>
+                <div class="hm-renewal-duration">
+                  <button type="button" class="btn btn-outline-secondary btn-sm active" data-months="3">Vence en 3 meses</button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" data-months="6">Vence en 6 meses</button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" data-months="12">Vence en 12 meses</button>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Motivo de renovación</label>
+                {{ form.motivo }}
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Observaciones</label>
+                {{ form.observaciones }}
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+              <button type="submit" class="btn btn-success">
+                <i class="fas fa-link me-1"></i>Renovar y enlazar historial
+              </button>
+              <a href="{% url 'contrato_detalle' personal.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+          </form>
+        </div>
+      </section>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const form = document.getElementById('contratoRenovarForm');
+  if (!form) return;
+
+  const endInput = form.querySelector('[name="fecha_fin"]');
+  const typeInput = form.querySelector('[name="tipo_contrato"]');
+  const buttons = Array.from(form.querySelectorAll('[data-months]'));
+  const todayIso = '{{ hoy|date:"Y-m-d" }}';
+
+  function pad(value) {
+    return String(value).padStart(2, '0');
+  }
+
+  function addMonths(isoDate, months) {
+    const parts = isoDate.split('-').map(Number);
+    const sourceYear = parts[0];
+    const sourceMonth = parts[1] - 1;
+    const sourceDay = parts[2];
+    const targetIndex = sourceMonth + months;
+    const targetYear = sourceYear + Math.floor(targetIndex / 12);
+    const targetMonth = ((targetIndex % 12) + 12) % 12;
+    const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+    return `${targetYear}-${pad(targetMonth + 1)}-${pad(Math.min(sourceDay, lastDay))}`;
+  }
+
+  function syncType() {
+    const indefinite = typeInput && typeInput.value === 'INDEFINIDO';
+    if (!endInput) return;
+    endInput.disabled = indefinite;
+    endInput.required = !indefinite;
+  }
+
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      buttons.forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      if (endInput) endInput.value = addMonths(todayIso, Number(button.dataset.months || 3));
+    });
+  });
+
+  if (typeInput) typeInput.addEventListener('change', syncType);
+  syncType();
+})();
+</script>
 {% endblock %}

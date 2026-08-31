@@ -61,7 +61,10 @@ def test_panel_contratos_muestra_renovacion_masiva_en_vencidos(client_admin, sub
     assert response.status_code == 200
     html = response.content.decode()
     assert "Renovación masiva" in html
+    assert "Inicio automático" in html
+    assert "Renovar con continuidad" in html
     assert reverse("contratos_renovar_masivo") in html
+    assert reverse("contrato_renovar_personal", args=[Personal.objects.get(nro_doc="70000000").pk]) in html
 
 
 @pytest.mark.django_db
@@ -193,3 +196,151 @@ def test_renovacion_masiva_omite_contratos_que_ya_no_estan_vencidos(client_admin
     vigente.refresh_from_db()
     assert vigente.fecha_fin_contrato == date(2099, 5, 31)
     assert Contrato.objects.filter(personal=vigente).count() == 1
+
+
+@pytest.mark.django_db
+def test_renovacion_individual_prefija_inicio_continuo(client_admin, subarea):
+    personal = crear_personal(
+        subarea,
+        "70000005",
+        "INDIVIDUAL, ROSA",
+        date(2024, 3, 31),
+    )
+    original = Contrato.objects.create(
+        personal=personal,
+        tipo_contrato="PLAZO_FIJO",
+        fecha_inicio=date(2024, 1, 1),
+        fecha_fin=date(2024, 3, 31),
+        estado="VIGENTE",
+        sueldo_pactado=Decimal("2500.00"),
+        cargo_contrato="Analista",
+    )
+
+    response = client_admin.get(reverse("contrato_renovar", args=[original.pk]))
+
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert "Renovación enlazada" in html
+    assert 'value="2024-04-01"' in html
+    assert "Continuidad obligatoria desde el 01/04/2024" in html
+
+
+@pytest.mark.django_db
+def test_renovacion_individual_crea_cadena_y_sincroniza(client_admin, subarea):
+    personal = crear_personal(
+        subarea,
+        "70000006",
+        "CADENA, PABLO",
+        date(2024, 3, 31),
+    )
+    original = Contrato.objects.create(
+        personal=personal,
+        tipo_contrato="PLAZO_FIJO",
+        fecha_inicio=date(2024, 1, 1),
+        fecha_fin=date(2024, 3, 31),
+        estado="VIGENTE",
+        sueldo_pactado=Decimal("2800.00"),
+        cargo_contrato="Analista",
+    )
+
+    response = client_admin.post(
+        reverse("contrato_renovar", args=[original.pk]),
+        {
+            "tipo_contrato": "OBRA_SERVICIO",
+            "fecha_inicio": "2024-04-01",
+            "fecha_fin": "2099-12-31",
+            "sueldo_pactado": "3000.00",
+            "motivo": "Continuidad de obra",
+        },
+    )
+
+    assert response.status_code == 302
+    original.refresh_from_db()
+    personal.refresh_from_db()
+    nuevo = Contrato.objects.get(personal=personal, estado="VIGENTE")
+
+    assert original.estado == "RENOVADO"
+    assert nuevo.fecha_inicio == date(2024, 4, 1)
+    assert nuevo.fecha_fin == date(2099, 12, 31)
+    assert nuevo.tipo_contrato == "OBRA_SERVICIO"
+    assert nuevo.sueldo_pactado == Decimal("3000.00")
+    assert personal.fecha_inicio_contrato == date(2024, 4, 1)
+    assert personal.fecha_fin_contrato == date(2099, 12, 31)
+    assert RenovacionContrato.objects.filter(
+        contrato_original=original,
+        contrato_nuevo=nuevo,
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_renovacion_individual_no_permite_romper_continuidad(client_admin, subarea):
+    personal = crear_personal(
+        subarea,
+        "70000007",
+        "CORTE, LAURA",
+        date(2024, 3, 31),
+    )
+    original = Contrato.objects.create(
+        personal=personal,
+        tipo_contrato="PLAZO_FIJO",
+        fecha_inicio=date(2024, 1, 1),
+        fecha_fin=date(2024, 3, 31),
+        estado="VIGENTE",
+    )
+
+    response = client_admin.post(
+        reverse("contrato_renovar", args=[original.pk]),
+        {
+            "tipo_contrato": "PLAZO_FIJO",
+            "fecha_inicio": "2024-04-02",
+            "fecha_fin": "2099-12-31",
+        },
+    )
+
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert "el inicio debe ser 01/04/2024" in html
+    original.refresh_from_db()
+    assert original.estado == "VIGENTE"
+    assert Contrato.objects.filter(personal=personal).count() == 1
+    assert RenovacionContrato.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_renovacion_individual_bloquea_solapes(client_admin, subarea):
+    personal = crear_personal(
+        subarea,
+        "70000008",
+        "SOLAPE, MATEO",
+        date(2024, 3, 31),
+    )
+    original = Contrato.objects.create(
+        personal=personal,
+        tipo_contrato="PLAZO_FIJO",
+        fecha_inicio=date(2024, 1, 1),
+        fecha_fin=date(2024, 3, 31),
+        estado="VIGENTE",
+    )
+    Contrato.objects.create(
+        personal=personal,
+        tipo_contrato="PLAZO_FIJO",
+        fecha_inicio=date(2024, 4, 1),
+        fecha_fin=date(2024, 4, 30),
+        estado="FINALIZADO",
+    )
+
+    response = client_admin.post(
+        reverse("contrato_renovar", args=[original.pk]),
+        {
+            "tipo_contrato": "PLAZO_FIJO",
+            "fecha_inicio": "2024-04-01",
+            "fecha_fin": "2099-12-31",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "se cruza con otro contrato registrado" in response.content.decode()
+    original.refresh_from_db()
+    assert original.estado == "VIGENTE"
+    assert Contrato.objects.filter(personal=personal).count() == 2
+    assert RenovacionContrato.objects.count() == 0

@@ -3,9 +3,11 @@ Formularios para el módulo personal.
 """
 from django import forms
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.utils import timezone
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from .models import Area, SubArea, Personal, Roster, Contrato, Adenda
+from .services.contrato_rules import contratos_solapados, describir_periodo, fecha_inicio_continuidad
 
 
 class AreaForm(forms.ModelForm):
@@ -239,7 +241,9 @@ class ContratoForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.personal = kwargs.pop('personal', None)
         super().__init__(*args, **kwargs)
+        self.personal = self.personal or getattr(self.instance, 'personal', None)
         if self.instance and self.instance.pk:
             if self.instance.fecha_inicio:
                 self.initial['fecha_inicio'] = self.instance.fecha_inicio.strftime('%Y-%m-%d')
@@ -257,6 +261,46 @@ class ContratoForm(forms.ModelForm):
                 widget.attrs.setdefault('class', 'form-control')
             else:
                 widget.attrs.setdefault('class', 'form-control')
+
+    def clean(self):
+        cleaned = super().clean()
+        tipo = cleaned.get('tipo_contrato')
+        fecha_inicio = cleaned.get('fecha_inicio')
+        fecha_fin = cleaned.get('fecha_fin')
+        estado = cleaned.get('estado')
+
+        if tipo == 'INDEFINIDO':
+            cleaned['fecha_fin'] = None
+            fecha_fin = None
+        elif fecha_inicio and not fecha_fin:
+            self.add_error(
+                'fecha_fin',
+                'Los contratos a plazo necesitan una fecha fin. Para dejarlo sin fin, use contrato indefinido.',
+            )
+
+        if fecha_inicio and fecha_fin and fecha_fin < fecha_inicio:
+            self.add_error('fecha_fin', 'La fecha fin no puede ser anterior a la fecha de inicio.')
+        elif estado == 'VIGENTE' and fecha_fin and fecha_fin < timezone.localdate():
+            self.add_error('fecha_fin', 'Un contrato vigente no puede tener vencimiento pasado.')
+
+        if self.personal and fecha_inicio and estado == 'VIGENTE':
+            conflicto = contratos_solapados(
+                self.personal,
+                fecha_inicio,
+                fecha_fin,
+                excluir_pk=getattr(self.instance, 'pk', None),
+            ).first()
+            if conflicto:
+                self.add_error(
+                    'fecha_inicio',
+                    (
+                        'Este periodo se cruza con otro contrato del trabajador '
+                        f'({describir_periodo(conflicto)}). Use Renovar si es continuidad '
+                        'o registre una adenda si solo cambia una condición.'
+                    ),
+                )
+
+        return cleaned
 
 
 class AdendaForm(forms.ModelForm):
@@ -299,12 +343,14 @@ class RenovacionContratoForm(forms.Form):
     )
     fecha_inicio = forms.DateField(
         label='Inicio del nuevo contrato',
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        input_formats=['%Y-%m-%d'],
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}, format='%Y-%m-%d'),
     )
     fecha_fin = forms.DateField(
         label='Fin del nuevo contrato',
         required=False,
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        input_formats=['%Y-%m-%d'],
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}, format='%Y-%m-%d'),
         help_text='Dejar vacío para contrato indefinido',
     )
     sueldo_pactado = forms.DecimalField(
@@ -322,6 +368,78 @@ class RenovacionContratoForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
     )
+
+    def __init__(self, *args, **kwargs):
+        self.contrato_original = kwargs.pop('contrato_original', None)
+        super().__init__(*args, **kwargs)
+
+        if self.contrato_original and self.contrato_original.fecha_fin:
+            inicio = fecha_inicio_continuidad(
+                contrato=self.contrato_original,
+                personal=self.contrato_original.personal,
+            )
+            self.fields['fecha_inicio'].help_text = (
+                f'Continuidad obligatoria desde el {inicio.strftime("%d/%m/%Y")}.'
+            )
+            self.fields['fecha_inicio'].widget.attrs['readonly'] = 'readonly'
+            self.fields['fecha_inicio'].widget.attrs['data-continuidad'] = 'true'
+
+    def clean(self):
+        cleaned = super().clean()
+        tipo = cleaned.get('tipo_contrato')
+        fecha_inicio = cleaned.get('fecha_inicio')
+        fecha_fin = cleaned.get('fecha_fin')
+
+        if not self.contrato_original:
+            return cleaned
+
+        if not self.contrato_original.fecha_fin:
+            raise forms.ValidationError(
+                'Un contrato indefinido no se renueva por fecha. Registre una adenda si cambian sueldo, cargo o condiciones.'
+            )
+
+        inicio_esperado = fecha_inicio_continuidad(
+            contrato=self.contrato_original,
+            personal=self.contrato_original.personal,
+        )
+        if fecha_inicio and fecha_inicio != inicio_esperado:
+            self.add_error(
+                'fecha_inicio',
+                (
+                    f'Para renovar sin romper continuidad, el inicio debe ser '
+                    f'{inicio_esperado.strftime("%d/%m/%Y")}.'
+                ),
+            )
+
+        if tipo == 'INDEFINIDO':
+            cleaned['fecha_fin'] = None
+            fecha_fin = None
+        elif fecha_inicio and not fecha_fin:
+            self.add_error('fecha_fin', 'Indique el nuevo vencimiento del contrato.')
+
+        if fecha_inicio and fecha_fin and fecha_fin < fecha_inicio:
+            self.add_error('fecha_fin', 'El nuevo vencimiento no puede ser anterior al inicio.')
+        elif fecha_fin and fecha_fin < timezone.localdate():
+            self.add_error('fecha_fin', 'El nuevo vencimiento debe dejar el contrato vigente.')
+
+        conflicto = None
+        if fecha_inicio:
+            conflicto = contratos_solapados(
+                self.contrato_original.personal,
+                fecha_inicio,
+                fecha_fin,
+                excluir_pk=self.contrato_original.pk,
+            ).first()
+        if conflicto:
+            self.add_error(
+                'fecha_inicio',
+                (
+                    'La renovación se cruza con otro contrato registrado '
+                    f'({describir_periodo(conflicto)}). Revise el historial antes de continuar.'
+                ),
+            )
+
+        return cleaned
 
 
 class ImportExcelForm(forms.Form):

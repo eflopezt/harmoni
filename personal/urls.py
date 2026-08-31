@@ -157,6 +157,7 @@ urlpatterns = [
     path('contratos/<int:pk>/detalle/', views.contrato_detalle, name='contrato_detalle'),
     path('contratos/<int:pk>/editar/', views.contrato_editar, name='contrato_editar'),
     path('contratos/<int:personal_pk>/crear/', views.contrato_crear, name='contrato_crear'),
+    path('contratos/<int:personal_pk>/renovar/', views.contrato_renovar_personal, name='contrato_renovar_personal'),
     path('contratos/obj/<int:pk>/editar/', views.contrato_editar_obj, name='contrato_editar_obj'),
     path('contratos/obj/<int:pk>/renovar/', views.contrato_renovar, name='contrato_renovar'),
     path('contratos/renovar-masivo/', views.contratos_renovar_masivo, name='contratos_renovar_masivo'),

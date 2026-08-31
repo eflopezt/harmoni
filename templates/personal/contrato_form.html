@@ -1,5 +1,47 @@
 {% extends "base_v2.html" %}
 {% block title %}{% if es_nuevo %}Nuevo Contrato{% else %}Editar Contrato{% endif %} — {{ personal.apellidos_nombres }}{% endblock %}
+{% block extra_css %}
+<style>
+  .hm-contract-context {
+    background: var(--hms-teal-wash, #f0fdfa);
+    border: 1px solid var(--hms-teal-soft, #ccfbf1);
+    border-radius: var(--hms-radius-card, 8px);
+    margin-bottom: var(--hms-space-sm, 1rem);
+    padding: var(--hms-space-sm, 1rem);
+  }
+
+  .hm-contract-context-grid {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hm-contract-context-item {
+    background: var(--hms-paper, #fff);
+    border: 1px solid var(--hms-rule-soft, #edf5f2);
+    border-radius: var(--hms-radius-card, 8px);
+    padding: .75rem;
+  }
+
+  .hm-contract-context-item span {
+    color: var(--hms-muted, #64748b);
+    display: block;
+    font-size: .8rem;
+  }
+
+  .hm-contract-context-item strong {
+    color: var(--hms-ink, #0f172a);
+    display: block;
+    margin-top: .2rem;
+  }
+
+  @media (max-width: 767.98px) {
+    .hm-contract-context-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
 {% block body %}
 <div class="d-flex align-items-center mb-4">
   <a href="{% url 'contrato_detalle' personal.pk %}" class="btn btn-outline-secondary me-3">
@@ -16,8 +58,46 @@
 
 <div class="row justify-content-center">
   <div class="col-lg-8">
+    {% if es_nuevo and inicio_continuidad_sugerido %}
+    <div class="hm-contract-context">
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+        <div>
+          <strong><i class="fas fa-link me-2 text-success"></i>Hay contrato previo para este trabajador</strong>
+          <div class="small text-muted">Para continuidad laboral use renovación. Esta pantalla queda para alta inicial, histórico o corrección manual.</div>
+        </div>
+        <a href="{% url 'contrato_renovar_personal' personal.pk %}" class="btn btn-success btn-sm">
+          <i class="fas fa-sync-alt me-1"></i>Renovar con continuidad
+        </a>
+      </div>
+      <div class="hm-contract-context-grid">
+        <div class="hm-contract-context-item">
+          <span>Último periodo</span>
+          <strong>
+            {% if contrato_referencia %}
+              {{ contrato_referencia.fecha_inicio|date:"d/m/Y" }} -
+              {{ contrato_referencia.fecha_fin|date:"d/m/Y"|default:"Indefinido" }}
+            {% else %}
+              {{ personal.fecha_inicio_contrato|date:"d/m/Y"|default:"-" }} -
+              {{ personal.fecha_fin_contrato|date:"d/m/Y"|default:"-" }}
+            {% endif %}
+          </strong>
+        </div>
+        <div class="hm-contract-context-item">
+          <span>Inicio recomendado</span>
+          <strong>{{ inicio_continuidad_sugerido|date:"d/m/Y" }}</strong>
+        </div>
+        <div class="hm-contract-context-item">
+          <span>Acción recomendada</span>
+          <strong>Renovar y enlazar historial</strong>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <div class="card shadow-sm">
-      <div class="card-header"><strong>Datos del Contrato</strong></div>
+      <div class="card-header">
+        <strong>{% if es_nuevo and inicio_continuidad_sugerido %}Contrato manual o histórico{% else %}Datos del Contrato{% endif %}</strong>
+      </div>
       <div class="card-body">
         <form method="post" enctype="multipart/form-data">
           {% csrf_token %}
@@ -113,7 +193,8 @@
 
           <div class="d-flex gap-2 mt-4">
             <button type="submit" class="btn btn-primary">
-              <i class="fas fa-save me-1"></i>{% if es_nuevo %}Crear contrato{% else %}Guardar cambios{% endif %}
+              <i class="fas fa-save me-1"></i>
+              {% if es_nuevo and inicio_continuidad_sugerido %}Crear contrato manual{% elif es_nuevo %}Crear contrato{% else %}Guardar cambios{% endif %}
             </button>
             <a href="{% url 'contrato_detalle' personal.pk %}" class="btn btn-outline-secondary">Cancelar</a>
           </div>
