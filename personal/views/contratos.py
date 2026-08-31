@@ -8,9 +8,11 @@ from dateutil.relativedelta import relativedelta
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q, Count
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -174,6 +176,7 @@ def contratos_panel(request):
         'ultimas_adendas': ultimas_adendas,
         'ultimas_renovaciones': ultimas_renovaciones,
         'tab_activo': request.GET.get('tab', 'vencimientos'),
+        'fecha_fin_masiva_default': hoy + relativedelta(months=3),
         # Filtros
         'buscar': buscar,
         'area_f': area_f,
@@ -185,6 +188,182 @@ def contratos_panel(request):
         'tipos': Personal.TIPO_CONTRATO_CHOICES,
     }
     return render(request, 'personal/contratos_panel.html', context)
+
+
+def _fecha_inicio_renovacion(personal):
+    """Mantiene continuidad documental tomando el día siguiente al vencimiento."""
+    if personal.fecha_fin_contrato:
+        return personal.fecha_fin_contrato + relativedelta(days=1)
+    return timezone.localdate()
+
+
+def _contrato_base_para_renovar(personal, usuario):
+    contrato = (
+        Contrato.objects.select_for_update()
+        .filter(personal=personal, estado='VIGENTE')
+        .order_by('-fecha_inicio', '-pk')
+        .first()
+    )
+    if contrato:
+        return contrato
+
+    contrato = (
+        Contrato.objects.select_for_update()
+        .filter(personal=personal)
+        .order_by('-fecha_inicio', '-pk')
+        .first()
+    )
+    if contrato:
+        return contrato
+
+    fecha_inicio = (
+        personal.fecha_inicio_contrato
+        or personal.fecha_alta
+        or _fecha_inicio_renovacion(personal)
+    )
+    return Contrato.objects.create(
+        personal=personal,
+        tipo_contrato=personal.tipo_contrato or 'PLAZO_FIJO',
+        fecha_inicio=fecha_inicio,
+        fecha_fin=personal.fecha_fin_contrato,
+        estado='RENOVADO',
+        renovacion_automatica=personal.renovacion_automatica,
+        sueldo_pactado=personal.sueldo_base,
+        cargo_contrato=personal.cargo,
+        observaciones='Contrato histórico creado al registrar una renovación masiva.',
+        registrado_por=usuario,
+    )
+
+
+@solo_admin
+@require_POST
+def contratos_renovar_masivo(request):
+    """Renueva contratos vencidos seleccionados desde el panel."""
+    hoy = timezone.localdate()
+    redirect_url = f"{reverse('contratos_panel')}?tab=vencimientos"
+
+    ids = []
+    for value in request.POST.getlist('personal_ids'):
+        try:
+            ids.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    ids = list(dict.fromkeys(ids))
+
+    if not ids:
+        messages.warning(request, "Selecciona al menos un contrato vencido para renovar.")
+        return redirect(redirect_url)
+
+    tipo_solicitado = request.POST.get('tipo_contrato', '__MANTENER__')
+    tipos_validos = {valor for valor, _ in Personal.TIPO_CONTRATO_CHOICES}
+    if tipo_solicitado != '__MANTENER__' and tipo_solicitado not in tipos_validos:
+        messages.error(request, "La modalidad elegida no es válida.")
+        return redirect(redirect_url)
+
+    fecha_fin_nueva = None
+    fecha_fin_txt = request.POST.get('fecha_fin', '').strip()
+    if tipo_solicitado != 'INDEFINIDO':
+        if not fecha_fin_txt:
+            messages.error(request, "Indica la nueva fecha fin para renovar contratos a plazo.")
+            return redirect(redirect_url)
+        try:
+            fecha_fin_nueva = date.fromisoformat(fecha_fin_txt)
+        except ValueError:
+            messages.error(request, "La nueva fecha fin no tiene un formato válido.")
+            return redirect(redirect_url)
+        if fecha_fin_nueva < hoy:
+            messages.error(request, "La nueva fecha fin debe ser hoy o una fecha futura.")
+            return redirect(redirect_url)
+
+    motivo = (
+        request.POST.get('motivo', '').strip()
+        or "Renovación masiva desde la bandeja de vencimientos."
+    )
+    observaciones = request.POST.get('observaciones', '').strip()
+
+    renovados = 0
+    omitidos = 0
+    nombres_omitidos = []
+
+    with transaction.atomic():
+        personas = list(
+            Personal.objects.select_for_update()
+            .filter(pk__in=ids, estado='Activo')
+            .order_by('apellidos_nombres')
+        )
+
+        for personal in personas:
+            if not personal.fecha_fin_contrato or personal.fecha_fin_contrato >= hoy:
+                omitidos += 1
+                nombres_omitidos.append(personal.apellidos_nombres)
+                continue
+
+            tipo_nuevo = (
+                personal.tipo_contrato
+                if tipo_solicitado == '__MANTENER__'
+                else tipo_solicitado
+            ) or 'PLAZO_FIJO'
+            fin_nuevo = None if tipo_nuevo == 'INDEFINIDO' else fecha_fin_nueva
+            inicio_nuevo = _fecha_inicio_renovacion(personal)
+            if fin_nuevo and inicio_nuevo > fin_nuevo:
+                omitidos += 1
+                nombres_omitidos.append(personal.apellidos_nombres)
+                continue
+
+            contrato_original = _contrato_base_para_renovar(personal, request.user)
+            sueldo_pactado = contrato_original.sueldo_pactado or personal.sueldo_base
+            cargo_contrato = contrato_original.cargo_contrato or personal.cargo
+
+            if contrato_original.estado != 'RENOVADO':
+                contrato_original.estado = 'RENOVADO'
+                contrato_original.save(update_fields=['estado'])
+
+            nuevo = Contrato.objects.create(
+                personal=personal,
+                tipo_contrato=tipo_nuevo,
+                fecha_inicio=inicio_nuevo,
+                fecha_fin=fin_nuevo,
+                sueldo_pactado=sueldo_pactado,
+                cargo_contrato=cargo_contrato,
+                jornada_semanal=contrato_original.jornada_semanal,
+                renovacion_automatica=contrato_original.renovacion_automatica,
+                observaciones=observaciones,
+                estado='VIGENTE',
+                registrado_por=request.user,
+            )
+
+            RenovacionContrato.objects.create(
+                contrato_original=contrato_original,
+                contrato_nuevo=nuevo,
+                fecha_renovacion=hoy,
+                motivo=motivo,
+                registrado_por=request.user,
+            )
+            nuevo.sincronizar_con_personal()
+            renovados += 1
+
+        omitidos += max(0, len(ids) - len(personas))
+
+    if renovados:
+        messages.success(
+            request,
+            f"Renovamos {renovados} contrato(s). Ya quedaron vigentes y enlazados al historial.",
+        )
+    if omitidos:
+        detalle = ""
+        if nombres_omitidos:
+            detalle = f" Revisar: {', '.join(nombres_omitidos[:3])}"
+            if len(nombres_omitidos) > 3:
+                detalle += "..."
+        messages.warning(
+            request,
+            (
+                f"{omitidos} registro(s) no se tocaron porque ya no estaban vencidos "
+                f"o tenían fechas incompatibles.{detalle}"
+            ),
+        )
+
+    return redirect(redirect_url)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

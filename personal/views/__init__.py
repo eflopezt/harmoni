@@ -59,7 +59,7 @@ from .timeline import timeline_empleado
 from .contratos import (
     contratos_panel, contratos_lista, contrato_editar, contratos_api_stats,
     contrato_detalle, contrato_crear, contrato_editar_obj,
-    contrato_renovar, adenda_crear,
+    contrato_renovar, contratos_renovar_masivo, adenda_crear,
     contratos_exportar_excel, contratos_alertas_json,
     contrato_generar_pdf, adenda_generar_pdf, prorroga_generar_pdf,
     contrato_importar_plantilla,

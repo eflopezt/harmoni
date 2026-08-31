@@ -1,5 +1,73 @@
 {% extends "base_v2.html" %}
 {% block title %}Contratos Laborales{% endblock %}
+{% block extra_css %}
+<style>
+  .contratos-bulk-strip {
+    border: 1px solid #c8f2ea;
+    background: linear-gradient(90deg, #f0fdfa 0%, #ffffff 62%, #fff7ed 100%);
+    border-radius: 8px;
+    padding: .9rem 1rem;
+  }
+
+  .contratos-bulk-icon {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #ccfbf1;
+    color: #0f766e;
+    flex: 0 0 38px;
+  }
+
+  .contratos-bulk-actions .btn,
+  .contratos-expired-card .btn {
+    white-space: nowrap;
+  }
+
+  .contrato-row-select {
+    width: 42px;
+  }
+
+  .contrato-row-select .form-check-input,
+  .contrato-row-check {
+    cursor: pointer;
+  }
+
+  .bulk-renew-pill {
+    border: 1px solid #c8f2ea;
+    background: #ffffff;
+    color: #0f766e;
+    border-radius: 999px;
+    padding: .35rem .65rem;
+    font-size: .82rem;
+    font-weight: 700;
+  }
+
+  .bulk-duration-btn.active {
+    background: #0f766e;
+    border-color: #0f766e;
+    color: #ffffff;
+  }
+
+  @media (max-width: 767.98px) {
+    .contratos-bulk-strip {
+      align-items: stretch !important;
+    }
+
+    .contratos-bulk-actions {
+      width: 100%;
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .contratos-bulk-actions .btn-primary {
+      grid-column: 1 / -1;
+    }
+  }
+</style>
+{% endblock %}
 {% block body %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
@@ -163,52 +231,141 @@
 
   {# Contratos vencidos #}
   {% if vencidos %}
-  <div class="card border-danger shadow-sm mb-4">
-    <div class="card-header bg-danger text-white d-flex align-items-center gap-2">
-      <i class="fas fa-exclamation-triangle"></i>
-      <strong>Contratos VENCIDOS ({{ vencidos|length }})</strong>
-      <span class="ms-auto">Requieren acción inmediata</span>
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th class="ps-3">Trabajador</th>
-              <th>Área</th>
-              <th>Modalidad</th>
-              <th class="text-center">Venció</th>
-              <th class="text-center">Días vencido</th>
-              <th class="text-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for p in vencidos %}
-            <tr class="table-danger">
-              <td class="ps-3 fw-semibold">
-                <a href="{% url 'contrato_detalle' p.pk %}" class="text-decoration-none text-dark">{{ p.apellidos_nombres }}</a>
-              </td>
-              <td class="text-muted small">{{ p.subarea.area.nombre|default:"—" }}</td>
-              <td><span class="badge bg-secondary">{{ p.get_tipo_contrato_display|default:"—" }}</span></td>
-              <td class="text-center">{{ p.fecha_fin_contrato|date:"d/m/Y" }}</td>
-              <td class="text-center text-danger fw-bold">{{ hoy|timeuntil:p.fecha_fin_contrato }}</td>
-              <td class="text-center">
-                <div class="btn-group btn-group-sm">
-                  <a href="{% url 'contrato_detalle' p.pk %}" class="btn btn-outline-primary" title="Ver detalle">
-                    <i class="fas fa-eye"></i>
-                  </a>
-                  <a href="{% url 'contrato_editar' p.pk %}" class="btn btn-outline-secondary" title="Editar">
-                    <i class="fas fa-edit"></i>
-                  </a>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+  <form id="renovarMasivoForm" method="post" action="{% url 'contratos_renovar_masivo' %}">
+    {% csrf_token %}
+    <div class="contratos-bulk-strip d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+      <div class="d-flex align-items-center gap-3">
+        <span class="contratos-bulk-icon"><i class="fas fa-layer-group"></i></span>
+        <div>
+          <div class="fw-bold text-dark">Renovación masiva</div>
+          <div class="text-muted small">Cierra el contrato vencido, crea el nuevo vigente y actualiza la ficha del trabajador.</div>
+        </div>
+      </div>
+      <div class="contratos-bulk-actions d-flex align-items-center gap-2">
+        <span class="bulk-renew-pill"><span id="bulkRenewCount">0</span> seleccionados</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="bulkRenewSelectAll">
+          <i class="fas fa-check-double me-1"></i>Todos
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="bulkRenewClear">
+          <i class="fas fa-eraser me-1"></i>Limpiar
+        </button>
+        <button type="button" class="btn btn-sm btn-primary" id="bulkRenewOpen" data-bs-toggle="modal" data-bs-target="#modalRenovarMasivo" disabled>
+          <i class="fas fa-sync-alt me-1"></i>Renovar
+        </button>
       </div>
     </div>
-  </div>
+
+    <div class="card border-danger shadow-sm mb-4 contratos-expired-card">
+      <div class="card-header bg-danger text-white d-flex flex-wrap align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Contratos vencidos ({{ vencidos|length }})</strong>
+        </div>
+        <span class="ms-auto">Requieren acción inmediata</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="text-center contrato-row-select">
+                  <input type="checkbox" class="form-check-input" id="bulkRenewToggleAll" title="Seleccionar todos los vencidos">
+                </th>
+                <th>Trabajador</th>
+                <th>Área</th>
+                <th>Modalidad</th>
+                <th class="text-center">Venció</th>
+                <th class="text-center">Días vencido</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in vencidos %}
+              <tr class="table-danger">
+                <td class="text-center contrato-row-select">
+                  <input type="checkbox" class="form-check-input contrato-row-check" name="personal_ids" value="{{ p.pk }}" aria-label="Seleccionar {{ p.apellidos_nombres }}">
+                </td>
+                <td class="fw-semibold">
+                  <a href="{% url 'contrato_detalle' p.pk %}" class="text-decoration-none text-dark">{{ p.apellidos_nombres }}</a>
+                </td>
+                <td class="text-muted small">{{ p.subarea.area.nombre|default:"—" }}</td>
+                <td><span class="badge bg-secondary">{{ p.get_tipo_contrato_display|default:"—" }}</span></td>
+                <td class="text-center">{{ p.fecha_fin_contrato|date:"d/m/Y" }}</td>
+                <td class="text-center text-danger fw-bold">{{ hoy|timeuntil:p.fecha_fin_contrato }}</td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    <a href="{% url 'contrato_detalle' p.pk %}" class="btn btn-outline-primary" title="Ver detalle">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'contrato_editar' p.pk %}" class="btn btn-outline-secondary" title="Editar">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalRenovarMasivo" tabindex="-1" aria-labelledby="modalRenovarMasivoLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title" id="modalRenovarMasivoLabel">
+                <i class="fas fa-sync-alt text-primary me-2"></i>Renovar contratos seleccionados
+              </h5>
+              <div class="text-muted small"><span id="bulkRenewModalCount">0</span> trabajador(es) pasarán a contrato vigente.</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Modalidad</label>
+                <select name="tipo_contrato" class="form-select">
+                  <option value="__MANTENER__">Mantener modalidad actual</option>
+                  {% for val, label in tipos %}
+                  <option value="{{ val }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nueva fecha fin</label>
+                <input type="date" name="fecha_fin" id="bulkRenewEndDate" class="form-control"
+                       value="{{ fecha_fin_masiva_default|date:'Y-m-d' }}" min="{{ hoy|date:'Y-m-d' }}">
+                <div class="form-text">Para indefinido, Harmoni dejará el fin vacío.</div>
+              </div>
+              <div class="col-12">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Duración rápida">
+                  <button type="button" class="btn btn-outline-secondary bulk-duration-btn active" data-months="3">3 meses</button>
+                  <button type="button" class="btn btn-outline-secondary bulk-duration-btn" data-months="6">6 meses</button>
+                  <button type="button" class="btn btn-outline-secondary bulk-duration-btn" data-months="12">12 meses</button>
+                </div>
+              </div>
+              <div class="col-md-7">
+                <label class="form-label fw-semibold">Motivo</label>
+                <textarea name="motivo" class="form-control" rows="2">Renovación masiva por continuidad operativa.</textarea>
+              </div>
+              <div class="col-md-5">
+                <label class="form-label fw-semibold">Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="2" placeholder="Opcional"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-check me-1"></i>Confirmar renovación
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
   {% endif %}
 
   {# Contratos por vencer en 30 días #}
@@ -560,4 +717,93 @@
 
 {% endif %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const form = document.getElementById('renovarMasivoForm');
+  if (!form) return;
+
+  const checks = Array.from(form.querySelectorAll('.contrato-row-check'));
+  const toggleAll = document.getElementById('bulkRenewToggleAll');
+  const selectAllBtn = document.getElementById('bulkRenewSelectAll');
+  const clearBtn = document.getElementById('bulkRenewClear');
+  const openBtn = document.getElementById('bulkRenewOpen');
+  const countEl = document.getElementById('bulkRenewCount');
+  const modalCountEl = document.getElementById('bulkRenewModalCount');
+  const endDateInput = document.getElementById('bulkRenewEndDate');
+  const tipoSelect = form.querySelector('select[name="tipo_contrato"]');
+  const durationButtons = Array.from(form.querySelectorAll('.bulk-duration-btn'));
+  const todayIso = '{{ hoy|date:"Y-m-d" }}';
+
+  function selectedCount() {
+    return checks.filter(check => check.checked).length;
+  }
+
+  function updateSelectionState() {
+    const count = selectedCount();
+    countEl.textContent = count;
+    modalCountEl.textContent = count;
+    openBtn.disabled = count === 0;
+
+    if (toggleAll) {
+      toggleAll.checked = count > 0 && count === checks.length;
+      toggleAll.indeterminate = count > 0 && count < checks.length;
+    }
+  }
+
+  function setAll(value) {
+    checks.forEach(check => { check.checked = value; });
+    updateSelectionState();
+  }
+
+  function pad(value) {
+    return String(value).padStart(2, '0');
+  }
+
+  function addMonthsClamped(isoDate, months) {
+    const parts = isoDate.split('-').map(Number);
+    const sourceYear = parts[0];
+    const sourceMonth = parts[1] - 1;
+    const sourceDay = parts[2];
+    const targetIndex = sourceMonth + months;
+    const targetYear = sourceYear + Math.floor(targetIndex / 12);
+    const targetMonth = ((targetIndex % 12) + 12) % 12;
+    const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+    return `${targetYear}-${pad(targetMonth + 1)}-${pad(Math.min(sourceDay, lastDay))}`;
+  }
+
+  function syncTipoContrato() {
+    const esIndefinido = tipoSelect && tipoSelect.value === 'INDEFINIDO';
+    if (!endDateInput) return;
+    endDateInput.disabled = esIndefinido;
+    endDateInput.required = !esIndefinido;
+  }
+
+  checks.forEach(check => check.addEventListener('change', updateSelectionState));
+  if (toggleAll) toggleAll.addEventListener('change', () => setAll(toggleAll.checked));
+  if (selectAllBtn) selectAllBtn.addEventListener('click', () => setAll(true));
+  if (clearBtn) clearBtn.addEventListener('click', () => setAll(false));
+  if (tipoSelect) tipoSelect.addEventListener('change', syncTipoContrato);
+
+  durationButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      durationButtons.forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      if (endDateInput) endDateInput.value = addMonthsClamped(todayIso, Number(button.dataset.months || 3));
+    });
+  });
+
+  form.addEventListener('submit', (event) => {
+    if (selectedCount() === 0) {
+      event.preventDefault();
+      updateSelectionState();
+    }
+  });
+
+  syncTipoContrato();
+  updateSelectionState();
+})();
+</script>
 {% endblock %}

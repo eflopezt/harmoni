@@ -159,6 +159,7 @@ urlpatterns = [
     path('contratos/<int:personal_pk>/crear/', views.contrato_crear, name='contrato_crear'),
     path('contratos/obj/<int:pk>/editar/', views.contrato_editar_obj, name='contrato_editar_obj'),
     path('contratos/obj/<int:pk>/renovar/', views.contrato_renovar, name='contrato_renovar'),
+    path('contratos/renovar-masivo/', views.contratos_renovar_masivo, name='contratos_renovar_masivo'),
     path('contratos/obj/<int:contrato_pk>/adenda/', views.adenda_crear, name='adenda_crear'),
     path('contratos/obj/<int:pk>/pdf/', views.contrato_generar_pdf, name='contrato_generar_pdf'),
     path('contratos/obj/<int:pk>/prorroga-pdf/', views.prorroga_generar_pdf, name='prorroga_generar_pdf'),
