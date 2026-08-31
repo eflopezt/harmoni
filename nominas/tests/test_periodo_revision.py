@@ -13,7 +13,9 @@ Cubre:
 """
 from datetime import date
 from decimal import Decimal
+from io import BytesIO
 
+import openpyxl
 import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -138,6 +140,20 @@ class TestPantallaRevision:
         assert "12345.67" in html or "12,345.67" in html
         assert "Revisar y" in html
 
+    def test_revision_muestra_excel_y_origen(self, admin_client, subarea, conceptos):
+        p1 = _periodo(2026, 4, estado="CERRADO")
+        p2 = _periodo(2026, 5)
+        juan = _personal(subarea, "71000024", "REV ORIGEN")
+        reg = _registro_con_lineas(p2, juan, {conceptos["sueldo"]: Decimal("1000")}, Decimal("1000"))
+        _registro_con_lineas(p1, juan, {conceptos["sueldo"]: Decimal("3000")}, Decimal("3000"))
+
+        resp = admin_client.get(reverse("nominas_periodo_revision", args=[p2.pk]))
+        html = resp.content.decode()
+
+        assert reverse("nominas_periodo_revision_inconsistencias_excel", args=[p2.pk]) in html
+        assert "Excel de inconsistencias" in html
+        assert reverse("nominas_registro_detalle", args=[reg.pk]) in html
+
     def test_flag_descartar_y_restaurar(self, admin_client, subarea, conceptos):
         # Mes anterior con neto 3000, actual 1000 → flag NETO_CAMBIO
         p1 = _periodo(2026, 4, estado="CERRADO")
@@ -160,6 +176,57 @@ class TestPantallaRevision:
         admin_client.post(url, {"flag_key": key})
         p2.refresh_from_db()
         assert key not in p2.flags_descartados
+
+    def test_excel_inconsistencias_detalla_alertas_y_variaciones(self, admin_client, subarea, conceptos):
+        p1 = _periodo(2026, 4, estado="CERRADO")
+        p2 = _periodo(2026, 5)
+        juan = _personal(subarea, "71000025", "REV EXCEL")
+        _registro_con_lineas(p1, juan, {conceptos["sueldo"]: Decimal("3000")}, Decimal("3000"))
+        reg = _registro_con_lineas(
+            p2,
+            juan,
+            {conceptos["sueldo"]: Decimal("1000"), conceptos["bono"]: Decimal("1000")},
+            Decimal("1000"),
+        )
+        key = f"NETO_CAMBIO:{juan.pk}"
+        p2.flags_descartados = {
+            key: {
+                "por": "admin",
+                "en": "2026-05-30T10:15:00",
+                "mensaje": "Cambio validado con gerencia",
+            }
+        }
+        p2.save(update_fields=["flags_descartados"])
+
+        resp = admin_client.get(
+            reverse("nominas_periodo_revision_inconsistencias_excel", args=[p2.pk])
+        )
+
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        assert "revision_inconsistencias_2026_05.xlsx" in resp["Content-Disposition"]
+
+        wb = openpyxl.load_workbook(BytesIO(resp.content), data_only=True)
+        assert wb.sheetnames == ["Inconsistencias", "Variación por concepto", "Guía de decisión"]
+
+        ws = wb["Inconsistencias"]
+        headers = [ws.cell(row=4, column=col).value for col in range(1, 28)]
+        assert "Estado revisión" in headers
+        assert "Motivo descarte" in headers
+        assert "Acción sugerida" in headers
+        assert "Origen" in headers
+
+        values = [ws.cell(row=5, column=col).value for col in range(1, 28)]
+        assert "Descartado" in values
+        assert "Cambio significativo de neto" in values
+        assert "REV EXCEL" in values
+        assert "Cambio validado con gerencia" in values
+        assert ws.cell(row=5, column=27).hyperlink is not None
+        assert reverse("nominas_registro_detalle", args=[reg.pk]) in ws.cell(row=5, column=27).value
+
+        ws2 = wb["Variación por concepto"]
+        conceptos_exportados = [ws2.cell(row=row, column=2).value for row in range(4, ws2.max_row + 1)]
+        assert "bono-var-test" in conceptos_exportados
 
     def test_periodo_cerrado_no_permite_descartar(self, admin_client, subarea):
         p = _periodo(2026, 5, estado="CERRADO")

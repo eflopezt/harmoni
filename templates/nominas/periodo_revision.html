@@ -59,9 +59,16 @@
 
 <!-- Flags por trabajador -->
 <div class="card" style="border:1px solid #e2e8f0;border-radius:12px;margin-bottom:22px;">
-  <div class="card-header" style="background:#fff;border-bottom:1px solid #e2e8f0;border-radius:12px 12px 0 0;">
-    <strong style="color:#0d2b27;"><i class="fas fa-flag me-2" style="color:#b45309;"></i>Revisión automática</strong>
-    <span style="color:#64748b;font-size:.85rem;"> — cada flag se puede descartar; queda registrado quién lo descartó</span>
+  <div class="card-header" style="background:#fff;border-bottom:1px solid #e2e8f0;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <strong style="color:#0d2b27;"><i class="fas fa-flag me-2" style="color:#b45309;"></i>Revisión automática</strong>
+      <span style="color:#64748b;font-size:.85rem;"> — cada flag se puede descartar; queda registrado quién lo descartó</span>
+    </div>
+    <a href="{% url 'nominas_periodo_revision_inconsistencias_excel' periodo.pk %}"
+       class="btn btn-sm btn-outline-success"
+       title="Descargar todas las inconsistencias con montos, comparación y enlace al origen">
+      <i class="fas fa-file-excel me-1"></i> Excel de inconsistencias
+    </a>
   </div>
   <div class="card-body p-0">
     {% if not flags %}
@@ -82,7 +89,12 @@
           <td style="width:110px;">
             <span class="badge" style="background:{% if f.severidad == 'critico' %}#dc2626{% elif f.severidad == 'warn' %}#d97706{% else %}#1d4ed8{% endif %};">{{ f.severidad }}</span>
           </td>
-          <td style="width:130px;text-align:right;padding-right:14px;">
+          <td style="width:230px;text-align:right;padding-right:14px;">
+            {% if f.origen_url %}
+            <a href="{{ f.origen_url }}" class="btn btn-sm btn-outline-secondary me-1" title="Abrir el registro o ficha que originó esta alerta">
+              <i class="fas fa-external-link-alt me-1"></i> Ver origen
+            </a>
+            {% endif %}
             <form method="post" action="{% url 'nominas_periodo_flag_descartar' periodo.pk %}" class="d-inline">
               {% csrf_token %}
               <input type="hidden" name="flag_key" value="{{ f.key }}">
