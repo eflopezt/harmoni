@@ -569,7 +569,7 @@
   </div>
   <h1>
     Cierre de <span class="accent">planilla</span>
-    {% if periodo %}<span style="font-size:18px;color:var(--hm-slate-500);font-weight:500;">{{ periodo.get_estado_display }}</span>{% endif %}
+    {% if estado_operativo_label %}<span style="font-size:18px;color:var(--hm-slate-500);font-weight:500;">{{ estado_operativo_label }}</span>{% endif %}
   </h1>
   <p style="font-size:14.5px;color:var(--hm-slate-500);margin:0;max-width:760px;line-height:1.5;">
     Un solo carril para preparar datos, calcular, validar, emitir boletas y generar archivos para Perú.
@@ -601,6 +601,12 @@
     <a href="{% url 'pre_planilla' %}?{{ periodo_query }}" class="wfm-link">
       <i class="fas fa-clipboard-check"></i>Preparar datos
     </a>
+    <a href="{{ mes_anterior_url }}" class="wfm-link" aria-label="Ver mes anterior">
+      <i class="fas fa-arrow-left"></i>Mes anterior
+    </a>
+    <a href="{{ mes_siguiente_url }}" class="wfm-link" aria-label="Ver siguiente mes">
+      Siguiente mes<i class="fas fa-arrow-right"></i>
+    </a>
     <button type="button" id="wfm-personalizar-btn" class="wfm-link">
       <i class="fas fa-sliders-h"></i>Ajustar vista
     </button>
@@ -620,6 +626,12 @@
       <span>Período</span>
       <b>{% if periodo %}{{ periodo.mes|stringformat:"02d" }}/{{ periodo.anio }}{% else %}sin crear{% endif %}</b>
     </div>
+    {% if periodo %}
+    <div class="wfm-kpi">
+      <i class="fas fa-file-invoice"></i>
+      <span>Boletas</span> <b>{{ n_registros_periodo }}</b>
+    </div>
+    {% endif %}
   </div>
 </section>
 {% endblock %}
@@ -724,7 +736,9 @@
             </div>
             {% if step.link and not step.bloqueado %}
               <a href="{{ step.link }}" class="wfm-step-action">
-                {% if step.post_close_attention %}Auditar{% elif step.done %}Abrir{% else %}{{ step.cta }}{% endif %}
+                {% if step.post_close_attention %}
+                  {% if step.cta == 'Regularizar' %}Regularizar{% else %}Auditar{% endif %}
+                {% elif step.done %}Abrir{% else %}{{ step.cta }}{% endif %}
               </a>
             {% else %}
               <span class="wfm-step-action is-disabled">En espera</span>

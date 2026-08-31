@@ -155,6 +155,38 @@ class WorkflowMesTests(TestCase):
             resp,
             '/nominas/periodos/nuevo/?tipo=REGULAR&amp;mes=4&amp;anio=2026&amp;origen=workflow',
         )
+        self.assertContains(resp, '/nominas/workflow-mes/?mes=3&amp;anio=2026')
+        self.assertContains(resp, '/nominas/workflow-mes/?mes=5&amp;anio=2026')
+
+    def test_workflow_mes_cerrado_sin_boletas_pide_regularizar(self):
+        PeriodoNomina.objects.create(
+            tipo='REGULAR',
+            anio=2026,
+            mes=3,
+            descripcion='Marzo 2026',
+            fecha_inicio=date(2026, 3, 1),
+            fecha_fin=date(2026, 3, 31),
+            estado='CERRADO',
+        )
+
+        resp = self.client.get('/nominas/workflow-mes/?mes=3&anio=2026')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['estado_operativo_label'], 'En revisión')
+        self.assertEqual(resp.context['n_registros_periodo'], 0)
+        self.assertContains(resp, 'Cierre congelado sin boletas calculadas')
+        self.assertContains(resp, 'Regularizar cierre')
+
+        generar = next(s for s in resp.context['steps'] if s['key'] == 'generar')
+        aprobar = next(s for s in resp.context['steps'] if s['key'] == 'aprobar')
+        cerrar = next(s for s in resp.context['steps'] if s['key'] == 'cerrar')
+        acuses = next(s for s in resp.context['steps'] if s['key'] == 'acuses')
+
+        self.assertFalse(generar['done'])
+        self.assertTrue(generar['post_close_attention'])
+        self.assertTrue(aprobar['bloqueado'])
+        self.assertFalse(cerrar['done'])
+        self.assertFalse(acuses['done'])
 
     def test_periodo_crear_prefill_desde_workflow(self):
         resp = self.client.get(

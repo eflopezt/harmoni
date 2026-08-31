@@ -79,6 +79,19 @@ def _periodo_create_url(mes, anio):
     return f'{reverse("nominas_periodo_crear")}?{query}'
 
 
+def _periodo_nav_url(mes, anio, delta):
+    """URL del mes contiguo dentro del cierre guiado."""
+    nuevo_mes = mes + delta
+    nuevo_anio = anio
+    if nuevo_mes < 1:
+        nuevo_mes = 12
+        nuevo_anio -= 1
+    elif nuevo_mes > 12:
+        nuevo_mes = 1
+        nuevo_anio += 1
+    return f'{reverse("workflow_mes")}?{_periodo_query(nuevo_mes, nuevo_anio)}'
+
+
 def _status_from_step(step):
     if step.get('done'):
         return 'done'
@@ -173,20 +186,23 @@ def _construir_steps(periodo, anio, mes, request):
     # Step 4-10 dependen del periodo
     if periodo:
         n_registros = RegistroNomina.objects.filter(periodo=periodo).count()
+        cerrado_sin_calculo = periodo.estado == 'CERRADO' and n_registros == 0
         # Step 4: Generar
         generado = periodo.estado in ('CALCULADO', 'APROBADO', 'CERRADO') and n_registros > 0
         steps.append({
             'n': 4, 'key': 'generar', 'icon': 'fas fa-calculator', 'titulo': 'Generar planilla',
             'descripcion': f'{n_registros} boletas calculadas'
                            if generado
-                           else 'Período cerrado sin registros calculados'
-                           if periodo.estado == 'CERRADO'
+                           else 'Cerrado sin boletas calculadas: regulariza este período'
+                           if cerrado_sin_calculo
                            else 'Pendiente — ejecuta cálculo',
             'done': generado,
             'link': reverse('nominas_periodo_detalle', args=[periodo.pk]),
             'phase': 'calcular', 'origen': 'Datos preparados',
             'resultado': 'Boletas y totales quedan calculados una sola vez',
-            'cta': 'Calcular' if periodo.estado == 'BORRADOR' else 'Abrir cálculo',
+            'cta': 'Regularizar' if cerrado_sin_calculo
+                   else 'Calcular' if periodo.estado == 'BORRADOR'
+                   else 'Abrir cálculo',
         })
         # Step 5: Aprobar
         steps.append({
@@ -227,8 +243,10 @@ def _construir_steps(periodo, anio, mes, request):
             'descripcion': 'Sin boletas emitidas para recoger acuses'
                            if acuses_count == 0
                            else f'{firmados}/{acuses_count} firmados ({pct_firmado}%)',
-            'done': (acuses_count == 0 and periodo.estado == 'CERRADO') or (
-                acuses_count > 0 and pct_firmado >= 80),
+            'done': n_registros > 0 and (
+                (acuses_count == 0 and periodo.estado == 'CERRADO') or
+                (acuses_count > 0 and pct_firmado >= 80)
+            ),
             'link': reverse('nominas_emision_boletas'),
             'phase': 'entregar', 'origen': 'Portal del colaborador',
             'resultado': 'Evidencia de recepción lista para fiscalización',
@@ -290,9 +308,11 @@ def _construir_steps(periodo, anio, mes, request):
         steps.append({
             'n': 12, 'key': 'cerrar', 'icon': 'fas fa-lock', 'titulo': 'Cerrar período',
             'descripcion': 'Período inmutable — congelado para auditoría'
-                           if periodo.estado == 'CERRADO'
+                           if periodo.estado == 'CERRADO' and n_registros > 0
+                           else 'Cierre congelado sin evidencia de planilla'
+                           if cerrado_sin_calculo
                            else 'Pendiente — cerrar cuando todo esté OK',
-            'done': periodo.estado == 'CERRADO',
+            'done': periodo.estado == 'CERRADO' and n_registros > 0,
             'link': reverse('nominas_periodo_detalle', args=[periodo.pk]),
             'phase': 'exportar', 'origen': 'Evidencia completa',
             'resultado': 'Período congelado para auditoría y reportes',
@@ -303,7 +323,7 @@ def _construir_steps(periodo, anio, mes, request):
         # (un paso bloqueado espera a que se complete uno anterior). Así el
         # usuario ve UN solo paso para ejecutar y no 7 pasos "en curso" a la vez.
         generado = periodo.estado in ('CALCULADO', 'APROBADO', 'CERRADO') and n_registros > 0
-        aprobado = periodo.estado in ('APROBADO', 'CERRADO')
+        aprobado = periodo.estado in ('APROBADO', 'CERRADO') and n_registros > 0
         _bloqueo = {
             'aprobar':  not generado,   # primero hay que generar la planilla
             'boletas':  not aprobado,   # emitir requiere planilla aprobada
@@ -395,7 +415,8 @@ def _construir_grupos(steps):
     return phases
 
 
-def _resumen_cierre(periodo, next_step, pendientes_post_cierre, mes, anio):
+def _resumen_cierre(periodo, next_step, pendientes_post_cierre, mes, anio,
+                    n_registros=0):
     if not periodo:
         return {
             'tono': 'warning',
@@ -409,6 +430,19 @@ def _resumen_cierre(periodo, next_step, pendientes_post_cierre, mes, anio):
             'icon': 'fas fa-calendar-plus',
         }
     if periodo.estado == 'CERRADO':
+        if n_registros == 0:
+            return {
+                'tono': 'warning',
+                'titulo': 'Cierre congelado sin boletas calculadas',
+                'detalle': (
+                    'El mes figura cerrado, pero no tiene planilla generada. '
+                    'Regulariza el período antes de emitir boletas, PLAME, banco '
+                    'o asiento contable.'
+                ),
+                'label': 'Regularizar cierre',
+                'url': reverse('nominas_periodo_detalle', args=[periodo.pk]),
+                'icon': 'fas fa-triangle-exclamation',
+            }
         if pendientes_post_cierre:
             return {
                 'tono': 'warning',
@@ -484,13 +518,28 @@ def workflow_mes(request):
         step['status'] = _status_from_step(step)
 
     next_step = next((s for s in steps if s.get('actual')), None)
+    n_registros_periodo = 0
+    if periodo:
+        try:
+            from .models import RegistroNomina
+            n_registros_periodo = RegistroNomina.objects.filter(periodo=periodo).count()
+        except Exception:
+            n_registros_periodo = 0
     phase_groups = _construir_grupos(steps)
     n_done = sum(1 for s in steps if s.get('done'))
     # round (no int) para coincidir con el Math.round del JS (evita 16% vs 17%)
     progreso_pct = round(n_done / len(steps) * 100) if steps else 0
     resumen_cierre = _resumen_cierre(
-        periodo, next_step, pendientes_post_cierre, mes, anio)
+        periodo, next_step, pendientes_post_cierre, mes, anio,
+        n_registros_periodo)
     query = _periodo_query(mes, anio)
+    estado_operativo_label = None
+    if periodo:
+        estado_operativo_label = (
+            'En revisión'
+            if periodo.estado == 'CERRADO' and n_registros_periodo == 0
+            else periodo.get_estado_display()
+        )
 
     return render(request, 'nominas/workflow_mes.html', {
         'hoy':           hoy,
@@ -509,4 +558,8 @@ def workflow_mes(request):
         'meses':         MESES,
         'anios':         range(hoy.year - 2, hoy.year + 2),
         'periodo_query': query,
+        'mes_anterior_url': _periodo_nav_url(mes, anio, -1),
+        'mes_siguiente_url': _periodo_nav_url(mes, anio, 1),
+        'estado_operativo_label': estado_operativo_label,
+        'n_registros_periodo': n_registros_periodo,
     })
