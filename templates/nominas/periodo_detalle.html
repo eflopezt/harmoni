@@ -3,11 +3,425 @@
 
 {% block title %}{{ periodo }} — Nóminas — Harmoni{% endblock %}
 
+{% block page_title %}
+<h1>{{ periodo }}</h1>
+<p>Nóminas · {{ periodo.get_estado_display }}{% if periodo.fecha_pago %} · Pago {{ periodo.fecha_pago|date:"d/m/Y" }}{% endif %}</p>
+{% endblock %}
+
+{% block process_bridge %}{% endblock %}
+
 {% block extra_css %}
 <style>
+/* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V4 */
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 /* ══════════════════════════════════════════════════════════════
    PERIODO DETALLE — Harmoni Design System
    ══════════════════════════════════════════════════════════════ */
+
+/* ── Payroll Command Center ─────────────────────────────────── */
+.payroll-command,
+.payroll-action-dock,
+.payroll-review-bar {
+  background: var(--hms-paper, #fff);
+  border: 1px solid var(--hms-rule, #dbe8e4);
+  border-radius: var(--hms-radius-panel, 10px);
+  box-shadow: var(--hms-shadow-soft, 0 14px 34px -28px rgba(15,23,42,.38));
+  min-width: 0;
+}
+
+.payroll-command {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+}
+
+.payroll-command__header {
+  align-items: start;
+  display: grid;
+  gap: .85rem;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, auto);
+  padding: .95rem 1rem .85rem;
+}
+
+.payroll-command__intro,
+.payroll-next,
+.payroll-summary-item,
+.payroll-step,
+.payroll-action-group,
+.payroll-review-bar__intro {
+  min-width: 0;
+}
+
+.payroll-command__crumb {
+  align-items: center;
+  color: var(--hms-muted, #64748b);
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 800;
+  gap: .38rem;
+  margin-bottom: .3rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.payroll-command__crumb:hover { color: var(--hms-teal, #0f766e); }
+
+.payroll-command__title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+.payroll-command__title-row h2 {
+  color: var(--hms-ink, #0f172a);
+  font-size: 1.22rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.15;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.payroll-command__copy {
+  color: var(--hms-muted, #64748b);
+  font-size: .86rem;
+  line-height: 1.45;
+  margin: .35rem 0 0;
+  max-width: 72ch;
+}
+
+.payroll-command__meta,
+.payroll-action-group__buttons,
+.payroll-review-bar form {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.payroll-command__meta { margin-top: .65rem; }
+
+.payroll-chip,
+.payroll-status,
+.payroll-action-group__label {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: .74rem;
+  font-weight: 800;
+  gap: .35rem;
+  min-height: 28px;
+  padding: 0 .65rem;
+  white-space: nowrap;
+}
+.payroll-chip {
+  background: var(--hms-paper-soft, #f8fafc);
+  border: 1px solid var(--hms-rule-soft, #edf5f2);
+  color: var(--hms-ink-soft, #334155);
+}
+.payroll-chip i { color: var(--hms-teal, #0f766e); }
+
+.payroll-status {
+  border: 1px solid transparent;
+  text-transform: none;
+}
+.payroll-status--borrador { background: #f1f5f9; color: #334155; }
+.payroll-status--calculado { background: #eff6ff; color: #1d4ed8; }
+.payroll-status--aprobado { background: #ecfdf5; color: #047857; }
+.payroll-status--cerrado { background: #0d2b27; color: #fff; }
+.payroll-status--anulado { background: #fff1f2; color: #be123c; }
+
+.payroll-next {
+  align-self: stretch;
+  background: var(--hms-canvas, #f4faf7);
+  border: 1px solid var(--hms-rule-soft, #edf5f2);
+  border-radius: var(--hms-radius-card, 8px);
+  display: grid;
+  gap: .45rem;
+  justify-items: stretch;
+  padding: .68rem;
+}
+.payroll-next__label {
+  color: var(--hms-muted, #64748b);
+  font-size: .68rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.payroll-primary-action {
+  align-items: center;
+  background: var(--hms-command, #0d2b27);
+  border: 1px solid var(--hms-command-2, #123c36);
+  border-radius: var(--hms-radius-card, 8px);
+  color: var(--hms-command-ink, #fff);
+  display: inline-flex;
+  font-size: .84rem;
+  font-weight: 850;
+  gap: .45rem;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 .95rem;
+  text-decoration: none;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+  white-space: nowrap;
+}
+.payroll-primary-action:hover {
+  color: var(--hms-command-ink, #fff);
+  transform: translateY(-1px);
+}
+.payroll-primary-action.is-warning {
+  background: #b45309;
+  border-color: #92400e;
+}
+.payroll-primary-action.is-soft {
+  background: var(--hms-paper, #fff);
+  border-color: var(--hms-rule, #dbe8e4);
+  color: var(--hms-ink, #0f172a);
+}
+.payroll-primary-action.is-soft:hover {
+  background: var(--hms-teal-wash, #f0fdfa);
+  color: var(--hms-teal, #0f766e);
+}
+
+.payroll-summary-strip {
+  border-top: 1px solid var(--hms-rule-soft, #edf5f2);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.payroll-summary-item {
+  border-inline-start: 1px solid var(--hms-rule-soft, #edf5f2);
+  display: grid;
+  gap: .15rem;
+  padding: .68rem .85rem;
+}
+.payroll-summary-item:first-child { border-inline-start: 0; }
+.payroll-summary-item.is-neto {
+  background: var(--hms-teal-wash, #f0fdfa);
+}
+.payroll-summary-item span {
+  align-items: center;
+  color: var(--hms-muted, #64748b);
+  display: flex;
+  font-size: .7rem;
+  font-weight: 850;
+  gap: .35rem;
+  text-transform: uppercase;
+}
+.payroll-summary-item b {
+  color: var(--hms-ink, #0f172a);
+  font-size: .96rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.payroll-summary-item small {
+  color: var(--hms-muted, #64748b);
+  font-size: .7rem;
+  line-height: 1.25;
+}
+.payroll-summary-item.is-neto b { color: var(--hms-teal, #0f766e); }
+.payroll-summary-item.is-desc b { color: #dc2626; }
+
+.payroll-process-rail {
+  background: var(--hms-rule-soft, #edf5f2);
+  border-top: 1px solid var(--hms-rule-soft, #edf5f2);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.payroll-step {
+  align-items: center;
+  background: var(--hms-paper, #fff);
+  color: var(--hms-ink-soft, #334155);
+  display: flex;
+  gap: .55rem;
+  min-height: 54px;
+  padding: .55rem .68rem;
+  text-decoration: none;
+  transition: background-color .16s ease, color .16s ease, transform .16s ease;
+}
+.payroll-step:hover {
+  background: var(--hms-teal-wash, #f0fdfa);
+  color: var(--hms-teal, #0f766e);
+}
+.payroll-step.is-current {
+  background: var(--hms-command, #0d2b27);
+  color: var(--hms-command-ink, #fff);
+}
+.payroll-step.is-done { background: #fbfefd; }
+.payroll-step.is-pending { color: var(--hms-muted, #64748b); }
+.payroll-step__number {
+  align-items: center;
+  background: var(--hms-canvas, #f4faf7);
+  border: 1px solid var(--hms-rule, #dbe8e4);
+  border-radius: var(--hms-radius-card, 8px);
+  color: var(--hms-teal, #0f766e);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: .72rem;
+  font-weight: 850;
+  height: 28px;
+  justify-content: center;
+  width: 32px;
+}
+.payroll-step.is-current .payroll-step__number {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.18);
+  color: #fff;
+}
+.payroll-step__body { display: grid; gap: .15rem; min-width: 0; }
+.payroll-step strong {
+  color: inherit;
+  font-size: .8rem;
+  font-weight: 850;
+  line-height: 1.14;
+}
+.payroll-step small {
+  color: currentColor;
+  display: block;
+  font-size: .7rem;
+  line-height: 1.25;
+  opacity: .72;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-action-dock {
+  display: grid;
+  gap: .55rem;
+  padding: .7rem .85rem;
+}
+.payroll-action-dock__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  justify-content: space-between;
+}
+.payroll-action-dock__head strong,
+.payroll-review-bar__intro strong {
+  color: var(--hms-ink, #0f172a);
+  font-size: .9rem;
+  font-weight: 850;
+}
+.payroll-action-dock__head span,
+.payroll-review-bar__intro span {
+  color: var(--hms-muted, #64748b);
+  font-size: .76rem;
+}
+.payroll-action-dock__groups {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem 1rem;
+}
+.payroll-action-group {
+  align-content: start;
+  display: grid;
+  flex: 1 1 13.2rem;
+  gap: .42rem;
+  min-width: min(100%, 13.2rem);
+}
+.payroll-action-group__label {
+  align-self: start;
+  background: var(--hms-paper, #fff);
+  border: 1px solid var(--hms-rule, #dbe8e4);
+  color: var(--hms-ink-soft, #334155);
+  justify-self: start;
+}
+.payroll-action-group__label i { color: var(--hms-teal, #0f766e); }
+.payroll-action-group__buttons {
+  align-self: start;
+  gap: .45rem;
+  width: 100%;
+}
+.payroll-action-group .btn {
+  align-items: center;
+  border-radius: var(--hms-radius-card, 8px);
+  display: inline-flex;
+  font-size: .78rem;
+  font-weight: 800;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 34px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.payroll-action-group__buttons > .dropdown,
+.payroll-action-group__buttons > form {
+  display: inline-flex;
+  max-width: 100%;
+}
+.payroll-action-dock .dropdown-menu:not(.show) { display: none; }
+
+.payroll-review-bar {
+  align-items: center;
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: minmax(12rem, .35fr) minmax(0, 1fr);
+  padding: .8rem 1rem;
+}
+.payroll-review-bar__intro {
+  display: grid;
+  gap: .15rem;
+}
+.payroll-review-bar .form-select,
+.payroll-review-bar .form-control,
+.payroll-review-bar .input-group-text,
+.payroll-review-bar .btn {
+  border-radius: var(--hms-radius-card, 8px);
+}
+
+@media (max-width: 1280px) {
+  .payroll-action-group { flex-basis: 13rem; }
+}
+@media (max-width: 900px) {
+  .payroll-command__header,
+  .payroll-review-bar {
+    grid-template-columns: 1fr;
+  }
+  .payroll-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .payroll-process-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .payroll-action-group { flex-basis: 100%; }
+  .payroll-step small { white-space: normal; }
+}
+@media (max-width: 640px) {
+  .payroll-command__header { gap: .65rem; }
+  .payroll-command__copy,
+  .payroll-action-dock__head span,
+  .payroll-summary-item small,
+  .payroll-step small {
+    display: none;
+  }
+  .payroll-chip {
+    font-size: .68rem;
+    min-height: 26px;
+    padding: 0 .5rem;
+  }
+  .payroll-summary-item { padding: .55rem .62rem; }
+  .payroll-summary-item span { font-size: .64rem; }
+  .payroll-summary-item b { font-size: .86rem; }
+  .payroll-step {
+    min-height: 46px;
+    padding: .48rem .52rem;
+  }
+  .payroll-step__number {
+    height: 26px;
+    width: 28px;
+  }
+  .payroll-command__header,
+  .payroll-action-dock,
+  .payroll-review-bar {
+    padding: .85rem;
+  }
+}
 
 /* ── KPI Tiles ──────────────────────────────────────────────── */
 .det-kpi-grid {
@@ -305,118 +719,177 @@
 
 {% block body %}
 
-{# ── Page Header ─────────────────────────────────────────────────────────────── #}
-<div class="page-header">
-  <div class="page-header-content">
-    <h1 class="page-title">
-      <i class="fas fa-file-invoice-dollar me-2 text-accent"></i>{{ periodo }}
-    </h1>
-    <p class="page-subtitle">
-      <a href="{% url 'nominas_panel' %}" class="text-muted text-decoration-none">
-        <i class="fas fa-chevron-left me-1" style="font-size:.7rem;"></i>Nóminas
+{# ── Payroll command center: periodo + estado + siguiente accion ─────────────── #}
+<section class="payroll-command mb-3" aria-labelledby="payroll-title">
+  <div class="payroll-command__header">
+    <div class="payroll-command__intro">
+      <a href="{% url 'workflow_mes' %}?mes={{ periodo.mes }}&anio={{ periodo.anio }}" class="payroll-command__crumb">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>
+        Volver al cierre mensual
       </a>
-      <span class="text-muted mx-1">/</span>
-      {{ periodo }}
-    </p>
-  </div>
-</div>
 
-{# ── KPI Tiles ────────────────────────────────────────────────────────────────── #}
-<div class="det-kpi-grid mb-3">
+      <div class="payroll-command__title-row">
+        <h2 id="payroll-title">{{ periodo }}</h2>
+        <span class="payroll-status
+          {% if periodo.estado == 'BORRADOR' %}payroll-status--borrador
+          {% elif periodo.estado == 'CALCULADO' %}payroll-status--calculado
+          {% elif periodo.estado == 'APROBADO' %}payroll-status--aprobado
+          {% elif periodo.estado == 'CERRADO' %}payroll-status--cerrado
+          {% else %}payroll-status--anulado{% endif %}">
+          <i class="fas
+            {% if periodo.estado == 'BORRADOR' %}fa-pen
+            {% elif periodo.estado == 'CALCULADO' %}fa-calculator
+            {% elif periodo.estado == 'APROBADO' %}fa-check-circle
+            {% elif periodo.estado == 'CERRADO' %}fa-lock
+            {% else %}fa-ban{% endif %}" aria-hidden="true"></i>
+          {{ periodo.get_estado_display }}
+        </span>
+      </div>
 
-  <div class="det-kpi kpi-workers">
-    <div class="k-icon" style="background:rgba(15,118,110,.1);color:#0f766e;">
-      <i class="fas fa-users"></i>
+      <p class="payroll-command__copy">
+        {% if periodo.estado == 'BORRADOR' %}
+          Revisa datos de personal, asistencia y conceptos antes de calcular; luego Harmoni reutiliza ese mismo período para boletas, banco, SUNAT y contabilidad.
+        {% elif periodo.estado == 'CALCULADO' %}
+          El cálculo ya está armado. El siguiente paso es revisar variaciones, corregir lo necesario y aprobar una sola versión de planilla.
+        {% elif periodo.estado == 'APROBADO' %}
+          La planilla está aprobada. Desde este mismo cierre salen boletas, archivo banco, PLAME, AFPNet y asiento contable.
+        {% elif periodo.estado == 'CERRADO' %}
+          Cierre congelado para auditoría. Usa estos entregables finales sin volver a procesar ni duplicar archivos.
+        {% else %}
+          Revisa el estado del período antes de continuar con el proceso de planilla.
+        {% endif %}
+      </p>
+
+      <div class="payroll-command__meta">
+        <span class="payroll-chip">
+          <i class="fas fa-tag" aria-hidden="true"></i>
+          {% if periodo.tipo == 'REGULAR' %}Planilla regular
+          {% elif periodo.tipo == 'GRATIFICACION' %}Gratificación semestral
+          {% elif periodo.tipo == 'CTS' %}CTS semestral
+          {% elif periodo.tipo == 'UTILIDADES' %}Utilidades
+          {% else %}{{ periodo.get_tipo_display }}{% endif %}
+        </span>
+        {% if periodo.fecha_inicio %}
+        <span class="payroll-chip">
+          <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+          {{ periodo.fecha_inicio|date:"d/m/Y" }} — {{ periodo.fecha_fin|date:"d/m/Y"|default:"?" }}
+        </span>
+        {% endif %}
+        {% if periodo.fecha_pago %}
+        <span class="payroll-chip">
+          <i class="fas fa-money-check-alt" aria-hidden="true"></i>
+          Pago {{ periodo.fecha_pago|date:"d/m/Y" }}
+        </span>
+        {% endif %}
+      </div>
     </div>
-    <div class="k-label">Trabajadores</div>
-    <div class="k-value">{{ periodo.total_trabajadores|default:"0"|intcomma }}</div>
-    <div class="k-sub">En este período</div>
-  </div>
 
-  <div class="det-kpi kpi-bruto">
-    <div class="k-icon" style="background:rgba(59,130,246,.1);color:#2563eb;">
-      <i class="fas fa-wallet"></i>
+    <div class="payroll-next">
+      <span class="payroll-next__label">Siguiente acción</span>
+      {% if puede_aprobar %}
+      <a href="{% url 'nominas_periodo_revision' periodo.pk %}" class="payroll-primary-action">
+        <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+        Revisar y aprobar
+      </a>
+      {% elif puede_generar %}
+      <form method="post" action="{% url 'nominas_periodo_generar' periodo.pk %}" class="m-0">
+        {% csrf_token %}
+        <button type="submit" class="payroll-primary-action w-100"
+                onclick="return confirm('¿Generar la planilla para todos los trabajadores activos?')">
+          <i class="fas fa-calculator" aria-hidden="true"></i>
+          Generar planilla
+        </button>
+      </form>
+      {% elif periodo.estado == 'APROBADO' %}
+      <a href="#acciones-planilla" class="payroll-primary-action">
+        <i class="fas fa-paper-plane" aria-hidden="true"></i>
+        Preparar entregables
+      </a>
+      {% elif periodo.estado == 'CERRADO' %}
+      <a href="#acciones-planilla" class="payroll-primary-action is-soft">
+        <i class="fas fa-box-archive" aria-hidden="true"></i>
+        Ver entregables finales
+      </a>
+      {% else %}
+      <a href="#tabla-nomina" class="payroll-primary-action is-soft">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        Revisar trabajadores
+      </a>
+      {% endif %}
     </div>
-    <div class="k-label">Total Bruto</div>
-    <div class="k-value" style="font-size:1rem;">S/ {{ periodo.total_bruto|floatformat:0|intcomma|default:"0" }}</div>
-    <div class="k-sub">Ingresos brutos</div>
   </div>
 
-  <div class="det-kpi kpi-desc">
-    <div class="k-icon" style="background:rgba(239,68,68,.1);color:#dc2626;">
-      <i class="fas fa-minus-circle"></i>
+  <div class="payroll-summary-strip" aria-label="Resumen del período">
+    <div class="payroll-summary-item">
+      <span><i class="fas fa-users" aria-hidden="true"></i> Trabajadores</span>
+      <b>{{ periodo.total_trabajadores|default:"0"|intcomma }}</b>
+      <small>en este período</small>
     </div>
-    <div class="k-label">Descuentos</div>
-    <div class="k-value" style="font-size:1rem;color:#dc2626;">
-      S/ {{ periodo.total_descuentos|default:0|floatformat:0|intcomma }}
+    <div class="payroll-summary-item">
+      <span><i class="fas fa-wallet" aria-hidden="true"></i> Bruto</span>
+      <b>S/ {{ periodo.total_bruto|floatformat:0|intcomma|default:"0" }}</b>
+      <small>ingresos calculados</small>
     </div>
-    <div class="k-sub">AFP + ONP + IR + otros</div>
-  </div>
-
-  <div class="det-kpi kpi-neto">
-    <div class="k-icon" style="background:rgba(94,234,212,.18);color:#0d9488;">
-      <i class="fas fa-hand-holding-usd"></i>
+    <div class="payroll-summary-item is-desc">
+      <span><i class="fas fa-minus-circle" aria-hidden="true"></i> Descuentos</span>
+      <b>S/ {{ periodo.total_descuentos|default:0|floatformat:0|intcomma }}</b>
+      <small>AFP, ONP, IR y otros</small>
     </div>
-    <div class="k-label">Neto a pagar</div>
-    <div class="k-value" style="font-size:1rem;color:#0f766e;">S/ {{ periodo.total_neto|floatformat:0|intcomma|default:"0" }}</div>
-    <div class="k-sub">Depósito trabajadores</div>
-  </div>
-
-  <div class="det-kpi kpi-costo">
-    <div class="k-icon" style="background:rgba(139,92,246,.1);color:#7c3aed;">
-      <i class="fas fa-building"></i>
+    <div class="payroll-summary-item is-neto">
+      <span><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Neto</span>
+      <b>S/ {{ periodo.total_neto|floatformat:0|intcomma|default:"0" }}</b>
+      <small>depósito a trabajadores</small>
     </div>
-    <div class="k-label">Costo empresa</div>
-    <div class="k-value" style="font-size:1rem;">S/ {{ periodo.total_costo_empresa|floatformat:0|intcomma|default:"0" }}</div>
-    <div class="k-sub">Incluye EsSalud</div>
+    <div class="payroll-summary-item">
+      <span><i class="fas fa-building" aria-hidden="true"></i> Costo empresa</span>
+      <b>S/ {{ periodo.total_costo_empresa|floatformat:0|intcomma|default:"0" }}</b>
+      <small>incluye EsSalud</small>
+    </div>
   </div>
 
-</div>
-
-{# ── Meta Row: tipo, fechas, estado, generado por ─────────────────────────────── #}
-<div class="meta-row mb-3">
-  <div class="meta-item">
-    <i class="fas fa-tag"></i>
-    <span>Tipo:
-      <strong style="color:#111827;">
-        {% if periodo.tipo == 'REGULAR' %}Planilla Regular
-        {% elif periodo.tipo == 'GRATIFICACION' %}Gratificación Semestral
-        {% elif periodo.tipo == 'CTS' %}CTS Semestral
-        {% elif periodo.tipo == 'UTILIDADES' %}Utilidades
-        {% else %}{{ periodo.get_tipo_display }}{% endif %}
-      </strong>
-    </span>
-  </div>
-  {% if periodo.fecha_inicio %}
-  <div class="meta-item">
-    <i class="fas fa-calendar-alt"></i>
-    <span>{{ periodo.fecha_inicio|date:"d/m/Y" }} — {{ periodo.fecha_fin|date:"d/m/Y"|default:"?" }}</span>
-  </div>
-  {% endif %}
-  {% if periodo.fecha_pago %}
-  <div class="meta-item">
-    <i class="fas fa-money-check-alt"></i>
-    <span>Pago: <strong style="color:#0f766e;">{{ periodo.fecha_pago|date:"d/m/Y" }}</strong></span>
-  </div>
-  {% endif %}
-  <div class="meta-item ms-auto">
-    <span class="badge
-      {% if periodo.estado == 'BORRADOR' %}bg-secondary
-      {% elif periodo.estado == 'CALCULADO' %}bg-primary
-      {% elif periodo.estado == 'APROBADO' %}bg-success
-      {% elif periodo.estado == 'CERRADO' %}bg-dark
-      {% else %}bg-danger{% endif %}"
-      style="font-size:.78rem;padding:.3rem .7rem;">
-      <i class="fas
-        {% if periodo.estado == 'BORRADOR' %}fa-edit
-        {% elif periodo.estado == 'CALCULADO' %}fa-calculator
-        {% elif periodo.estado == 'APROBADO' %}fa-check-circle
-        {% elif periodo.estado == 'CERRADO' %}fa-lock
-        {% else %}fa-ban{% endif %} me-1" style="font-size:.65rem;"></i>
-      {{ periodo.get_estado_display }}
-    </span>
-  </div>
-</div>
+  <nav class="payroll-process-rail" aria-label="Flujo de planilla">
+    <a class="payroll-step {% if periodo.estado == 'BORRADOR' and not registros %}is-current{% else %}is-done{% endif %}"
+       href="{% url 'pre_planilla' %}?mes={{ periodo.mes }}&anio={{ periodo.anio }}">
+      <span class="payroll-step__number">1</span>
+      <span class="payroll-step__body">
+        <strong>Preparar datos</strong>
+        <small>personal, asistencia, conceptos</small>
+      </span>
+    </a>
+    <a class="payroll-step {% if periodo.estado == 'BORRADOR' %}is-current{% elif periodo.estado == 'CALCULADO' or periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}is-done{% else %}is-pending{% endif %}"
+       href="#acciones-planilla">
+      <span class="payroll-step__number">2</span>
+      <span class="payroll-step__body">
+        <strong>Calcular</strong>
+        <small>un solo cálculo por período</small>
+      </span>
+    </a>
+    <a class="payroll-step {% if periodo.estado == 'CALCULADO' %}is-current{% elif periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}is-done{% else %}is-pending{% endif %}"
+       href="{% if periodo.estado == 'CALCULADO' %}{% url 'nominas_periodo_revision' periodo.pk %}{% else %}#tabla-nomina{% endif %}">
+      <span class="payroll-step__number">3</span>
+      <span class="payroll-step__body">
+        <strong>Revisar y aprobar</strong>
+        <small>variaciones, boletas y totales</small>
+      </span>
+    </a>
+    <a class="payroll-step {% if periodo.estado == 'APROBADO' %}is-current{% elif periodo.estado == 'CERRADO' %}is-done{% else %}is-pending{% endif %}"
+       href="#acciones-planilla">
+      <span class="payroll-step__number">4</span>
+      <span class="payroll-step__body">
+        <strong>Pagar y emitir</strong>
+        <small>bancos, boletas y acuses</small>
+      </span>
+    </a>
+    <a class="payroll-step {% if periodo.estado == 'CERRADO' %}is-current{% elif periodo.estado == 'APROBADO' %}is-pending{% else %}is-pending{% endif %}"
+       href="#acciones-planilla">
+      <span class="payroll-step__number">5</span>
+      <span class="payroll-step__body">
+        <strong>SUNAT y cierre</strong>
+        <small>PLAME, AFPNet, contabilidad</small>
+      </span>
+    </a>
+  </nav>
+</section>
 
 {# ── Legal info para Gratificacion / CTS ─────────────────────────────────────── #}
 {% if periodo.tipo == 'GRATIFICACION' %}
@@ -442,255 +915,358 @@
 </div>
 {% endif %}
 
-{# ── Action Bar ───────────────────────────────────────────────────────────────── #}
-<div class="action-bar mb-3">
-
-  {# Generar / Recalcular #}
-  {% if puede_generar %}
-  <form method="post" action="{% url 'nominas_periodo_generar' periodo.pk %}" class="d-inline">
-    {% csrf_token %}
-    {% if periodo.estado == 'CALCULADO' %}
-    <button type="submit" class="btn btn-warning btn-sm"
-            onclick="return confirm('¿Recalcular toda la planilla? Los valores actuales serán reemplazados.')">
-      <i class="fas fa-sync-alt me-1"></i>Recalcular
-    </button>
-    {% else %}
-    <button type="submit" class="btn btn-primary btn-sm"
-            onclick="return confirm('¿Generar la planilla para todos los trabajadores activos?')">
-      <i class="fas fa-calculator me-1"></i>Generar planilla
-    </button>
-    {% endif %}
-  </form>
-  {% endif %}
-
-  {# Aprobar — pasa primero por la pantalla de revisión (variance + flags) #}
-  {% if puede_aprobar %}
-  <div class="action-bar-divider"></div>
-  <a href="{% url 'nominas_periodo_revision' periodo.pk %}" class="btn btn-success btn-sm">
-    <i class="fas fa-clipboard-check me-1"></i>Revisar y aprobar
-  </a>
-  {% endif %}
-
-  {# Exportar CSV #}
-  {% if puede_exportar %}
-  <div class="action-bar-divider"></div>
-  <a href="{% url 'nominas_periodo_exportar' periodo.pk %}" class="btn btn-outline-success btn-sm">
-    <i class="fas fa-file-csv me-1"></i>Exportar CSV
-  </a>
-  <a href="{% url 'nominas_periodo_boletas_zip' periodo.pk %}" class="btn btn-outline-danger btn-sm">
-    <i class="fas fa-file-archive me-1"></i>Boletas ZIP
-  </a>
-
-  {# SUNAT / PLAME #}
-  <div class="action-bar-divider"></div>
-  <div class="dropdown d-inline">
-    <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
-            data-bs-toggle="dropdown" aria-expanded="false">
-      <i class="fas fa-landmark me-1"></i>SUNAT
-    </button>
-    <ul class="dropdown-menu dropdown-menu-end">
-      <li>
-        <h6 class="dropdown-header">
-          <i class="fas fa-file-alt me-1"></i>PLAME (PDT 601)
-        </h6>
-      </li>
-      <li>
-        <a class="dropdown-item" href="{% url 'nominas_periodo_plame' periodo.pk %}">
-          <i class="fas fa-download me-2 text-primary"></i>Descargar PLAME (ZIP)
-          <br><small class="text-muted ms-4">Remuneraciones + Retenciones + Jornada</small>
-        </a>
-      </li>
-      <li><hr class="dropdown-divider"></li>
-      <li>
-        <h6 class="dropdown-header">
-          <i class="fas fa-users me-1"></i>T-Registro
-        </h6>
-      </li>
-      <li>
-        <a class="dropdown-item" href="{% url 'nominas_periodo_tregistro' periodo.pk %}">
-          <i class="fas fa-user-plus me-2 text-success"></i>Exportar T-Registro (Altas)
-          <br><small class="text-muted ms-4">Datos de trabajadores del periodo</small>
-        </a>
-      </li>
-    </ul>
-  </div>
-  {% endif %}
-
-  {# Reporte ejecutivo PDF + Comparativo (estado != BORRADOR + tiene registros) #}
-  {% if periodo.estado != 'BORRADOR' %}
-  <div class="action-bar-divider"></div>
-  {% if registros %}
-  <a href="{% url 'nominas_reporte_periodo_pdf' periodo.pk %}" target="_blank"
-     class="btn btn-outline-info btn-sm"
-     title="Reporte ejecutivo PDF — 1 página, gerencia">
-    <i class="fas fa-file-pdf me-1"></i>Reporte Ejecutivo
-  </a>
-
-  {# Archivo plano bancario — depósito masivo de haberes #}
-  <div class="dropdown d-inline-block">
-    <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button"
-            data-bs-toggle="dropdown" aria-expanded="false"
-            title="Generar archivo plano para depósito masivo de haberes a los bancos">
-      <i class="fas fa-university me-1"></i>Pago a bancos
-    </button>
-    <ul class="dropdown-menu shadow-sm" style="font-size:.85rem;min-width:260px;">
-      <li class="px-3 py-2" style="font-size:.72rem;color:#64748b;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">
-        Depósito masivo de haberes
-      </li>
-      <li>
-        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BCP">
-          <span style="background:#0F5BAF;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BCP</span>
-          BCP — Telecrédito Web (TXT)
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BBVA">
-          <span style="background:#072146;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BBVA</span>
-          BBVA — Net Cash (CSV)
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=SCOTIA">
-          <span style="background:#EE1313;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">SCB</span>
-          Scotiabank — Telebanking (CSV)
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=INTERBANK">
-          <span style="background:#00A046;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">IBK</span>
-          Interbank — Comercio.com (TXT)
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BN">
-          <span style="background:#003575;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BN</span>
-          Banco de la Nación (TXT)
-        </a>
-      </li>
-      <li><hr class="dropdown-divider"></li>
-      <li>
-        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BILLETERAS"
-           title="Trabajadores con acuerdo de pago por billetera (Ley 32413): Yape, Plin, Ligo, Kontigo">
-          <span style="background:#742284;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;"><i class="fas fa-mobile-screen"></i></span>
-          Billeteras — Yape / Plin (CSV)
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item d-flex align-items-center gap-2 py-2"
-           href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=GENERICO">
-          <i class="fas fa-file-csv text-success"></i>
-          Genérico — CSV universal
-        </a>
-      </li>
-    </ul>
+{# ── Acciones conectadas por fase ─────────────────────────────────────────────── #}
+<div class="payroll-action-dock mb-3" id="acciones-planilla">
+  <div class="payroll-action-dock__head">
+    <div>
+      <strong><i class="fas fa-diagram-project me-1" style="color:#0f766e;"></i>Acciones conectadas</strong>
+      <span class="ms-2">Cada salida nace de este período; evita descargar, ajustar o declarar por caminos separados.</span>
+    </div>
+    <a href="{% url 'workflow_mes' %}?mes={{ periodo.mes }}&anio={{ periodo.anio }}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-route me-1"></i>Flujo mensual
+    </a>
   </div>
 
-  {# Conceptos manuales masivos (Excel) — propinas, bonificaciones, comisiones #}
-  {% if periodo.estado != 'APROBADO' and periodo.estado != 'CERRADO' and periodo.estado != 'ANULADO' %}
-  <div class="dropdown d-inline-block" id="importar-conceptos">
-    <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button"
-            data-bs-toggle="dropdown" aria-expanded="false"
-            title="Asignar propinas, bonificaciones, comisiones u otros conceptos manuales por Excel">
-      <i class="fas fa-file-excel me-1"></i>Conceptos masivos
-    </button>
-    <ul class="dropdown-menu shadow-sm" style="font-size:.85rem;min-width:280px;">
-      <li class="px-3 py-2" style="font-size:.72rem;color:#64748b;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">
-        Carga masiva por Excel
-      </li>
-      <li>
-        <a class="dropdown-item d-flex align-items-start gap-2 py-2"
-           href="{% url 'nominas_periodo_conceptos_exportar' periodo.pk %}">
-          <i class="fas fa-download mt-1 text-success"></i>
-          <span>
-            <strong>1. Descargar plantilla Excel</strong>
-            <div style="font-size:.72rem;color:#64748b;">Una fila por trabajador, una columna por concepto manual configurado (propinas, bonifs, etc.)</div>
-          </span>
+  <div class="payroll-action-dock__groups">
+    <div class="payroll-action-group">
+      <span class="payroll-action-group__label">
+        <i class="fas fa-clipboard-list" aria-hidden="true"></i> Preparación
+      </span>
+      <div class="payroll-action-group__buttons">
+        <a href="{% url 'pre_planilla' %}?mes={{ periodo.mes }}&anio={{ periodo.anio }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-check-double me-1"></i>Validar datos
         </a>
-      </li>
-      <li><hr class="dropdown-divider"></li>
-      <li>
-        <a class="dropdown-item d-flex align-items-start gap-2 py-2"
-           href="#" data-bs-toggle="modal" data-bs-target="#modalImportarConceptos">
-          <i class="fas fa-upload mt-1 text-primary"></i>
-          <span>
-            <strong>2. Subir Excel con montos</strong>
-            <div style="font-size:.72rem;color:#64748b;">Aplica los montos y recalcula los registros del período</div>
-          </span>
+        <a href="{% url 'conceptos_lista' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-cogs me-1"></i>Conceptos
         </a>
-      </li>
-    </ul>
-  </div>
-
-  {# Modal upload Excel conceptos #}
-  <div class="modal fade" id="modalImportarConceptos" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="border-radius:14px;border:1px solid #cbd5e1;">
-        <form method="post" action="{% url 'nominas_periodo_conceptos_importar' periodo.pk %}" enctype="multipart/form-data">
+        {% if periodo.estado == 'CALCULADO' and puede_generar %}
+        <form method="post" action="{% url 'nominas_periodo_generar' periodo.pk %}" class="d-inline">
           {% csrf_token %}
-          <div class="modal-header" style="background:linear-gradient(135deg,#0f766e,#0d2b27);color:#fff;border-radius:14px 14px 0 0;border:none;">
-            <h5 class="modal-title" style="font-weight:700;">
-              <i class="fas fa-file-excel me-2"></i>Importar conceptos masivos
-            </h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-          </div>
-          <div class="modal-body">
-            <p style="font-size:13.5px;color:#475569;line-height:1.55;margin-bottom:12px;">
-              Subí el Excel <strong>previamente descargado</strong> con los montos completados por trabajador.
-              El sistema lee la fila 2 (códigos), aplica los montos como líneas de la planilla y <strong>recalcula
-              automáticamente</strong> los totales (ingresos, AFP/ONP, neto a pagar).
-            </p>
-            <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#78350f;margin-bottom:14px;">
-              <i class="fas fa-info-circle me-1"></i>
-              <strong>Importante:</strong> usá la plantilla descargada del paso 1. No modifiques la fila 2 (códigos de conceptos).
-            </div>
-            <input type="file" class="form-control" name="archivo" accept=".xlsx" required>
-            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Solo archivos .xlsx (Excel 2007 o superior).</div>
-          </div>
-          <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
-            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-success btn-sm">
-              <i class="fas fa-upload me-1"></i>Subir y aplicar
-            </button>
-          </div>
+          <button type="submit" class="btn btn-outline-warning btn-sm"
+                  onclick="return confirm('¿Recalcular toda la planilla? Los valores actuales serán reemplazados.')">
+            <i class="fas fa-sync-alt me-1"></i>Recalcular
+          </button>
         </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if puede_exportar %}
+    <div class="payroll-action-group">
+      <span class="payroll-action-group__label">
+        <i class="fas fa-folder-open" aria-hidden="true"></i> Entregables
+      </span>
+      <div class="payroll-action-group__buttons">
+        <div class="dropdown d-inline-block">
+          <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button"
+                  data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-folder-open me-1"></i>Boletas y reportes
+          </button>
+          <ul class="dropdown-menu shadow-sm" style="font-size:.85rem;min-width:260px;">
+            <li>
+              <a class="dropdown-item" href="{% url 'nominas_periodo_exportar' periodo.pk %}">
+                <i class="fas fa-file-csv me-2 text-success"></i>Exportar CSV del período
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'nominas_periodo_boletas_zip' periodo.pk %}">
+                <i class="fas fa-file-archive me-2 text-danger"></i>Descargar boletas ZIP
+              </a>
+            </li>
+            {% if registros %}
+            <li>
+              <a class="dropdown-item" href="{% url 'nominas_reporte_periodo_pdf' periodo.pk %}" target="_blank">
+                <i class="fas fa-file-pdf me-2 text-info"></i>Reporte ejecutivo PDF
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'nominas_emision_boletas' %}">
+                <i class="fas fa-paper-plane me-2 text-secondary"></i>Ir a emisión de boletas
+              </a>
+            </li>
+            {% if periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <form method="post" action="{% url 'nominas_notificar_periodo_boletas' periodo.pk %}" class="m-0"
+                    onsubmit="return confirm('¿Enviar notificación in-app a los trabajadores avisando que sus boletas están disponibles?\n\nIdempotente: no duplica si ya se notificó.');">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item">
+                  <i class="fas fa-bell me-2 text-warning"></i>Notificar trabajadores
+                </button>
+              </form>
+            </li>
+            {% endif %}
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="payroll-action-group" id="grupo-pagos">
+      <span class="payroll-action-group__label">
+        <i class="fas fa-university" aria-hidden="true"></i> Pagos
+      </span>
+      <div class="payroll-action-group__buttons">
+        {% if registros and periodo.estado == 'APROBADO' or registros and periodo.estado == 'CERRADO' %}
+        <div class="dropdown d-inline-block">
+          <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button"
+                  data-bs-toggle="dropdown" aria-expanded="false"
+                  title="Generar archivo plano para depósito masivo de haberes a bancos peruanos">
+            <i class="fas fa-money-check-alt me-1"></i>Archivo banco
+          </button>
+          <ul class="dropdown-menu shadow-sm" style="font-size:.85rem;min-width:260px;">
+            <li class="px-3 py-2" style="font-size:.72rem;color:#64748b;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">
+              Depósito masivo de haberes
+            </li>
+            <li>
+              <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                 href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BCP">
+                <span style="background:#0F5BAF;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BCP</span>
+                BCP — Telecrédito Web (TXT)
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                 href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BBVA">
+                <span style="background:#072146;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BBVA</span>
+                BBVA — Net Cash (CSV)
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                 href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=SCOTIA">
+                <span style="background:#EE1313;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">SCB</span>
+                Scotiabank — Telebanking (CSV)
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                 href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=INTERBANK">
+                <span style="background:#00A046;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">IBK</span>
+                Interbank — Comercio.com (TXT)
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                 href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BN">
+                <span style="background:#003575;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;">BN</span>
+                Banco de la Nación (TXT)
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                 href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=BILLETERAS"
+                 title="Trabajadores con acuerdo de pago por billetera: Yape, Plin, Ligo o Kontigo">
+                <span style="background:#742284;color:#fff;width:24px;height:24px;border-radius:4px;font-size:9px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;"><i class="fas fa-mobile-screen"></i></span>
+                Billeteras — Yape / Plin (CSV)
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                 href="{% url 'nominas_periodo_archivo_banco' periodo.pk %}?banco=GENERICO">
+                <i class="fas fa-file-csv text-success"></i>
+                Genérico — CSV universal
+              </a>
+            </li>
+          </ul>
+        </div>
+        {% else %}
+        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
+          <i class="fas fa-lock me-1"></i>
+          {% if not registros %}Sin registros pagables{% elif periodo.estado == 'BORRADOR' %}Disponible al calcular{% else %}Disponible al aprobar{% endif %}
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="payroll-action-group">
+      <span class="payroll-action-group__label">
+        <i class="fas fa-landmark" aria-hidden="true"></i> SUNAT Perú
+      </span>
+      <div class="payroll-action-group__buttons">
+        {% if periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}
+        <div class="dropdown d-inline-block">
+          <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
+                  data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-file-export me-1"></i>PLAME / T-Registro
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><h6 class="dropdown-header"><i class="fas fa-file-alt me-1"></i>PLAME (PDT 601)</h6></li>
+            <li>
+              <a class="dropdown-item" href="{% url 'nominas_periodo_plame' periodo.pk %}">
+                <i class="fas fa-download me-2 text-primary"></i>Descargar PLAME (ZIP)
+                <br><small class="text-muted ms-4">Remuneraciones, retenciones y jornada</small>
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header"><i class="fas fa-users me-1"></i>T-Registro</h6></li>
+            <li>
+              <a class="dropdown-item" href="{% url 'nominas_periodo_tregistro' periodo.pk %}">
+                <i class="fas fa-user-plus me-2 text-success"></i>Exportar T-Registro
+                <br><small class="text-muted ms-4">Altas vinculadas al período</small>
+              </a>
+            </li>
+          </ul>
+        </div>
+        <a href="{% url 'integ_afp_net_panel' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-piggy-bank me-1"></i>AFPNet
+        </a>
+        {% else %}
+        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
+          <i class="fas fa-lock me-1"></i>Disponible al aprobar
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if periodo.estado != 'BORRADOR' and registros and periodo.estado != 'APROBADO' and periodo.estado != 'CERRADO' and periodo.estado != 'ANULADO' %}
+    <div class="payroll-action-group" id="importar-conceptos">
+      <span class="payroll-action-group__label">
+        <i class="fas fa-file-excel" aria-hidden="true"></i> Ajustes masivos
+      </span>
+      <div class="payroll-action-group__buttons">
+        <div class="dropdown d-inline-block">
+          <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button"
+                  data-bs-toggle="dropdown" aria-expanded="false"
+                  title="Asignar propinas, bonificaciones, comisiones u otros conceptos manuales por Excel">
+            <i class="fas fa-table me-1"></i>Conceptos por Excel
+          </button>
+          <ul class="dropdown-menu shadow-sm" style="font-size:.85rem;min-width:280px;">
+            <li class="px-3 py-2" style="font-size:.72rem;color:#64748b;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">
+              Carga masiva por Excel
+            </li>
+            <li>
+              <a class="dropdown-item d-flex align-items-start gap-2 py-2"
+                 href="{% url 'nominas_periodo_conceptos_exportar' periodo.pk %}">
+                <i class="fas fa-download mt-1 text-success"></i>
+                <span>
+                  <strong>1. Descargar plantilla Excel</strong>
+                  <div style="font-size:.72rem;color:#64748b;">Trabajadores y conceptos manuales configurados</div>
+                </span>
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item d-flex align-items-start gap-2 py-2"
+                 href="#" data-bs-toggle="modal" data-bs-target="#modalImportarConceptos">
+                <i class="fas fa-upload mt-1 text-primary"></i>
+                <span>
+                  <strong>2. Subir montos</strong>
+                  <div style="font-size:.72rem;color:#64748b;">Aplica y recalcula los registros del período</div>
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="payroll-action-group">
+      <span class="payroll-action-group__label">
+        <i class="fas fa-shield-alt" aria-hidden="true"></i> Control y cierre
+      </span>
+      <div class="payroll-action-group__buttons">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-resumen"
+                onclick="toggleResumen({{ periodo.pk }})">
+          <i class="fas fa-chart-pie me-1"></i>Estadísticas
+        </button>
+        <a href="{% url 'nominas_comparativo_mensual' %}" class="btn btn-outline-info btn-sm"
+           title="Comparar evolución mensual de planilla">
+          <i class="fas fa-chart-line me-1"></i>Comparativo
+        </a>
+        {% if periodo.estado == 'APROBADO' or periodo.estado == 'CERRADO' %}
+        <div class="dropdown d-inline-block">
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                  data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-file-invoice me-1"></i>Contabilidad
+          </button>
+          <ul class="dropdown-menu shadow-sm" style="font-size:.85rem;min-width:240px;">
+            <li><h6 class="dropdown-header">Asiento contable</h6></li>
+            <li>
+              <a class="dropdown-item" href="{% url 'integ_contable_exportar' 'concar' %}?periodo_id={{ periodo.pk }}">
+                <i class="fas fa-file-csv me-2 text-success"></i>Concar / Spring
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'integ_contable_exportar' 'siscont' %}?periodo_id={{ periodo.pk }}">
+                <i class="fas fa-file-excel me-2 text-warning"></i>Siscont
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'integ_contable_exportar' 'universal' %}?periodo_id={{ periodo.pk }}">
+                <i class="fas fa-table me-2 text-primary"></i>Excel universal
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item" href="{% url 'integ_contable_panel' %}">
+                <i class="fas fa-sliders-h me-2 text-muted"></i>Ver panel contable
+              </a>
+            </li>
+          </ul>
+        </div>
+        {% else %}
+        <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
+          <i class="fas fa-lock me-1"></i>Contabilidad al aprobar
+        </button>
+        {% endif %}
+        {% if periodo.estado == 'APROBADO' %}
+        <form method="post" action="{% url 'nominas_periodo_cerrar' periodo.pk %}" class="d-inline"
+              onsubmit="return confirm('¿Cerrar este período? La planilla quedará congelada para auditoría.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-dark btn-sm">
+            <i class="fas fa-lock me-1"></i>Cerrar período
+          </button>
+        </form>
+        {% elif periodo.estado == 'CERRADO' %}
+        <button type="button" class="btn btn-dark btn-sm" disabled>
+          <i class="fas fa-lock me-1"></i>Período cerrado
+        </button>
+        {% endif %}
       </div>
     </div>
   </div>
-  {% endif %}
-  {% endif %}
-  <a href="{% url 'nominas_comparativo_mensual' %}"
-     class="btn btn-outline-info btn-sm"
-     title="Comparar evolución mensual de planilla">
-    <i class="fas fa-chart-line me-1"></i>Comparativo
-  </a>
-  {% endif %}
-
-  {# Notificar trabajadores (estado APROBADO o CERRADO + tiene registros) #}
-  {% if registros and periodo.estado == 'APROBADO' or registros and periodo.estado == 'CERRADO' %}
-  <form method="post" action="{% url 'nominas_notificar_periodo_boletas' periodo.pk %}" class="d-inline"
-        onsubmit="return confirm('¿Enviar notificación in-app a los trabajadores avisando que sus boletas están disponibles?\n\nIdempotente: no duplica si ya se notificó.');">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-outline-warning btn-sm"
-            title="Notifica a cada trabajador que su boleta está lista">
-      <i class="fas fa-bell me-1"></i>Notificar
-    </button>
-  </form>
-  {% endif %}
-
-  {# Resumen estadístico #}
-  <div class="action-bar-divider"></div>
-  <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-resumen"
-          onclick="toggleResumen({{ periodo.pk }})">
-    <i class="fas fa-chart-pie me-1"></i>Estadísticas
-  </button>
-
 </div>
+
+{% if periodo.estado != 'BORRADOR' and registros and periodo.estado != 'APROBADO' and periodo.estado != 'CERRADO' and periodo.estado != 'ANULADO' %}
+{# Modal upload Excel conceptos #}
+<div class="modal fade" id="modalImportarConceptos" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px;border:1px solid #cbd5e1;">
+      <form method="post" action="{% url 'nominas_periodo_conceptos_importar' periodo.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header" style="background:#0d2b27;color:#fff;border-radius:14px 14px 0 0;border:none;">
+          <h5 class="modal-title" style="font-weight:700;">
+            <i class="fas fa-file-excel me-2"></i>Importar conceptos masivos
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13.5px;color:#475569;line-height:1.55;margin-bottom:12px;">
+            Sube el Excel previamente descargado con los montos completados por trabajador.
+            Harmoni lee la fila de códigos, aplica los montos como líneas de planilla y recalcula automáticamente los totales.
+          </p>
+          <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#78350f;margin-bottom:14px;">
+            <i class="fas fa-info-circle me-1"></i>
+            <strong>Importante:</strong> usa la plantilla descargada del paso 1 y no modifiques la fila de códigos.
+          </div>
+          <input type="file" class="form-control" name="archivo" accept=".xlsx" required>
+          <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Solo archivos .xlsx.</div>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">
+            <i class="fas fa-upload me-1"></i>Subir y aplicar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {# ── Panel de resumen estadístico (AJAX) ──────────────────────────────────────── #}
 <div id="panel-resumen" class="det-card mb-3" style="display:none;">
@@ -710,9 +1286,16 @@
   </div>
 </div>
 
-{# ── Filter Bar ───────────────────────────────────────────────────────────────── #}
-<div class="filter-bar mb-3">
-  <form method="get" id="form-filtros" class="d-flex align-items-center gap-2 flex-wrap w-100">
+{# ── Revision Bar ─────────────────────────────────────────────────────────────── #}
+<div class="payroll-review-bar mb-3">
+  <div class="payroll-review-bar__intro">
+    <strong><i class="fas fa-user-check me-1" style="color:#0f766e;"></i>Revisar trabajadores</strong>
+    <span id="counter-visible">
+      <span id="count-visible">{{ registros|length }}</span> de {{ registros|length }} registros visibles
+    </span>
+  </div>
+
+  <form method="get" id="form-filtros" class="m-0">
     <i class="fas fa-filter text-muted" style="font-size:.85rem;flex-shrink:0;"></i>
 
     <select name="grupo" class="form-select form-select-sm" style="width:auto;min-width:140px;"
@@ -722,13 +1305,11 @@
       <option value="{{ g }}" {% if g == grupo_filtro %}selected{% endif %}>{{ g }}</option>
       {% endfor %}
     </select>
-    <input type="hidden" name="q" value="{{ q }}">
-
     <div class="input-group input-group-sm" style="width:auto;min-width:220px;">
       <span class="input-group-text" style="border-right:none;background:#fafafa;">
         <i class="fas fa-search" style="font-size:.8rem;color:#9ca3af;"></i>
       </span>
-      <input type="text" id="filtro-nombre" class="form-control form-control-sm"
+      <input type="text" name="q" id="filtro-nombre" class="form-control form-control-sm"
              placeholder="Buscar por nombre o DNI…"
              value="{{ q }}"
              oninput="filtrarTabla(this.value)"
@@ -748,18 +1329,13 @@
     </a>
     {% endif %}
 
-    <div class="ms-auto d-flex align-items-center gap-2">
-      <span id="counter-visible" class="text-muted" style="font-size:.78rem;">
-        <span id="count-visible">{{ registros|length }}</span> de {{ registros|length }} registros
-      </span>
-      {% if puede_exportar and registros %}
-      <button type="button" class="btn btn-sm btn-outline-success"
-              onclick="exportarCSVVisible()"
-              title="Exportar filas visibles a CSV">
-        <i class="fas fa-download me-1"></i>CSV visible
-      </button>
-      {% endif %}
-    </div>
+    {% if puede_exportar and registros %}
+    <button type="button" class="btn btn-sm btn-outline-success ms-auto"
+            onclick="exportarCSVVisible()"
+            title="Exportar filas visibles a CSV">
+      <i class="fas fa-download me-1"></i>CSV visible
+    </button>
+    {% endif %}
   </form>
 </div>
 
@@ -1033,15 +1609,15 @@ function filtrarTabla(termino) {
   var totalFilas     = document.querySelectorAll('#tbody-nomina tr').length;
 
   if (txt) {
-    filaSubtotal.style.display = '';
-    document.getElementById('tot-base').textContent  = fmtS(sBase);
-    document.getElementById('tot-ing').textContent   = fmtS(sIng);
-    document.getElementById('tot-desc').textContent  = fmtS(sDesc);
-    document.getElementById('tot-neto').textContent  = fmtS(sNeto);
-    document.getElementById('tot-costo').textContent = fmtS(sCosto);
+    if (filaSubtotal) filaSubtotal.style.display = '';
+    if (document.getElementById('tot-base'))  document.getElementById('tot-base').textContent  = fmtS(sBase);
+    if (document.getElementById('tot-ing'))   document.getElementById('tot-ing').textContent   = fmtS(sIng);
+    if (document.getElementById('tot-desc'))  document.getElementById('tot-desc').textContent  = fmtS(sDesc);
+    if (document.getElementById('tot-neto'))  document.getElementById('tot-neto').textContent  = fmtS(sNeto);
+    if (document.getElementById('tot-costo')) document.getElementById('tot-costo').textContent = fmtS(sCosto);
     if (labelCount) labelCount.textContent = totalFilas + ' (total tabla)';
   } else {
-    filaSubtotal.style.display = 'none';
+    if (filaSubtotal) filaSubtotal.style.display = 'none';
     if (labelCount) labelCount.textContent = totalFilas;
   }
 
@@ -1058,6 +1634,23 @@ function filtrarTabla(termino) {
 function limpiarFiltroNombre() {
   var inp = document.getElementById('filtro-nombre');
   if (inp) { inp.value = ''; filtrarTabla(''); }
+}
+
+function conectarFiltroNomina() {
+  var inp = document.getElementById('filtro-nombre');
+
+  if (inp && !inp.dataset.filterBound) {
+    inp.dataset.filterBound = '1';
+    inp.addEventListener('input', function() {
+      filtrarTabla(inp.value);
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', conectarFiltroNomina);
+} else {
+  conectarFiltroNomina();
 }
 
 /* ── Exportar CSV desde tabla visible ─────────────────────────────────────── */

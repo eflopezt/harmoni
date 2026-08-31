@@ -1293,7 +1293,9 @@
             </a>
           </div>
         {% endif %}
+        {% block process_bridge %}
         {% include 'partials/process_bridge.html' %}
+        {% endblock %}
         {% block content %}{% endblock %}
     </main>
 </div>
