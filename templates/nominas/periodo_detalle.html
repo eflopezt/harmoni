@@ -761,6 +761,8 @@
           El cálculo ya está armado. El siguiente paso es revisar variaciones, corregir lo necesario y aprobar una sola versión de planilla.
         {% elif periodo.estado == 'APROBADO' %}
           La planilla está aprobada. Desde este mismo cierre salen boletas, archivo banco, PLAME, AFPNet y asiento contable.
+        {% elif periodo_cerrado_sin_calculo %}
+          Este cierre quedó congelado sin boletas. Regularízalo aquí para reconstruir la planilla antes de emitir, pagar o exportar.
         {% elif periodo.estado == 'CERRADO' %}
           Cierre congelado para auditoría. Usa estos entregables finales sin volver a procesar ni duplicar archivos.
         {% else %}
@@ -809,9 +811,9 @@
       <form method="post" action="{% url 'nominas_periodo_generar' periodo.pk %}" class="m-0">
         {% csrf_token %}
         <button type="submit" class="payroll-primary-action w-100"
-                onclick="return confirm('¿Generar la planilla para todos los trabajadores activos?')">
-          <i class="fas fa-calculator" aria-hidden="true"></i>
-          Generar planilla
+                onclick="return confirm('{% if periodo_cerrado_sin_calculo %}¿Regularizar este cierre vacío y calcular la planilla del período?{% else %}¿Generar la planilla para todos los trabajadores activos?{% endif %}')">
+          <i class="fas {% if periodo_cerrado_sin_calculo %}fa-wand-magic-sparkles{% else %}fa-calculator{% endif %}" aria-hidden="true"></i>
+          {% if periodo_cerrado_sin_calculo %}Regularizar cierre{% else %}Generar planilla{% endif %}
         </button>
       </form>
       {% elif periodo.estado == 'APROBADO' %}
@@ -949,6 +951,14 @@
       <button type="button" class="btn btn-outline-secondary btn-sm" disabled>
         <i class="fas fa-lock me-1"></i>Sin boletas para cerrar
       </button>
+      {% elif periodo_cerrado_sin_calculo %}
+      <form method="post" action="{% url 'nominas_periodo_generar' periodo.pk %}"
+            onsubmit="return confirm('¿Regularizar este cierre vacío y calcular la planilla del período?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning btn-sm">
+          <i class="fas fa-wand-magic-sparkles me-1"></i>Regularizar cierre
+        </button>
+      </form>
       {% elif periodo.estado == 'CERRADO' %}
       <button type="button" class="btn btn-dark btn-sm" disabled>
         <i class="fas fa-lock me-1"></i>Período cerrado
@@ -1550,9 +1560,13 @@
       {% if grupo_filtro %}
         No hay trabajadores en el grupo "{{ grupo_filtro }}" para este período.
       {% else %}
+        {% if periodo_cerrado_sin_calculo %}
+        Este período figura cerrado, pero no tiene boletas calculadas. Regulariza el cierre para reconstruir la planilla y continuar el flujo mensual.
+        {% else %}
         Aún no se han generado los registros individuales de este período.
         Haz clic en <strong>Generar planilla</strong> para calcular automáticamente
         todos los trabajadores activos.
+        {% endif %}
       {% endif %}
     </p>
     {% if grupo_filtro %}
@@ -1564,8 +1578,9 @@
     <form method="post" action="{% url 'nominas_periodo_generar' periodo.pk %}" class="d-inline">
       {% csrf_token %}
       <button type="submit" class="btn btn-primary btn-sm"
-              onclick="return confirm('¿Generar la planilla para todos los trabajadores activos?')">
-        <i class="fas fa-calculator me-1"></i>Generar planilla
+              onclick="return confirm('{% if periodo_cerrado_sin_calculo %}¿Regularizar este cierre vacío y calcular la planilla del período?{% else %}¿Generar la planilla para todos los trabajadores activos?{% endif %}')">
+        <i class="fas {% if periodo_cerrado_sin_calculo %}fa-wand-magic-sparkles{% else %}fa-calculator{% endif %} me-1"></i>
+        {% if periodo_cerrado_sin_calculo %}Regularizar cierre{% else %}Generar planilla{% endif %}
       </button>
     </form>
     {% endif %}

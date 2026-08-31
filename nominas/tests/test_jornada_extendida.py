@@ -12,6 +12,7 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from nominas.models import ConceptoRemunerativo, PeriodoNomina, RegistroNomina
 
@@ -188,6 +189,91 @@ class WorkflowMesTests(TestCase):
         self.assertFalse(cerrar['done'])
         self.assertFalse(acuses['done'])
 
+    def test_periodo_detalle_regulariza_cierre_vacio(self):
+        from personal.models import Personal
+
+        Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc='49990091',
+            apellidos_nombres='TRABAJADOR REGULARIZACION, LIA',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Activo',
+            sueldo_base=Decimal('3000'),
+            fecha_alta=date(2025, 1, 1),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        periodo = PeriodoNomina.objects.create(
+            tipo='REGULAR',
+            anio=2026,
+            mes=3,
+            descripcion='Marzo 2026',
+            fecha_inicio=date(2026, 3, 1),
+            fecha_fin=date(2026, 3, 31),
+            estado='CERRADO',
+            cerrado_por=self.user,
+            cerrado_en=timezone.now(),
+        )
+
+        detalle = self.client.get(f'/nominas/periodos/{periodo.pk}/')
+
+        self.assertContains(detalle, 'Regularizar cierre')
+        self.assertTrue(detalle.context['periodo_cerrado_sin_calculo'])
+        self.assertTrue(detalle.context['puede_generar'])
+
+        self.client.post(f'/nominas/periodos/{periodo.pk}/generar/')
+        periodo.refresh_from_db()
+
+        self.assertEqual(periodo.estado, 'CALCULADO')
+        self.assertIsNone(periodo.cerrado_por)
+        self.assertIsNone(periodo.cerrado_en)
+        self.assertGreater(periodo.registros.count(), 0)
+
+    def test_periodo_generar_no_reabre_cerrado_con_boletas(self):
+        from personal.models import Personal
+
+        trabajador = Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc='49990092',
+            apellidos_nombres='TRABAJADOR CERRADO, MARCO',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Activo',
+            sueldo_base=Decimal('3000'),
+            fecha_alta=date(2025, 1, 1),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        periodo = PeriodoNomina.objects.create(
+            tipo='REGULAR',
+            anio=2026,
+            mes=3,
+            descripcion='Marzo 2026',
+            fecha_inicio=date(2026, 3, 1),
+            fecha_fin=date(2026, 3, 31),
+            estado='CERRADO',
+            cerrado_por=self.user,
+            cerrado_en=timezone.now(),
+        )
+        RegistroNomina.objects.create(
+            periodo=periodo,
+            personal=trabajador,
+            sueldo_base=Decimal('3000'),
+            dias_trabajados=30,
+            regimen_pension='ONP',
+            total_ingresos=Decimal('3000'),
+            total_descuentos=Decimal('390'),
+            neto_a_pagar=Decimal('2610'),
+            estado='APROBADO',
+        )
+
+        self.client.post(f'/nominas/periodos/{periodo.pk}/generar/')
+        periodo.refresh_from_db()
+
+        self.assertEqual(periodo.estado, 'CERRADO')
+        self.assertEqual(periodo.registros.count(), 1)
+
     def test_periodo_crear_prefill_desde_workflow(self):
         resp = self.client.get(
             '/nominas/periodos/nuevo/?tipo=REGULAR&mes=4&anio=2026&origen=workflow')
@@ -251,6 +337,205 @@ class WorkflowMesTests(TestCase):
             f'/nominas/periodos/{periodo.pk}/',
             fetch_redirect_response=False,
         )
+
+    def test_pre_planilla_valida_cobertura_contractual_del_periodo(self):
+        from empresas.models import Empresa
+        from nominas.tests._helpers import unique_dni, unique_ruc
+        from personal.models import Personal
+
+        empresa = Empresa.objects.create(
+            ruc=unique_ruc(),
+            razon_social='Empresa Cobertura Contratos SAC',
+            activa=True,
+            es_principal=True,
+        )
+        session = self.client.session
+        session['empresa_actual_id'] = empresa.pk
+        session.save()
+        Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='CONTRATO EN FICHA, ANA',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa,
+            sueldo_base=Decimal('3000'),
+            fecha_alta=date(2026, 1, 1),
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio_contrato=date(2026, 1, 1),
+            fecha_fin_contrato=date(2026, 11, 30),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+
+        resp = self.client.get('/nominas/pre-planilla/?mes=3&anio=2026')
+
+        self.assertEqual(resp.status_code, 200)
+        check_contratos = next(c for c in resp.context['checks'] if c['clave'] == 'contratos')
+        self.assertEqual(check_contratos['valor'], 0)
+        self.assertEqual(check_contratos['estado'], 'ok')
+        self.assertContains(resp, 'Trabajadores sin contrato del período')
+
+    def test_pre_planilla_detecta_solo_contratos_sin_continuidad(self):
+        from empresas.models import Empresa
+        from nominas.tests._helpers import unique_dni, unique_ruc
+        from personal.models import Contrato, Personal
+
+        empresa = Empresa.objects.create(
+            ruc=unique_ruc(),
+            razon_social='Empresa Continuidad Contratos SAC',
+            activa=True,
+            es_principal=True,
+        )
+        session = self.client.session
+        session['empresa_actual_id'] = empresa.pk
+        session.save()
+        renovado = Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='CONTRATO RENOVADO, LUIS',
+            cargo='Supervisor',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa,
+            sueldo_base=Decimal('4200'),
+            fecha_alta=date(2026, 1, 1),
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio_contrato=date(2026, 4, 1),
+            fecha_fin_contrato=date(2026, 11, 30),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        Contrato.objects.create(
+            personal=renovado,
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio=date(2026, 1, 1),
+            fecha_fin=date(2026, 3, 31),
+            estado='RENOVADO',
+            sueldo_pactado=Decimal('4200'),
+        )
+        Contrato.objects.create(
+            personal=renovado,
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio=date(2026, 4, 1),
+            fecha_fin=date(2026, 11, 30),
+            estado='VIGENTE',
+            sueldo_pactado=Decimal('4200'),
+        )
+        sin_continuidad = Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='CONTRATO SIN CONTINUIDAD, ROSA',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa,
+            sueldo_base=Decimal('3500'),
+            fecha_alta=date(2026, 1, 1),
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio_contrato=date(2026, 1, 1),
+            fecha_fin_contrato=date(2026, 3, 31),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        Contrato.objects.create(
+            personal=sin_continuidad,
+            tipo_contrato='PLAZO_FIJO',
+            fecha_inicio=date(2026, 1, 1),
+            fecha_fin=date(2026, 3, 31),
+            estado='VIGENTE',
+            sueldo_pactado=Decimal('3500'),
+        )
+
+        resp = self.client.get('/nominas/pre-planilla/?mes=3&anio=2026')
+
+        self.assertEqual(resp.status_code, 200)
+        check_contratos = next(c for c in resp.context['checks'] if c['clave'] == 'contratos')
+        check_vencen = next(c for c in resp.context['checks'] if c['clave'] == 'vencen')
+        self.assertEqual(check_contratos['valor'], 0)
+        self.assertEqual(check_contratos['estado'], 'ok')
+        self.assertEqual(check_vencen['valor'], 1)
+        self.assertEqual(check_vencen['estado'], 'warn')
+        self.assertEqual(check_vencen['detalle'], '1 por enlazar')
+        self.assertContains(resp, 'Contratos que terminan sin continuidad')
+
+    def test_generar_periodo_respeta_empresa_y_trabajadores_del_periodo(self):
+        from empresas.models import Empresa
+        from nominas import engine
+        from nominas.tests._helpers import unique_dni, unique_ruc
+        from personal.models import Personal
+
+        empresa_a = Empresa.objects.create(
+            ruc=unique_ruc(),
+            razon_social='Empresa Nómina A SAC',
+            activa=True,
+            es_principal=True,
+        )
+        empresa_b = Empresa.objects.create(
+            ruc=unique_ruc(),
+            razon_social='Empresa Nómina B SAC',
+            activa=True,
+            es_principal=True,
+        )
+        vigente_a = Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='TRABAJADOR A, VIGENTE',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa_a,
+            sueldo_base=Decimal('3000'),
+            fecha_alta=date(2025, 1, 1),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        cesado_en_periodo_a = Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='TRABAJADOR A, CESADO EN MES',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Cesado',
+            empresa=empresa_a,
+            sueldo_base=Decimal('2500'),
+            fecha_alta=date(2025, 1, 1),
+            fecha_cese=date(2026, 4, 5),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        Personal.objects.create(
+            tipo_doc='DNI',
+            nro_doc=unique_dni(),
+            apellidos_nombres='TRABAJADOR B, NO DEBE ENTRAR',
+            cargo='Analista',
+            tipo_trab='Empleado',
+            estado='Activo',
+            empresa=empresa_b,
+            sueldo_base=Decimal('4000'),
+            fecha_alta=date(2025, 1, 1),
+            regimen_pension='ONP',
+            grupo_tareo='STAFF',
+        )
+        periodo = PeriodoNomina.objects.create(
+            tipo='REGULAR',
+            anio=2026,
+            mes=4,
+            descripcion='Planilla regular Abril 2026',
+            fecha_inicio=date(2026, 3, 22),
+            fecha_fin=date(2026, 4, 21),
+            fecha_pago=date(2026, 4, 25),
+            empresa=empresa_a,
+        )
+
+        engine.generar_periodo(periodo, usuario=self.user)
+
+        personal_ids = set(
+            RegistroNomina.objects.filter(periodo=periodo)
+            .values_list('personal_id', flat=True)
+        )
+        self.assertEqual(personal_ids, {vigente_a.pk, cesado_en_periodo_a.pk})
 
     def test_periodo_cerrar_bloquea_vacio_y_guarda_trazabilidad(self):
         from personal.models import Personal
@@ -341,7 +626,7 @@ class WorkflowMesTests(TestCase):
             grupo_tareo='STAFF',
         )
 
-        for mes in range(3, 8):
+        for mes in range(3, 9):
             mes_anterior = 12 if mes == 1 else mes - 1
             anio_anterior = 2025 if mes == 1 else 2026
             resp_workflow = self.client.get(f'/nominas/workflow-mes/?mes={mes}&anio=2026')

@@ -455,6 +455,10 @@ def periodo_detalle(request, pk):
         registros = registros.filter(personal__apellidos_nombres__icontains=q)
 
     grupos = periodo.registros.values_list('grupo', flat=True).distinct().order_by('grupo')
+    periodo_cerrado_sin_calculo = (
+        periodo.estado == 'CERRADO'
+        and not periodo.registros.exists()
+    )
 
     # Calcular totales de las filas visibles (tras filtros server-side)
     agg = registros.aggregate(
@@ -480,7 +484,11 @@ def periodo_detalle(request, pk):
         'grupo_filtro': grupo,
         'q': q,
         'totales': totales,
-        'puede_generar': periodo.estado in ('BORRADOR', 'CALCULADO'),
+        'periodo_cerrado_sin_calculo': periodo_cerrado_sin_calculo,
+        'puede_generar': (
+            periodo.estado in ('BORRADOR', 'CALCULADO')
+            or periodo_cerrado_sin_calculo
+        ),
         'puede_aprobar': periodo.estado == 'CALCULADO',
         'puede_exportar': periodo.estado in ('CALCULADO', 'APROBADO', 'CERRADO'),
     })
@@ -492,9 +500,18 @@ def periodo_detalle(request, pk):
 def periodo_generar(request, pk):
     """Genera/recalcula todos los registros del período."""
     periodo = get_object_or_404(PeriodoNomina, pk=pk)
+    regulariza_cierre_vacio = (
+        periodo.estado == 'CERRADO'
+        and not periodo.registros.exists()
+    )
     if periodo.estado in ('APROBADO', 'CERRADO', 'ANULADO'):
-        messages.error(request, 'No se puede recalcular un período aprobado o cerrado.')
-        return redirect('nominas_periodo_detalle', pk=pk)
+        if not regulariza_cierre_vacio:
+            messages.error(request, 'No se puede recalcular un período aprobado o cerrado.')
+            return redirect('nominas_periodo_detalle', pk=pk)
+        periodo.estado = 'BORRADOR'
+        periodo.cerrado_por = None
+        periodo.cerrado_en = None
+        periodo.save(update_fields=['estado', 'cerrado_por', 'cerrado_en'])
 
     grupo = request.POST.get('grupo') or None
     stats = engine.generar_periodo(periodo, usuario=request.user, grupo=grupo)
@@ -507,9 +524,10 @@ def periodo_generar(request, pk):
             f"Errores: {'; '.join(stats.get('detalle_errores', [])[:3])}"
         )
     else:
+        prefijo = 'Cierre vacío regularizado. ' if regulariza_cierre_vacio else ''
         messages.success(
             request,
-            f"Período generado: {stats['generados']} nuevos + "
+            f"{prefijo}Período generado: {stats['generados']} nuevos + "
             f"{stats['actualizados']} actualizados. "
             f"Neto total: S/ {stats['total_neto']:,.2f}"
         )
@@ -679,6 +697,8 @@ def periodo_cerrar(request, pk):
             cuotas = CuotaPrestamo.objects.filter(
                 prestamo__estado='EN_CURSO', estado__in=['PENDIENTE', 'VENCIDA'],
                 periodo__year=periodo.anio, periodo__month=periodo.mes)
+            if periodo.empresa_id:
+                cuotas = cuotas.filter(prestamo__personal__empresa_id=periodo.empresa_id)
             n = 0
             for cuota in cuotas:
                 cuota.registrar_pago(referencia=f'Planilla {periodo.mes:02d}/{periodo.anio}')

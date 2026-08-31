@@ -784,7 +784,7 @@ button.user-card-link {
   border-radius: var(--hms-radius-card);
   display: grid;
   gap: 1px;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(7.75rem, 1fr));
   overflow: hidden;
 }
 
@@ -1137,7 +1137,7 @@ button.user-card-link {
   }
 
   .hm-process-rail {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(8.25rem, 1fr));
   }
 }
 

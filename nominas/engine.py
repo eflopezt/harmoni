@@ -23,6 +23,7 @@ import logging
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -1454,7 +1455,15 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
     if not getattr(periodo, 'parametros_snapshot', None):
         periodo.parametros_snapshot = snapshot_parametros_legales()
 
-    qs = Personal.objects.filter(estado='Activo')
+    qs = Personal.objects.filter(
+        Q(estado='Activo') | Q(fecha_cese__gte=periodo.fecha_inicio),
+    ).filter(
+        Q(fecha_alta__isnull=True) | Q(fecha_alta__lte=periodo.fecha_fin),
+    ).filter(
+        Q(fecha_cese__isnull=True) | Q(fecha_cese__gte=periodo.fecha_inicio),
+    )
+    if getattr(periodo, 'empresa_id', None):
+        qs = qs.filter(empresa_id=periodo.empresa_id)
     if grupo:
         qs = qs.filter(grupo_tareo=grupo)
 
@@ -1487,21 +1496,28 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
     tareo_map = {}
     if tipo not in ('GRATIFICACION', 'CTS'):
         try:
-            from django.db.models import Count, Q, Sum
+            from django.db.models import Count, Sum
 
             from asistencia.models import RegistroTareo
             from asistencia.services.periodo_helper import TIPO_MES_CORTE, get_periodo
             ciclo = get_periodo(TIPO_MES_CORTE, periodo.anio, periodo.mes)
-            _agg = (RegistroTareo.objects
-                    .filter(fecha__gte=ciclo.fecha_inicio, fecha__lte=ciclo.fecha_fin,
-                            personal__isnull=False)
-                    .values('personal_id')
-                    .annotate(
-                        he25=Sum('he_25', filter=Q(he_al_banco=False)),
-                        he35=Sum('he_35', filter=Q(he_al_banco=False)),
-                        he100=Sum('he_100', filter=Q(he_al_banco=False)),
-                        no_lab=Count('id', filter=Q(codigo_dia__in=['FA', 'LSG', 'SAI'])),
-                    ))
+            tareo_qs = RegistroTareo.objects.filter(
+                fecha__gte=ciclo.fecha_inicio,
+                fecha__lte=ciclo.fecha_fin,
+                personal__isnull=False,
+            )
+            if getattr(periodo, 'empresa_id', None):
+                tareo_qs = tareo_qs.filter(personal__empresa_id=periodo.empresa_id)
+            _agg = (
+                tareo_qs
+                .values('personal_id')
+                .annotate(
+                    he25=Sum('he_25', filter=Q(he_al_banco=False)),
+                    he35=Sum('he_35', filter=Q(he_al_banco=False)),
+                    he100=Sum('he_100', filter=Q(he_al_banco=False)),
+                    no_lab=Count('id', filter=Q(codigo_dia__in=['FA', 'LSG', 'SAI'])),
+                )
+            )
             tareo_map = {r['personal_id']: r for r in _agg}
         except Exception:
             logger.warning('No se pudo consolidar asistencia→nómina del período %s',
@@ -1519,13 +1535,22 @@ def generar_periodo(periodo, usuario=None, grupo=None) -> dict:
             from django.db.models import Sum
 
             from prestamos.models import CuotaPrestamo
-            _cuotas = (CuotaPrestamo.objects
-                       .filter(prestamo__estado='EN_CURSO',
-                               estado__in=['PENDIENTE', 'VENCIDA'],
-                               periodo__year=periodo.anio, periodo__month=periodo.mes,
-                               prestamo__personal__isnull=False)
-                       .values('prestamo__personal_id')
-                       .annotate(total=Sum('monto')))
+            cuotas_qs = CuotaPrestamo.objects.filter(
+                prestamo__estado='EN_CURSO',
+                estado__in=['PENDIENTE', 'VENCIDA'],
+                periodo__year=periodo.anio,
+                periodo__month=periodo.mes,
+                prestamo__personal__isnull=False,
+            )
+            if getattr(periodo, 'empresa_id', None):
+                cuotas_qs = cuotas_qs.filter(
+                    prestamo__personal__empresa_id=periodo.empresa_id,
+                )
+            _cuotas = (
+                cuotas_qs
+                .values('prestamo__personal_id')
+                .annotate(total=Sum('monto'))
+            )
             prestamo_map = {c['prestamo__personal_id']: (c['total'] or Decimal('0'))
                             for c in _cuotas}
         except Exception:

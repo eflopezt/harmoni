@@ -15,7 +15,7 @@ class ProcessMapTests(TestCase):
     def test_all_process_links_resolve_without_hash_or_legacy_tareo(self):
         stages = get_process_stages()
 
-        self.assertEqual(len(stages), 6)
+        self.assertEqual(len(stages), 9)
         for stage in stages:
             self.assertTrue(stage["url"].startswith("/"))
             self.assertNotIn("#", stage["url"])
@@ -38,10 +38,13 @@ class ProcessMapTests(TestCase):
                 self.assertNotIn("/tareo/", item["url"])
 
     def test_current_stage_uses_the_most_specific_process_prefix(self):
+        self.assertEqual(current_stage_for_path("/calidad-datos/")["id"], "preparacion")
+        self.assertEqual(current_stage_for_path("/reclutamiento/")["id"], "atraccion")
         self.assertEqual(current_stage_for_path("/asistencia/")["id"], "operacion")
         self.assertEqual(current_stage_for_path("/nominas/workflow-mes/")["id"], "nomina")
         self.assertEqual(current_stage_for_path("/documentos/laborales/")["id"], "comunicacion")
         self.assertEqual(current_stage_for_path("/documentos/boletas/")["id"], "nomina")
+        self.assertEqual(current_stage_for_path("/onboarding/offboarding/")["id"], "salida")
         self.assertEqual(current_stage_for_path("/documentos/")["id"], "ingreso")
 
     def test_bridge_is_hidden_outside_admin_processes(self):

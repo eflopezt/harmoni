@@ -11,7 +11,7 @@ Todas las consultas son defensivas: si un modelo/campo no existe, el check se
 marca "no disponible" en vez de romper la página.
 """
 import calendar as _cal
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -67,6 +67,85 @@ def _chk(clave, label, icono, valor, ok_si, tipo, detalle, url_name):
     }
 
 
+def _personal_del_periodo(personal_qs, ini, fin):
+    """Trabajadores que pertenecen al cierre del mes elegido."""
+    return personal_qs.filter(
+        Q(fecha_alta__isnull=True) | Q(fecha_alta__lte=fin),
+    ).filter(
+        Q(fecha_cese__isnull=True) | Q(fecha_cese__gte=ini),
+    ).filter(
+        Q(estado='Activo') | Q(fecha_cese__gte=ini),
+    )
+
+
+def _ids_con_cobertura_contractual(personal_qs, ids, ini, fin):
+    """Contrato documental que cubre al trabajador en el mes de planilla."""
+    from personal.models import Contrato
+
+    con_contrato = set(
+        Contrato.objects.filter(
+            personal_id__in=ids,
+            fecha_inicio__lte=fin,
+        ).filter(
+            Q(fecha_fin__isnull=True) | Q(fecha_fin__gte=ini)
+        ).values_list('personal_id', flat=True)
+    )
+    con_ficha = set(
+        personal_qs.filter(
+            fecha_inicio_contrato__isnull=False,
+            fecha_inicio_contrato__lte=fin,
+        ).filter(
+            Q(fecha_fin_contrato__isnull=True) | Q(fecha_fin_contrato__gte=ini)
+        ).values_list('id', flat=True)
+    )
+    return con_contrato | con_ficha
+
+
+def _contratos_que_terminan_sin_continuidad(personal_qs, ids, ini, fin):
+    """Cuenta trabajadores cuyo contrato termina en el período y no tiene renovación."""
+    from personal.models import Contrato
+
+    pendientes = set()
+
+    def _tiene_continuidad(personal_id, fecha_fin):
+        inicio_siguiente = fecha_fin + timedelta(days=1)
+        tiene_contrato = Contrato.objects.filter(
+            personal_id=personal_id,
+            fecha_inicio__lte=inicio_siguiente,
+        ).filter(
+            Q(fecha_fin__isnull=True) | Q(fecha_fin__gte=inicio_siguiente)
+        ).exists()
+        if tiene_contrato:
+            return True
+        return personal_qs.filter(
+            pk=personal_id,
+            fecha_inicio_contrato__isnull=False,
+            fecha_inicio_contrato__lte=inicio_siguiente,
+        ).filter(
+            Q(fecha_fin_contrato__isnull=True)
+            | Q(fecha_fin_contrato__gte=inicio_siguiente)
+        ).exists()
+
+    contratos_terminan = Contrato.objects.filter(
+        personal_id__in=ids,
+        fecha_fin__gte=ini,
+        fecha_fin__lte=fin,
+    ).values_list('personal_id', 'fecha_fin')
+    for personal_id, fecha_fin in contratos_terminan:
+        if fecha_fin and not _tiene_continuidad(personal_id, fecha_fin):
+            pendientes.add(personal_id)
+
+    fichas_terminan = personal_qs.filter(
+        fecha_fin_contrato__gte=ini,
+        fecha_fin_contrato__lte=fin,
+    ).values_list('id', 'fecha_fin_contrato')
+    for personal_id, fecha_fin in fichas_terminan:
+        if fecha_fin and not _tiene_continuidad(personal_id, fecha_fin):
+            pendientes.add(personal_id)
+
+    return len(pendientes)
+
+
 @login_required
 def pre_planilla(request):
     hoy = date.today()
@@ -82,12 +161,13 @@ def pre_planilla(request):
     ini = date(anio, mes, 1)
     fin = date(anio, mes, _cal.monthrange(anio, mes)[1])
 
-    personal_qs = filtrar_personal_por_request(request)
-    ids = list(personal_qs.values_list('id', flat=True))
-    activos_ids = list(
-        personal_qs.filter(estado='Activo').values_list('id', flat=True)
+    personal_qs = _personal_del_periodo(
+        filtrar_personal_por_request(request),
+        ini,
+        fin,
     )
-    n_activos = len(activos_ids)
+    ids = list(personal_qs.values_list('id', flat=True))
+    n_activos = len(ids)
 
     from asistencia.models import (
         JustificacionNoMarcaje,
@@ -95,8 +175,6 @@ def pre_planilla(request):
         RegistroTareo,
         SolicitudHE,
     )
-    from personal.models import Contrato
-
     checks = []
 
     # 1. Asistencia del mes cargada
@@ -134,26 +212,23 @@ def pre_planilla(request):
         n_just, lambda v: v == 0, 'warn',
         f'{n_just or 0} pendientes', 'asistencia_justificaciones'))
 
-    # 5. Empleados activos sin contrato vigente
+    # 5. Empleados del período sin cobertura contractual
     def _sin_contrato():
-        con = set(Contrato.objects.filter(
-            personal_id__in=activos_ids, estado='VIGENTE'
-        ).values_list('personal_id', flat=True))
-        return sum(1 for i in activos_ids if i not in con)
+        cubiertos = _ids_con_cobertura_contractual(personal_qs, ids, ini, fin)
+        return sum(1 for i in ids if i not in cubiertos)
     n_sin = _safe(_sin_contrato)
     checks.append(_chk(
-        'contratos', 'Activos sin contrato vigente', 'fa-file-contract',
+        'contratos', 'Trabajadores sin contrato del período', 'fa-file-contract',
         n_sin, lambda v: v == 0, 'error',
-        f'{n_sin or 0} de {n_activos} activos', 'personal_list'))
+        f'{n_sin or 0} de {n_activos} trabajadores', 'contratos_panel'))
 
-    # 6. Contratos que vencen este mes
-    n_venc = _safe(lambda: Contrato.objects.filter(
-        personal_id__in=activos_ids, estado='VIGENTE',
-        fecha_fin__gte=hoy, fecha_fin__lte=fin).count())
+    # 6. Contratos que terminan y todavía no tienen continuidad
+    n_venc = _safe(lambda: _contratos_que_terminan_sin_continuidad(
+        personal_qs, ids, ini, fin))
     checks.append(_chk(
-        'vencen', 'Contratos que vencen este mes', 'fa-calendar-times',
+        'vencen', 'Contratos que terminan sin continuidad', 'fa-calendar-times',
         n_venc, lambda v: v == 0, 'warn',
-        f'{n_venc or 0} por vencer', 'personal_list'))
+        f'{n_venc or 0} por enlazar', 'contratos_panel'))
 
     # 7. Préstamos activos a descontar (informativo)
     n_prest = _safe(lambda: __import__(
